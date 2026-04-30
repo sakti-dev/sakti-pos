@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+echo "Select preset:"
+echo "  1) Tall Phone Portrait      900x2025   440dpi"
+echo "  2) Tall Phone Landscape     2025x900   440dpi"
+echo "  3) 10.5\" Tablet Portrait   1200x1920  240dpi"
+echo "  4) 10.5\" Tablet Landscape  1920x1200  240dpi"
+echo ""
+read -rp "> " choice
+
+case "$choice" in
+    1)
+        echo "Setting Tall Phone Portrait (900x2025, 440dpi)"
+        doas waydroid shell wm size 900x2025
+        doas waydroid shell wm density 440
+        ;;
+    2)
+        echo "Setting Tall Phone Landscape (2025x900, 440dpi)"
+        doas waydroid shell wm size 2025x900
+        doas waydroid shell wm density 440
+        ;;
+    3)
+        echo "Setting 10.5\" Tablet Portrait (1200x1920, 240dpi)"
+        doas waydroid shell wm size 1200x1920
+        doas waydroid shell wm density 240
+        ;;
+    4)
+        echo "Setting 10.5\" Tablet Landscape (1920x1200, 240dpi)"
+        doas waydroid shell wm size 1920x1200
+        doas waydroid shell wm density 240
+        ;;
+    *)
+        echo "Invalid choice"
+        exit 1
+        ;;
+esac
