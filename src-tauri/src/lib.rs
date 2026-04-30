@@ -17,6 +17,12 @@ pub fn run() {
             sql: include_str!("../../drizzle/0001_silky_genesis.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "unique_category_product_name",
+            sql: include_str!("../../drizzle/0002_glorious_major_mapleleaf.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

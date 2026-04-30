@@ -1,11 +1,11 @@
-import { createSignal, For } from "solid-js";
 import { clsx } from "clsx";
+import { createSignal, For } from "solid-js";
 import { Button } from "./button";
 
 interface PinPadProps {
-  onSubmit: (pin: string) => void;
   disabled?: boolean;
   maxLength?: number;
+  onSubmit: (pin: string) => void;
 }
 
 const KEYS = [
@@ -30,13 +30,17 @@ export default function PinPad(props: PinPadProps) {
   const dots = () => Array.from({ length: maxLen() }, (_, i) => i);
 
   const handleKey = (key: string) => {
-    if (props.disabled) return;
+    if (props.disabled) {
+      return;
+    }
     if (key === "del") {
       setPin((p) => p.slice(0, -1));
       return;
     }
     if (key === "ok") {
-      if (isComplete()) props.onSubmit(pin());
+      if (isComplete()) {
+        props.onSubmit(pin());
+      }
       return;
     }
     if (pin().length < maxLen()) {
@@ -46,29 +50,29 @@ export default function PinPad(props: PinPadProps) {
 
   return (
     <div class="flex flex-col items-center gap-4">
-      <div class="flex gap-3 justify-center">
+      <div class="flex justify-center gap-3">
         <For each={dots()}>
           {(i) => (
             <div
               class={clsx(
-                "w-4 h-4 rounded-full border-2 transition-all duration-150",
+                "h-4 w-4 rounded-full border-2 transition-all duration-150",
                 i < pin().length
-                  ? "bg-primary border-primary scale-110"
-                  : "bg-transparent border-muted-foreground/30",
+                  ? "scale-110 border-primary bg-primary"
+                  : "border-muted-foreground/30 bg-transparent"
               )}
             />
           )}
         </For>
       </div>
 
-      <div class="grid grid-cols-3 gap-2 w-64">
+      <div class="grid w-64 grid-cols-3 gap-2">
         <For each={KEYS}>
           {(key) => (
             <Button
-              variant={key.value === "ok" ? "default" : "secondary"}
-              size="numpad"
-              onClick={() => handleKey(key.value)}
               disabled={props.disabled}
+              onClick={() => handleKey(key.value)}
+              size="numpad"
+              variant={key.value === "ok" ? "default" : "secondary"}
             >
               {key.label}
             </Button>

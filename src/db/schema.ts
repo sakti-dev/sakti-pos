@@ -1,13 +1,11 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull().unique(),
   pin: text("pin").notNull(),
   role: text("role", { enum: ["owner", "manager", "cashier"] }).notNull(),
-  isActive: integer("is_active", { mode: "boolean" })
-    .notNull()
-    .default(true),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -18,11 +16,9 @@ export const users = sqliteTable("users", {
 
 export const categories = sqliteTable("categories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
+  name: text("name").notNull().unique(),
   sortOrder: integer("sort_order").notNull().default(0),
-  isActive: integer("is_active", { mode: "boolean" })
-    .notNull()
-    .default(true),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -34,12 +30,10 @@ export const categories = sqliteTable("categories", {
 export const products = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   categoryId: integer("category_id").references(() => categories.id),
-  name: text("name").notNull(),
+  name: text("name").notNull().unique(),
   price: integer("price").notNull(),
   imageUrl: text("image_url"),
-  isActive: integer("is_active", { mode: "boolean" })
-    .notNull()
-    .default(true),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: text("created_at")
     .notNull()

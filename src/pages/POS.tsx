@@ -1,8 +1,8 @@
 export default function POS() {
   return (
-    <div class="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 class="text-2xl font-bold">Kasir</h1>
-      <p class="text-sm text-muted-foreground">Halaman POS</p>
+    <div class="flex min-h-screen flex-col items-center justify-center p-4">
+      <h1 class="font-bold text-2xl">Kasir</h1>
+      <p class="text-muted-foreground text-sm">Halaman POS</p>
     </div>
   );
 }

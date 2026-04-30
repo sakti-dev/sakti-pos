@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "471be455-22d9-4765-a178-e24d103347d0",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "e7858acc-a4dc-4e1f-bcf7-5098c4f6a161",
+  "prevId": "5f2fe883-2898-4df5-9691-d3f9ff4e96b3",
   "tables": {
     "categories": {
       "name": "categories",
@@ -52,7 +52,13 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "categories_name_unique": {
+          "name": "categories_name_unique",
+          "columns": ["name"],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -308,7 +314,13 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "products_name_unique": {
+          "name": "products_name_unique",
+          "columns": ["name"],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "products_category_id_categories_id_fk": {
           "name": "products_category_id_categories_id_fk",
@@ -378,7 +390,13 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_name_unique": {
+          "name": "users_name_unique",
+          "columns": ["name"],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

@@ -2,10 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import * as schema from "./schema";
 
-type SqlRow = {
+interface SqlRow {
   columns: string[];
   values: unknown[];
-};
+}
 
 export const db = drizzle(
   async (sql, params, method) => {
@@ -21,7 +21,7 @@ export const db = drizzle(
       ? { rows: rows[0].values }
       : { rows: rows.map((r) => r.values) };
   },
-  { schema },
+  { schema }
 );
 
 export type DatabaseType = typeof db;

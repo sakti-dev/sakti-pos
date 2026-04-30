@@ -1,0 +1,38 @@
+{
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/solid"
+  ],
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": [
+      "src/**",
+      "vite.config.ts",
+      "drizzle.config.ts",
+      "tailwind.config.js",
+      "postcss.config.js",
+      "*.json",
+      "*.jsonc",
+      "!!**/tauri-drizzle-proxy",
+      "!!**/dist",
+      "!!**/src-tauri/target",
+      "!!**/node_modules",
+      "!!**/drizzle/meta"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "style": {
+        "noExportedImports": "off",
+        "noNonNullAssertion": "off",
+        "useFilenamingConvention": "off"
+      },
+      "suspicious": {
+        "noUnknownAtRules": "off"
+      },
+      "performance": {
+        "noNamespaceImport": "warn"
+      }
+    }
+  }
+}

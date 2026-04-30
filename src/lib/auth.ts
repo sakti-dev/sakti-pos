@@ -1,9 +1,9 @@
+import { eq } from "drizzle-orm";
 import { createSignal } from "solid-js";
-import { verifyPin, changePin } from "./auth-provider";
 import { db } from "~/db";
 import { users } from "~/db/schema";
-import { eq } from "drizzle-orm";
 import type { AuthUser } from "./auth-provider";
+import { changePin, verifyPin } from "./auth-provider";
 
 export type { AuthUser };
 
@@ -37,7 +37,9 @@ export const logout = () => {
 
 export const changeCurrentUserPin = async (newPin: string) => {
   const u = user();
-  if (!u) throw new Error("Not authenticated");
+  if (!u) {
+    throw new Error("Not authenticated");
+  }
   await changePin(u.id, newPin);
 };
 

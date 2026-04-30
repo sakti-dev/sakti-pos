@@ -1,12 +1,15 @@
-import { createSignal, For, Show, onMount } from "solid-js";
 import { useNavigate } from "@solidjs/router";
+import { createSignal, For, onMount, Show } from "solid-js";
 import PinPad from "~/components/ui/pinpad";
 import {
-  getActiveUsers,
-  login,
-  getLastUserId,
   type AuthUser,
+  getActiveUsers,
+  getLastUserId,
+  login,
 } from "~/lib/auth";
+
+const MAX_PIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 30_000;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,7 +19,7 @@ export default function Login() {
   const [loading, setLoading] = createSignal(true);
   const [pinDisabled, setPinDisabled] = createSignal(false);
   const [attempts, setAttempts] = createSignal(0);
-  let lockoutTimer: ReturnType<typeof setTimeout> | undefined;
+  let _lockoutTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(async () => {
     try {
@@ -24,20 +27,24 @@ export default function Login() {
       setUsers(activeUsers);
       const lastUserId = getLastUserId();
       const lastUser = activeUsers.find((u) => u.id === lastUserId);
-      if (lastUser) setSelectedUser(lastUser);
-    } catch (err) {
-      console.error("[login] Failed to load users:", err);
+      if (lastUser) {
+        setSelectedUser(lastUser);
+      }
+    } catch {
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   });
 
   const handlePinSubmit = async (pin: string) => {
-    if (!selectedUser() || pinDisabled()) return;
+    if (!selectedUser() || pinDisabled()) {
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      const authUser = await login(selectedUser()!.id, pin);
+      const authUser = await login(selectedUser()?.id, pin);
       const target = authUser.role === "cashier" ? "/pos" : "/menu";
       navigate(target);
     } catch (err) {
@@ -45,14 +52,14 @@ export default function Login() {
       setError(msg.includes("Invalid PIN") ? "PIN salah" : msg);
       const next = attempts() + 1;
       setAttempts(next);
-      if (next >= 5) {
+      if (next >= MAX_PIN_ATTEMPTS) {
         setPinDisabled(true);
         setError("Terlalu banyak percobaan. Coba lagi dalam 30 detik.");
-        lockoutTimer = setTimeout(() => {
+        _lockoutTimer = setTimeout(() => {
           setAttempts(0);
           setPinDisabled(false);
           setError("");
-        }, 30_000);
+        }, LOCKOUT_DURATION_MS);
       }
     } finally {
       setLoading(false);
@@ -65,36 +72,35 @@ export default function Login() {
   };
 
   return (
-    <div class="flex flex-col items-center justify-center min-h-screen p-6 gap-8">
+    <div class="flex min-h-screen flex-col items-center justify-center gap-8 p-6">
       <div class="text-center">
-        <h1 class="text-3xl font-bold">Sakti POS</h1>
-        <p class="text-sm text-muted-foreground mt-1">
+        <h1 class="font-bold text-3xl">Sakti POS</h1>
+        <p class="mt-1 text-muted-foreground text-sm">
           {selectedUser() ? "Masukkan PIN" : "Pilih pengguna"}
         </p>
       </div>
 
       <Show
-        when={!loading() || users().length > 0}
         fallback={
           <div class="text-muted-foreground text-sm">Memuat pengguna...</div>
         }
+        when={!loading() || users().length > 0}
       >
         <Show
-          when={selectedUser()}
           fallback={
-            <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+            <div class="grid w-full max-w-xs grid-cols-2 gap-3">
               <For each={users()}>
                 {(u) => (
                   <button
-                    type="button"
+                    class="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary"
                     onClick={() => setSelectedUser(u)}
-                    class="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary transition-colors"
+                    type="button"
                   >
-                    <div class="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary font-bold text-lg text-primary-foreground">
                       {u.name.charAt(0).toUpperCase()}
                     </div>
-                    <span class="text-sm font-medium">{u.name}</span>
-                    <span class="text-xs text-muted-foreground capitalize">
+                    <span class="font-medium text-sm">{u.name}</span>
+                    <span class="text-muted-foreground text-xs capitalize">
                       {u.role}
                     </span>
                   </button>
@@ -102,37 +108,38 @@ export default function Login() {
               </For>
             </div>
           }
+          when={selectedUser()}
         >
           {(selUser) => (
             <div class="flex flex-col items-center gap-6">
               <button
-                type="button"
+                class="-mt-2 self-start text-muted-foreground text-sm hover:text-foreground"
                 onClick={handleBackToUsers}
-                class="text-sm text-muted-foreground hover:text-foreground self-start -mt-2"
+                type="button"
               >
                 ← Kembali
               </button>
 
               <div class="flex flex-col items-center gap-2">
-                <div class="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
+                <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary font-bold text-2xl text-primary-foreground">
                   {selUser().name.charAt(0).toUpperCase()}
                 </div>
-                <span class="text-lg font-semibold">{selUser().name}</span>
-                <span class="text-xs text-muted-foreground capitalize">
+                <span class="font-semibold text-lg">{selUser().name}</span>
+                <span class="text-muted-foreground text-xs capitalize">
                   {selUser().role}
                 </span>
               </div>
 
               <Show when={error()}>
-                <div class="text-sm text-destructive bg-destructive/10 px-3 py-1.5 rounded-lg">
+                <div class="rounded-lg bg-destructive/10 px-3 py-1.5 text-destructive text-sm">
                   {error()}
                 </div>
               </Show>
 
               <PinPad
-                onSubmit={handlePinSubmit}
                 disabled={pinDisabled() || loading()}
                 maxLength={6}
+                onSubmit={handlePinSubmit}
               />
             </div>
           )}

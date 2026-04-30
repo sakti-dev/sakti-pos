@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 body {
+  min-height: 100vh;
   padding-top: var(--safe-area-inset-top, 25px);
+  padding-right: var(--safe-area-inset-right, 0px);
   padding-bottom: var(--safe-area-inset-bottom, 0px);
   padding-left: var(--safe-area-inset-left, 0px);
-  padding-right: var(--safe-area-inset-right, 0px);
   background-color: #1a1a1a;
-  min-height: 100vh;
 }
 
 @layer base {
@@ -109,23 +109,21 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
+    @apply bg-background text-foreground;
   }
 }
-
-
 
 ::-webkit-scrollbar {
   width: 16px;
 }
 
 ::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  border: 4px solid transparent;
   background-clip: content-box;
+  border: 4px solid transparent;
+  border-radius: 9999px;
   @apply bg-accent;
 }
 
