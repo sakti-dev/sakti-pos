@@ -1,0 +1,84 @@
+0 22:15:03.474  1768  1768 I Finsky  : [2] VerifyApps: Install-time verification complete: id=3, package_name=com.sakti_dev.sakti_pos
+04-30 22:15:03.499   306   357 V BackupManagerService: [UserID:0] restoreAtInstall pkg=com.sakti_dev.sakti_pos token=4 restoreSet=0
+04-30 22:15:03.503  1159  1159 I MediaProvider: Invalidating LocalCallingIdentity cache for package com.sakti_dev.sakti_pos. Reason: package android.intent.action.PACKAGE_ADDED
+04-30 22:15:03.516   706   706 D CarrierSvcBindHelper: onPackageAdded: com.sakti_dev.sakti_pos
+04-30 22:15:03.525   306  1155 W BackupTransportManager: Package com.sakti_dev.sakti_pos enabled setting: 0
+04-30 22:15:03.526   706   706 D CarrierSvcBindHelper: onPackageModified: com.sakti_dev.sakti_pos
+04-30 22:15:03.527   984  4086 I ProximityAuth: [RecentAppsMediator] Package added: (user=UserHandle{0}) com.sakti_dev.sakti_pos
+04-30 22:15:03.532   984  4089 I FontLog : Package com.sakti_dev.sakti_pos has no metadata [CONTEXT service_id=132 ]
+04-30 22:15:03.544  1272  4099 I Blockstore: [DataStoreImpl] Clearing Blockstore Data for package com.sakti_dev.sakti_pos [CONTEXT service_id=258 ]
+04-30 22:15:03.551  1272  4096 I NearbyDiscovery: processGrantSlicePermission: com.sakti_dev.sakti_pos [CONTEXT service_id=265 ]
+04-30 22:15:03.558   306   354 E VerityUtils: Failed to measure fs-verity, errno 1: /data/app/~~NuQ_lgzx7muOVy5Ok9Fg9g==/com.sakti_dev.sakti_pos-lPpX52nJm56Ms38jVVsdEg==/base.apk
+04-30 22:15:03.571   306  3067 I ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.sakti_dev.sakti_pos/.MainActivity} from uid 2000
+04-30 22:15:03.579   306  3067 D CoreBackPreview: Window{7b45e6a u0 com.sakti_dev.sakti_pos/SplashScreen}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@8a2c0d1, mPriority=0}
+04-30 22:15:03.591   306   338 I ActivityManager: Start proc 4134:com.sakti_dev.sakti_pos/u0a150 for next-top-activity {com.sakti_dev.sakti_pos/com.sakti_dev.sakti_pos.MainActivity}
+04-30 22:15:03.596  4134  4134 I i_dev.sakti_pos: Late-enabling -Xcheck:jni
+04-30 22:15:03.600  1768  1768 I Finsky  : [2] Received an install/uninstall event for package com.sakti_dev.sakti_pos
+04-30 22:15:03.622  4134  4134 W i_dev.sakti_pos: Unexpected CPU variant for x86: x86_64.
+04-30 22:15:03.622  4134  4134 W i_dev.sakti_pos: Known variants: atom, sandybridge, silvermont, kabylake, default
+04-30 22:15:03.642  4134  4134 W ziparchive: Unable to open '/data/app/~~NuQ_lgzx7muOVy5Ok9Fg9g==/com.sakti_dev.sakti_pos-lPpX52nJm56Ms38jVVsdEg==/base.dm': No such file or directory
+04-30 22:15:03.642  4134  4134 W ziparchive: Unable to open '/data/app/~~NuQ_lgzx7muOVy5Ok9Fg9g==/com.sakti_dev.sakti_pos-lPpX52nJm56Ms38jVVsdEg==/base.dm': No such file or directory
+04-30 22:15:03.750  4134  4134 V GraphicsEnvironment: ANGLE Developer option for 'com.sakti_dev.sakti_pos' set to: 'default'
+04-30 22:15:03.750  4134  4134 V GraphicsEnvironment: ANGLE GameManagerService for com.sakti_dev.sakti_pos: false
+04-30 22:15:03.843  4134  4134 W i_dev.sakti_pos: Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (unsupported, reflection, allowed)
+04-30 22:15:03.849   306  3327 D CoreBackPreview: Window{1660c5c u0 com.sakti_dev.sakti_pos/com.sakti_dev.sakti_pos.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@45e803a, mPriority=0}
+04-30 22:15:03.898   306   325 W ziparchive: Unable to open '/data/app/~~NuQ_lgzx7muOVy5Ok9Fg9g==/com.sakti_dev.sakti_pos-lPpX52nJm56Ms38jVVsdEg==/base.dm': No such file or directory
+04-30 22:15:03.899   306   325 I ActivityTaskManager: Displayed com.sakti_dev.sakti_pos/.MainActivity: +327ms
+04-30 22:15:03.908  4134  4134 W i_dev.sakti_pos: Entry not found
+04-30 22:15:03.911  4134  4134 W i_dev.sakti_pos: ClassLoaderContext shared library size mismatch. Expected=0, found=1 (PCL[] | PCL[]{PCL[]})
+04-30 22:15:03.934  4134  4134 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->isTagEnabled(J)Z (unsupported, reflection, allowed)
+04-30 22:15:03.934  4134  4134 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->traceBegin(JLjava/lang/String;)V (unsupported, reflection, allowed)
+04-30 22:15:03.934  4134  4134 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->traceEnd(J)V (unsupported, reflection, allowed)
+04-30 22:15:03.934  4134  4134 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->asyncTraceBegin(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+04-30 22:15:03.934  4134  4134 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->asyncTraceEnd(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+04-30 22:15:03.942  4134  4203 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.sakti_dev.sakti_pos/app_webview/variations_seed_new"
+04-30 22:15:03.942  4134  4203 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.sakti_dev.sakti_pos/app_webview/variations_seed"
+04-30 22:15:03.962   306   338 I ActivityManager: Start proc 4207:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0i3 for  {com.sakti_dev.sakti_pos/org.chromium.content.app.SandboxedProcessService0:0}
+04-30 22:15:04.087  4134  4229 W i_dev.sakti_pos: Accessing hidden method Landroid/media/AudioManager;->getOutputLatency(I)I (unsupported, reflection, allowed)
+04-30 22:15:04.254   306  3327 D CoreBackPreview: Window{7b45e6a u0 com.sakti_dev.sakti_pos/SplashScreen EXITING}: Setting back callback null
+04-30 22:15:04.254   306  1483 W InputManager-JNI: Input channel object '7b45e6a com.sakti_dev.sakti_pos/SplashScreen (client)' was disposed without first being removed with the input manager!
+04-30 22:15:05.240  4134  4166 I RustStdoutStderr: [run_sql] path="/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db" uri=sqlite:/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db?mode=rwc
+04-30 22:15:05.240  4134  4166 I RustStdoutStderr: [run_sql] sql=INSERT OR IGNORE INTO users (name, pin, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) params=6
+04-30 22:15:05.242  4134  4166 I RustStdoutStderr: [run_sql] result: 0 rows, first=None
+04-30 22:15:05.257  4134  4166 I RustStdoutStderr: [run_sql] path="/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db" uri=sqlite:/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db?mode=rwc
+04-30 22:15:05.257  4134  4166 I RustStdoutStderr: [run_sql] sql=select "id", "name", "role" from "users" where "users"."is_active" = ? params=1
+04-30 22:15:05.259  4134  4166 I RustStdoutStderr: [run_sql] result: 1 rows, first=Some(SqlRow { columns: ["id", "name", "role"], values: [Number(1), String("Owner"), String("owner")] })
+04-30 22:15:09.811  4134  4299 D ProfileInstaller: Installing profile for com.sakti_dev.sakti_pos
+04-30 22:15:10.117   306   328 I ActivityManager: Killing 4134:com.sakti_dev.sakti_pos/u0a150 (adj 905): remove task
+04-30 22:15:10.134   306   757 W ActivityManager: Scheduling restart of crashed service com.sakti_dev.sakti_pos/org.chromium.content.app.SandboxedProcessService0:0 in 1000ms for connection
+04-30 22:15:10.154   306  3327 I WindowManager: WIN DEATH: Window{1660c5c u0 com.sakti_dev.sakti_pos/com.sakti_dev.sakti_pos.MainActivity}
+04-30 22:15:10.154   306  3327 W InputManager-JNI: Input channel object '1660c5c com.sakti_dev.sakti_pos/com.sakti_dev.sakti_pos.MainActivity (client)' was disposed without first being removed with the input manager!
+04-30 22:15:10.156   306   336 W UsageStatsService: Unexpected activity event reported! (com.sakti_dev.sakti_pos/com.sakti_dev.sakti_pos.MainActivity event : 23 instanceId : 183555469)
+04-30 22:15:12.836   306  1483 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.sakti_dev.sakti_pos/.MainActivity bnds=[374,845][530,1082]} from uid 10120
+04-30 22:15:12.840   306  1483 D CoreBackPreview: Window{75d24e6 u0 com.sakti_dev.sakti_pos/SplashScreen}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@6ce94d4, mPriority=0}
+04-30 22:15:12.849   306   338 I ActivityManager: Start proc 4302:com.sakti_dev.sakti_pos/u0a150 for next-top-activity {com.sakti_dev.sakti_pos/com.sakti_dev.sakti_pos.MainActivity}
+04-30 22:15:12.854  4302  4302 I i_dev.sakti_pos: Late-enabling -Xcheck:jni
+04-30 22:15:12.883  4302  4302 W i_dev.sakti_pos: Unexpected CPU variant for x86: x86_64.
+04-30 22:15:12.883  4302  4302 W i_dev.sakti_pos: Known variants: atom, sandybridge, silvermont, kabylake, default
+04-30 22:15:12.895   306  2885 I AppsFilter: interaction: PackageSetting{c13ad79 com.sakti_dev.sakti_pos/10150} -> PackageSetting{7d1eabe com.android.launcher3/10120} BLOCKED
+04-30 22:15:12.914  4302  4302 W ziparchive: Unable to open '/data/app/~~NuQ_lgzx7muOVy5Ok9Fg9g==/com.sakti_dev.sakti_pos-lPpX52nJm56Ms38jVVsdEg==/base.dm': No such file or directory
+04-30 22:15:12.914  4302  4302 W ziparchive: Unable to open '/data/app/~~NuQ_lgzx7muOVy5Ok9Fg9g==/com.sakti_dev.sakti_pos-lPpX52nJm56Ms38jVVsdEg==/base.dm': No such file or directory
+04-30 22:15:13.031  4302  4302 V GraphicsEnvironment: ANGLE Developer option for 'com.sakti_dev.sakti_pos' set to: 'default'
+04-30 22:15:13.032  4302  4302 V GraphicsEnvironment: ANGLE GameManagerService for com.sakti_dev.sakti_pos: false
+04-30 22:15:13.141  4302  4302 W i_dev.sakti_pos: Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (unsupported, reflection, allowed)
+04-30 22:15:13.149   306  1483 D CoreBackPreview: Window{150bb17 u0 com.sakti_dev.sakti_pos/com.sakti_dev.sakti_pos.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@112a8ed, mPriority=0}
+04-30 22:15:13.197   306   325 W ziparchive: Unable to open '/data/app/~~NuQ_lgzx7muOVy5Ok9Fg9g==/com.sakti_dev.sakti_pos-lPpX52nJm56Ms38jVVsdEg==/base.dm': No such file or directory
+04-30 22:15:13.198   306   325 I ActivityTaskManager: Displayed com.sakti_dev.sakti_pos/.MainActivity: +361ms
+04-30 22:15:13.206  4302  4302 W i_dev.sakti_pos: Entry not found
+04-30 22:15:13.208  4302  4302 W i_dev.sakti_pos: ClassLoaderContext shared library size mismatch. Expected=0, found=1 (PCL[] | PCL[]{PCL[]})
+04-30 22:15:13.222  4302  4302 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->isTagEnabled(J)Z (unsupported, reflection, allowed)
+04-30 22:15:13.222  4302  4302 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->traceBegin(JLjava/lang/String;)V (unsupported, reflection, allowed)
+04-30 22:15:13.222  4302  4302 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->traceEnd(J)V (unsupported, reflection, allowed)
+04-30 22:15:13.222  4302  4302 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->asyncTraceBegin(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+04-30 22:15:13.222  4302  4302 W i_dev.sakti_pos: Accessing hidden method Landroid/os/Trace;->asyncTraceEnd(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+04-30 22:15:13.251   306   338 I ActivityManager: Start proc 4359:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0i4 for  {com.sakti_dev.sakti_pos/org.chromium.content.app.SandboxedProcessService0:0}
+04-30 22:15:13.360  4302  4379 W i_dev.sakti_pos: Accessing hidden method Landroid/media/AudioManager;->getOutputLatency(I)I (unsupported, reflection, allowed)
+04-30 22:15:13.564   306  2886 D CoreBackPreview: Window{75d24e6 u0 com.sakti_dev.sakti_pos/SplashScreen EXITING}: Setting back callback null
+04-30 22:15:13.564   306  2885 W InputManager-JNI: Input channel object '75d24e6 com.sakti_dev.sakti_pos/SplashScreen (client)' was disposed without first being removed with the input manager!
+04-30 22:15:18.432  4302  4428 D ProfileInstaller: Installing profile for com.sakti_dev.sakti_pos
+04-30 22:15:18.579  4302  4323 I RustStdoutStderr: [run_sql] path="/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db" uri=sqlite:/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db?mode=rwc
+04-30 22:15:18.579  4302  4323 I RustStdoutStderr: [run_sql] sql=INSERT OR IGNORE INTO users (name, pin, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) params=6
+04-30 22:15:18.587  4302  4323 I RustStdoutStderr: [run_sql] result: 0 rows, first=None
+04-30 22:15:18.602  4302  4323 I RustStdoutStderr: [run_sql] path="/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db" uri=sqlite:/data/user/0/com.sakti_dev.sakti_pos/sakti-pos.db?mode=rwc
+04-30 22:15:18.602  4302  4323 I RustStdoutStderr: [run_sql] sql=select "id", "name", "role" from "users" where "users"."is_active" = ? params=1
+04-30 22:15:18.603  4302  4323 I RustStdoutStderr: [run_sql] result: 1 rows, first=Some(SqlRow { columns: ["id", "name", "role"], values: [Number(1), String("Owner"), String("owner")] })

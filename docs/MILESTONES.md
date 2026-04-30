@@ -22,57 +22,77 @@ Get the project skeleton working with all tooling configured.
 
 ## Milestone 2: Database Layer
 
-Set up the Rust libsql backend + Drizzle sqlite-proxy bridge.
+Set up the official `@tauri-apps/plugin-sql` (SQLite) backend and wire it to the Drizzle ORM frontend proxy.
 
 ### Rust side
 
-- [ ] Add `libsql` crate to `Cargo.toml`
-- [ ] Add `tokio` crate (async runtime for libsql)
-- [ ] Create `src-tauri/src/db.rs` — database connection initialization (app data dir + `sakti-pos.db`)
-- [ ] Implement `db_query` Tauri command — accepts SQL + params, returns rows as JSON
-- [ ] Implement `db_execute` Tauri command — accepts SQL + params, returns `{ last_insert_id, rows_affected }`
-- [ ] Implement `db_execute_batch` Tauri command — accepts array of statements, runs in a transaction
-- [ ] Implement `db_run_migrations` Tauri command — runs embedded migration SQL files
-- [ ] Create migration tracking table (`_migrations`) for idempotent migration runs
-- [ ] Register all new commands in `lib.rs` `invoke_handler`
-- [ ] Initialize DB + run migrations in `lib.rs` setup (using `tauri::Builder::setup`)
+- [x] Add `tauri-plugin-sql` crate to `src-tauri/Cargo.toml` (sqlite feature)
+- [x] Register the plugin in `src-tauri/src/lib.rs` with migrations via `include_str!`
+- [x] Add `sql:default` permission in `src-tauri/capabilities/default.json`
 
 ### Frontend side
 
-- [ ] Install `drizzle-orm`
-- [ ] Install `drizzle-kit` as dev dependency
-- [ ] Create `src/db/schema.ts` — Drizzle table definitions for all 5 tables (users, categories, products, orders, order_items)
-- [ ] Create `src/db/index.ts` — Drizzle client with `sqlite-proxy` driver wired to Tauri `invoke`
-- [ ] Create `drizzle.config.ts` at project root
-- [ ] Generate initial migration SQL with `drizzle-kit generate`
-- [ ] Copy/embed generated migration SQL into Rust binary
-- [ ] Write seed migration (default owner user: name "Owner", PIN hash for "1234", role "owner")
-- [ ] Test: verify app creates DB, runs migrations, seed user exists on first launch
+- [x] Install `drizzle-orm` and `@tauri-apps/plugin-sql`
+- [x] Install `drizzle-kit` as a dev dependency
+- [x] Create `src/db/schema.ts` — Drizzle table definitions for all 5 tables (users, categories, products, orders, order_items)
+- [x] Create `src/db/index.ts` — Drizzle client using `sqlite-proxy` driver, wired to `@tauri-apps/plugin-sql`
+- [x] Create `drizzle.config.ts` at the project root for Drizzle Kit
+- [x] Generate initial migration SQL with `drizzle-kit generate`
+- [x] Wire migration runner into app startup (Rust-side via `tauri_plugin_sql::Builder`)
+- [ ] Write a seed migration (default owner user: name "Owner", PIN hash for "1234", role "owner") — deferred to Milestone 3
+- [x] Test: verify app creates DB on the Waydroid device, runs migrations, and Drizzle can query tables
 
 ---
 
 ## Milestone 3: Authentication
 
-PIN-based login with session management.
+PIN-based login with session management. Designed for progressive enhancement — auth is abstracted behind a Rust `AuthProvider` trait so adding server-side auth later requires zero frontend changes.
 
-- [ ] Install `bcrypt` or `argon2` crate in Rust (for PIN hashing)
-- [ ] Create `src-tauri/src/auth.rs` — `verify_pin` Tauri command (user_id + PIN → validate hash)
+### Architecture
+
+```
+Frontend (SolidJS)
+    │  invoke("verify_pin", { userId, pin })
+    ▼
+Rust Tauri Command (verify_pin)
+    │  calls auth_provider.verify(user_id, pin)
+    ▼
+AuthProvider trait
+    ├── LocalAuthProvider (v1)  — verifies against local SQLite DB with argon2 hashes
+    └── ServerAuthProvider (v2) — verifies against remote server, caches locally for offline
+```
+
+### Rust side
+
+- [ ] Add `argon2` crate to `src-tauri/Cargo.toml` (PIN hashing)
+- [ ] Create `src-tauri/src/auth.rs` — `AuthProvider` trait with `verify(user_id, pin) -> Result<User>` and `hash_pin(pin) -> String`
+- [ ] Implement `LocalAuthProvider` — queries `users` table, verifies PIN against argon2 hash
+- [ ] Register `verify_pin` Tauri command — delegates to `LocalAuthProvider`
+- [ ] Register `change_pin` Tauri command — hashes new PIN and updates DB
+- [ ] Add seed migration: default owner user (name "Owner", argon2 hash of "1234", role "owner")
+- [ ] Add seed migration: trigger `change_pin` prompt for default PIN on first login
+
+### Frontend side
+
 - [ ] Create `src/lib/auth.ts` — auth session store (SolidJS reactive store)
   - [ ] Store current user: `{ id, name, role }`
-  - [ ] `login(userId, pin)` → calls `verify_pin` → sets session
+  - [ ] `login(userId, pin)` → `invoke("verify_pin", ...)` → sets session
   - [ ] `logout()` → clears session → navigates to `/login`
   - [ ] `isAuthenticated()` signal
   - [ ] `currentUser()` signal
+  - [ ] Persist last user ID to localStorage (for "remember who was logged in")
+  - [ ] Require PIN re-entry after app restart (even if user ID is remembered)
 - [ ] Create `src/components/PinPad.tsx` — reusable numeric PIN input component (4-6 digits)
 - [ ] Create `src/pages/Login.tsx` — user list + PIN pad
   - [ ] Show list of active users (name only, avatar/initial)
+  - [ ] Remember last user and pre-select them
   - [ ] Tap user → show PIN pad
-  - [ ] Wrong PIN → error feedback, retry
+  - [ ] Wrong PIN → error feedback, retry (max 5 attempts, then lock for 30s)
   - [ ] Success → navigate to `/pos` (cashier) or `/menu` (manager/owner)
 - [ ] Add route guard: redirect to `/login` if not authenticated
 - [ ] Add role-based route protection (owner-only routes, manager+ routes)
-- [ ] Force password change: if user is "Owner" with default PIN "1234", prompt change on first login
-- [ ] Test: login flow works, session persists across navigation, logout clears session
+- [ ] Change PIN dialog: required on first login if using default PIN "1234"
+- [ ] Test: login flow works, session persists across navigation, logout clears session, PIN re-entry after restart
 
 ---
 
