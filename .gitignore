@@ -2,3 +2,4 @@ node_modules
 dist
 .direnv
 tauri-drizzle-proxylog.txt
+log.txt

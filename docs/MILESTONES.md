@@ -15,84 +15,78 @@ Get the project skeleton working with all tooling configured.
 - [x] Set up `@solidjs/router` with placeholder routes: `/login`, `/pos`, `/menu`, `/orders`, `/users`, `/settings`
 - [x] Create blank placeholder page components for each route
 - [x] Configure Tauri window for Android-friendly defaults (fullscreen, no title bar)
-- [ ] Verify `bun tauri dev` builds and runs on Android emulator/device
+- [x] Verify `bun tauri dev` builds and runs on Android emulator/device
 - [x] Clean up scaffold boilerplate (remove greet command, logo assets, App.css)
 
 ---
 
-## Milestone 2: Database Layer
+## Milestone 2: Database Layer ✅
 
-Set up the official `@tauri-apps/plugin-sql` (SQLite) backend and wire it to the Drizzle ORM frontend proxy.
+Set up SQLite backend with Drizzle ORM frontend proxy.
 
 ### Rust side
 
 - [x] Add `tauri-plugin-sql` crate to `src-tauri/Cargo.toml` (sqlite feature)
-- [x] Register the plugin in `src-tauri/src/lib.rs` with migrations via `include_str!`
+- [x] Add `sqlx` crate (sqlite, runtime-tokio) for custom `run_sql` command
+- [x] Register `tauri-plugin-sql` in `src-tauri/src/lib.rs` with migrations via `include_str!`
 - [x] Add `sql:default` permission in `src-tauri/capabilities/default.json`
+- [x] Create `src-tauri/src/drizzle_proxy.rs` — custom `run_sql` command using `sqlx::SqlitePool` directly (bypasses broken plugin-sql JS API)
+- [x] `sqlx_value_to_json` with fallback chain (i64 → f64 → String) for aggregate columns like `COUNT(*)`
 
 ### Frontend side
 
 - [x] Install `drizzle-orm` and `@tauri-apps/plugin-sql`
 - [x] Install `drizzle-kit` as a dev dependency
 - [x] Create `src/db/schema.ts` — Drizzle table definitions for all 5 tables (users, categories, products, orders, order_items)
-- [x] Create `src/db/index.ts` — Drizzle client using `sqlite-proxy` driver, wired to `@tauri-apps/plugin-sql`
+- [x] Create `src/db/index.ts` — Drizzle client using `sqlite-proxy` driver, wired to `invoke("run_sql")`
 - [x] Create `drizzle.config.ts` at the project root for Drizzle Kit
 - [x] Generate initial migration SQL with `drizzle-kit generate`
 - [x] Wire migration runner into app startup (Rust-side via `tauri_plugin_sql::Builder`)
-- [ ] Write a seed migration (default owner user: name "Owner", PIN hash for "1234", role "owner") — deferred to Milestone 3
-- [x] Test: verify app creates DB on the Waydroid device, runs migrations, and Drizzle can query tables
+- [x] Add unique constraint on `users.name` (migration `drizzle/0001_silky_genesis.sql`)
+- [x] Seed deferred to Milestone 3
+- [x] Test: verify app creates DB on Waydroid, runs migrations, Drizzle queries work
+
+### Key decisions
+- **`tauri-plugin-sql`** kept ONLY for running migrations via `Database.load()` — its JS `execute()`/`select()` API is broken with parameterized queries
+- **Custom `run_sql` Rust command** using `sqlx` directly with `?` placeholders — works reliably
+- **Two separate DB connections** — plugin-sql for migrations, sqlx for queries; same file, independent pools
 
 ---
 
-## Milestone 3: Authentication
+## Milestone 3: Authentication ✅
 
-PIN-based login with session management. Designed for progressive enhancement — auth is abstracted behind a Rust `AuthProvider` trait so adding server-side auth later requires zero frontend changes.
-
-### Architecture
-
-```
-Frontend (SolidJS)
-    │  invoke("verify_pin", { userId, pin })
-    ▼
-Rust Tauri Command (verify_pin)
-    │  calls auth_provider.verify(user_id, pin)
-    ▼
-AuthProvider trait
-    ├── LocalAuthProvider (v1)  — verifies against local SQLite DB with argon2 hashes
-    └── ServerAuthProvider (v2) — verifies against remote server, caches locally for offline
-```
-
-### Rust side
-
-- [ ] Add `argon2` crate to `src-tauri/Cargo.toml` (PIN hashing)
-- [ ] Create `src-tauri/src/auth.rs` — `AuthProvider` trait with `verify(user_id, pin) -> Result<User>` and `hash_pin(pin) -> String`
-- [ ] Implement `LocalAuthProvider` — queries `users` table, verifies PIN against argon2 hash
-- [ ] Register `verify_pin` Tauri command — delegates to `LocalAuthProvider`
-- [ ] Register `change_pin` Tauri command — hashes new PIN and updates DB
-- [ ] Add seed migration: default owner user (name "Owner", argon2 hash of "1234", role "owner")
-- [ ] Add seed migration: trigger `change_pin` prompt for default PIN on first login
+PIN-based login with session management. Implemented in TypeScript (not Rust) — simpler for v1, can add server-side auth later.
 
 ### Frontend side
 
-- [ ] Create `src/lib/auth.ts` — auth session store (SolidJS reactive store)
-  - [ ] Store current user: `{ id, name, role }`
-  - [ ] `login(userId, pin)` → `invoke("verify_pin", ...)` → sets session
-  - [ ] `logout()` → clears session → navigates to `/login`
-  - [ ] `isAuthenticated()` signal
-  - [ ] `currentUser()` signal
-  - [ ] Persist last user ID to localStorage (for "remember who was logged in")
-  - [ ] Require PIN re-entry after app restart (even if user ID is remembered)
-- [ ] Create `src/components/PinPad.tsx` — reusable numeric PIN input component (4-6 digits)
-- [ ] Create `src/pages/Login.tsx` — user list + PIN pad
-  - [ ] Show list of active users (name only, avatar/initial)
-  - [ ] Remember last user and pre-select them
-  - [ ] Tap user → show PIN pad
-  - [ ] Wrong PIN → error feedback, retry (max 5 attempts, then lock for 30s)
-  - [ ] Success → navigate to `/pos` (cashier) or `/menu` (manager/owner)
-- [ ] Add route guard: redirect to `/login` if not authenticated
-- [ ] Add role-based route protection (owner-only routes, manager+ routes)
-- [ ] Change PIN dialog: required on first login if using default PIN "1234"
-- [ ] Test: login flow works, session persists across navigation, logout clears session, PIN re-entry after restart
+- [x] Install `bcryptjs` for PIN hashing
+- [x] Create `src/lib/auth-provider.ts` — `LocalAuthProvider` class with `seedDefaultOwner()` using `INSERT OR IGNORE`
+- [x] Create `src/lib/auth.ts` — auth session store (SolidJS reactive store)
+  - [x] Store current user: `{ id, name, role }`
+  - [x] `login(userId, pin)` → verifies PIN via bcryptjs → sets session
+  - [x] `logout()` → clears session → navigates to `/login`
+  - [x] `isAuthenticated()` signal
+  - [x] `currentUser()` signal
+  - [x] Persist last user ID to localStorage
+  - [x] Require PIN re-entry after app restart
+- [x] Create `src/components/PinPad.tsx` — reusable numeric PIN input (6 digits, dot indicators, 3x4 grid)
+- [x] Create `src/pages/Login.tsx` — user grid + PIN pad
+  - [x] Show list of active users (name + initial avatar)
+  - [x] Remember last user and pre-select
+  - [x] Tap user → show PIN pad
+  - [x] Wrong PIN → error feedback, rate limit (5 attempts / 30s lockout)
+  - [x] Success → navigate to `/pos` (cashier) or `/menu` (manager/owner)
+- [x] `RequireAuth` route guard in `src/App.tsx` with optional `roles` prop
+- [x] `src/components/Layout.tsx` — nav hidden on `/login`, auth redirect
+- [x] Create `src/components/ChangePinDialog.tsx` — new PIN → confirm → save
+- [x] Seed: default owner (name "Owner", PIN "123456", role "owner") via `INSERT OR IGNORE`
+- [x] Test: login flow verified on Waydroid, no duplicate users on restart, session clears on logout
+
+### Key decisions
+- **Auth in TypeScript, not Rust** — simpler, no need for Rust auth commands
+- **`bcryptjs`** instead of argon2 — pure JS, no native deps, fine for local-only v1
+- **`INSERT OR IGNORE`** for seed — combined with unique name constraint, prevents duplicates without count checks
+- **Rust `AuthProvider` trait deferred** — not needed until server-side auth in v2
 
 ---
 

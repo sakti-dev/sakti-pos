@@ -1,7 +1,12 @@
 import { createSignal, For, Show, onMount } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import PinPad from "~/components/PinPad";
-import { getActiveUsers, login, getLastUserId, type AuthUser } from "~/lib/auth";
+import PinPad from "~/components/ui/pinpad";
+import {
+  getActiveUsers,
+  login,
+  getLastUserId,
+  type AuthUser,
+} from "~/lib/auth";
 
 export default function Login() {
   const navigate = useNavigate();

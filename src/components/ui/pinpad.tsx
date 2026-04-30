@@ -1,5 +1,6 @@
 import { createSignal, For } from "solid-js";
 import { clsx } from "clsx";
+import { Button } from "./button";
 
 interface PinPadProps {
   onSubmit: (pin: string) => void;
@@ -63,20 +64,14 @@ export default function PinPad(props: PinPadProps) {
       <div class="grid grid-cols-3 gap-2 w-64">
         <For each={KEYS}>
           {(key) => (
-            <button
-              type="button"
+            <Button
+              variant={key.value === "ok" ? "default" : "secondary"}
+              size="numpad"
               onClick={() => handleKey(key.value)}
               disabled={props.disabled}
-              class={clsx(
-                "h-14 rounded-xl text-xl font-medium transition-colors",
-                key.value === "ok"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-accent",
-                props.disabled && "opacity-50 cursor-not-allowed",
-              )}
             >
               {key.label}
-            </button>
+            </Button>
           )}
         </For>
       </div>
