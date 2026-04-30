@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+waydroid session stop
+# Then start it again
+waydroid session start &
+waydroid show-full-ui &
