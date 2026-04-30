@@ -2,18 +2,18 @@ import { Navigate, Route, Router, useNavigate } from "@solidjs/router";
 import { createEffect, type JSX, Show } from "solid-js";
 import { currentUserRole, isAuthenticated } from "./lib/auth";
 import "./index.css";
-import Layout from "./components/Layout";
-import Login from "./pages/Login";
-import MenuManagement from "./pages/MenuManagement";
+import Layout from "./components/layout";
+import Login from "./pages/login";
 import CategoryForm from "./pages/menu/category-form";
 import CategoryList from "./pages/menu/category-list";
 import MenuIndex from "./pages/menu/index";
 import ProductForm from "./pages/menu/product-form";
 import ProductList from "./pages/menu/product-list";
-import OrderHistory from "./pages/OrderHistory";
-import POS from "./pages/POS";
-import Settings from "./pages/Settings";
-import Users from "./pages/Users";
+import MenuManagement from "./pages/menu-management";
+import OrderHistory from "./pages/order-history";
+import POS from "./pages/pos";
+import Settings from "./pages/settings";
+import Users from "./pages/users";
 
 function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
   const navigate = useNavigate();

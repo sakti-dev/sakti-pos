@@ -1,6 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
-import { ConfirmBottomSheet } from "~/components/ui/bottom-sheet";
+import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select, type SelectOption } from "~/components/ui/select";
@@ -218,7 +218,7 @@ export default function ProductList() {
         </Show>
       </div>
 
-      <ConfirmBottomSheet
+      <ConfirmDrawer
         message={`Hapus produk "${deleteTarget()?.name}"?`}
         onClose={() => setDeleteTarget(undefined)}
         onConfirm={handleDelete}

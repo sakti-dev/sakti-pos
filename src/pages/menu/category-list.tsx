@@ -1,6 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { createResource, createSignal, For, Show } from "solid-js";
-import { ConfirmBottomSheet } from "~/components/ui/bottom-sheet";
+import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import {
@@ -136,7 +136,7 @@ export default function CategoryList() {
         </Show>
       </div>
 
-      <ConfirmBottomSheet
+      <ConfirmDrawer
         message={deleteMessage()}
         onClose={() => setDeleteTarget(undefined)}
         onConfirm={handleDelete}

@@ -5,7 +5,7 @@ import {
   useNavigate,
 } from "@solidjs/router";
 import { clsx } from "clsx";
-import { createEffect, For, type JSX, Show } from "solid-js";
+import { type ComponentProps, createEffect, For, Show } from "solid-js";
 import { isAuthenticated } from "~/lib/auth";
 
 const navItems = [
@@ -77,7 +77,7 @@ export default function Layout(props: RouteSectionProps) {
   );
 }
 
-function PosIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
+function PosIcon(props: ComponentProps<"svg">) {
   return (
     <svg
       aria-hidden="true"
@@ -97,7 +97,7 @@ function PosIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
   );
 }
 
-function OrdersIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
+function OrdersIcon(props: ComponentProps<"svg">) {
   return (
     <svg
       aria-hidden="true"
@@ -116,7 +116,7 @@ function OrdersIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
   );
 }
 
-function MenuIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
+function MenuIcon(props: ComponentProps<"svg">) {
   return (
     <svg
       aria-hidden="true"
@@ -136,7 +136,7 @@ function MenuIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
   );
 }
 
-function UsersIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
+function UsersIcon(props: ComponentProps<"svg">) {
   return (
     <svg
       aria-hidden="true"
@@ -157,7 +157,7 @@ function UsersIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
   );
 }
 
-function SettingsIcon(props: JSX.SVGAttributes<SVGSVGElement>) {
+function SettingsIcon(props: ComponentProps<"svg">) {
   return (
     <svg
       aria-hidden="true"
