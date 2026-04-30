@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from "@solidjs/router";
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createResource, createSignal, Show } from "solid-js";
 
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
+import { Select } from "~/components/ui/select";
 import {
   createProduct,
   getCategories,
@@ -26,7 +27,6 @@ export default function ProductForm() {
   const [categoryId, setCategoryId] = createSignal<number | null>(null);
   const [price, setPrice] = createSignal("");
   const [imageUrl, setImageUrl] = createSignal("");
-  const [sortOrder, setSortOrder] = createSignal("0");
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal("");
 
@@ -51,7 +51,6 @@ export default function ProductForm() {
         categoryId: categoryId()!,
         price: parsedPrice,
         imageUrl: imageUrl().trim() || null,
-        sortOrder: Number.parseInt(sortOrder(), 10) || 0,
       };
 
       if (isEdit()) {
@@ -107,29 +106,25 @@ export default function ProductForm() {
               >
                 Kategori
               </label>
-              <select
-                class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-                id="prod-category"
-                onChange={(e) => {
-                  const val = e.currentTarget.value;
-                  setCategoryId(val ? Number(val) : null);
-                }}
-              >
-                <option value="">Pilih kategori</option>
-                <For each={categories()}>
-                  {(cat) => (
-                    <option
-                      selected={
-                        categoryId() === cat.id ||
-                        (isEdit() && product()?.categoryId === cat.id)
-                      }
-                      value={cat.id}
-                    >
-                      {cat.name}
-                    </option>
-                  )}
-                </For>
-              </select>
+              <Select
+                label="Kategori"
+                name="category"
+                onChange={(v) =>
+                  setCategoryId(v == null ? null : (v as number))
+                }
+                options={
+                  categories()?.map((cat) => ({
+                    value: cat.id,
+                    label: cat.name,
+                  })) ?? []
+                }
+                placeholder="Pilih kategori"
+                value={
+                  categoryId() ??
+                  (isEdit() ? product()?.categoryId : undefined) ??
+                  undefined
+                }
+              />
             </div>
 
             <div>
@@ -158,23 +153,6 @@ export default function ProductForm() {
                 placeholder="https://..."
                 type="url"
                 value={isEdit() ? (product()?.imageUrl ?? "") : imageUrl()}
-              />
-            </div>
-
-            <div>
-              <label class="mb-1.5 block font-medium text-sm" for="prod-order">
-                Urutan
-              </label>
-              <input
-                class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-                id="prod-order"
-                inputMode="numeric"
-                onInput={(e) => setSortOrder(e.currentTarget.value)}
-                placeholder="0"
-                type="number"
-                value={
-                  isEdit() ? String(product()?.sortOrder ?? 0) : sortOrder()
-                }
               />
             </div>
           </div>

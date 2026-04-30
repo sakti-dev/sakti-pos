@@ -54,9 +54,9 @@ function App() {
         path="/pos"
       />
       <Route
-        component={() => (
+        component={(props) => (
           <RequireAuth roles={["owner", "manager"]}>
-            <MenuManagement />
+            <MenuManagement>{props.children}</MenuManagement>
           </RequireAuth>
         )}
         path="/menu"

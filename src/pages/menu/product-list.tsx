@@ -1,8 +1,9 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { ConfirmBottomSheet } from "~/components/ui/bottom-sheet";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
+import { Select, type SelectOption } from "~/components/ui/select";
 import {
   deleteProduct,
   getCategories,
@@ -14,24 +15,40 @@ import { cn, formatIDR } from "~/lib/utils";
 
 export default function ProductList() {
   const navigate = useNavigate();
-  const [categories] = createResource(getCategories);
+  const [categories] = createResource(getCategories, {
+    initialValue: undefined,
+  });
   const [filterCategoryId, setFilterCategoryId] = createSignal<
     number | undefined
   >(undefined);
   const [products, { refetch }] = createResource(
-    () => filterCategoryId(),
-    (id) => getProducts(id)
+    () => ({ filter: filterCategoryId() }),
+    ({ filter }) => getProducts(filter)
   );
 
   const [deleteTarget, setDeleteTarget] = createSignal<Product | undefined>();
   const [error, setError] = createSignal("");
 
-  const categoryName = (catId: number | null) => {
-    if (catId === null) {
-      return "-";
+  const categoryOptions = createMemo<SelectOption[]>(() => [
+    { value: "", label: "Semua Kategori" },
+    ...(categories()?.map((cat) => ({ value: cat.id, label: cat.name })) ?? []),
+  ]);
+
+  const isGrouped = () => filterCategoryId() === undefined;
+
+  const groupedProducts = createMemo(() => {
+    const cats = categories();
+    const prods = products();
+    if (!(cats && prods)) {
+      return [];
     }
-    return categories()?.find((c) => c.id === catId)?.name ?? "-";
-  };
+    return cats
+      .map((cat) => ({
+        category: cat,
+        products: prods.filter((p) => p.categoryId === cat.id),
+      }))
+      .filter((group) => group.products.length > 0);
+  });
 
   const handleDelete = async () => {
     const target = deleteTarget();
@@ -73,18 +90,16 @@ export default function ProductList() {
         </Show>
 
         <div class="mb-4 flex items-center justify-between gap-2">
-          <select
-            class="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            onChange={(e) => {
-              const val = e.currentTarget.value;
-              setFilterCategoryId(val ? Number(val) : undefined);
-            }}
-          >
-            <option value="">Semua Kategori</option>
-            <For each={categories()}>
-              {(cat) => <option value={cat.id}>{cat.name}</option>}
-            </For>
-          </select>
+          <Select
+            class="flex-1"
+            label="Kategori"
+            onChange={(v) =>
+              setFilterCategoryId(v === "" ? undefined : (v as number))
+            }
+            options={categoryOptions()}
+            placeholder="Semua Kategori"
+            value={filterCategoryId() ?? ""}
+          />
           <A href="/menu/products/add">
             <Button size="sm">+ Tambah</Button>
           </A>
@@ -99,49 +114,107 @@ export default function ProductList() {
           }
           when={products() && products()!.length > 0}
         >
-          <div class="space-y-2">
-            <For each={products()}>
-              {(product) => (
-                <div class="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium">{product.name}</p>
-                    <p class="text-muted-foreground text-xs">
-                      {categoryName(product.categoryId)} ·{" "}
-                      {formatIDR(product.price)}
-                    </p>
+          <Show
+            fallback={
+              <div class="space-y-2">
+                <For each={products()}>
+                  {(product) => (
+                    <div class="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate font-medium">{product.name}</p>
+                        <p class="text-muted-foreground text-xs">
+                          {formatIDR(product.price)}
+                        </p>
+                      </div>
+                      <button
+                        class={cn(
+                          "shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
+                          product.isActive
+                            ? "bg-success text-success-foreground"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                        onClick={() => toggleActive(product)}
+                        type="button"
+                      >
+                        {product.isActive ? "Aktif" : "Nonaktif"}
+                      </button>
+                      <button
+                        class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+                        onClick={() =>
+                          navigate(`/menu/products/${product.id}/edit`)
+                        }
+                        type="button"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+                        onClick={() => setDeleteTarget(product)}
+                        type="button"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
+                </For>
+              </div>
+            }
+            when={isGrouped()}
+          >
+            <div class="space-y-4">
+              <For each={groupedProducts()}>
+                {(group) => (
+                  <div>
+                    <h2 class="sticky top-14 z-30 bg-background pb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                      {group.category.name}
+                    </h2>
+                    <div class="space-y-2">
+                      <For each={group.products}>
+                        {(product) => (
+                          <div class="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
+                            <div class="min-w-0 flex-1">
+                              <p class="truncate font-medium">{product.name}</p>
+                              <p class="text-muted-foreground text-xs">
+                                {formatIDR(product.price)}
+                              </p>
+                            </div>
+                            <button
+                              class={cn(
+                                "shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
+                                product.isActive
+                                  ? "bg-success text-success-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                              onClick={() => toggleActive(product)}
+                              type="button"
+                            >
+                              {product.isActive ? "Aktif" : "Nonaktif"}
+                            </button>
+                            <button
+                              class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+                              onClick={() =>
+                                navigate(`/menu/products/${product.id}/edit`)
+                              }
+                              type="button"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+                              onClick={() => setDeleteTarget(product)}
+                              type="button"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        )}
+                      </For>
+                    </div>
                   </div>
-                  <button
-                    class={cn(
-                      "shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
-                      product.isActive
-                        ? "bg-success text-success-foreground"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                    onClick={() => toggleActive(product)}
-                    type="button"
-                  >
-                    {product.isActive ? "Aktif" : "Nonaktif"}
-                  </button>
-                  <button
-                    class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-                    onClick={() =>
-                      navigate(`/menu/products/${product.id}/edit`)
-                    }
-                    type="button"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-                    onClick={() => setDeleteTarget(product)}
-                    type="button"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              )}
-            </For>
-          </div>
+                )}
+              </For>
+            </div>
+          </Show>
         </Show>
       </div>
 

@@ -14,7 +14,9 @@ import { cn } from "~/lib/utils";
 
 export default function CategoryList() {
   const navigate = useNavigate();
-  const [categories, { refetch }] = createResource(getCategories);
+  const [categories, { refetch }] = createResource(getCategories, {
+    initialValue: undefined,
+  });
   const [deleteTarget, setDeleteTarget] = createSignal<Category | undefined>();
   const [deleteMessage, setDeleteMessage] = createSignal("");
   const [error, setError] = createSignal("");
@@ -40,30 +42,6 @@ export default function CategoryList() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus kategori");
     }
-  };
-
-  const moveUp = async (index: number) => {
-    const cats = categories();
-    if (!cats || index <= 0) {
-      return;
-    }
-    const current = cats[index];
-    const prev = cats[index - 1];
-    await updateCategory(current.id, { sortOrder: prev.sortOrder });
-    await updateCategory(prev.id, { sortOrder: current.sortOrder });
-    await refetch();
-  };
-
-  const moveDown = async (index: number) => {
-    const cats = categories();
-    if (!cats || index >= cats.length - 1) {
-      return;
-    }
-    const current = cats[index];
-    const next = cats[index + 1];
-    await updateCategory(current.id, { sortOrder: next.sortOrder });
-    await updateCategory(next.id, { sortOrder: current.sortOrder });
-    await refetch();
   };
 
   const toggleActive = async (cat: Category) => {
@@ -112,26 +90,8 @@ export default function CategoryList() {
         >
           <div class="space-y-2">
             <For each={categories()}>
-              {(cat, index) => (
+              {(cat) => (
                 <div class="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
-                  <div class="flex flex-col gap-0.5">
-                    <button
-                      class="text-muted-foreground disabled:opacity-30"
-                      disabled={index() === 0}
-                      onClick={() => moveUp(index())}
-                      type="button"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      class="text-muted-foreground disabled:opacity-30"
-                      disabled={index() === categories()!.length - 1}
-                      onClick={() => moveDown(index())}
-                      type="button"
-                    >
-                      ▼
-                    </button>
-                  </div>
                   <div class="min-w-0 flex-1">
                     <p class="truncate font-medium">{cat.name}</p>
                     <Show

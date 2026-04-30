@@ -11,7 +11,7 @@ export async function getCategories(): Promise<Category[]> {
   return await db
     .select()
     .from(categories)
-    .orderBy(categories.sortOrder, categories.id);
+    .orderBy(categories.name, categories.id);
 }
 
 export async function getCategory(id: number): Promise<Category | undefined> {
@@ -59,12 +59,9 @@ export async function getProducts(
       .select()
       .from(products)
       .where(eq(products.categoryId, filterCategoryId))
-      .orderBy(products.sortOrder, products.id);
+      .orderBy(products.name, products.id);
   }
-  return await db
-    .select()
-    .from(products)
-    .orderBy(products.sortOrder, products.id);
+  return await db.select().from(products).orderBy(products.name, products.id);
 }
 
 export async function getProduct(id: number): Promise<Product | undefined> {
