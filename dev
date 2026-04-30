@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# 1. Start Waydroid silently on Host
+if ! systemctl is-active --quiet waydroid-container; then
+    sudo systemctl start waydroid-container
+    waydroid session start &
+    sleep 5
+fi
+
+# 2. Bridge the ADB connection
+distrobox enter dev -- adb connect 192.168.240.112:5555
+
+# 3. Run Tauri (This compiles and installs the app)
+distrobox enter dev -- env \
+    JAVA_HOME="$HOME/android-studio/jbr" \
+    ANDROID_HOME="$HOME/Android/Sdk" \
+    NDK_HOME="$HOME/Android/Sdk/ndk/26.1.10909125" \
+    bun tauri android dev --no-watch # We don't want it to try and re-launch the UI
