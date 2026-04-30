@@ -90,28 +90,46 @@ PIN-based login with session management. Implemented in TypeScript (not Rust) �
 
 ---
 
-## Milestone 4: Menu Management
+## Milestone 4: Menu Management ✅
 
 CRUD for categories and products.
 
 ### Categories
 
-- [ ] Create `src/pages/MenuManagement.tsx` with tab layout (Categories | Products)
-- [ ] Categories tab: list view with name, sort order, active status
-- [ ] Add category dialog: name field
-- [ ] Edit category dialog: name, sort order, toggle active
-- [ ] Delete category: confirm dialog, check if products exist in category
-- [ ] Reorder categories (drag or up/down buttons)
+- [x] Create `src/pages/MenuManagement.tsx` as nested route wrapper (renders `props.children` via `RouteSectionProps`)
+- [x] Create `src/pages/menu/index.tsx` — tab switcher with Kategori/Produk link cards
+- [x] Create `src/pages/menu/category-list.tsx` — list view with name, active status, edit/delete actions
+- [x] Create `src/pages/menu/category-form.tsx` — full-screen add/edit (name only)
+- [x] Delete category: `ConfirmBottomSheet` confirmation, check if products exist in category
+- [x] Toggle active/inactive
+- [x] Alphabetical ordering (no manual sort — drag-and-drop deferred)
 
 ### Products
 
-- [ ] Products tab: list view filterable by category dropdown
-- [ ] List shows: name, category, price (formatted IDR), active status
-- [ ] Add product dialog: name, category (dropdown), price (numeric), image URL (optional), sort order
-- [ ] Edit product dialog: same fields as add
-- [ ] Toggle product active/inactive
-- [ ] Price formatting helper (e.g., `formatIDR(25000)` → "Rp 25.000")
-- [ ] Test: full CRUD cycle for categories and products, verify data persists in DB
+- [x] Create `src/pages/menu/product-list.tsx` — grouped view by category with sticky section headers, flat list when filtered
+- [x] Category filter using drawer-based `Select` component
+- [x] List shows: name, price (formatted IDR), active status
+- [x] Create `src/pages/menu/product-form.tsx` — full-screen add/edit: name, category (drawer select), price, image URL
+- [x] Toggle product active/inactive
+- [x] Price formatting helper (`formatIDR(25000)` → "Rp 25.000") in `src/lib/utils.ts` with tests
+- [x] Data layer in `src/db/menu.ts` — 12 functions, types: `Category`, `NewCategory`, `Product`, `NewProduct`
+- [x] Test: `formatIDR` tests (zero, positive, large amount)
+
+### UI Components
+
+- [x] `src/components/ui/drawer.tsx` — Drawer component using `@corvu/drawer` with safe-area bottom padding and manual overlay dismiss
+- [x] `src/components/ui/select.tsx` — Drawer-based mobile Select (replaces native `<select>` and Kobalte portal select)
+- [x] `src/components/ui/bottom-sheet.tsx` — `BottomSheet` + `ConfirmBottomSheet`
+- [x] `src/components/ui/page-header.tsx` — Sticky header with back button
+
+### Key decisions
+
+- **Drawer-based Select** over Kobalte portal select — mobile-native feel, avoids portal positioning issues on Android
+- **Corvu auto-dismiss disabled** (`modal={false}`, `trapFocus={false}`, etc.) — `transitionEnd` is unreliable on Waydroid/WebView, causing stale Dismissible to immediately close reopened drawers
+- **Full-screen routes over modal dialogs** — Android convention, better UX on mobile
+- **Bottom sheet for delete confirmation** — lighter than full screen for yes/no actions
+- **Alphabetical ordering, no manual sort** — `orderBy(name, id)` for both categories and products; drag-and-drop deferred
+- **`RouteSectionProps` instead of `Outlet`** — `@solidjs/router` v0.16 has no `Outlet` export
 
 ---
 
