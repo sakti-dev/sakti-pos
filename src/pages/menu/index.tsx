@@ -1,11 +1,10 @@
 import { A } from "@solidjs/router";
 
-import { PageHeader } from "~/components/ui/page-header";
+import { AppShell } from "~/components/layout";
 
 export default function MenuIndex() {
   return (
-    <>
-      <PageHeader>Kelola Menu</PageHeader>
+    <AppShell title="Kelola Menu">
       <div class="flex flex-col gap-3 p-4">
         <A
           class="flex items-center justify-between rounded-xl border border-border bg-card p-4 active:bg-accent"
@@ -50,6 +49,6 @@ export default function MenuIndex() {
           </svg>
         </A>
       </div>
-    </>
+    </AppShell>
   );
 }

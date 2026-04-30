@@ -1,6 +1,9 @@
 {
   "dependencies": {
     "@corvu/drawer": "^0.2.4",
+    "@fontsource-variable/bricolage-grotesque": "^5.2.10",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@kobalte/core": "^0.13.11",
     "@saurl/tauri-plugin-safe-area-insets-css-api": "^0.1.0",
     "@solidjs/router": "^0.16.1",

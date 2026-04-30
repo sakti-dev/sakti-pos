@@ -1,106 +1,74 @@
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  min-height: 100vh;
-  padding-top: var(--safe-area-inset-top, 25px);
-  padding-right: var(--safe-area-inset-right, 0px);
-  padding-bottom: var(--safe-area-inset-bottom, 0px);
-  padding-left: var(--safe-area-inset-left, 0px);
-  background-color: #1a1a1a;
-}
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --background: 37.5 36.3636% 95.6863%;
+    --foreground: 8.8889 27.8351% 19.0196%;
+    --card: 37.5 36.3636% 95.6863%;
+    --card-foreground: 8.8889 27.8351% 19.0196%;
+    --popover: 37.5 36.3636% 95.6863%;
+    --popover-foreground: 8.8889 27.8351% 19.0196%;
+    --primary: 123.038 46.1988% 33.5294%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 124.6154 39.3939% 93.5294%;
+    --secondary-foreground: 124.4776 55.3719% 23.7255%;
+    --muted: 33.75 34.7826% 90.9804%;
+    --muted-foreground: 15 25.2874% 34.1176%;
+    --accent: 122 37.5000% 84.3137%;
+    --accent-foreground: 124.4776 55.3719% 23.7255%;
+    --destructive: 0 66.3866% 46.6667%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 33.913 27.0588% 83.3333%;
+    --input: 33.913 27.0588% 83.3333%;
+    --ring: 123.038 46.1988% 33.5294%;
+    --radius: 0.5rem;
 
     --info: 204 94% 94%;
     --info-foreground: 199 89% 48%;
-
     --success: 149 80% 90%;
     --success-foreground: 160 84% 39%;
-
     --warning: 48 96% 89%;
     --warning-foreground: 25 95% 53%;
-
     --error: 0 93% 94%;
     --error-foreground: 0 84% 60%;
-
-    --ring: 240 5.9% 10%;
-
-    --radius: 0.5rem;
   }
 
-  .dark,
-  [data-kb-theme="dark"] {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+  .dark {
+    --background: 132.8571 20% 13.7255%;
+    --foreground: 32.7273 26.8293% 91.9608%;
+    --card: 124.6154 12.6214% 20.1961%;
+    --card-foreground: 32.7273 26.8293% 91.9608%;
+    --popover: 124.6154 12.6214% 20.1961%;
+    --popover-foreground: 32.7273 26.8293% 91.9608%;
+    --primary: 122.4242 39.4422% 49.2157%;
+    --primary-foreground: 125.7143 51.2195% 8.0392%;
+    --secondary: 115.3846 9.6296% 26.4706%;
+    --secondary-foreground: 114 13.8889% 85.8824%;
+    --muted: 126 11.9048% 16.4706%;
+    --muted-foreground: 34.7368 19.1919% 80.5882%;
+    --accent: 122.7907 43.4343% 38.8235%;
+    --accent-foreground: 32.7273 26.8293% 91.9608%;
+    --destructive: 0 66.3866% 46.6667%;
+    --destructive-foreground: 32.7273 26.8293% 91.9608%;
+    --border: 115.3846 9.6296% 26.4706%;
+    --input: 115.3846 9.6296% 26.4706%;
+    --ring: 122.4242 39.4422% 49.2157%;
+    --radius: 0.5rem;
 
     --info: 204 94% 94%;
     --info-foreground: 199 89% 48%;
-
     --success: 149 80% 90%;
     --success-foreground: 160 84% 39%;
-
     --warning: 48 96% 89%;
     --warning-foreground: 25 95% 53%;
-
     --error: 0 93% 94%;
     --error-foreground: 0 84% 60%;
-
-    --ring: 240 4.9% 83.9%;
-
-    --radius: 0.5rem;
   }
 }
 
@@ -109,10 +77,25 @@ body {
     @apply border-border;
   }
   body {
-    font-feature-settings:
-      "rlig" 1,
-      "calt" 1;
+    min-height: 100vh;
+    font-family: "Inter Variable", system-ui, sans-serif;
+    letter-spacing: -0.01em;
     @apply bg-background text-foreground;
+  }
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: "JetBrains Mono Variable", monospace;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family:
+      "Bricolage Grotesque Variable", "Inter Variable", system-ui, sans-serif;
   }
 }
 

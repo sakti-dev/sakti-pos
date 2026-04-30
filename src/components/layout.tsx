@@ -5,15 +5,22 @@ import {
   useNavigate,
 } from "@solidjs/router";
 import { clsx } from "clsx";
-import { type ComponentProps, createEffect, For, Show } from "solid-js";
+import type { JSX } from "solid-js";
+import {
+  type ComponentProps,
+  createEffect,
+  createSignal,
+  For,
+  Show,
+} from "solid-js";
 import { isAuthenticated } from "~/lib/auth";
 
 const navItems = [
-  { href: "/pos", label: "Kasir", icon: PosIcon },
-  { href: "/orders", label: "Pesanan", icon: OrdersIcon },
-  { href: "/menu", label: "Menu", icon: MenuIcon },
-  { href: "/users", label: "Pengguna", icon: UsersIcon },
-  { href: "/settings", label: "Pengaturan", icon: SettingsIcon },
+  { href: "/pos", icon: PosIcon, label: "Kasir" },
+  { href: "/orders", icon: OrdersIcon, label: "Pesanan" },
+  { href: "/menu", icon: MenuIconIcon, label: "Menu" },
+  { href: "/users", icon: UsersIcon, label: "Pengguna" },
+  { href: "/settings", icon: SettingsIcon, label: "Pengaturan" },
 ] as const;
 
 export default function Layout(props: RouteSectionProps) {
@@ -29,43 +36,95 @@ export default function Layout(props: RouteSectionProps) {
 
   return (
     <div class="flex h-screen flex-col bg-background text-foreground">
-      <Show
-        fallback={<main class="flex-1 overflow-y-auto">{props.children}</main>}
-        when={!isLogin()}
-      >
-        <main
-          class="flex-1 overflow-y-auto"
-          style={{
-            "padding-bottom":
-              "calc(3.5rem + var(--safe-area-inset-bottom, 0px))",
-          }}
+      <main class="flex-1 overflow-hidden">{props.children}</main>
+    </div>
+  );
+}
+
+interface AppShellProps {
+  children: JSX.Element;
+  title: string;
+}
+
+export function AppShell(props: AppShellProps) {
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = createSignal(false);
+
+  createEffect(() => {
+    setSidebarOpen(false);
+  });
+
+  return (
+    <div
+      class="flex h-full flex-col"
+      style={{
+        padding:
+          "var(--safe-area-inset-top, 24px) var(--safe-area-inset-right, 0px) var(--safe-area-inset-bottom, 48px) var(--safe-area-inset-left, 0px)",
+      }}
+    >
+      <header class="sticky top-0 z-40 flex shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 py-3 backdrop-blur-sm">
+        <button
+          aria-label="Menu"
+          class="flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-accent"
+          onClick={() => setSidebarOpen(true)}
+          type="button"
         >
-          {props.children}
-        </main>
+          <svg
+            aria-hidden="true"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <line x1="4" x2="20" y1="12" y2="12" />
+            <line x1="4" x2="20" y1="6" y2="6" />
+            <line x1="4" x2="20" y1="18" y2="18" />
+          </svg>
+        </button>
+        <h1 class="font-semibold text-lg">{props.title}</h1>
+      </header>
+      <div class="flex-1 overflow-y-auto">{props.children}</div>
+      <Show when={sidebarOpen()}>
+        <button
+          aria-label="Tutup menu"
+          class="fixed inset-0 z-50 bg-black/40"
+          onClick={() => setSidebarOpen(false)}
+          type="button"
+        />
         <nav
-          class="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-card"
+          class="fixed left-3 z-50 flex w-72 flex-col rounded-2xl bg-card shadow-2xl"
           style={{
-            "padding-bottom": "var(--safe-area-inset-bottom, 0px)",
+            top: "calc(0.75rem + var(--safe-area-inset-top, 24px))",
+            bottom: "calc(0.75rem + var(--safe-area-inset-bottom, 48px))",
           }}
         >
-          <div class="flex h-14 items-center justify-around">
+          <div class="flex items-center gap-3 border-border border-b px-4 py-4">
+            <span class="font-bold text-lg text-primary">Sakti POS</span>
+          </div>
+          <div class="flex-1 overflow-y-auto p-3">
             <For each={navItems}>
               {(item) => {
-                const isActive =
+                const isActive = () =>
                   location.pathname === item.href ||
                   location.pathname.startsWith(`${item.href}/`);
                 return (
                   <A
                     class={clsx(
-                      "flex min-w-[56px] flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 transition-colors",
-                      isActive
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
+                      "flex items-center gap-3 rounded-xl px-3 py-3 font-medium text-sm transition-colors",
+                      isActive()
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
                     )}
                     href={item.href}
+                    onClick={() => setSidebarOpen(false)}
                   >
                     <item.icon class="h-5 w-5" />
-                    <span class="text-[10px] leading-tight">{item.label}</span>
+                    <span>{item.label}</span>
                   </A>
                 );
               }}
@@ -116,7 +175,7 @@ function OrdersIcon(props: ComponentProps<"svg">) {
   );
 }
 
-function MenuIcon(props: ComponentProps<"svg">) {
+function MenuIconIcon(props: ComponentProps<"svg">) {
   return (
     <svg
       aria-hidden="true"
@@ -129,9 +188,8 @@ function MenuIcon(props: ComponentProps<"svg">) {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <line x1="4" x2="20" y1="12" y2="12" />
-      <line x1="4" x2="20" y1="6" y2="6" />
-      <line x1="4" x2="20" y1="18" y2="18" />
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
   );
 }

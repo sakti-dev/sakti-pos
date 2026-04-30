@@ -1,8 +1,11 @@
+import { AppShell } from "~/components/layout";
+
 export default function Users() {
   return (
-    <div class="flex min-h-screen flex-col items-center justify-center p-4">
-      <h1 class="font-bold text-2xl">Kelola Pengguna</h1>
-      <p class="text-muted-foreground text-sm">Manajemen akun & peran</p>
-    </div>
+    <AppShell title="Pengguna">
+      <div class="flex flex-col items-center justify-center p-4 py-12">
+        <p class="text-muted-foreground text-sm">Manajemen akun & peran</p>
+      </div>
+    </AppShell>
   );
 }

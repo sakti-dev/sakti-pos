@@ -8,6 +8,7 @@ import {
 } from "solid-js";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { DailySummaryBar } from "~/components/daily-summary";
+import { AppShell } from "~/components/layout";
 import { OrderCard } from "~/components/order-card";
 import { Select, type SelectOption } from "~/components/ui/select";
 import {
@@ -86,12 +87,8 @@ export default function OrderHistory() {
   };
 
   return (
-    <div class="flex h-full flex-col">
-      <div class="border-border border-b bg-card px-4 py-3">
-        <h1 class="font-semibold text-lg">Riwayat Pesanan</h1>
-      </div>
-
-      <div class="space-y-3 overflow-y-auto p-4">
+    <AppShell title="Riwayat Pesanan">
+      <div class="space-y-3 p-4">
         <DailySummaryBar data={summary()} />
 
         <div class="flex items-center gap-2">
@@ -152,6 +149,6 @@ export default function OrderHistory() {
         title="Batalkan Pesanan"
         variant="destructive"
       />
-    </div>
+    </AppShell>
   );
 }
