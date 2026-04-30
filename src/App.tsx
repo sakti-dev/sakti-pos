@@ -5,6 +5,11 @@ import "./index.css";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import MenuManagement from "./pages/MenuManagement";
+import CategoryForm from "./pages/menu/category-form";
+import CategoryList from "./pages/menu/category-list";
+import MenuIndex from "./pages/menu/index";
+import ProductForm from "./pages/menu/product-form";
+import ProductList from "./pages/menu/product-list";
 import OrderHistory from "./pages/OrderHistory";
 import POS from "./pages/POS";
 import Settings from "./pages/Settings";
@@ -55,7 +60,15 @@ function App() {
           </RequireAuth>
         )}
         path="/menu"
-      />
+      >
+        <Route component={MenuIndex} path="/" />
+        <Route component={CategoryList} path="/categories" />
+        <Route component={CategoryForm} path="/categories/add" />
+        <Route component={CategoryForm} path="/categories/:id/edit" />
+        <Route component={ProductList} path="/products" />
+        <Route component={ProductForm} path="/products/add" />
+        <Route component={ProductForm} path="/products/:id/edit" />
+      </Route>
       <Route
         component={() => (
           <RequireAuth>
