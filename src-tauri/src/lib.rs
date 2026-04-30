@@ -33,7 +33,10 @@ pub fn run() {
                 .add_migrations("sqlite:sakti-pos.db", migrations)
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![drizzle_proxy::run_sql])
+        .invoke_handler(tauri::generate_handler![
+            drizzle_proxy::run_sql,
+            drizzle_proxy::run_sql_batch
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

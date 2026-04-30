@@ -64,6 +64,61 @@ pub async fn run_sql(app: AppHandle, query: SqlQuery) -> Result<Vec<SqlRow>, Str
     Ok(result)
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SqlStatement {
+    pub sql: String,
+    pub params: Vec<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BatchResult {
+    pub last_insert_id: i64,
+    pub rows_affected: u64,
+}
+
+#[command]
+pub async fn run_sql_batch(
+    app: AppHandle,
+    statements: Vec<SqlStatement>,
+) -> Result<BatchResult, String> {
+    let db_path = get_app_db_path(&app)?;
+    let uri = format!("sqlite:{}?mode=rwc", db_path.display());
+
+    let pool = SqlitePool::connect(&uri)
+        .await
+        .map_err(|e| format!("Failed to connect to DB: {}", e))?;
+
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|e| format!("Failed to begin transaction: {}", e))?;
+
+    let mut last_insert_id: i64 = 0;
+    let mut total_rows_affected: u64 = 0;
+
+    for stmt in &statements {
+        let mut q = sqlx::query(&stmt.sql);
+        for param in &stmt.params {
+            q = bind_value(q, param);
+        }
+        let result = q
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("Batch statement failed: {}", e))?;
+        last_insert_id = result.last_insert_rowid();
+        total_rows_affected += result.rows_affected();
+    }
+
+    tx.commit()
+        .await
+        .map_err(|e| format!("Failed to commit transaction: {}", e))?;
+
+    Ok(BatchResult {
+        last_insert_id,
+        rows_affected: total_rows_affected,
+    })
+}
+
 fn get_app_db_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
