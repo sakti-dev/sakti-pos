@@ -139,7 +139,7 @@ export interface OrderRow {
   paymentMethod: "cash" | "qris";
   status: "completed" | "cancelled";
   total: number;
-  userId: number;
+  userId: number | null;
   userName: string;
 }
 
