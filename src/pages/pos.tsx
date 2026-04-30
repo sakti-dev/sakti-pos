@@ -1,6 +1,6 @@
 import { createResource, createSignal, Show } from "solid-js";
 import { AppShell } from "~/components/layout";
-import { CartPanel } from "~/components/pos/cart-panel";
+import { CartPanel, CartSidebar } from "~/components/pos/cart-panel";
 import { CategoryTabs } from "~/components/pos/category-tabs";
 import { PaymentDialog } from "~/components/pos/payment-dialog";
 import { ProductGrid } from "~/components/pos/product-grid";
@@ -65,34 +65,38 @@ export default function POS() {
   };
 
   return (
-    <AppShell title="Kasir">
-      <div class="flex h-full flex-col">
-        <Show when={orderResult()}>
-          {(num) => (
-            <div class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-background/95">
-              <span class="font-bold text-4xl text-primary">Selesai!</span>
-              <span class="text-lg text-muted-foreground">{num()}</span>
-            </div>
-          )}
-        </Show>
+    <div class="flex h-full portrait:flex landscape:flex-row">
+      <Show when={orderResult()}>
+        {(num) => (
+          <div class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-background/95">
+            <span class="font-bold text-4xl text-primary">Selesai!</span>
+            <span class="text-lg text-muted-foreground">{num()}</span>
+          </div>
+        )}
+      </Show>
 
-        <CategoryTabs
-          categories={categories()}
-          onChange={setSelectedCategory}
-          selected={selectedCategory()}
-        />
+      <AppShell class="min-h-0 flex-1 landscape:flex" title="Kasir">
+        <div class="flex h-full flex-1 flex-col">
+          <CategoryTabs
+            categories={categories()}
+            onChange={setSelectedCategory}
+            selected={selectedCategory()}
+          />
 
-        <div class="flex-1 overflow-y-auto">
-          <ProductGrid products={filteredProducts()} />
+          <div class="flex-1 overflow-y-auto">
+            <ProductGrid products={filteredProducts()} />
+          </div>
+
+          <CartPanel onPay={() => setPaymentOpen(true)} />
         </div>
+      </AppShell>
 
-        <CartPanel onPay={() => setPaymentOpen(true)} />
-        <PaymentDialog
-          onClose={() => setPaymentOpen(false)}
-          onConfirm={handlePayment}
-          open={paymentOpen()}
-        />
-      </div>
-    </AppShell>
+      <CartSidebar onPay={() => setPaymentOpen(true)} />
+      <PaymentDialog
+        onClose={() => setPaymentOpen(false)}
+        onConfirm={handlePayment}
+        open={paymentOpen()}
+      />
+    </div>
   );
 }

@@ -179,9 +179,9 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                   </For>
                 </div>
                 <Show when={changeAmount() >= 0}>
-                  <div class="flex items-center justify-between rounded-lg bg-success/10 px-3 py-2">
+                  <div class="flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2">
                     <span class="text-sm">Kembalian</span>
-                    <span class="font-bold text-success">
+                    <span class="font-bold text-primary">
                       {formatIDR(changeAmount())}
                     </span>
                   </div>

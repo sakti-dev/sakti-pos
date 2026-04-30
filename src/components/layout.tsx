@@ -35,7 +35,13 @@ export default function Layout(props: RouteSectionProps) {
   });
 
   return (
-    <div class="flex h-screen flex-col bg-background text-foreground">
+    <div
+      class="flex h-screen flex-col bg-background text-foreground"
+      style={{
+        padding:
+          "var(--safe-area-inset-top, 24px) var(--safe-area-inset-right, 0px) var(--safe-area-inset-bottom, 48px) var(--safe-area-inset-left, 0px)",
+      }}
+    >
       <main class="flex-1 overflow-hidden">{props.children}</main>
     </div>
   );
@@ -43,6 +49,7 @@ export default function Layout(props: RouteSectionProps) {
 
 interface AppShellProps {
   children: JSX.Element;
+  class?: string;
   title: string;
 }
 
@@ -55,14 +62,8 @@ export function AppShell(props: AppShellProps) {
   });
 
   return (
-    <div
-      class="flex h-full flex-col"
-      style={{
-        padding:
-          "var(--safe-area-inset-top, 24px) var(--safe-area-inset-right, 0px) var(--safe-area-inset-bottom, 48px) var(--safe-area-inset-left, 0px)",
-      }}
-    >
-      <header class="sticky top-0 z-40 flex shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 py-3 backdrop-blur-sm">
+    <div class={clsx("flex h-full flex-col", props.class)}>
+      <header class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 backdrop-blur-sm">
         <button
           aria-label="Menu"
           class="flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-accent"
@@ -88,7 +89,11 @@ export function AppShell(props: AppShellProps) {
         </button>
         <h1 class="font-semibold text-lg">{props.title}</h1>
       </header>
-      <div class="flex-1 overflow-y-auto">{props.children}</div>
+      <div
+        class={props.class ? "flex min-h-0 flex-1" : "flex-1 overflow-y-auto"}
+      >
+        {props.children}
+      </div>
       <Show when={sidebarOpen()}>
         <button
           aria-label="Tutup menu"
