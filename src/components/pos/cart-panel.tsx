@@ -169,8 +169,8 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
 
       <Show
         fallback={
-          <div class="flex flex-1 items-center justify-center text-muted-foreground text-sm">
-            Keranjang kosong
+          <div class="flex flex-1 items-center justify-center text-lg text-muted-foreground/50">
+            Keranjang Kosong
           </div>
         }
         when={cartCount() > 0}

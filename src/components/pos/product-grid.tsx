@@ -17,18 +17,18 @@ const ProductGrid: Component<ProductGridProps> = (props) => (
     }
     when={props.products.length > 0}
   >
-    <div class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
+    <div class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">
       <For each={props.products}>
         {(product) => (
           <button
-            class="flex min-h-[80px] flex-col items-start justify-between rounded-xl border border-border bg-card p-3 text-left active:bg-accent/80"
+            class="flex min-h-[96px] flex-col items-start justify-between rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.97] active:bg-accent/80"
             onClick={() => addToCart(product)}
             type="button"
           >
-            <span class="line-clamp-2 w-full font-medium text-sm leading-snug">
+            <span class="line-clamp-2 w-full font-medium leading-snug">
               {product.name}
             </span>
-            <span class="font-semibold text-primary text-xs">
+            <span class="font-semibold text-primary">
               {formatIDR(product.price)}
             </span>
           </button>

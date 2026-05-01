@@ -84,7 +84,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
     "7",
     "8",
     "9",
-    "00",
+    "000",
     "0",
     "del",
   ];
@@ -106,7 +106,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
         <DrawerContent class="max-h-[95vh]">
           <DrawerTitle>Pembayaran</DrawerTitle>
           <div class="flex-1 overflow-y-auto px-4">
-            <div class="space-y-1 py-2">
+            <div class="hidden space-y-1 py-2 landscape:hidden">
               <For each={cartItems()}>
                 {(item) => (
                   <div class="flex justify-between text-sm">
@@ -121,20 +121,20 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
               </For>
             </div>
 
-            <div class="border-border border-t py-3">
+            <div class="border-border border-t py-3 landscape:border-none">
               <div class="flex justify-between font-bold">
                 <span>Total</span>
                 <span class="text-primary">{formatIDR(cartTotal())}</span>
               </div>
             </div>
 
-            <div class="flex gap-2 py-3">
+            <div class="flex gap-3 py-3">
               <button
                 class={cn(
-                  "flex-1 rounded-lg py-2.5 font-medium text-sm transition-colors",
+                  "flex flex-1 items-center justify-center rounded-xl py-4 font-semibold transition-colors",
                   paymentMethod() === "cash"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    : "border border-border bg-card text-muted-foreground"
                 )}
                 onClick={() => setPaymentMethod("cash")}
                 type="button"
@@ -143,10 +143,10 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
               </button>
               <button
                 class={cn(
-                  "flex-1 rounded-lg py-2.5 font-medium text-sm transition-colors",
+                  "flex flex-1 items-center justify-center rounded-xl py-4 font-semibold transition-colors",
                   paymentMethod() === "qris"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    : "border border-border bg-card text-muted-foreground"
                 )}
                 onClick={() => setPaymentMethod("qris")}
                 type="button"
@@ -163,11 +163,11 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                     {amountInput() ? formatIDR(Number(amountInput())) : "Rp 0"}
                   </span>
                 </div>
-                <div class="grid grid-cols-3 gap-1.5">
+                <div class="grid grid-cols-3 gap-2.5">
                   <For each={numpadKeys}>
                     {(key) => (
                       <button
-                        class="flex h-12 items-center justify-center rounded-lg bg-card font-mono text-lg active:bg-accent"
+                        class="flex h-12 items-center justify-center rounded-lg border border-border bg-card font-mono text-lg active:bg-accent"
                         onClick={() =>
                           key === "del" ? deleteLast() : appendDigit(key)
                         }

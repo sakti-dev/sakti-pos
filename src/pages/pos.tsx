@@ -4,6 +4,7 @@ import { CartPanel, CartSidebar } from "~/components/pos/cart-panel";
 import { CategoryTabs } from "~/components/pos/category-tabs";
 import { PaymentDialog } from "~/components/pos/payment-dialog";
 import { ProductGrid } from "~/components/pos/product-grid";
+import { TextField, TextFieldInput } from "~/components/ui/text-field";
 import {
   createOrder,
   getActiveProductsByCategory,
@@ -11,6 +12,7 @@ import {
 } from "~/db/orders";
 import { currentUser } from "~/lib/auth";
 import { cartItems, cartTotal, clearCart } from "~/lib/cart";
+import { cn } from "~/lib/utils";
 
 export default function POS() {
   const [groupedData] = createResource(getActiveProductsByCategory);
@@ -19,6 +21,7 @@ export default function POS() {
   );
   const [paymentOpen, setPaymentOpen] = createSignal(false);
   const [orderResult, setOrderResult] = createSignal<string | null>(null);
+  const [search, setSearch] = createSignal("");
 
   const categories = () => groupedData()?.map((g) => g.categoryName) ?? [];
 
@@ -27,11 +30,18 @@ export default function POS() {
     if (!data) {
       return [];
     }
+    let products: ProductWithCategory[];
     const selected = selectedCategory();
-    if (!selected) {
-      return data.flatMap((g) => g.products);
+    if (selected) {
+      products = data.find((g) => g.categoryName === selected)?.products ?? [];
+    } else {
+      products = data.flatMap((g) => g.products);
     }
-    return data.find((g) => g.categoryName === selected)?.products ?? [];
+    const q = search().trim().toLowerCase();
+    if (q) {
+      products = products.filter((p) => p.name.toLowerCase().includes(q));
+    }
+    return products;
   };
 
   const handlePayment = async (data: {
@@ -75,7 +85,62 @@ export default function POS() {
         )}
       </Show>
 
-      <AppShell class="min-h-0 flex-1 landscape:flex" title="Kasir">
+      <AppShell
+        class="min-h-0 flex-1 landscape:flex"
+        title="Kasir"
+        topbarSuffix={
+          <div class="hidden items-center landscape:flex">
+            <TextField class="gap-0" onChange={setSearch} value={search()}>
+              <div class="relative flex items-center">
+                <svg
+                  aria-hidden="true"
+                  class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" x2="16.65" y1="21" y2="16.65" />
+                </svg>
+                <TextFieldInput
+                  class={cn(
+                    "h-9 w-52 rounded-lg border-border bg-muted pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0",
+                    search() && "rounded-r-none"
+                  )}
+                  placeholder="Cari produk..."
+                  type="search"
+                />
+                <Show when={search()}>
+                  <button
+                    class="flex h-9 shrink-0 items-center justify-center rounded-r-lg border-border border-t border-r border-b border-l bg-muted px-3 active:bg-accent"
+                    onClick={() => setSearch("")}
+                    type="button"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="size-4 text-muted-foreground"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <line x1="18" x2="6" y1="6" y2="18" />
+                      <line x1="6" x2="18" y1="6" y2="18" />
+                    </svg>
+                  </button>
+                </Show>
+              </div>
+            </TextField>
+          </div>
+        }
+      >
         <div class="flex h-full flex-1 flex-col">
           <CategoryTabs
             categories={categories()}

@@ -51,6 +51,7 @@ interface AppShellProps {
   children: JSX.Element;
   class?: string;
   title: string;
+  topbarSuffix?: JSX.Element;
 }
 
 export function AppShell(props: AppShellProps) {
@@ -88,6 +89,9 @@ export function AppShell(props: AppShellProps) {
           </svg>
         </button>
         <h1 class="font-semibold text-lg">{props.title}</h1>
+        <Show when={props.topbarSuffix}>
+          <div class="ml-auto">{props.topbarSuffix}</div>
+        </Show>
       </header>
       <div
         class={props.class ? "flex min-h-0 flex-1" : "flex-1 overflow-y-auto"}
@@ -108,10 +112,10 @@ export function AppShell(props: AppShellProps) {
             bottom: "calc(0.75rem + var(--safe-area-inset-bottom, 48px))",
           }}
         >
-          <div class="flex items-center gap-3 border-border border-b px-4 py-4">
+          <div class="flex items-center gap-3 border-border border-b px-6 py-[11.5px]">
             <span class="font-bold text-lg text-primary">Sakti POS</span>
           </div>
-          <div class="flex-1 overflow-y-auto p-3">
+          <div class="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
             <For each={navItems}>
               {(item) => {
                 const isActive = () =>
