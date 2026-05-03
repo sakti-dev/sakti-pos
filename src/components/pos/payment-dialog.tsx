@@ -121,17 +121,17 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
               </For>
             </div>
 
-            <div class="border-border border-t py-3 landscape:border-none">
+            <div class="py-1">
               <div class="flex justify-between font-bold">
                 <span>Total</span>
                 <span class="text-primary">{formatIDR(cartTotal())}</span>
               </div>
             </div>
 
-            <div class="flex gap-3 py-3">
+            <div class="flex gap-3 py-2">
               <button
                 class={cn(
-                  "flex flex-1 items-center justify-center rounded-xl py-4 font-semibold transition-colors",
+                  "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors",
                   paymentMethod() === "cash"
                     ? "bg-primary text-primary-foreground"
                     : "border border-border bg-card text-muted-foreground"
@@ -143,7 +143,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
               </button>
               <button
                 class={cn(
-                  "flex flex-1 items-center justify-center rounded-xl py-4 font-semibold transition-colors",
+                  "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors",
                   paymentMethod() === "qris"
                     ? "bg-primary text-primary-foreground"
                     : "border border-border bg-card text-muted-foreground"
@@ -156,14 +156,24 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
             </div>
 
             <Show when={paymentMethod() === "cash"}>
-              <div class="space-y-2 pb-3">
-                <div class="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
-                  <span class="text-muted-foreground text-sm">Dibayar</span>
-                  <span class="font-bold text-lg">
-                    {amountInput() ? formatIDR(Number(amountInput())) : "Rp 0"}
-                  </span>
+              <div class="space-y-1 pb-2">
+                <div>
+                  <div class="flex items-center justify-between px-3">
+                    <span class="text-muted-foreground text-sm">Dibayar</span>
+                    <span class="font-bold text-lg text-primary">
+                      {amountInput()
+                        ? formatIDR(Number(amountInput()))
+                        : "Rp 0"}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between px-3">
+                    <span class="text-sm">Kembalian</span>
+                    <span class="font-bold text-lg">
+                      {changeAmount() >= 0 ? formatIDR(changeAmount()) : "-"}
+                    </span>
+                  </div>
                 </div>
-                <div class="grid grid-cols-3 gap-2.5">
+                <div class="grid grid-cols-3 gap-2.5 pt-1">
                   <For each={numpadKeys}>
                     {(key) => (
                       <button
@@ -178,14 +188,6 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                     )}
                   </For>
                 </div>
-                <Show when={changeAmount() >= 0}>
-                  <div class="flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2">
-                    <span class="text-sm">Kembalian</span>
-                    <span class="font-bold text-primary">
-                      {formatIDR(changeAmount())}
-                    </span>
-                  </div>
-                </Show>
               </div>
             </Show>
           </div>

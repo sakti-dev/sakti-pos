@@ -30,7 +30,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
 
   return (
     <>
-      <div class="border-border border-t bg-card portrait:flex landscape:hidden">
+      <div class="h-16 shrink-0 border-border border-t bg-card portrait:flex landscape:hidden">
         <Show
           fallback={
             <div class="flex items-center justify-center py-4 text-muted-foreground text-sm">
@@ -47,7 +47,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
             <span class="font-medium text-sm">{cartCount()} item</span>
             <span class="font-bold text-primary">{formatIDR(cartTotal())}</span>
           </button>
-          <div class="flex gap-2 px-4 pb-4">
+          <div class="flex items-center gap-2 px-4">
             <Button
               class="flex-1"
               onClick={() => setShowClearConfirm(true)}
@@ -160,7 +160,7 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
       class="hidden h-full flex-col border-border border-l bg-card landscape:flex"
       style={{ width: "320px" }}
     >
-      <div class="flex h-16 shrink-0 items-center justify-between border-border border-b px-4">
+      <div class="flex h-10 shrink-0 items-center justify-between border-border border-b px-4">
         <span class="font-semibold text-lg">Keranjang</span>
         <Show when={cartCount() > 0}>
           <span class="text-muted-foreground text-sm">{cartCount()} item</span>
