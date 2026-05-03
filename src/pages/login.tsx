@@ -46,7 +46,7 @@ export default function Login() {
     try {
       const authUser = await login(selectedUser()?.id, pin);
       const target = authUser.role === "cashier" ? "/pos" : "/menu";
-      navigate(target);
+      navigate(target, { replace: true });
     } catch (err) {
       const msg = String(err);
       setError(msg.includes("Invalid PIN") ? "PIN salah" : msg);

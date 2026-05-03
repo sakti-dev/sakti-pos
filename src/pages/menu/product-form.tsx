@@ -58,7 +58,7 @@ export default function ProductForm() {
       } else {
         await createProduct(data);
       }
-      navigate("/menu/products");
+      navigate("/menu/products", { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan produk");
     } finally {

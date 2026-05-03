@@ -35,7 +35,7 @@ export default function CategoryForm() {
       } else {
         await createCategory({ name: trimmed });
       }
-      navigate("/menu/categories");
+      navigate("/menu/categories", { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan kategori");
     } finally {
