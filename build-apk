@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run inside distrobox with same env as ./dev
-distrobox enter dev -- /bin/bash -c '
-set -euo pipefail
-
-export ANDROID_HOME="$HOME/Android/Sdk"
-export NDK_HOME="$ANDROID_HOME/ndk/26.1.10909125"
-export JAVA_HOME="$HOME/android-studio/jbr"
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+export NDK_HOME="${NDK_HOME:-$ANDROID_HOME/ndk/26.1.10909125}"
+export JAVA_HOME="${JAVA_HOME:-$HOME/android-studio/jbr}"
 export PATH="$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
 
 BUILD_TOOLS="$ANDROID_HOME/build-tools/37.0.0"
@@ -51,6 +47,5 @@ echo "==> Signing..."
 
 rm -f "/tmp/${APK_NAME}-aligned.apk"
 
-SIZE=$(ls -lh "${APK_NAME}.apk" | awk "{print \$5}")
+SIZE=$(ls -lh "${APK_NAME}.apk" | awk '{print $5}')
 echo "==> Done! ${APK_NAME}.apk ($SIZE)"
-'
