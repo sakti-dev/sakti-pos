@@ -39,7 +39,7 @@ export default function Layout(props: RouteSectionProps) {
       class="flex h-screen flex-col bg-background text-foreground"
       style={{
         padding:
-          "var(--safe-area-inset-top, 24px) var(--safe-area-inset-right, 0px) var(--safe-area-inset-bottom, 48px) var(--safe-area-inset-left, 0px)",
+          "var(--safe-area-inset-top) var(--safe-area-inset-right) var(--safe-area-inset-bottom) var(--safe-area-inset-left)",
       }}
     >
       <main class="flex-1 overflow-hidden">{props.children}</main>
@@ -108,8 +108,8 @@ export function AppShell(props: AppShellProps) {
         <nav
           class="fixed left-3 z-50 flex w-72 flex-col rounded-2xl bg-card shadow-2xl"
           style={{
-            top: "calc(0.75rem + var(--safe-area-inset-top, 24px))",
-            bottom: "calc(0.75rem + var(--safe-area-inset-bottom, 48px))",
+            top: "calc(0.75rem + var(--safe-area-inset-top))",
+            bottom: "calc(0.75rem + var(--safe-area-inset-bottom))",
           }}
         >
           <div class="flex items-center gap-3 border-border border-b px-6 py-[11.5px]">

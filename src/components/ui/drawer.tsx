@@ -71,7 +71,7 @@ const DrawerContent = <T extends ValidComponent = "div">(
           props.class
         )}
         style={{
-          bottom: "var(--safe-area-inset-bottom, 48px)",
+          bottom: "var(--safe-area-inset-bottom)",
         }}
         {...rest}
       >
