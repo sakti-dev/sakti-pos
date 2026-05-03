@@ -1,17 +1,14 @@
 /* @refresh reload */
-import "@saurl/tauri-plugin-safe-area-insets-css-api";
 import Database from "@tauri-apps/plugin-sql";
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { seedDefaultOwner } from "./lib/auth-provider";
-import { initSafeArea } from "./lib/safe-area";
 import "./index.css";
 import App from "./App";
 
 const root = document.getElementById("root");
 
 async function bootstrap() {
-  initSafeArea();
   if (!root) {
     throw new Error("Root element not found");
   }

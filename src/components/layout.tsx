@@ -1,5 +1,4 @@
 import {
-  A,
   type RouteSectionProps,
   useLocation,
   useNavigate,
@@ -39,7 +38,7 @@ export default function Layout(props: RouteSectionProps) {
       class="flex h-screen flex-col bg-background text-foreground"
       style={{
         padding:
-          "var(--safe-area-inset-top) var(--safe-area-inset-right) var(--safe-area-inset-bottom) var(--safe-area-inset-left)",
+          "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)",
       }}
     >
       <main class="flex-1 overflow-hidden">{props.children}</main>
@@ -56,6 +55,7 @@ interface AppShellProps {
 
 export function AppShell(props: AppShellProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
   createEffect(() => {
@@ -64,7 +64,7 @@ export function AppShell(props: AppShellProps) {
 
   return (
     <div class={clsx("flex h-full flex-col", props.class)}>
-      <header class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 backdrop-blur-sm">
+      <header class="sticky top-0 z-40 flex h-10 shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 backdrop-blur-sm">
         <button
           aria-label="Menu"
           class="flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-accent"
@@ -108,8 +108,8 @@ export function AppShell(props: AppShellProps) {
         <nav
           class="fixed left-3 z-50 flex w-72 flex-col rounded-2xl bg-card shadow-2xl"
           style={{
-            top: "calc(0.75rem + var(--safe-area-inset-top))",
-            bottom: "calc(0.75rem + var(--safe-area-inset-bottom))",
+            top: "env(safe-area-inset-top)",
+            bottom: "calc(0.75rem + env(safe-area-inset-bottom))",
           }}
         >
           <div class="flex items-center gap-3 border-border border-b px-6 py-[11.5px]">
@@ -122,19 +122,22 @@ export function AppShell(props: AppShellProps) {
                   location.pathname === item.href ||
                   location.pathname.startsWith(`${item.href}/`);
                 return (
-                  <A
+                  <button
                     class={clsx(
-                      "flex items-center gap-3 rounded-xl px-3 py-3 font-medium text-sm transition-colors",
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-3 font-medium text-sm transition-colors",
                       isActive()
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-accent hover:text-foreground"
                     )}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={() => {
+                      setSidebarOpen(false);
+                      navigate(item.href, { replace: true });
+                    }}
+                    type="button"
                   >
                     <item.icon class="h-5 w-5" />
                     <span>{item.label}</span>
-                  </A>
+                  </button>
                 );
               }}
             </For>
