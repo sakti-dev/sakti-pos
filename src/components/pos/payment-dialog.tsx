@@ -17,7 +17,7 @@ interface PaymentDialogProps {
   open: boolean;
 }
 
-const PaymentDialog: Component<PaymentDialogProps> = (props) => {
+const PaymentDrawer: Component<PaymentDialogProps> = (props) => {
   const [paymentMethod, setPaymentMethod] = createSignal<PaymentMethod>("cash");
   const [amountInput, setAmountInput] = createSignal("");
 
@@ -103,9 +103,9 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
         open={props.open}
         trapFocus={false}
       >
-        <DrawerContent class="max-h-[80dvh]">
+        <DrawerContent class="max-h-[80dvh] px-4">
           <DrawerTitle class="landscape:py-1">Pembayaran</DrawerTitle>
-          <div class="min-h-0 flex-1 overflow-y-auto px-4">
+          <div class="min-h-0 flex-1 overflow-y-auto">
             <div class="mt-2 space-y-1 border-y py-2 landscape:hidden">
               <For each={cartItems()}>
                 {(item) => (
@@ -218,4 +218,4 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
 };
 
 export type { PaymentMethod };
-export { PaymentDialog };
+export { PaymentDrawer as PaymentDialog };

@@ -110,7 +110,7 @@ const DrawerTitle = <T extends ValidComponent = "div">(
   return (
     <DrawerPrimitive.Label
       class={cn(
-        "px-4 font-semibold text-lg leading-none tracking-tight",
+        "font-semibold text-lg leading-none tracking-tight",
         props.class
       )}
       {...rest}

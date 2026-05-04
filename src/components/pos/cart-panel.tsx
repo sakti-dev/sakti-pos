@@ -25,7 +25,7 @@ interface CartPanelProps {
   onPay: () => void;
 }
 
-const CartPanel: Component<CartPanelProps> = (props) => {
+const CartDrawer: Component<CartPanelProps> = (props) => {
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
   const [drawerOpen, setDrawerOpen] = createSignal(false);
 
@@ -78,9 +78,9 @@ const CartPanel: Component<CartPanelProps> = (props) => {
         >
           <DrawerPortal>
             <DrawerOverlay />
-            <DrawerContent class="max-h-[70vh]">
+            <DrawerContent class="max-h-[70vh] px-4">
               <DrawerTitle>Keranjang</DrawerTitle>
-              <div class="flex-1 overflow-y-auto px-4 pb-2">
+              <div class="flex-1 overflow-y-auto pb-2">
                 <For each={cartItems()}>
                   {(item, i) => (
                     <CartItemRow
@@ -90,7 +90,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
                   )}
                 </For>
               </div>
-              <div class="border-t px-4 py-3">
+              <div class="border-t py-3">
                 <div class="flex items-center justify-between">
                   <span class="font-medium">Total</span>
                   <span class="font-bold text-lg text-primary">
@@ -167,7 +167,7 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
 
   return (
     <div class="hidden h-full flex-col border-l bg-card landscape:flex">
-      <div class="flex h-12 shrink-0 items-center justify-between border-b px-4">
+      <div class="flex h-12 shrink-0 items-center justify-between border-b">
         <span class="font-semibold text-lg">Keranjang</span>
         <Show when={cartCount() > 0}>
           <span class="text-muted-foreground text-sm">{cartCount()} item</span>
@@ -260,4 +260,4 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
   );
 };
 
-export { CartPanel, CartSidebar };
+export { CartDrawer as CartPanel, CartSidebar };
