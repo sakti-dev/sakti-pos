@@ -1,6 +1,6 @@
+import { categories, products } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { db } from "./index";
-import { categories, products } from "./schema";
 
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;

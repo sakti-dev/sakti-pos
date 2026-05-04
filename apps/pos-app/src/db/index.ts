@@ -1,6 +1,6 @@
+import * as schema from "@repo/database";
 import { invoke } from "@tauri-apps/api/core";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
-import * as schema from "./schema";
 
 interface SqlRow {
   columns: string[];

@@ -1,8 +1,14 @@
+import {
+  categories,
+  orderItems,
+  orders,
+  products,
+  users,
+} from "@repo/database";
 import { invoke } from "@tauri-apps/api/core";
 import { and, desc, eq, gte, like, lt, type SQL, sql } from "drizzle-orm";
 import { db } from "./index";
 import type { Product } from "./menu";
-import { categories, orderItems, orders, products, users } from "./schema";
 
 interface SqlStatement {
   params: unknown[];
