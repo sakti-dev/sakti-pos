@@ -13,7 +13,10 @@ import MenuManagement from "./pages/menu-management";
 import OrderHistory from "./pages/order-history";
 import POS from "./pages/pos";
 import Settings from "./pages/settings";
-import Users from "./pages/users";
+import ResetPin from "./pages/users/reset-pin";
+import UserForm from "./pages/users/user-form";
+import UserList from "./pages/users/user-list";
+import UserManagement from "./pages/users/user-management";
 
 function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
   const navigate = useNavigate();
@@ -78,13 +81,18 @@ function App() {
         path="/orders"
       />
       <Route
-        component={() => (
+        component={(props) => (
           <RequireAuth roles={["owner"]}>
-            <Users />
+            <UserManagement {...props} />
           </RequireAuth>
         )}
         path="/users"
-      />
+      >
+        <Route component={UserList} path="/" />
+        <Route component={UserForm} path="/add" />
+        <Route component={UserForm} path="/:id/edit" />
+        <Route component={ResetPin} path="/:id/reset-pin" />
+      </Route>
       <Route
         component={() => (
           <RequireAuth>
