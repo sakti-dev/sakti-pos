@@ -12,14 +12,29 @@ import {
   For,
   Show,
 } from "solid-js";
-import { isAuthenticated } from "~/lib/auth";
+import { currentUserRole, isAuthenticated } from "~/lib/auth";
 
 const navItems = [
-  { href: "/pos", icon: PosIcon, label: "Kasir" },
-  { href: "/orders", icon: OrdersIcon, label: "Pesanan" },
-  { href: "/menu", icon: MenuIconIcon, label: "Menu" },
-  { href: "/users", icon: UsersIcon, label: "Pengguna" },
-  { href: "/settings", icon: SettingsIcon, label: "Pengaturan" },
+  { href: "/pos", icon: PosIcon, label: "Kasir", roles: undefined },
+  { href: "/orders", icon: OrdersIcon, label: "Pesanan", roles: undefined },
+  {
+    href: "/menu",
+    icon: MenuIconIcon,
+    label: "Menu",
+    roles: ["owner", "manager"] as string[],
+  },
+  {
+    href: "/users",
+    icon: UsersIcon,
+    label: "Pengguna",
+    roles: ["owner"] as string[],
+  },
+  {
+    href: "/settings",
+    icon: SettingsIcon,
+    label: "Pengaturan",
+    roles: undefined,
+  },
 ] as const;
 
 export default function Layout(props: RouteSectionProps) {
@@ -60,6 +75,11 @@ export function AppShell(props: AppShellProps) {
   createEffect(() => {
     setSidebarOpen(false);
   });
+
+  const role = currentUserRole();
+  const visibleItems = navItems.filter(
+    (item) => !item.roles || (role && item.roles.includes(role))
+  );
 
   return (
     <div class={clsx("flex h-full flex-col", props.class)}>
@@ -119,7 +139,7 @@ export function AppShell(props: AppShellProps) {
             <span class="font-bold text-lg text-primary">Sakti POS</span>
           </div>
           <div class="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
-            <For each={navItems}>
+            <For each={visibleItems}>
               {(item) => {
                 const isActive = () =>
                   location.pathname === item.href ||
