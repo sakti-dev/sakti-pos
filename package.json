@@ -14,6 +14,7 @@
     "drizzle-orm": "^0.45.2",
     "solid-icons": "^1.2.0",
     "solid-js": "^1.9.3",
+    "solid-presence": "^0.2.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7"
   },

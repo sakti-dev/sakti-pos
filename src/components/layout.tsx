@@ -12,6 +12,7 @@ import {
   For,
   Show,
 } from "solid-js";
+import createPresence from "solid-presence";
 import { currentUserRole, isAuthenticated } from "~/lib/auth";
 
 const navItems = [
@@ -71,6 +72,7 @@ export function AppShell(props: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
+  const [sidebarRef, setSidebarRef] = createSignal<HTMLElement | null>(null);
 
   createEffect(() => {
     setSidebarOpen(false);
@@ -80,6 +82,11 @@ export function AppShell(props: AppShellProps) {
   const visibleItems = navItems.filter(
     (item) => !item.roles || (role && item.roles.includes(role))
   );
+
+  const { present } = createPresence({
+    show: sidebarOpen,
+    element: sidebarRef,
+  });
 
   return (
     <div class={clsx("flex h-full flex-col", props.class)}>
@@ -121,24 +128,26 @@ export function AppShell(props: AppShellProps) {
       >
         {props.children}
       </div>
-      <Show when={sidebarOpen()}>
+      <Show when={present()}>
         <button
           aria-label="Tutup menu"
-          class="fixed inset-0 z-50 bg-black/50"
+          class="fixed inset-0 z-50 bg-black/0 transition-opacity duration-200 data-[open]:bg-black/50"
+          data-open={sidebarOpen() ? "" : undefined}
           onClick={() => setSidebarOpen(false)}
           type="button"
         />
         <nav
-          class="fixed left-3 z-50 flex w-72 flex-col rounded-2xl bg-card shadow-2xl"
+          class="fixed left-3 z-50 flex w-72 -translate-x-4 flex-col rounded-2xl bg-card opacity-0 shadow-2xl transition-[transform,opacity] duration-200 data-[open]:translate-x-0 data-[open]:opacity-100"
+          data-open={sidebarOpen() ? "" : undefined}
+          ref={setSidebarRef}
           style={{
-            top: "calc(0.25rem + env(safe-area-inset-top))",
-            bottom: "calc(0.75rem + env(safe-area-inset-bottom))",
+            top: "env(safe-area-inset-top)",
           }}
         >
-          <div class="flex items-center gap-3 border-b px-6 py-[11.5px]">
+          <div class="flex h-12 items-center gap-3 border-b px-6">
             <span class="font-bold text-lg text-primary">Sakti POS</span>
           </div>
-          <div class="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+          <div class="flex flex-col gap-2 overflow-y-auto p-3">
             <For each={visibleItems}>
               {(item) => {
                 const isActive = () =>
