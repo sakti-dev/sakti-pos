@@ -103,9 +103,9 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
         open={props.open}
         trapFocus={false}
       >
-        <DrawerContent class="max-h-[95vh]">
-          <DrawerTitle>Pembayaran</DrawerTitle>
-          <div class="flex-1 overflow-y-auto px-4">
+        <DrawerContent class="max-h-[80dvh]">
+          <DrawerTitle class="landscape:py-1">Pembayaran</DrawerTitle>
+          <div class="min-h-0 flex-1 overflow-y-auto px-4">
             <div class="hidden space-y-1 py-2 landscape:hidden">
               <For each={cartItems()}>
                 {(item) => (
@@ -121,17 +121,17 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
               </For>
             </div>
 
-            <div class="py-1">
-              <div class="flex justify-between font-bold">
+            <div class="py-1 landscape:py-0.5">
+              <div class="flex justify-between font-bold landscape:text-sm">
                 <span>Total</span>
                 <span class="text-primary">{formatIDR(cartTotal())}</span>
               </div>
             </div>
 
-            <div class="flex gap-3 py-2">
+            <div class="flex gap-3 py-2 landscape:gap-2 landscape:py-1">
               <button
                 class={cn(
-                  "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors",
+                  "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors landscape:py-1.5 landscape:text-sm",
                   paymentMethod() === "cash"
                     ? "bg-primary text-primary-foreground"
                     : "border border-border bg-card text-muted-foreground"
@@ -143,7 +143,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
               </button>
               <button
                 class={cn(
-                  "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors",
+                  "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors landscape:py-1.5 landscape:text-sm",
                   paymentMethod() === "qris"
                     ? "bg-primary text-primary-foreground"
                     : "border border-border bg-card text-muted-foreground"
@@ -156,28 +156,35 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
             </div>
 
             <Show when={paymentMethod() === "cash"}>
-              <div class="space-y-1 pb-2">
+              <div class="space-y-1 pb-2 landscape:pb-1">
                 <div>
-                  <div class="flex items-center justify-between px-3">
-                    <span class="text-muted-foreground text-sm">Dibayar</span>
-                    <span class="font-bold text-lg text-primary">
+                  <div class="flex items-center justify-between px-3 landscape:px-1">
+                    <span class="text-muted-foreground text-sm landscape:text-xs">
+                      Dibayar
+                    </span>
+                    <span class="font-bold text-lg text-primary landscape:text-sm">
                       {amountInput()
                         ? formatIDR(Number(amountInput()))
                         : "Rp 0"}
                     </span>
                   </div>
-                  <div class="flex items-center justify-between px-3">
-                    <span class="text-sm">Kembalian</span>
-                    <span class="font-bold text-lg">
+                  <div class="flex items-center justify-between px-3 landscape:px-1">
+                    <span class="text-sm landscape:text-xs">Kembalian</span>
+                    <span
+                      class={cn(
+                        "font-bold text-lg landscape:text-sm",
+                        changeAmount() >= 0 && "text-destructive"
+                      )}
+                    >
                       {changeAmount() >= 0 ? formatIDR(changeAmount()) : "-"}
                     </span>
                   </div>
                 </div>
-                <div class="grid grid-cols-3 gap-2.5 pt-1">
+                <div class="grid grid-cols-3 gap-1.5 pt-1 landscape:gap-1">
                   <For each={numpadKeys}>
                     {(key) => (
                       <button
-                        class="flex h-12 items-center justify-center rounded-lg border border-border bg-card font-mono text-lg active:bg-accent"
+                        class="flex h-12 items-center justify-center rounded-lg border border-border bg-card font-mono text-lg active:bg-accent landscape:h-9 landscape:text-base"
                         onClick={() =>
                           key === "del" ? deleteLast() : appendDigit(key)
                         }
@@ -192,7 +199,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
             </Show>
           </div>
 
-          <div class="flex gap-2 border-border border-t p-4">
+          <div class="flex shrink-0 gap-2 border-border border-t p-4 landscape:p-2">
             <Button class="flex-1" onClick={props.onClose} variant="outline">
               Batal
             </Button>
