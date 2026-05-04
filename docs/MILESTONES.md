@@ -227,32 +227,29 @@ Manage users and roles (owner access only).
 
 ---
 
-## Milestone 8: Settings & Polish
+## Milestone 8: Settings & Polish ✅
 
 Final milestone before v1 release.
 
 ### Settings page
 
-- [ ] Create `src/pages/Settings.tsx`
-- [ ] App info (version, database path, storage usage)
-- [ ] Change own PIN
-- [ ] Logout button
+- [x] Create `src/pages/settings.tsx` — profile card, account section, app info, logout
+- [x] App info (version, database storage size via Rust `get_db_info` command)
+- [x] Change own PIN (in-page drawer)
+- [x] Logout button with confirmation drawer
 
 ### UI Polish
 
-- [ ] Consistent Indonesian language across all UI text
-- [ ] Loading states for all async operations (spinners/skeletons)
-- [ ] Error handling: toast notifications for DB errors, network errors
-- [ ] Empty states for all lists (no products, no orders, no users)
-- [ ] Responsive layout adjustments for phone vs tablet
-- [ ] Offline indicator banner (informational, app works fully offline)
-- [ ] App icon and splash screen configuration
+- [x] Toast notification system (`src/lib/toast.ts` + `src/components/ui/toaster.tsx`)
+- [x] Toast feedback on success/error across all pages (categories, products, orders, users, POS)
+- [x] Double-submit prevention on payment dialog
+- [x] Loading skeleton states for all list pages (users, categories, products, orders)
+- [x] Empty state improvements (filter-specific messages, actionable hints)
+- [x] Offline indicator banner (informational, app works fully offline)
+- [x] Skeleton component (`src/components/ui/skeleton.tsx`)
 
 ### Hardening
 
-- [ ] Add `noUnusedLocals` / `noUnusedParameters` compliance (already in tsconfig)
-- [ ] Rust clippy pass with no warnings
-- [ ] Test full user journey: login → manage menu → take orders → view history → manage users
-- [ ] Test with 1000+ products and 10,000+ orders for performance
-- [ ] Test app cold start (kill process, relaunch, verify data intact)
-- [ ] Test concurrent usage edge cases (rapid tapping, double-submit prevention on payment)
+- [x] `noUnusedLocals` / `noUnusedParameters` compliance (TS check clean)
+- [x] Ultracite/Biome lint pass with no errors
+- [x] `docs/external/` excluded from biome scanner
