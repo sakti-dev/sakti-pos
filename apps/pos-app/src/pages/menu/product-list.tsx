@@ -1,5 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
@@ -12,7 +13,6 @@ import {
   type Product,
   updateProduct,
 } from "~/db/menu";
-import { toast } from "~/lib/toast";
 import { cn, formatIDR } from "~/lib/utils";
 
 export default function ProductList() {
@@ -60,7 +60,7 @@ export default function ProductList() {
     try {
       await deleteProduct(target.id);
       await refetch();
-      toast("Produk dihapus", "success");
+      toast.success("Produk dihapus");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus produk");
     }
@@ -70,9 +70,8 @@ export default function ProductList() {
     try {
       await updateProduct(product.id, { isActive: !product.isActive });
       await refetch();
-      toast(
-        product.isActive ? "Produk dinonaktifkan" : "Produk diaktifkan",
-        "success"
+      toast.success(
+        product.isActive ? "Produk dinonaktifkan" : "Produk diaktifkan"
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal mengubah status");

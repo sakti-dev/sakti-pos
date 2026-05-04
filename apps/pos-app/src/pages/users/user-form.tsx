@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "@solidjs/router";
 import { createResource, createSignal, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
@@ -7,7 +8,6 @@ import { Select } from "~/components/ui/select";
 import { countActiveOwners, createUser, getUser, updateUser } from "~/db/users";
 import { currentUser } from "~/lib/auth";
 import { hashPin } from "~/lib/auth-provider";
-import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 const ROLE_OPTIONS = [
@@ -106,7 +106,7 @@ export default function UserForm() {
           role: role() as "owner" | "manager" | "cashier",
           isActive: isActive(),
         });
-        toast("Pengguna diperbarui", "success");
+        toast.success("Pengguna diperbarui");
       } else {
         const hashedPin = await hashPin(pin());
         await createUser({
@@ -114,7 +114,7 @@ export default function UserForm() {
           role: role() as "owner" | "manager" | "cashier",
           pin: hashedPin,
         });
-        toast("Pengguna ditambahkan", "success");
+        toast.success("Pengguna ditambahkan");
       }
       navigate("/users", { replace: true });
     } catch (e) {

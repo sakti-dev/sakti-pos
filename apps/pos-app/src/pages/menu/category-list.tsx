@@ -1,5 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { createResource, createSignal, For, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
@@ -11,7 +12,6 @@ import {
   getProductCountByCategory,
   updateCategory,
 } from "~/db/menu";
-import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 export default function CategoryList() {
@@ -41,7 +41,7 @@ export default function CategoryList() {
     try {
       await deleteCategory(target.id);
       await refetch();
-      toast("Kategori dihapus", "success");
+      toast.success("Kategori dihapus");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus kategori");
     }
@@ -51,9 +51,8 @@ export default function CategoryList() {
     try {
       await updateCategory(cat.id, { isActive: !cat.isActive });
       await refetch();
-      toast(
-        cat.isActive ? "Kategori dinonaktifkan" : "Kategori diaktifkan",
-        "success"
+      toast.success(
+        cat.isActive ? "Kategori dinonaktifkan" : "Kategori diaktifkan"
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal mengubah status");

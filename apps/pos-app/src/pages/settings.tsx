@@ -2,6 +2,7 @@ import { useNavigate } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
 import { TbOutlineChevronRight } from "solid-icons/tb";
 import { createResource, createSignal, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
 import { Button } from "~/components/ui/button";
@@ -14,7 +15,6 @@ import {
 } from "~/components/ui/drawer";
 import { changeCurrentUserPin, currentUser, logout } from "~/lib/auth";
 import { setTheme, theme } from "~/lib/theme";
-import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 interface DbInfo {
@@ -164,7 +164,7 @@ function ChangePinDrawer(props: { onClose: () => void }) {
     setError("");
     try {
       await changeCurrentUserPin(newPin());
-      toast("PIN berhasil diubah", "success");
+      toast.success("PIN berhasil diubah");
       props.onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal mengubah PIN");

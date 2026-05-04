@@ -6,6 +6,7 @@ import {
   For,
   Show,
 } from "solid-js";
+import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { DailySummaryBar } from "~/components/daily-summary";
 import { AppShell } from "~/components/layout";
@@ -22,7 +23,6 @@ import {
 } from "~/db/orders";
 import { currentUserRole } from "~/lib/auth";
 import { useIsPhone } from "~/lib/responsive";
-import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 const statusOptions: SelectOption[] = [
@@ -89,7 +89,7 @@ export default function OrderHistory() {
       return next;
     });
     await refetch();
-    toast("Pesanan dibatalkan", "success");
+    toast.success("Pesanan dibatalkan");
   };
 
   return (

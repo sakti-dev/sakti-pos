@@ -1,5 +1,6 @@
 import { TbOutlineSearch, TbOutlineX } from "solid-icons/tb";
 import { createResource, createSignal, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { AppShell } from "~/components/layout";
 import { CartPanel, CartSidebar } from "~/components/pos/cart-panel";
 import { CategoryTabs } from "~/components/pos/category-tabs";
@@ -14,7 +15,6 @@ import {
 import { currentUser } from "~/lib/auth";
 import { cartItems, cartTotal, clearCart } from "~/lib/cart";
 import { useIsPhone } from "~/lib/responsive";
-import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 export default function POS() {
@@ -80,7 +80,7 @@ export default function POS() {
       setOrderResult(orderNumber);
       setTimeout(() => setOrderResult(null), 2000);
     } catch {
-      toast("Gagal membuat pesanan", "error");
+      toast.error("Gagal membuat pesanan");
     } finally {
       setPaymentLoading(false);
     }
