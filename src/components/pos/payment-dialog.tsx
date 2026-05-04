@@ -8,6 +8,7 @@ import { cn, formatIDR } from "~/lib/utils";
 type PaymentMethod = "cash" | "qris";
 
 interface PaymentDialogProps {
+  loading?: boolean;
   onClose: () => void;
   onConfirm: (data: {
     amountPaid: number | null;
@@ -205,10 +206,10 @@ const PaymentDrawer: Component<PaymentDialogProps> = (props) => {
             </Button>
             <Button
               class="flex-1"
-              disabled={!isValid()}
+              disabled={!isValid() || (props.loading ?? false)}
               onClick={handleConfirm}
             >
-              Konfirmasi
+              {props.loading ? "Memproses..." : "Konfirmasi"}
             </Button>
           </div>
         </DrawerContent>

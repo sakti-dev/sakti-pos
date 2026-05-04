@@ -11,6 +11,7 @@ import { DailySummaryBar } from "~/components/daily-summary";
 import { AppShell } from "~/components/layout";
 import { OrderCard } from "~/components/order-card";
 import { Select, type SelectOption } from "~/components/ui/select";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   cancelOrder,
   getDailySummary,
@@ -21,6 +22,7 @@ import {
 } from "~/db/orders";
 import { currentUserRole } from "~/lib/auth";
 import { useIsPhone } from "~/lib/responsive";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 const statusOptions: SelectOption[] = [
@@ -87,6 +89,7 @@ export default function OrderHistory() {
       return next;
     });
     await refetch();
+    toast("Pesanan dibatalkan", "success");
   };
 
   return (
@@ -135,9 +138,35 @@ export default function OrderHistory() {
 
         <Show
           fallback={
-            <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <p>Belum ada pesanan</p>
-            </div>
+            <Show
+              fallback={
+                <div class="space-y-2">
+                  <For each={[1, 2, 3]}>
+                    {() => (
+                      <div class="rounded-xl border bg-card p-4">
+                        <div class="flex items-center justify-between">
+                          <Skeleton class="h-4 w-20" />
+                          <Skeleton class="h-4 w-16" />
+                        </div>
+                        <div class="mt-2 space-y-1">
+                          <Skeleton class="h-3 w-full" />
+                          <Skeleton class="h-3 w-2/3" />
+                        </div>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              }
+              when={orders() !== undefined}
+            >
+              <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <p>
+                  {statusFilter()
+                    ? "Tidak ada pesanan dengan filter ini"
+                    : "Belum ada pesanan"}
+                </p>
+              </div>
+            </Show>
           }
           when={orders() && orders()!.length > 0}
         >

@@ -4,6 +4,7 @@ import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select, type SelectOption } from "~/components/ui/select";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   deleteProduct,
   getCategories,
@@ -11,6 +12,7 @@ import {
   type Product,
   updateProduct,
 } from "~/db/menu";
+import { toast } from "~/lib/toast";
 import { cn, formatIDR } from "~/lib/utils";
 
 export default function ProductList() {
@@ -58,6 +60,7 @@ export default function ProductList() {
     try {
       await deleteProduct(target.id);
       await refetch();
+      toast("Produk dihapus", "success");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus produk");
     }
@@ -67,6 +70,10 @@ export default function ProductList() {
     try {
       await updateProduct(product.id, { isActive: !product.isActive });
       await refetch();
+      toast(
+        product.isActive ? "Produk dinonaktifkan" : "Produk diaktifkan",
+        "success"
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal mengubah status");
     }
@@ -107,10 +114,31 @@ export default function ProductList() {
 
         <Show
           fallback={
-            <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <p>Belum ada produk</p>
-              <p class="text-sm">Tap "+ Tambah" untuk membuat produk baru</p>
-            </div>
+            <Show
+              fallback={
+                <div class="space-y-2">
+                  <For each={[1, 2, 3]}>
+                    {() => (
+                      <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+                        <div class="flex-1 space-y-2">
+                          <Skeleton class="h-4 w-32" />
+                          <Skeleton class="h-3 w-20" />
+                        </div>
+                        <Skeleton class="h-6 w-14" />
+                        <Skeleton class="size-9" />
+                        <Skeleton class="size-9" />
+                      </div>
+                    )}
+                  </For>
+                </div>
+              }
+              when={products() !== undefined}
+            >
+              <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <p>Belum ada produk</p>
+                <p class="text-sm">Tap "+ Tambah" untuk membuat produk baru</p>
+              </div>
+            </Show>
           }
           when={products() && products()!.length > 0}
         >

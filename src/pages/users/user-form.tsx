@@ -7,6 +7,7 @@ import { Select } from "~/components/ui/select";
 import { countActiveOwners, createUser, getUser, updateUser } from "~/db/users";
 import { currentUser } from "~/lib/auth";
 import { hashPin } from "~/lib/auth-provider";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 const ROLE_OPTIONS = [
@@ -105,6 +106,7 @@ export default function UserForm() {
           role: role() as "owner" | "manager" | "cashier",
           isActive: isActive(),
         });
+        toast("Pengguna diperbarui", "success");
       } else {
         const hashedPin = await hashPin(pin());
         await createUser({
@@ -112,6 +114,7 @@ export default function UserForm() {
           role: role() as "owner" | "manager" | "cashier",
           pin: hashedPin,
         });
+        toast("Pengguna ditambahkan", "success");
       }
       navigate("/users", { replace: true });
     } catch (e) {

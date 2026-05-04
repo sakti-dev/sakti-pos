@@ -3,6 +3,7 @@ import { createResource, For, Show } from "solid-js";
 
 import { AppShell } from "~/components/layout";
 import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 import { getUsers } from "~/db/users";
 import { cn } from "~/lib/utils";
 
@@ -36,10 +37,31 @@ export default function UserList() {
 
         <Show
           fallback={
-            <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <p>Belum ada pengguna</p>
-              <p class="text-sm">Tap "+ Tambah" untuk membuat pengguna baru</p>
-            </div>
+            <Show
+              fallback={
+                <div class="space-y-2">
+                  <For each={[1, 2, 3]}>
+                    {() => (
+                      <div class="flex items-center gap-3 rounded-xl border bg-card p-3">
+                        <Skeleton class="size-10 shrink-0 rounded-full" />
+                        <div class="flex-1 space-y-2">
+                          <Skeleton class="h-4 w-24" />
+                          <Skeleton class="h-3 w-16" />
+                        </div>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              }
+              when={users() !== undefined}
+            >
+              <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <p>Belum ada pengguna</p>
+                <p class="text-sm">
+                  Tap "+ Tambah" untuk membuat pengguna baru
+                </p>
+              </div>
+            </Show>
           }
           when={users() && users()!.length > 0}
         >

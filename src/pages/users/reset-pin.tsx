@@ -4,6 +4,7 @@ import { createSignal, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { changePin } from "~/lib/auth-provider";
+import { toast } from "~/lib/toast";
 
 export default function ResetPin() {
   const params = useParams();
@@ -29,6 +30,7 @@ export default function ResetPin() {
 
     try {
       await changePin(Number(params.id), pin());
+      toast("PIN berhasil direset", "success");
       navigate("/users", { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal mengubah PIN");

@@ -13,6 +13,7 @@ import {
 import { currentUser } from "~/lib/auth";
 import { cartItems, cartTotal, clearCart } from "~/lib/cart";
 import { useIsPhone } from "~/lib/responsive";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 export default function POS() {
@@ -22,6 +23,7 @@ export default function POS() {
     null
   );
   const [paymentOpen, setPaymentOpen] = createSignal(false);
+  const [paymentLoading, setPaymentLoading] = createSignal(false);
   const [orderResult, setOrderResult] = createSignal<string | null>(null);
   const [search, setSearch] = createSignal("");
 
@@ -56,24 +58,31 @@ export default function POS() {
       return;
     }
 
-    const orderNumber = await createOrder({
-      amountPaid: data.amountPaid,
-      changeAmount: data.changeAmount,
-      items: cartItems().map((item) => ({
-        price: item.product.price,
-        product_id: item.product.id,
-        product_name: item.product.name,
-        qty: item.quantity,
-      })),
-      paymentMethod: data.paymentMethod,
-      total: cartTotal(),
-      userId: user.id,
-    });
+    setPaymentLoading(true);
+    try {
+      const orderNumber = await createOrder({
+        amountPaid: data.amountPaid,
+        changeAmount: data.changeAmount,
+        items: cartItems().map((item) => ({
+          price: item.product.price,
+          product_id: item.product.id,
+          product_name: item.product.name,
+          qty: item.quantity,
+        })),
+        paymentMethod: data.paymentMethod,
+        total: cartTotal(),
+        userId: user.id,
+      });
 
-    setPaymentOpen(false);
-    clearCart();
-    setOrderResult(orderNumber);
-    setTimeout(() => setOrderResult(null), 2000);
+      setPaymentOpen(false);
+      clearCart();
+      setOrderResult(orderNumber);
+      setTimeout(() => setOrderResult(null), 2000);
+    } catch {
+      toast("Gagal membuat pesanan", "error");
+    } finally {
+      setPaymentLoading(false);
+    }
   };
 
   return (
@@ -165,6 +174,7 @@ export default function POS() {
 
       <CartSidebar onPay={() => setPaymentOpen(true)} />
       <PaymentDialog
+        loading={paymentLoading()}
         onClose={() => setPaymentOpen(false)}
         onConfirm={handlePayment}
         open={paymentOpen()}

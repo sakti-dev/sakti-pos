@@ -3,6 +3,7 @@ import { createResource, createSignal, For, Show } from "solid-js";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   type Category,
   deleteCategory,
@@ -10,6 +11,7 @@ import {
   getProductCountByCategory,
   updateCategory,
 } from "~/db/menu";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 export default function CategoryList() {
@@ -39,6 +41,7 @@ export default function CategoryList() {
     try {
       await deleteCategory(target.id);
       await refetch();
+      toast("Kategori dihapus", "success");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus kategori");
     }
@@ -48,6 +51,10 @@ export default function CategoryList() {
     try {
       await updateCategory(cat.id, { isActive: !cat.isActive });
       await refetch();
+      toast(
+        cat.isActive ? "Kategori dinonaktifkan" : "Kategori diaktifkan",
+        "success"
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal mengubah status");
     }
@@ -81,10 +88,30 @@ export default function CategoryList() {
 
         <Show
           fallback={
-            <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <p>Belum ada kategori</p>
-              <p class="text-sm">Tap "+ Tambah" untuk membuat kategori baru</p>
-            </div>
+            <Show
+              fallback={
+                <div class="space-y-2">
+                  <For each={[1, 2, 3]}>
+                    {() => (
+                      <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+                        <Skeleton class="h-4 flex-1" />
+                        <Skeleton class="h-6 w-14" />
+                        <Skeleton class="size-9" />
+                        <Skeleton class="size-9" />
+                      </div>
+                    )}
+                  </For>
+                </div>
+              }
+              when={categories() !== undefined}
+            >
+              <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <p>Belum ada kategori</p>
+                <p class="text-sm">
+                  Tap "+ Tambah" untuk membuat kategori baru
+                </p>
+              </div>
+            </Show>
           }
           when={categories() && categories()!.length > 0}
         >

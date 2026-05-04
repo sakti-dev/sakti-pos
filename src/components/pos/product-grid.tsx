@@ -11,8 +11,9 @@ interface ProductGridProps {
 const ProductGrid: Component<ProductGridProps> = (props) => (
   <Show
     fallback={
-      <div class="flex flex-1 items-center justify-center py-12 text-muted-foreground">
-        Tidak ada produk
+      <div class="flex flex-1 flex-col items-center justify-center gap-1 py-12 text-muted-foreground">
+        <p>Tidak ada produk</p>
+        <p class="text-sm">Tambahkan produk di halaman Menu</p>
       </div>
     }
     when={props.products.length > 0}
