@@ -1,0 +1,19 @@
+{
+  "name": "@repo/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run",
+    "lint": "ultracite check",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@repo/database": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2",
+    "wrangler": "^4"
+  }
+}
