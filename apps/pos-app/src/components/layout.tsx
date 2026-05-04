@@ -15,8 +15,8 @@ import {
 } from "solid-icons/tb";
 import type { JSX } from "solid-js";
 import { createEffect, createSignal, For, Show } from "solid-js";
+import { Toaster } from "solid-sonner";
 import { OfflineBanner } from "~/components/ui/offline-banner";
-import { Toaster } from "~/components/ui/toaster";
 import { currentUserRole, isAuthenticated } from "~/lib/auth";
 
 const navItems = [
