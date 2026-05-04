@@ -1,7 +1,7 @@
+import { users } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { createSignal } from "solid-js";
 import { db } from "~/db";
-import { users } from "~/db/schema";
 import type { AuthUser } from "./auth-provider";
 import { changePin, verifyPin } from "./auth-provider";
 

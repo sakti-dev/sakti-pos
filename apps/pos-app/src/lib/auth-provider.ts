@@ -1,7 +1,7 @@
+import { users } from "@repo/database";
 import bcrypt from "bcryptjs";
 import { eq, sql } from "drizzle-orm";
 import { db } from "~/db";
-import { users } from "~/db/schema";
 
 export interface AuthUser {
   id: number;
