@@ -46,7 +46,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const authUser = await login(selectedUser()?.id, pin);
+      const authUser = await login(selectedUser()!.id, pin);
       const target = authUser.role === "cashier" ? "/pos" : "/menu";
       navigate(target, { replace: true });
     } catch (err) {
