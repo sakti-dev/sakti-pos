@@ -127,7 +127,7 @@ function ChangePinDrawer(props: { onClose: () => void }) {
   const isValid = () => {
     const np = newPin();
     const cp = confirmPin();
-    return np.length >= 4 && np === cp;
+    return np.length >= 6 && np === cp;
   };
 
   const handleSubmit = async () => {
@@ -183,9 +183,10 @@ function ChangePinDrawer(props: { onClose: () => void }) {
                 autocomplete="new-password"
                 class="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 id="new-pin"
+                inputMode="numeric"
                 maxlength={6}
                 onInput={(e) => setNewPin(e.currentTarget.value)}
-                placeholder="Min. 4 digit"
+                placeholder="6 digit"
                 type="password"
               />
             </div>
@@ -200,6 +201,7 @@ function ChangePinDrawer(props: { onClose: () => void }) {
                 autocomplete="new-password"
                 class="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 id="confirm-pin"
+                inputMode="numeric"
                 maxlength={6}
                 onInput={(e) => setConfirmPin(e.currentTarget.value)}
                 placeholder="Ulangi PIN baru"
