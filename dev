@@ -23,8 +23,8 @@ distrobox enter dev -- /bin/bash -c "
 
     # Connect to Waydroid
     # Using 192.168.100.2 as it is the default Waydroid bridge IP
-    echo '🔗 Connecting ADB to Waydroid...'
-    adb connect 192.168.240.112:5555
+    # echo '🔗 Connecting ADB to Waydroid...'
+    # adb connect 192.168.240.112:5555
 
     # Launch Tauri
     echo '🚀 Launching Tauri Dev...'

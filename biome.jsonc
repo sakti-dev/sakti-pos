@@ -25,6 +25,7 @@
         "useFilenamingConvention": "off"
       },
       "suspicious": {
+        "noEmptyBlockStatements": "off",
         "noUnknownAtRules": "off"
       },
       "performance": {
