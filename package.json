@@ -10,7 +10,8 @@
     "app:dev": "bash scripts/dev",
     "app:build-apk": "bash scripts/build-apk",
     "app:resize": "bash scripts/resize",
-    "app:restart": "bash scripts/restart"
+    "app:restart": "bash scripts/restart",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",

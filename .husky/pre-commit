@@ -1,4 +1,4 @@
-bun test --path-ignore-patterns 'docs/external/**'
+bun run test
 
 # ultracite
 #!/bin/sh
