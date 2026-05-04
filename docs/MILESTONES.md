@@ -199,21 +199,31 @@ View and browse past orders.
 
 ---
 
-## Milestone 7: User Management
+## Milestone 7: User Management ✅
 
 Manage users and roles (owner access only).
 
-- [ ] Create `src/pages/Users.tsx` (owner-only route)
-- [ ] User list: name, role badge, active status, created date
-- [ ] Add user dialog: name, PIN (enter + confirm), role dropdown (owner/manager/cashier)
-- [ ] Edit user dialog: name, role, toggle active
-- [ ] Reset PIN dialog: enter new PIN + confirm
-- [ ] Business rules:
-  - [ ] Cannot deactivate the last active owner
-  - [ ] Cannot change own role to non-owner if you're the last owner
-  - [ ] Cannot deactivate yourself
-- [ ] Pin hashing: send PIN to Rust command for hashing, store hash only
-- [ ] Test: full user CRUD, role enforcement, edge case protections
+- [x] Create `src/db/users.ts` — data layer with getUsers, getUser, createUser, updateUser, countActiveOwners
+- [x] Create `src/pages/users/user-management.tsx` — nested route wrapper (like MenuManagement)
+- [x] Create `src/pages/users/user-list.tsx` — user list with role badges (owner=green, manager=blue, cashier=gray), avatar initials, active status
+- [x] Create `src/pages/users/user-form.tsx` — full-screen add/edit form with name, role (drawer Select), PIN + confirm (add mode), active toggle (edit mode)
+- [x] Create `src/pages/users/reset-pin.tsx` — new PIN + confirm PIN form
+- [x] Nested routes under `/users` in App.tsx (owner-only via RequireAuth)
+- [x] Business rules enforced:
+  - [x] Cannot deactivate the last active owner
+  - [x] Cannot change own role to non-owner if you're the last owner
+  - [x] Cannot deactivate yourself
+- [x] PIN hashing via existing `hashPin()` from `src/lib/auth-provider.ts`
+- [x] Sidebar menu items hidden based on user role (cashier: POS, Orders, Settings; manager: + Menu; owner: + Users)
+- [x] Animated sidebar open/close with `@solid-primitives/presence`
+- [x] PageHeader back button uses `replace: true` navigation (prevents back-loop)
+- [x] Test: full user CRUD, role enforcement, edge case protections
+
+### Key decisions
+- **Nested routes** (like `/menu`) — full-screen form pages with back navigation
+- **PIN input via `type="password"`** — not PinPad, since admin sets PINs for others
+- **Business rules in TypeScript** — checked before DB writes with descriptive Indonesian error messages
+- **`@solid-primitives/presence`** for sidebar animation — manages mount/unmount timing for enter/exit transitions
 
 ---
 
