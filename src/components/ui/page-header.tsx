@@ -1,4 +1,4 @@
-import { A } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 
@@ -11,6 +11,8 @@ interface PageHeaderProps {
 }
 
 export function PageHeader(props: PageHeaderProps) {
+  const navigate = useNavigate();
+
   return (
     <div
       class={cn(
@@ -20,9 +22,10 @@ export function PageHeader(props: PageHeaderProps) {
     >
       <Show when={props.backHref}>
         {(href) => (
-          <A
+          <button
             class="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-            href={href()}
+            onClick={() => navigate(href(), { replace: true })}
+            type="button"
           >
             <svg
               aria-hidden="true"
@@ -36,7 +39,7 @@ export function PageHeader(props: PageHeaderProps) {
             >
               <path d="m15 18-6-6 6-6" />
             </svg>
-          </A>
+          </button>
         )}
       </Show>
       <h1 class="font-semibold text-lg">{props.children}</h1>
