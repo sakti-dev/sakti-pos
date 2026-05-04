@@ -1,7 +1,0 @@
-node_modules
-dist
-.direnv
-log.txt
-*.apk*
-
-docs/externalpackage-lock.json
