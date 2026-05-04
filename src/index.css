@@ -1,6 +1,5 @@
 @import "@fontsource-variable/bricolage-grotesque";
 @import "@fontsource-variable/inter";
-@import "@fontsource-variable/jetbrains-mono";
 
 @tailwind base;
 @tailwind components;
@@ -78,7 +77,6 @@
   }
   body {
     min-height: 100vh;
-    font-family: "Inter Variable", system-ui, sans-serif;
     letter-spacing: -0.01em;
     @apply bg-background text-foreground;
   }
@@ -86,7 +84,7 @@
   kbd,
   pre,
   samp {
-    font-family: "JetBrains Mono Variable", monospace;
+    font-family: monospace;
   }
   h1,
   h2,
@@ -94,8 +92,7 @@
   h4,
   h5,
   h6 {
-    font-family:
-      "Bricolage Grotesque Variable", "Inter Variable", system-ui, sans-serif;
+    @apply font-heading;
   }
 }
 
@@ -112,4 +109,12 @@
 
 ::-webkit-scrollbar-corner {
   display: none;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
