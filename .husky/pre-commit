@@ -1,4 +1,4 @@
-bun test --path-ignore-patterns 'apps/pos-app/docs/external/**'
+bun test --path-ignore-patterns 'docs/external/**'
 
 # ultracite
 #!/bin/sh
