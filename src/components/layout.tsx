@@ -1,3 +1,4 @@
+import { createPresence } from "@solid-primitives/presence";
 import {
   type RouteSectionProps,
   useLocation,
@@ -12,7 +13,6 @@ import {
   For,
   Show,
 } from "solid-js";
-import createPresence from "solid-presence";
 import { currentUserRole, isAuthenticated } from "~/lib/auth";
 
 const navItems = [
@@ -72,7 +72,6 @@ export function AppShell(props: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
-  const [sidebarRef, setSidebarRef] = createSignal<HTMLElement | null>(null);
 
   createEffect(() => {
     setSidebarOpen(false);
@@ -83,9 +82,8 @@ export function AppShell(props: AppShellProps) {
     (item) => !item.roles || (role && item.roles.includes(role))
   );
 
-  const { present } = createPresence({
-    show: sidebarOpen,
-    element: sidebarRef,
+  const presence = createPresence(sidebarOpen, {
+    transitionDuration: 200,
   });
 
   return (
@@ -128,20 +126,36 @@ export function AppShell(props: AppShellProps) {
       >
         {props.children}
       </div>
-      <Show when={present()}>
+      <Show when={presence.isMounted()}>
         <button
           aria-label="Tutup menu"
-          class="fixed inset-0 z-50 bg-black/0 transition-opacity duration-200 data-[open]:bg-black/50"
-          data-open={sidebarOpen() ? "" : undefined}
+          class="fixed inset-0 z-50 transition-opacity duration-200"
           onClick={() => setSidebarOpen(false)}
+          style={{
+            "background-color": presence.isVisible()
+              ? "rgba(0, 0, 0, 0.5)"
+              : "rgba(0, 0, 0, 0)",
+          }}
           type="button"
         />
         <nav
-          class="fixed left-3 z-50 flex w-72 -translate-x-4 flex-col rounded-2xl bg-card opacity-0 shadow-2xl transition-[transform,opacity] duration-200 data-[open]:translate-x-0 data-[open]:opacity-100"
-          data-open={sidebarOpen() ? "" : undefined}
-          ref={setSidebarRef}
+          class="fixed left-3 z-50 flex w-72 flex-col overflow-hidden rounded-2xl bg-card shadow-2xl"
           style={{
             top: "env(safe-area-inset-top)",
+            transition: "max-height 200ms ease, opacity 200ms ease",
+            ...(presence.isEntering() && {
+              "max-height": "0px",
+              opacity: "0",
+            }),
+            ...(presence.isExiting() && {
+              "max-height": "0px",
+              opacity: "0",
+            }),
+            ...(presence.isVisible() && {
+              "max-height":
+                "calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+              opacity: "1",
+            }),
           }}
         >
           <div class="flex h-12 items-center gap-3 border-b px-6">
