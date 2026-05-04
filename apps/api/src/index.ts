@@ -1,7 +1,8 @@
-import { Hono } from "hono";
+import { Elysia } from "elysia";
+import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
 
-const app = new Hono();
-
-app.get("/", (c) => c.text("Hello Hono!"));
-
-export default app;
+export default new Elysia({
+  adapter: CloudflareAdapter,
+})
+  .get("/", () => "Hello Elysia!")
+  .compile();
