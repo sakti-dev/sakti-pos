@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
 # 1. Kill any ghost processes on Tauri/Vite ports
 echo "🧹 Cleaning up existing dev servers..."
 fuser -k 1420/tcp 1421/tcp 2>/dev/null
@@ -28,5 +30,6 @@ distrobox enter dev -- /bin/bash -c "
 
     # Launch Tauri
     echo '🚀 Launching Tauri Dev...'
+    cd ${PROJECT_ROOT}/apps/pos-app
     bun tauri android dev --no-watch
 "

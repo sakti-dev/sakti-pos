@@ -6,7 +6,11 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
-    "prepare": "husky"
+    "prepare": "husky",
+    "app:dev": "bash scripts/dev",
+    "app:build-apk": "bash scripts/build-apk",
+    "app:resize": "bash scripts/resize",
+    "app:restart": "bash scripts/restart"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
