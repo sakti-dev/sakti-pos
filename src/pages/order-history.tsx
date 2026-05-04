@@ -20,6 +20,8 @@ import {
   type OrderRow,
 } from "~/db/orders";
 import { currentUserRole } from "~/lib/auth";
+import { useIsPhone } from "~/lib/responsive";
+import { cn } from "~/lib/utils";
 
 const statusOptions: SelectOption[] = [
   { label: "Semua", value: "" },
@@ -28,6 +30,7 @@ const statusOptions: SelectOption[] = [
 ];
 
 export default function OrderHistory() {
+  const isPhone = useIsPhone();
   const today = () => new Date().toISOString().slice(0, 10);
 
   const [dateFrom, setDateFrom] = createSignal(today());
@@ -91,22 +94,36 @@ export default function OrderHistory() {
       <div class="space-y-3 p-4">
         <DailySummaryBar data={summary()} />
 
-        <div class="flex items-center gap-2">
-          <input
-            class="h-10 rounded-md border border-input bg-transparent px-3 text-sm"
-            max={today()}
-            onChange={(e) => setDateFrom(e.currentTarget.value)}
-            type="date"
-            value={dateFrom()}
-          />
-          <span class="text-muted-foreground text-sm">s/d</span>
-          <input
-            class="h-10 rounded-md border border-input bg-transparent px-3 text-sm"
-            max={today()}
-            onChange={(e) => setDateTo(e.currentTarget.value)}
-            type="date"
-            value={dateTo()}
-          />
+        <div
+          class={cn(
+            "sticky top-3 z-10 -mx-4 bg-background px-4 pb-3",
+            "flex gap-2",
+            isPhone() && "portrait:flex-col"
+          )}
+        >
+          <div class="flex items-center gap-2">
+            <input
+              class={cn(
+                "h-10 rounded-md border border-input bg-transparent px-3 text-sm",
+                isPhone() && "portrait:flex-1"
+              )}
+              max={today()}
+              onChange={(e) => setDateFrom(e.currentTarget.value)}
+              type="date"
+              value={dateFrom()}
+            />
+            <span class="text-muted-foreground text-sm">s/d</span>
+            <input
+              class={cn(
+                "h-10 rounded-md border border-input bg-transparent px-3 text-sm",
+                isPhone() && "portrait:flex-1"
+              )}
+              max={today()}
+              onChange={(e) => setDateTo(e.currentTarget.value)}
+              type="date"
+              value={dateTo()}
+            />
+          </div>
           <div class="w-28">
             <Select
               onChange={(v) => setStatusFilter(String(v))}

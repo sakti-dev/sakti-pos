@@ -10,24 +10,24 @@ interface DailySummaryBarProps {
 const DailySummaryBar: Component<DailySummaryBarProps> = (props) => (
   <Show when={props.data}>
     {(data) => (
-      <div class="grid grid-cols-3 gap-2 rounded-xl border border-border bg-card p-3">
-        <div class="text-center">
-          <p class="font-bold text-lg">{data().orderCount}</p>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-xl border bg-card p-3">
           <p class="text-muted-foreground text-xs">Pesanan</p>
+          <p class="font-bold text-lg">{data().orderCount}</p>
         </div>
-        <div class="text-center">
+        <div class="rounded-xl border bg-card p-3">
+          <p class="text-muted-foreground text-xs">Total</p>
           <p class="font-bold text-lg text-primary">
             {formatIDR(data().totalRevenue)}
           </p>
-          <p class="text-muted-foreground text-xs">Total</p>
         </div>
-        <div class="text-center">
-          <p class="text-muted-foreground text-xs">Tunai / QRIS</p>
-          <p class="text-xs">
-            <span class="font-medium">{formatIDR(data().cashTotal)}</span>
-            {" / "}
-            <span class="font-medium">{formatIDR(data().qrisTotal)}</span>
-          </p>
+        <div class="rounded-xl border bg-card p-3">
+          <p class="text-muted-foreground text-xs">Tunai</p>
+          <p class="font-bold">{formatIDR(data().cashTotal)}</p>
+        </div>
+        <div class="rounded-xl border bg-card p-3">
+          <p class="text-muted-foreground text-xs">QRIS</p>
+          <p class="font-bold">{formatIDR(data().qrisTotal)}</p>
         </div>
       </div>
     )}

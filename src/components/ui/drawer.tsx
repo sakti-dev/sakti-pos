@@ -42,7 +42,7 @@ const DrawerOverlay = <T extends ValidComponent = "div">(
         }
       }}
       style={{
-        "background-color": `rgb(0 0 0 / ${0.8 * drawerContext.openPercentage()})`,
+        "background-color": `rgb(0 0 0 / ${0.5 * drawerContext.openPercentage()})`,
         "pointer-events": drawerContext.openPercentage() > 0 ? "auto" : "none",
       }}
       {...rest}
@@ -67,7 +67,7 @@ const DrawerContent = <T extends ValidComponent = "div">(
       <DrawerOverlay />
       <DrawerPrimitive.Content
         class={cn(
-          "fixed inset-x-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background after:absolute after:inset-x-0 after:top-full after:h-1/2 after:bg-inherit data-[transitioning]:transition-transform data-[transitioning]:duration-300 md:select-none",
+          "fixed inset-x-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-card after:absolute after:inset-x-0 after:top-full after:h-1/2 after:bg-inherit data-[transitioning]:transition-transform data-[transitioning]:duration-300 md:select-none",
           props.class
         )}
         style={{
