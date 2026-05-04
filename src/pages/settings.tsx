@@ -1,5 +1,6 @@
 import { useNavigate } from "@solidjs/router";
-import { createSignal, Show } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
+import { createResource, createSignal, Show } from "solid-js";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
 import { Button } from "~/components/ui/button";
@@ -13,11 +14,17 @@ import {
 import { changeCurrentUserPin, currentUser, logout } from "~/lib/auth";
 import { toast } from "~/lib/toast";
 
+interface DbInfo {
+  db_path: string;
+  size_formatted: string;
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const user = currentUser();
   const [showLogoutConfirm, setShowLogoutConfirm] = createSignal(false);
   const [showPinDrawer, setShowPinDrawer] = createSignal(false);
+  const [dbInfo] = createResource(() => invoke<DbInfo>("get_db_info"));
 
   const handleLogout = () => {
     logout();
@@ -69,6 +76,12 @@ export default function Settings() {
             <div class="flex items-center justify-between border-b p-4">
               <span>Versi</span>
               <span class="text-muted-foreground text-sm">0.1.0</span>
+            </div>
+            <div class="flex items-center justify-between border-b p-4">
+              <span>Ukuran Data</span>
+              <span class="text-muted-foreground text-sm">
+                {dbInfo()?.size_formatted ?? "Memuat..."}
+              </span>
             </div>
             <Show when={user?.role === "owner"}>
               <div class="flex items-center justify-between p-4">

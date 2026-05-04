@@ -13,6 +13,7 @@ import {
   For,
   Show,
 } from "solid-js";
+import { OfflineBanner } from "~/components/ui/offline-banner";
 import { Toaster } from "~/components/ui/toaster";
 import { currentUserRole, isAuthenticated } from "~/lib/auth";
 
@@ -57,6 +58,7 @@ export default function Layout(props: RouteSectionProps) {
         padding: "env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0",
       }}
     >
+      <OfflineBanner />
       <main class="flex-1 overflow-hidden">{props.children}</main>
       <Toaster />
     </div>

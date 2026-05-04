@@ -21,7 +21,6 @@ export default function Login() {
   const [loading, setLoading] = createSignal(true);
   const [pinDisabled, setPinDisabled] = createSignal(false);
   const [attempts, setAttempts] = createSignal(0);
-  let _lockoutTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(async () => {
     try {
@@ -57,7 +56,7 @@ export default function Login() {
       if (next >= MAX_PIN_ATTEMPTS) {
         setPinDisabled(true);
         setError("Terlalu banyak percobaan. Coba lagi dalam 30 detik.");
-        _lockoutTimer = setTimeout(() => {
+        setTimeout(() => {
           setAttempts(0);
           setPinDisabled(false);
           setError("");

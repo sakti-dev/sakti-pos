@@ -34,7 +34,8 @@ pub fn run() {
         )
         .invoke_handler(tauri::generate_handler![
             drizzle_proxy::run_sql,
-            drizzle_proxy::run_sql_batch
+            drizzle_proxy::run_sql_batch,
+            drizzle_proxy::get_db_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

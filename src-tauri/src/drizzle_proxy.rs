@@ -119,6 +119,39 @@ pub async fn run_sql_batch(
     })
 }
 
+fn format_file_size(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = 1024 * KB;
+    if bytes >= MB {
+        format!("{:.1} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.1} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct DbInfo {
+    pub db_path: String,
+    pub size_bytes: u64,
+    pub size_formatted: String,
+}
+
+#[command]
+pub async fn get_db_info(app: AppHandle) -> Result<DbInfo, String> {
+    let db_path = get_app_db_path(&app)?;
+    let metadata = std::fs::metadata(&db_path)
+        .map_err(|e| format!("Failed to get DB file info: {}", e))?;
+    let size = metadata.len();
+    let size_formatted = format_file_size(size);
+    Ok(DbInfo {
+        db_path: db_path.display().to_string(),
+        size_bytes: size,
+        size_formatted,
+    })
+}
+
 fn get_app_db_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
