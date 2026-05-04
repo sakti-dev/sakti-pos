@@ -31,7 +31,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
 
   return (
     <>
-      <div class="h-16 shrink-0 border-border border-t bg-card portrait:flex landscape:hidden">
+      <div class="h-16 shrink-0 border-t bg-card portrait:flex landscape:hidden">
         <Show
           fallback={
             <div class="flex w-full items-center justify-center py-4 text-muted-foreground text-sm">
@@ -90,7 +90,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
                   )}
                 </For>
               </div>
-              <div class="border-border border-t px-4 py-3">
+              <div class="border-t px-4 py-3">
                 <div class="flex items-center justify-between">
                   <span class="font-medium">Total</span>
                   <span class="font-bold text-lg text-primary">
@@ -121,10 +121,7 @@ function CartItemRow(props: {
 }) {
   return (
     <div
-      class={cn(
-        "flex items-center gap-3 border-border py-3",
-        !props.isLast && "border-b"
-      )}
+      class={cn("flex items-center gap-3 py-3", !props.isLast && "border-b")}
     >
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium text-sm">{props.item.product.name}</p>
@@ -169,8 +166,8 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
 
   return (
-    <div class="hidden h-full flex-col border-border border-l bg-card landscape:flex">
-      <div class="flex h-12 shrink-0 items-center justify-between border-border border-b px-4">
+    <div class="hidden h-full flex-col border-l bg-card landscape:flex">
+      <div class="flex h-12 shrink-0 items-center justify-between border-b px-4">
         <span class="font-semibold text-lg">Keranjang</span>
         <Show when={cartCount() > 0}>
           <span class="text-muted-foreground text-sm">{cartCount()} item</span>
@@ -188,7 +185,7 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
         <div class="flex-1 overflow-y-auto px-4">
           <For each={cartItems()}>
             {(item) => (
-              <div class="flex items-center gap-3 border-border border-b py-3">
+              <div class="flex items-center gap-3 border-b py-3">
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium text-sm">
                     {item.product.name}
@@ -224,7 +221,7 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
             )}
           </For>
         </div>
-        <div class={cn("border-border border-t p-4", isPhone() && "py-2")}>
+        <div class={cn("border-t p-4", isPhone() && "py-2")}>
           <div
             class={cn(
               "mb-3 flex items-center justify-between",

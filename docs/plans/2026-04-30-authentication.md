@@ -651,7 +651,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setSelectedUser(u)}
-                    class="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary transition-colors"
+                    class="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border  hover:border-primary transition-colors"
                   >
                     <div class="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
                       {u.name.charAt(0).toUpperCase()}
@@ -842,7 +842,7 @@ export default function Layout(props: RouteSectionProps) {
         <main class="flex-1 overflow-y-auto" style={{ "padding-bottom": "calc(3.5rem + var(--safe-area-inset-bottom, 0px))" }}>
           {props.children}
         </main>
-        <nav class="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border" style={{ "padding-bottom": "var(--safe-area-inset-bottom, 0px)" }}>
+        <nav class="fixed bottom-0 left-0 right-0 z-50 bg-card border-t " style={{ "padding-bottom": "var(--safe-area-inset-bottom, 0px)" }}>
           <div class="flex items-center justify-around h-14">
             {navItems.map((item) => {
               const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");

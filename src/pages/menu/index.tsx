@@ -7,7 +7,7 @@ export default function MenuIndex() {
     <AppShell title="Kelola Menu">
       <div class="flex flex-col gap-3 p-4">
         <A
-          class="flex items-center justify-between rounded-xl border border-border bg-card p-4 active:bg-accent"
+          class="flex items-center justify-between rounded-xl border bg-card p-4 active:bg-accent"
           href="/menu/categories"
         >
           <div>
@@ -28,7 +28,7 @@ export default function MenuIndex() {
           </svg>
         </A>
         <A
-          class="flex items-center justify-between rounded-xl border border-border bg-card p-4 active:bg-accent"
+          class="flex items-center justify-between rounded-xl border bg-card p-4 active:bg-accent"
           href="/menu/products"
         >
           <div>

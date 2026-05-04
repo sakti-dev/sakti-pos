@@ -196,7 +196,7 @@ const OrderCard: Component<OrderCardProps> = (props) => {
   };
 
   return (
-    <div class="rounded-xl border border-border bg-card">
+    <div class="rounded-xl border  bg-card">
       <button
         class="flex w-full items-center gap-3 p-3 text-left active:bg-accent/80"
         onClick={() => setExpanded(!expanded())}
@@ -225,7 +225,7 @@ const OrderCard: Component<OrderCardProps> = (props) => {
       </button>
 
       <Show when={expanded()}>
-        <div class="border-border border-t px-3 pb-3">
+        <div class=" border-t px-3 pb-3">
           <div class="py-2">
             <For each={props.items}>
               {(item) => (
@@ -241,7 +241,7 @@ const OrderCard: Component<OrderCardProps> = (props) => {
             </For>
           </div>
 
-          <div class="border-border border-t py-2">
+          <div class=" border-t py-2">
             <div class="flex justify-between text-sm">
               <span class="text-muted-foreground">Metode</span>
               <span class="font-medium">
@@ -310,7 +310,7 @@ const DailySummaryBar: Component<DailySummaryBarProps> = (props) => {
   return (
     <Show when={props.data}>
       {(data) => (
-        <div class="grid grid-cols-3 gap-2 rounded-xl bg-card border border-border p-3">
+        <div class="grid grid-cols-3 gap-2 rounded-xl bg-card border  p-3">
           <div class="text-center">
             <p class="font-bold text-lg">{data().orderCount}</p>
             <p class="text-muted-foreground text-xs">Pesanan</p>
@@ -429,7 +429,7 @@ export default function OrderHistory() {
 
   return (
     <div class="flex h-full flex-col">
-      <div class="border-border border-b bg-card px-4 py-3">
+      <div class=" border-b bg-card px-4 py-3">
         <h1 class="font-semibold text-lg">Riwayat Pesanan</h1>
       </div>
 

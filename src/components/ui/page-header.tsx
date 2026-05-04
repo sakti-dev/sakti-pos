@@ -14,7 +14,7 @@ export function PageHeader(props: PageHeaderProps) {
   return (
     <div
       class={cn(
-        "sticky top-0 z-40 flex items-center gap-3 border-border border-b bg-card/95 px-4 py-3 backdrop-blur-sm",
+        "sticky top-0 z-40 flex items-center gap-3 border-b bg-card/95 px-4 py-3 backdrop-blur-sm",
         props.class
       )}
     >

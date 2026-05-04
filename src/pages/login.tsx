@@ -86,7 +86,7 @@ export default function Login() {
             <For each={users()}>
               {(u) => (
                 <button
-                  class="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary"
+                  class="flex flex-col items-center gap-2 rounded-xl border bg-card p-4 transition-colors hover:border-primary"
                   onClick={() => setSelectedUser(u)}
                   type="button"
                 >

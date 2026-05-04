@@ -21,7 +21,7 @@ const OrderCard: Component<OrderCardProps> = (props) => {
   };
 
   return (
-    <div class="rounded-xl border border-border bg-card">
+    <div class="rounded-xl border bg-card">
       <button
         class="flex w-full items-center gap-3 p-3 text-left active:bg-accent/80"
         onClick={() => setExpanded(!expanded())}
@@ -54,7 +54,7 @@ const OrderCard: Component<OrderCardProps> = (props) => {
       </button>
 
       <Show when={expanded()}>
-        <div class="border-border border-t px-3 pb-3">
+        <div class="border-t px-3 pb-3">
           <div class="py-2">
             <For each={props.items}>
               {(item) => (
@@ -70,7 +70,7 @@ const OrderCard: Component<OrderCardProps> = (props) => {
             </For>
           </div>
 
-          <div class="border-border border-t py-2">
+          <div class="border-t py-2">
             <div class="flex justify-between text-sm">
               <span class="text-muted-foreground">Metode</span>
               <span class="font-medium">

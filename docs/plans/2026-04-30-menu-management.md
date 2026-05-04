@@ -89,7 +89,7 @@ export function Dialog(props: DialogProps) {
       >
         <div
           class={cn(
-            "w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-lg",
+            "w-full max-w-md rounded-lg border  bg-card p-6 shadow-lg",
             props.class
           )}
         >
@@ -468,7 +468,7 @@ function CategoriesTab() {
         <div class="space-y-2">
           <For each={categories()}>
             {(cat, index) => (
-              <div class="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
+              <div class="flex items-center gap-2 rounded-lg border  bg-card p-3">
                 <div class="flex flex-col gap-0.5">
                   <button
                     class="text-muted-foreground disabled:opacity-30"
@@ -706,7 +706,7 @@ function ProductsTab() {
         <div class="space-y-2">
           <For each={products()}>
             {(product) => (
-              <div class="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
+              <div class="flex items-center gap-2 rounded-lg border  bg-card p-3">
                 <div class="flex-1">
                   <p class="font-medium">{product.name}</p>
                   <p class="text-muted-foreground text-xs">

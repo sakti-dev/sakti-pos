@@ -416,7 +416,7 @@ const ProductGrid: Component<ProductGridProps> = (props) => {
         <For each={props.products}>
           {(product) => (
             <button
-              class="flex min-h-[80px] flex-col items-start justify-between rounded-xl border border-border bg-card p-3 text-left active:bg-accent/80"
+              class="flex min-h-[80px] flex-col items-start justify-between rounded-xl border  bg-card p-3 text-left active:bg-accent/80"
               onClick={() => addToCart(product)}
               type="button"
             >
@@ -489,7 +489,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
 
   return (
     <>
-      <div class="border-border border-t bg-card">
+      <div class=" border-t bg-card">
         <Show
           fallback={
             <div class="flex items-center justify-center py-4 text-muted-foreground text-sm">
@@ -543,7 +543,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
               <div class="flex-1 overflow-y-auto px-4 pb-2">
                 <For each={cartItems()}>
                   {(item) => (
-                    <div class="flex items-center gap-3 border-b border-border py-3">
+                    <div class="flex items-center gap-3 border-b  py-3">
                       <div class="min-w-0 flex-1">
                         <p class="truncate font-medium text-sm">
                           {item.product.name}
@@ -580,7 +580,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
                   )}
                 </For>
               </div>
-              <div class="border-border border-t px-4 py-3">
+              <div class=" border-t px-4 py-3">
                 <div class="flex items-center justify-between">
                   <span class="font-medium">Total</span>
                   <span class="font-bold text-primary text-lg">
@@ -739,7 +739,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                 </For>
               </div>
 
-              <div class="border-border border-t py-3">
+              <div class=" border-t py-3">
                 <div class="flex justify-between font-bold">
                   <span>Total</span>
                   <span class="text-primary">{formatIDR(cartTotal())}</span>
@@ -775,7 +775,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
 
               <Show when={paymentMethod() === "cash"}>
                 <div class="space-y-2 pb-3">
-                  <div class="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
+                  <div class="flex items-center justify-between rounded-lg border  bg-muted px-3 py-2">
                     <span class="text-muted-foreground text-sm">Dibayar</span>
                     <span class="font-bold text-lg">
                       {amountInput() ? formatIDR(Number(amountInput())) : "Rp 0"}
@@ -808,7 +808,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
               </Show>
             </div>
 
-            <div class="flex gap-2 border-border border-t p-4">
+            <div class="flex gap-2  border-t p-4">
               <Button class="flex-1" onClick={props.onClose} variant="outline">
                 Batal
               </Button>

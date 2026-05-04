@@ -115,7 +115,7 @@ export default function POS() {
                 </svg>
                 <TextFieldInput
                   class={cn(
-                    "h-9 w-52 rounded-lg border-border bg-muted pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0",
+                    "h-9 w-52 rounded-lg bg-muted pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0",
                     search() && "rounded-r-none"
                   )}
                   placeholder="Cari produk..."
@@ -123,7 +123,7 @@ export default function POS() {
                 />
                 <Show when={search()}>
                   <button
-                    class="flex h-9 shrink-0 items-center justify-center rounded-r-lg border-border border-t border-r border-b border-l bg-muted px-3 active:bg-accent"
+                    class="flex h-9 shrink-0 items-center justify-center rounded-r-lg border-t border-r border-b border-l bg-muted px-3 active:bg-accent"
                     onClick={() => setSearch("")}
                     type="button"
                   >

@@ -21,7 +21,7 @@ const ProductGrid: Component<ProductGridProps> = (props) => (
       <For each={props.products}>
         {(product) => (
           <button
-            class="flex min-h-[96px] flex-col items-start justify-between rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.97] active:bg-accent/80"
+            class="flex min-h-[96px] flex-col items-start justify-between rounded-2xl border bg-card p-4 text-left active:scale-[0.97] active:bg-accent/80"
             onClick={() => addToCart(product)}
             type="button"
           >

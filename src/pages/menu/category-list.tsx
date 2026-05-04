@@ -91,7 +91,7 @@ export default function CategoryList() {
           <div class="space-y-2">
             <For each={categories()}>
               {(cat) => (
-                <div class="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
+                <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
                   <div class="min-w-0 flex-1">
                     <p class="truncate font-medium">{cat.name}</p>
                     <Show

@@ -63,7 +63,7 @@ export function AppShell(props: AppShellProps) {
 
   return (
     <div class={clsx("flex h-full flex-col", props.class)}>
-      <header class="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 backdrop-blur-sm">
+      <header class="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur-sm">
         <button
           aria-label="Menu"
           class="flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-accent"
@@ -93,14 +93,18 @@ export function AppShell(props: AppShellProps) {
         </Show>
       </header>
       <div
-        class={props.class ? "flex min-h-0 flex-1" : "flex-1 overflow-y-auto"}
+        class={
+          props.class
+            ? "flex min-h-0 flex-1"
+            : "scrollbar-none flex-1 overflow-y-auto"
+        }
       >
         {props.children}
       </div>
       <Show when={sidebarOpen()}>
         <button
           aria-label="Tutup menu"
-          class="fixed inset-0 z-50 bg-black/40"
+          class="fixed inset-0 z-50 bg-black/50"
           onClick={() => setSidebarOpen(false)}
           type="button"
         />
@@ -111,7 +115,7 @@ export function AppShell(props: AppShellProps) {
             bottom: "calc(0.75rem + env(safe-area-inset-bottom))",
           }}
         >
-          <div class="flex items-center gap-3 border-border border-b px-6 py-[11.5px]">
+          <div class="flex items-center gap-3 border-b px-6 py-[11.5px]">
             <span class="font-bold text-lg text-primary">Sakti POS</span>
           </div>
           <div class="flex flex-1 flex-col gap-2 overflow-y-auto p-3">

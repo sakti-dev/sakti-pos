@@ -119,7 +119,7 @@ export default function ProductList() {
               <div class="space-y-2">
                 <For each={products()}>
                   {(product) => (
-                    <div class="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
+                    <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
                       <div class="min-w-0 flex-1">
                         <p class="truncate font-medium">{product.name}</p>
                         <p class="text-muted-foreground text-xs">
@@ -171,7 +171,7 @@ export default function ProductList() {
                     <div class="space-y-2">
                       <For each={group.products}>
                         {(product) => (
-                          <div class="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
+                          <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
                             <div class="min-w-0 flex-1">
                               <p class="truncate font-medium">{product.name}</p>
                               <p class="text-muted-foreground text-xs">

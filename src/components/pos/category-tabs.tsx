@@ -37,9 +37,7 @@ const CategoryCard: Component<CategoryCardProps> = (props) => (
   <button
     class={cn(
       "flex w-[100px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl p-3 transition-colors",
-      props.active
-        ? "border border-primary bg-primary/10"
-        : "border border-border bg-card"
+      props.active ? "border border-primary bg-primary/10" : "border bg-card"
     )}
     onClick={props.onClick}
     type="button"

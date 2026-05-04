@@ -106,7 +106,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
         <DrawerContent class="max-h-[80dvh]">
           <DrawerTitle class="landscape:py-1">Pembayaran</DrawerTitle>
           <div class="min-h-0 flex-1 overflow-y-auto px-4">
-            <div class="hidden space-y-1 py-2 landscape:hidden">
+            <div class="mt-2 space-y-1 border-y py-2 landscape:hidden">
               <For each={cartItems()}>
                 {(item) => (
                   <div class="flex justify-between text-sm">
@@ -134,7 +134,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                   "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors landscape:py-1.5 landscape:text-sm",
                   paymentMethod() === "cash"
                     ? "bg-primary text-primary-foreground"
-                    : "border border-border bg-card text-muted-foreground"
+                    : "border bg-card text-muted-foreground"
                 )}
                 onClick={() => setPaymentMethod("cash")}
                 type="button"
@@ -146,7 +146,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                   "flex flex-1 items-center justify-center rounded-xl py-3 font-semibold transition-colors landscape:py-1.5 landscape:text-sm",
                   paymentMethod() === "qris"
                     ? "bg-primary text-primary-foreground"
-                    : "border border-border bg-card text-muted-foreground"
+                    : "border bg-card text-muted-foreground"
                 )}
                 onClick={() => setPaymentMethod("qris")}
                 type="button"
@@ -158,7 +158,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
             <Show when={paymentMethod() === "cash"}>
               <div class="space-y-1 pb-2 landscape:pb-1">
                 <div>
-                  <div class="flex items-center justify-between px-3 landscape:px-1">
+                  <div class="flex items-center justify-between">
                     <span class="text-muted-foreground text-sm landscape:text-xs">
                       Dibayar
                     </span>
@@ -168,7 +168,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                         : "Rp 0"}
                     </span>
                   </div>
-                  <div class="flex items-center justify-between px-3 landscape:px-1">
+                  <div class="flex items-center justify-between">
                     <span class="text-sm landscape:text-xs">Kembalian</span>
                     <span
                       class={cn(
@@ -184,7 +184,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
                   <For each={numpadKeys}>
                     {(key) => (
                       <button
-                        class="flex h-12 items-center justify-center rounded-lg border border-border bg-card font-mono text-lg active:bg-accent landscape:h-9 landscape:text-base"
+                        class="flex h-12 items-center justify-center rounded-lg border bg-card font-mono text-lg active:bg-accent landscape:h-9 landscape:text-base"
                         onClick={() =>
                           key === "del" ? deleteLast() : appendDigit(key)
                         }
@@ -199,7 +199,7 @@ const PaymentDialog: Component<PaymentDialogProps> = (props) => {
             </Show>
           </div>
 
-          <div class="flex shrink-0 gap-2 border-border border-t p-4 landscape:p-2">
+          <div class="flex shrink-0 gap-2 border-t p-4 landscape:p-2">
             <Button class="flex-1" onClick={props.onClose} variant="outline">
               Batal
             </Button>
