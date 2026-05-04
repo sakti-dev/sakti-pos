@@ -133,7 +133,7 @@ export function AppShell(props: AppShellProps) {
       <Show when={presence.isMounted()}>
         <button
           aria-label="Tutup menu"
-          class="fixed inset-0 z-50 transition-opacity duration-200"
+          class="fixed inset-0 z-50 transition-colors duration-200"
           onClick={() => setSidebarOpen(false)}
           style={{
             "background-color": presence.isVisible()
@@ -162,10 +162,16 @@ export function AppShell(props: AppShellProps) {
             }),
           }}
         >
-          <div class="flex h-12 items-center gap-3 border-b px-6">
+          <div
+            class="flex h-12 items-center gap-3 border-b px-6"
+            style={{ ...(presence.isExiting() && { visibility: "hidden" }) }}
+          >
             <span class="font-bold text-lg text-primary">Sakti POS</span>
           </div>
-          <div class="flex flex-col gap-2 overflow-y-auto p-3">
+          <div
+            class="flex flex-col gap-2 overflow-y-auto p-3"
+            style={{ ...(presence.isExiting() && { visibility: "hidden" }) }}
+          >
             <For each={visibleItems}>
               {(item) => {
                 const isActive = () =>
