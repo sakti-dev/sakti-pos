@@ -1,4 +1,5 @@
 import { useNavigate } from "@solidjs/router";
+import { TbOutlineChevronLeft } from "solid-icons/tb";
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 
@@ -27,18 +28,7 @@ export function PageHeader(props: PageHeaderProps) {
             onClick={() => navigate(href(), { replace: true })}
             type="button"
           >
-            <svg
-              aria-hidden="true"
-              class="size-5"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
+            <TbOutlineChevronLeft class="size-5" />
           </button>
         )}
       </Show>

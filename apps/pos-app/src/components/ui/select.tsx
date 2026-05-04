@@ -1,3 +1,4 @@
+import { TbOutlineCheck, TbOutlineSelector } from "solid-icons/tb";
 import type { Component } from "solid-js";
 import { createMemo, For, Show } from "solid-js";
 import {
@@ -55,20 +56,7 @@ const Select: Component<SelectProps> = (props) => {
               <span class={cn(!selectedLabel() && "text-muted-foreground")}>
                 {selectedLabel() ?? props.placeholder ?? "Pilih..."}
               </span>
-              <svg
-                aria-hidden="true"
-                class="size-4 shrink-0 opacity-50"
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 9l4 -4l4 4" />
-                <path d="M16 15l-4 4l-4 -4" />
-              </svg>
+              <TbOutlineSelector class="size-4 shrink-0 opacity-50" />
             </DrawerTrigger>
             <DrawerPortal>
               <DrawerOverlay />
@@ -103,19 +91,7 @@ const Select: Component<SelectProps> = (props) => {
                       >
                         <span>{option.label}</span>
                         <Show when={option.value === props.value}>
-                          <svg
-                            aria-hidden="true"
-                            class="size-4 text-primary"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path d="M5 12l5 5l10 -10" />
-                          </svg>
+                          <TbOutlineCheck class="size-4 text-primary" />
                         </Show>
                       </button>
                     )}

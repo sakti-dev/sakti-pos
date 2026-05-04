@@ -1,3 +1,4 @@
+import { TbOutlineSearch, TbOutlineX } from "solid-icons/tb";
 import { createResource, createSignal, Show } from "solid-js";
 import { AppShell } from "~/components/layout";
 import { CartPanel, CartSidebar } from "~/components/pos/cart-panel";
@@ -108,20 +109,7 @@ export default function POS() {
           <div class="hidden items-center landscape:flex">
             <TextField class="gap-0" onChange={setSearch} value={search()}>
               <div class="relative flex items-center">
-                <svg
-                  aria-hidden="true"
-                  class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" x2="16.65" y1="21" y2="16.65" />
-                </svg>
+                <TbOutlineSearch class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                 <TextFieldInput
                   class={cn(
                     "h-9 w-52 rounded-lg bg-muted pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0",
@@ -136,20 +124,7 @@ export default function POS() {
                     onClick={() => setSearch("")}
                     type="button"
                   >
-                    <svg
-                      aria-hidden="true"
-                      class="size-4 text-muted-foreground"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <line x1="18" x2="6" y1="6" y2="18" />
-                      <line x1="6" x2="18" y1="6" y2="18" />
-                    </svg>
+                    <TbOutlineX class="size-4 text-muted-foreground" />
                   </button>
                 </Show>
               </div>

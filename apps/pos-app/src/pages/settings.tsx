@@ -1,5 +1,6 @@
 import { useNavigate } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
+import { TbOutlineChevronRight } from "solid-icons/tb";
 import { createResource, createSignal, Show } from "solid-js";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
@@ -55,19 +56,7 @@ export default function Settings() {
               type="button"
             >
               <span>Ubah PIN</span>
-              <svg
-                aria-hidden="true"
-                class="size-5 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
+              <TbOutlineChevronRight class="size-5 text-muted-foreground" />
             </button>
           </div>
         </section>
