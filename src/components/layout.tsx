@@ -37,8 +37,7 @@ export default function Layout(props: RouteSectionProps) {
     <div
       class="flex h-screen flex-col bg-background text-foreground"
       style={{
-        padding:
-          "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)",
+        padding: "env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0",
       }}
     >
       <main class="flex-1 overflow-hidden">{props.children}</main>
@@ -64,7 +63,7 @@ export function AppShell(props: AppShellProps) {
 
   return (
     <div class={clsx("flex h-full flex-col", props.class)}>
-      <header class="sticky top-0 z-40 flex h-10 shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 backdrop-blur-sm">
+      <header class="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-3 border-border border-b bg-card/95 px-4 backdrop-blur-sm">
         <button
           aria-label="Menu"
           class="flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-accent"
@@ -108,7 +107,7 @@ export function AppShell(props: AppShellProps) {
         <nav
           class="fixed left-3 z-50 flex w-72 flex-col rounded-2xl bg-card shadow-2xl"
           style={{
-            top: "env(safe-area-inset-top)",
+            top: "calc(0.25rem + env(safe-area-inset-top))",
             bottom: "calc(0.75rem + env(safe-area-inset-bottom))",
           }}
         >

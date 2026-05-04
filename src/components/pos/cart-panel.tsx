@@ -18,7 +18,8 @@ import {
   removeFromCart,
   updateQuantity,
 } from "~/lib/cart";
-import { formatIDR } from "~/lib/utils";
+import { useIsPhone } from "~/lib/responsive";
+import { cn, formatIDR } from "~/lib/utils";
 
 interface CartPanelProps {
   onPay: () => void;
@@ -33,7 +34,7 @@ const CartPanel: Component<CartPanelProps> = (props) => {
       <div class="h-16 shrink-0 border-border border-t bg-card portrait:flex landscape:hidden">
         <Show
           fallback={
-            <div class="flex items-center justify-center py-4 text-muted-foreground text-sm">
+            <div class="flex w-full items-center justify-center py-4 text-muted-foreground text-sm">
               Keranjang kosong
             </div>
           }
@@ -81,7 +82,12 @@ const CartPanel: Component<CartPanelProps> = (props) => {
               <DrawerTitle>Keranjang</DrawerTitle>
               <div class="flex-1 overflow-y-auto px-4 pb-2">
                 <For each={cartItems()}>
-                  {(item) => <CartItemRow item={item} />}
+                  {(item, i) => (
+                    <CartItemRow
+                      isLast={i() === cartItems().length - 1}
+                      item={item}
+                    />
+                  )}
                 </For>
               </div>
               <div class="border-border border-t px-4 py-3">
@@ -110,10 +116,16 @@ const CartPanel: Component<CartPanelProps> = (props) => {
 };
 
 function CartItemRow(props: {
+  isLast: boolean;
   item: typeof cartItems extends () => (infer T)[] ? T : never;
 }) {
   return (
-    <div class="flex items-center gap-3 border-border border-b py-3">
+    <div
+      class={cn(
+        "flex items-center gap-3 border-border py-3",
+        !props.isLast && "border-b"
+      )}
+    >
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium text-sm">{props.item.product.name}</p>
         <p class="text-muted-foreground text-xs">
@@ -153,14 +165,12 @@ interface CartSidebarProps {
 }
 
 const CartSidebar: Component<CartSidebarProps> = (props) => {
+  const isPhone = useIsPhone();
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
 
   return (
-    <div
-      class="hidden h-full flex-col border-border border-l bg-card landscape:flex"
-      style={{ width: "320px" }}
-    >
-      <div class="flex h-10 shrink-0 items-center justify-between border-border border-b px-4">
+    <div class="hidden h-full flex-col border-border border-l bg-card landscape:flex">
+      <div class="flex h-12 shrink-0 items-center justify-between border-border border-b px-4">
         <span class="font-semibold text-lg">Keranjang</span>
         <Show when={cartCount() > 0}>
           <span class="text-muted-foreground text-sm">{cartCount()} item</span>
@@ -214,8 +224,13 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
             )}
           </For>
         </div>
-        <div class="border-border border-t p-4">
-          <div class="flex items-center justify-between pb-3">
+        <div class={cn("border-border border-t p-4", isPhone() && "py-2")}>
+          <div
+            class={cn(
+              "mb-3 flex items-center justify-between",
+              isPhone() && "mb-1"
+            )}
+          >
             <span class="font-medium">Total</span>
             <span class="font-bold text-lg text-primary">
               {formatIDR(cartTotal())}

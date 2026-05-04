@@ -12,9 +12,11 @@ import {
 } from "~/db/orders";
 import { currentUser } from "~/lib/auth";
 import { cartItems, cartTotal, clearCart } from "~/lib/cart";
+import { useIsPhone } from "~/lib/responsive";
 import { cn } from "~/lib/utils";
 
 export default function POS() {
+  const isPhone = useIsPhone();
   const [groupedData] = createResource(getActiveProductsByCategory);
   const [selectedCategory, setSelectedCategory] = createSignal<string | null>(
     null
@@ -75,7 +77,12 @@ export default function POS() {
   };
 
   return (
-    <div class="flex h-full portrait:flex landscape:flex-row">
+    <div
+      class={cn(
+        "grid h-full grid-rows-1 landscape:grid-cols-[3fr_2fr]",
+        isPhone() && "landscape:grid-cols-[7fr_3fr]"
+      )}
+    >
       <Show when={orderResult()}>
         {(num) => (
           <div class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-background/95">
@@ -86,7 +93,7 @@ export default function POS() {
       </Show>
 
       <AppShell
-        class="min-h-0 flex-1 landscape:flex"
+        class="min-h-0 landscape:flex"
         title="Kasir"
         topbarSuffix={
           <div class="hidden items-center landscape:flex">
@@ -112,7 +119,7 @@ export default function POS() {
                     search() && "rounded-r-none"
                   )}
                   placeholder="Cari produk..."
-                  type="search"
+                  type="text"
                 />
                 <Show when={search()}>
                   <button
