@@ -2,7 +2,7 @@ import { A } from "@solidjs/router";
 
 import { AppShell } from "~/components/layout";
 
-export default function MenuIndex() {
+export default function MenuHome() {
   return (
     <AppShell title="Kelola Menu">
       <div class="flex flex-col gap-3 p-4">

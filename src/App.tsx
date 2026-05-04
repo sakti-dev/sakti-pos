@@ -6,7 +6,7 @@ import Layout from "./components/layout";
 import Login from "./pages/login";
 import CategoryForm from "./pages/menu/category-form";
 import CategoryList from "./pages/menu/category-list";
-import MenuIndex from "./pages/menu/index";
+import MenuHome from "./pages/menu/menu-home";
 import ProductForm from "./pages/menu/product-form";
 import ProductList from "./pages/menu/product-list";
 import MenuManagement from "./pages/menu-management";
@@ -61,7 +61,7 @@ function App() {
         )}
         path="/menu"
       >
-        <Route component={MenuIndex} path="/" />
+        <Route component={MenuHome} path="/" />
         <Route component={CategoryList} path="/categories" />
         <Route component={CategoryForm} path="/categories/add" />
         <Route component={CategoryForm} path="/categories/:id/edit" />
