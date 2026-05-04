@@ -3,11 +3,12 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
     "includes": [
-      "src/**",
-      "vite.config.ts",
-      "drizzle.config.ts",
-      "tailwind.config.js",
-      "postcss.config.js",
+      "apps/pos-app/src/**",
+      "apps/pos-app/vite.config.ts",
+      "apps/pos-app/drizzle.config.ts",
+      "apps/pos-app/tailwind.config.js",
+      "apps/pos-app/postcss.config.js",
+      "packages/database/src/**",
       "*.json",
       "*.jsonc",
       "!!**/tauri-drizzle-proxy",

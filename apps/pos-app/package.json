@@ -19,36 +19,26 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.12",
     "@tauri-apps/cli": "^2",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^25.6.0",
     "autoprefixer": "^10.5.0",
     "drizzle-kit": "^0.31.10",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
     "postcss": "^8.5.12",
     "tailwindcss": "3",
-    "typescript": "~5.6.2",
-    "ultracite": "7.6.2",
     "vite": "^6.0.3",
     "vite-plugin-solid": "^2.11.0"
   },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
-      "bun x ultracite fix"
-    ]
-  },
-  "name": "sakti-pos",
+  "name": "@repo/pos-app",
   "scripts": {
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
     "tauri": "tauri",
-    "check": "ultracite check",
+    "lint": "ultracite check",
     "fix": "ultracite fix",
-    "prepare": "husky"
+    "check-types": "tsc --noEmit"
   },
   "type": "module",
   "version": "0.1.0",
