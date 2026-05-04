@@ -19,7 +19,9 @@
       "!!docs/external"
     ]
   },
-  "linter": {
+  "javascript": {
+    "globals": ["vi"]
+  },
     "rules": {
       "style": {
         "noExportedImports": "off",

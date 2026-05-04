@@ -7,45 +7,45 @@ const mockNavigate = vi.fn();
 const mockChangePin = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
-  useNavigate: () => mockNavigate,
-  useParams: () => ({ id: "1" }),
+	useNavigate: () => mockNavigate,
+	useParams: () => ({ id: "1" }),
 }));
 
 vi.mock("~/lib/auth-provider", () => ({
-  changePin: (...args: unknown[]) => mockChangePin(...args),
+	changePin: (...args: unknown[]) => mockChangePin(...args),
 }));
 
 vi.mock("~/components/ui/button", () => ({
-  Button: (props: {
-    children: JSX.Element;
-    class?: string;
-    disabled?: boolean;
-    onClick?: () => void;
-    size?: string;
-  }) => (
-    <button
-      class={props.class}
-      data-testid="save-btn"
-      disabled={props.disabled}
-      onClick={props.onClick}
-      type="button"
-    >
-      {props.children}
-    </button>
-  ),
+	Button: (props: {
+		children: JSX.Element;
+		class?: string;
+		disabled?: boolean;
+		onClick?: () => void;
+		size?: string;
+	}) => (
+		<button
+			class={props.class}
+			data-testid="save-btn"
+			disabled={props.disabled}
+			onClick={props.onClick}
+			type="button"
+		>
+			{props.children}
+		</button>
+	),
 }));
 
 vi.mock("~/components/ui/page-header", () => ({
-  PageHeader: (props: { backHref?: string; children: JSX.Element }) => (
-    <div data-testid="page-header">
-      <span data-testid="back-href">{props.backHref ?? ""}</span>
-      <h1>{props.children}</h1>
-    </div>
-  ),
+	PageHeader: (props: { backHref?: string; children: JSX.Element }) => (
+		<div data-testid="page-header">
+			<span data-testid="back-href">{props.backHref ?? ""}</span>
+			<h1>{props.children}</h1>
+		</div>
+	),
 }));
 
 vi.mock("solid-sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
+	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
 import ResetPin from "../reset-pin";
@@ -53,48 +53,48 @@ import ResetPin from "../reset-pin";
 const user = userEvent.setup();
 
 describe("ResetPin", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
 
-  test("renders 'Ubah PIN' title", () => {
-    render(() => <ResetPin />);
-    expect(screen.getByText("Ubah PIN")).toBeInTheDocument();
-  });
+	test("renders 'Ubah PIN' title", () => {
+		render(() => <ResetPin />);
+		expect(screen.getByText("Ubah PIN")).toBeInTheDocument();
+	});
 
-  test("shows PIN input fields", () => {
-    render(() => <ResetPin />);
-    expect(screen.getByLabelText("PIN Baru (6 digit)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Konfirmasi PIN Baru")).toBeInTheDocument();
-  });
+	test("shows PIN input fields", () => {
+		render(() => <ResetPin />);
+		expect(screen.getByLabelText("PIN Baru (6 digit)")).toBeInTheDocument();
+		expect(screen.getByLabelText("Konfirmasi PIN Baru")).toBeInTheDocument();
+	});
 
-  test("submit button is disabled when PIN is too short", () => {
-    render(() => <ResetPin />);
-    expect(screen.getByTestId("save-btn")).toBeDisabled();
-  });
+	test("submit button is disabled when PIN is too short", () => {
+		render(() => <ResetPin />);
+		expect(screen.getByTestId("save-btn")).toBeDisabled();
+	});
 
-  test("submit button is disabled when PINs do not match", async () => {
-    render(() => <ResetPin />);
-    const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
-    const confirmInput = screen.getByLabelText("Konfirmasi PIN Baru");
-    await user.type(pinInput, "123456");
-    await user.type(confirmInput, "654321");
-    expect(screen.getByTestId("save-btn")).toBeDisabled();
-  });
+	test("submit button is disabled when PINs do not match", async () => {
+		render(() => <ResetPin />);
+		const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
+		const confirmInput = screen.getByLabelText("Konfirmasi PIN Baru");
+		await user.type(pinInput, "123456");
+		await user.type(confirmInput, "654321");
+		expect(screen.getByTestId("save-btn")).toBeDisabled();
+	});
 
-  test("submit button is enabled when PINs match and are valid", async () => {
-    render(() => <ResetPin />);
-    const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
-    const confirmInput = screen.getByLabelText("Konfirmasi PIN Baru");
-    await user.type(pinInput, "123456");
-    await user.type(confirmInput, "123456");
-    expect(screen.getByTestId("save-btn")).not.toBeDisabled();
-  });
+	test("submit button is enabled when PINs match and are valid", async () => {
+		render(() => <ResetPin />);
+		const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
+		const confirmInput = screen.getByLabelText("Konfirmasi PIN Baru");
+		await user.type(pinInput, "123456");
+		await user.type(confirmInput, "123456");
+		expect(screen.getByTestId("save-btn")).not.toBeDisabled();
+	});
 
-  test("save button remains disabled when PIN is too short", async () => {
-    render(() => <ResetPin />);
-    const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
-    await user.type(pinInput, "123");
-    expect(screen.getByTestId("save-btn")).toBeDisabled();
-  });
+	test("save button remains disabled when PIN is too short", async () => {
+		render(() => <ResetPin />);
+		const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
+		await user.type(pinInput, "123");
+		expect(screen.getByTestId("save-btn")).toBeDisabled();
+	});
 });

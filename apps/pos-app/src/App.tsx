@@ -1,8 +1,9 @@
-import { Navigate, Route, Router, useNavigate } from "@solidjs/router";
+import { Route, Router, useNavigate } from "@solidjs/router";
 import { createEffect, type JSX, Show } from "solid-js";
 import { currentUserRole, isAuthenticated } from "./lib/auth";
 import "./index.css";
 import Layout from "./components/layout";
+import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import CategoryForm from "./pages/menu/category-form";
 import CategoryList from "./pages/menu/category-list";
@@ -19,90 +20,97 @@ import UserList from "./pages/users/user-list";
 import UserManagement from "./pages/users/user-management";
 
 function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
-  const navigate = useNavigate();
+	const navigate = useNavigate();
 
-  createEffect(() => {
-    if (!isAuthenticated()) {
-      navigate("/login");
-    }
-  });
+	createEffect(() => {
+		if (!isAuthenticated()) {
+			navigate("/login");
+		}
+	});
 
-  return (
-    <Show when={isAuthenticated()}>
-      <Show
-        fallback={
-          <div class="flex min-h-screen items-center justify-center text-muted-foreground">
-            Akses ditolak
-          </div>
-        }
-        when={!props.roles || props.roles.includes(currentUserRole() ?? "")}
-      >
-        {props.children}
-      </Show>
-    </Show>
-  );
+	return (
+		<Show when={isAuthenticated()}>
+			<Show
+				fallback={
+					<div class="flex min-h-screen items-center justify-center text-muted-foreground">
+						Akses ditolak
+					</div>
+				}
+				when={!props.roles || props.roles.includes(currentUserRole() ?? "")}
+			>
+				{props.children}
+			</Show>
+		</Show>
+	);
 }
 
 function App() {
-  return (
-    <Router root={Layout}>
-      <Route component={() => <Navigate href="/pos" />} path="/" />
-      <Route component={Login} path="/login" />
-      <Route
-        component={() => (
-          <RequireAuth>
-            <POS />
-          </RequireAuth>
-        )}
-        path="/pos"
-      />
-      <Route
-        component={(props) => (
-          <RequireAuth roles={["owner", "manager"]}>
-            <MenuManagement {...props} />
-          </RequireAuth>
-        )}
-        path="/menu"
-      >
-        <Route component={MenuHome} path="/" />
-        <Route component={CategoryList} path="/categories" />
-        <Route component={CategoryForm} path="/categories/add" />
-        <Route component={CategoryForm} path="/categories/:id/edit" />
-        <Route component={ProductList} path="/products" />
-        <Route component={ProductForm} path="/products/add" />
-        <Route component={ProductForm} path="/products/:id/edit" />
-      </Route>
-      <Route
-        component={() => (
-          <RequireAuth>
-            <OrderHistory />
-          </RequireAuth>
-        )}
-        path="/orders"
-      />
-      <Route
-        component={(props) => (
-          <RequireAuth roles={["owner"]}>
-            <UserManagement {...props} />
-          </RequireAuth>
-        )}
-        path="/users"
-      >
-        <Route component={UserList} path="/" />
-        <Route component={UserForm} path="/add" />
-        <Route component={UserForm} path="/:id/edit" />
-        <Route component={ResetPin} path="/:id/reset-pin" />
-      </Route>
-      <Route
-        component={() => (
-          <RequireAuth>
-            <Settings />
-          </RequireAuth>
-        )}
-        path="/settings"
-      />
-    </Router>
-  );
+	return (
+		<Router root={Layout}>
+			<Route
+				component={() => (
+					<RequireAuth roles={["owner", "manager"]}>
+						<Dashboard />
+					</RequireAuth>
+				)}
+				path="/"
+			/>
+			<Route component={Login} path="/login" />
+			<Route
+				component={() => (
+					<RequireAuth>
+						<POS />
+					</RequireAuth>
+				)}
+				path="/pos"
+			/>
+			<Route
+				component={(props) => (
+					<RequireAuth roles={["owner", "manager"]}>
+						<MenuManagement {...props} />
+					</RequireAuth>
+				)}
+				path="/menu"
+			>
+				<Route component={MenuHome} path="/" />
+				<Route component={CategoryList} path="/categories" />
+				<Route component={CategoryForm} path="/categories/add" />
+				<Route component={CategoryForm} path="/categories/:id/edit" />
+				<Route component={ProductList} path="/products" />
+				<Route component={ProductForm} path="/products/add" />
+				<Route component={ProductForm} path="/products/:id/edit" />
+			</Route>
+			<Route
+				component={() => (
+					<RequireAuth>
+						<OrderHistory />
+					</RequireAuth>
+				)}
+				path="/orders"
+			/>
+			<Route
+				component={(props) => (
+					<RequireAuth roles={["owner"]}>
+						<UserManagement {...props} />
+					</RequireAuth>
+				)}
+				path="/users"
+			>
+				<Route component={UserList} path="/" />
+				<Route component={UserForm} path="/add" />
+				<Route component={UserForm} path="/:id/edit" />
+				<Route component={ResetPin} path="/:id/reset-pin" />
+			</Route>
+			<Route
+				component={() => (
+					<RequireAuth>
+						<Settings />
+					</RequireAuth>
+				)}
+				path="/settings"
+			/>
+		</Router>
+	);
 }
 
 export default App;
