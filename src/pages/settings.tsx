@@ -12,7 +12,9 @@ import {
   DrawerTitle,
 } from "~/components/ui/drawer";
 import { changeCurrentUserPin, currentUser, logout } from "~/lib/auth";
+import { setTheme, theme } from "~/lib/theme";
 import { toast } from "~/lib/toast";
+import { cn } from "~/lib/utils";
 
 interface DbInfo {
   db_path: string;
@@ -73,6 +75,41 @@ export default function Settings() {
         <section class="space-y-2">
           <h2 class="font-medium text-muted-foreground text-sm">Aplikasi</h2>
           <div class="rounded-xl border bg-card">
+            <div class="flex items-center justify-between border-b p-4">
+              <span>Tema</span>
+              <div class="flex overflow-hidden rounded-lg border">
+                <button
+                  class={cn(
+                    "px-3 py-1 text-sm",
+                    theme() === "light" && "bg-primary text-primary-foreground"
+                  )}
+                  onClick={() => setTheme("light")}
+                  type="button"
+                >
+                  Terang
+                </button>
+                <button
+                  class={cn(
+                    "border-x px-3 py-1 text-sm",
+                    theme() === "system" && "bg-primary text-primary-foreground"
+                  )}
+                  onClick={() => setTheme("system")}
+                  type="button"
+                >
+                  Sistem
+                </button>
+                <button
+                  class={cn(
+                    "px-3 py-1 text-sm",
+                    theme() === "dark" && "bg-primary text-primary-foreground"
+                  )}
+                  onClick={() => setTheme("dark")}
+                  type="button"
+                >
+                  Gelap
+                </button>
+              </div>
+            </div>
             <div class="flex items-center justify-between border-b p-4">
               <span>Versi</span>
               <span class="text-muted-foreground text-sm">0.1.0</span>
