@@ -13,6 +13,7 @@ import {
   For,
   Show,
 } from "solid-js";
+import { Toaster } from "~/components/ui/toaster";
 import { currentUserRole, isAuthenticated } from "~/lib/auth";
 
 const navItems = [
@@ -57,6 +58,7 @@ export default function Layout(props: RouteSectionProps) {
       }}
     >
       <main class="flex-1 overflow-hidden">{props.children}</main>
+      <Toaster />
     </div>
   );
 }

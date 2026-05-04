@@ -14,7 +14,8 @@
       "!!**/dist",
       "!!**/src-tauri/target",
       "!!**/node_modules",
-      "!!**/drizzle/meta"
+      "!!**/drizzle/meta",
+      "!!docs/external"
     ]
   },
   "linter": {
