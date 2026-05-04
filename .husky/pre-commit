@@ -1,0 +1,5 @@
+bun test --path-ignore-patterns 'apps/pos-app/docs/external/**'
+
+# ultracite
+#!/bin/sh
+bun x lint-staged
