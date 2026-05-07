@@ -58,6 +58,10 @@ const PRODUCT_A: Product = {
 	updatedAt: "2026-01-01",
 	sortOrder: 0,
 	imageUrl: null,
+	shopId: null,
+	cloudId: null,
+	deletedAt: null,
+	isSynced: false,
 };
 const PRODUCT_B: Product = {
 	id: 2,
@@ -69,6 +73,10 @@ const PRODUCT_B: Product = {
 	updatedAt: "2026-01-01",
 	sortOrder: 1,
 	imageUrl: null,
+	shopId: null,
+	cloudId: null,
+	deletedAt: null,
+	isSynced: false,
 };
 
 describe("CartDrawer (portrait mode)", () => {
