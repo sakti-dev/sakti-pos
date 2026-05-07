@@ -1,16 +1,28 @@
 {
-  "name": "api",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "cf-typegen": "wrangler types"
-  },
-  "dependencies": {
-    "elysia": "latest"
-  },
-  "devDependencies": {
-    "wrangler": "^4.87.0"
-  }
+	"name": "@repo/api",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"cf-typegen": "wrangler types",
+		"lint": "ultracite check",
+		"check-types": "tsc --noEmit",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@libsql/client": "^0.17.3",
+		"@repo/database": "*",
+		"arctic": "^3.6.0",
+		"drizzle-orm": "^0.45.2",
+		"elysia": "^1.3",
+		"narvik": "^0.2.16"
+	},
+	"devDependencies": {
+		"@types/node": "^25.6.0",
+		"drizzle-kit": "^0.31.10",
+		"typescript": "5.9.2",
+		"wrangler": "^4.87.0"
+	}
 }
