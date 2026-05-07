@@ -11,7 +11,7 @@ Add cloud sync capabilities to Sakti POS, enabling multi-device data sharing, cl
 ```
 POS App (SolidJS + Tauri)
     │
-    │  Cloud Auth: Better Auth (email/password + Google OAuth)
+    │  Cloud Auth: Narvik (sessions) + Arctic (Google OAuth) + argon2 (passwords)
     │  Daily Unlock: 6-digit PIN (local only)
     │
     ├── Cloud Auth Layer ──── Elysia API (Bun-native)
@@ -34,19 +34,19 @@ POS App (SolidJS + Tauri)
 
 | Layer | Technology |
 |-------|-----------|
-| API framework | Elysia (Bun-native, portable across runtimes) |
-| Auth | Better Auth (email/password + Google OAuth) |
+| API framework | Elysia (Bun-native) |
+| Auth | Narvik (sessions) + Arctic (Google OAuth) + argon2 (password hashing) |
 | Database | Turso (distributed SQLite, HTTP API) |
 | ORM | Drizzle ORM with `@libsql/client` (turso-http driver) |
 | Sync format | JSON |
-| Deployment | Cloudflare Workers (portable via Elysia) |
+| Deployment | Bun (Railway / Fly.io / Render) |
 
 ## Two-Layer Auth Model
 
 ### Layer 1: Cloud Auth (device setup)
 
 - **Purpose**: Connect a POS device to a shop, enable sync
-- **Methods**: Email/password registration + Google OAuth via Better Auth
+- **Methods**: Email/password registration + Google OAuth via Narvik (sessions) + Arctic (OAuth) + argon2 (password hashing)
 - **When used**: First device setup, switching shops, reconnecting after logout
 - **Storage**: JWT session stored in POS app memory/localStorage
 
@@ -113,8 +113,8 @@ All IDs are UUIDs. `shop_id` on every data table.
 //   - shop_id column added
 //   - Foreign keys use UUID references
 
-// Better Auth tables (managed by the library)
-// sessions, accounts, verification — standard Better Auth schema
+// Narvik session table
+// user_session — managed by app via Narvik callbacks
 ```
 
 ### POS Client Schema Changes
@@ -220,15 +220,15 @@ CREATE TABLE sync_meta (
 
 ## API Endpoints
 
-### Auth (Better Auth handles most of these)
+### Auth (Narvik + Arctic)
 
 ```
-POST /auth/register         — Email + password registration
-POST /auth/login            — Email + password login
-GET  /auth/google           — Google OAuth redirect
-GET  /auth/google/callback  — Google OAuth callback
-GET  /auth/session          — Get current session
-POST /auth/logout           — Logout
+POST /api/auth/register         — Email + password registration
+POST /api/auth/login            — Email + password login
+POST /api/auth/logout           — Logout (invalidate session)
+GET  /api/auth/session          — Get current session + user
+GET  /api/auth/google           — Google OAuth redirect
+GET  /api/auth/google/callback  — Google OAuth callback
 ```
 
 ### Shops
@@ -352,20 +352,21 @@ apps/api/
 
 ## Security Considerations
 
-- Better Auth handles JWT session management
-- All sync endpoints validate JWT + verify user belongs to `shop_id`
+- Narvik handles session management (cookie + DB token hashing, sliding-window expiry)
+- All sync endpoints validate session cookie and verify user belongs to `shop_id`
 - `shop_id` scoping enforced at query level — no cross-shop data leaks
-- TLS enforced (Cloudflare Workers default)
+- TLS enforced (deployment target handles this)
 - PIN data never leaves the device
-- Rate limiting on auth endpoints (Cloudflare built-in)
 
 ## Implementation Phases
 
 ### Phase 1: API Foundation
-- Re-init API with Elysia + Turso + Drizzle
-- Set up Better Auth (email/password + Google OAuth)
+- Re-init API with Elysia on Bun (remove Cloudflare Workers)
+- Set up Turso + Drizzle ORM
+- Set up Narvik (sessions) + Arctic (Google OAuth) + argon2 (password hashing)
 - Shops CRUD endpoints
-- Deploy to Cloudflare Workers
+- JSON sync push/pull endpoints
+- Local Turso dev setup
 
 ### Phase 2: POS Schema Migration
 - Add `shop_id` to all POS tables
@@ -374,10 +375,10 @@ apps/api/
 - Backward-compatible (NULL shop_id = local-only mode)
 
 ### Phase 3: Cloud Auth on POS
-- Cloud login/register screens in POS app
+- Cloud login/register screens in POS app (fetch-based client, no SDK)
 - Onboarding flow (shop creation)
 - Shop picker (multi-shop)
-- Cloud session management
+- Cloud session management (cookie-based)
 
 ### Phase 4: Sync Engine
 - Push logic (detect changes, batch send)

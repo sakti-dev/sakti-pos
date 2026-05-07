@@ -2,15 +2,15 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add cloud sync, multi-shop support, and cloud auth (Better Auth) to Sakti POS, enabling multi-device data sharing via a Turso-backed Elysia API with Protocol Buffers for efficient binary sync.
+**Goal:** Add cloud sync, multi-shop support, and cloud auth to Sakti POS, enabling multi-device data sharing via a Turso-backed Elysia API running on Bun.
 
-**Architecture:** Two-layer auth (cloud for device setup, PIN for daily unlock). Shared `.proto` schema defines the sync contract. API uses Elysia + `elysia-protobuf` (`@bufbuild/protobuf` + `ts-proto` for TS codegen) for binary sync endpoints. POS Rust side uses `prost` + `reqwest` to handle sync natively — encoding/decoding protobuf, HTTP to API, writing directly to local SQLite via `sqlx`. SolidJS frontend just calls `invoke()` to trigger Rust sync. Last-write-wins conflict resolution. Shared Turso DB with `shop_id` multi-tenancy.
+**Architecture:** Two-layer auth (cloud for device setup, PIN for daily unlock). Narvik for session management, Arctic for Google OAuth, argon2 for password hashing. API uses Elysia on Bun with Drizzle ORM + `@libsql/client` (Turso). JSON sync over HTTP with last-write-wins conflict resolution. POS Rust side uses `reqwest` to handle sync natively — JSON encoding/decoding, HTTP to API, writing directly to local SQLite via `sqlx`. SolidJS frontend just calls `invoke()` to trigger Rust sync. Shared Turso DB with `shop_id` multi-tenancy.
 
 **Tech Stack:**
-- **API:** Elysia, `elysia-protobuf`, `@bufbuild/protobuf`, `ts-proto`, Better Auth, Drizzle ORM, `@libsql/client` (Turso)
-- **POS Rust:** `prost`, `prost-build`, `reqwest` (rustls-tls), `sqlx`
-- **Proto:** `protoc` + `ts-proto` (API side), `prost-build` (Rust side)
-- **Deployment:** Cloudflare Workers
+- **API:** Elysia (Bun-native), Narvik (sessions), Arctic (OAuth), `@node-rs/argon2` (password hashing), Drizzle ORM, `@libsql/client` (Turso)
+- **POS Rust:** `reqwest` (rustls-tls), `serde_json`, `sqlx`
+- **Deployment:** Bun (Railway / Fly.io / Render)
+- **Schemas:** Colocated in `packages/database/src/` (`local-schema.ts` for POS, `api-schema.ts` for Turso)
 
 **Design doc:** `docs/plans/2026-05-05-cloud-sync-design.md`
 
@@ -18,14 +18,17 @@
 
 ## Phase 1: API Foundation
 
-### Task 1: Re-init API with Elysia
+### Task 1: Re-init API with Elysia (Bun-native)
 
 **Files:**
 - Modify: `apps/api/package.json`
 - Modify: `apps/api/src/index.ts`
 - Modify: `apps/api/tsconfig.json`
+- Remove: `apps/api/wrangler.jsonc`
+- Remove: `apps/api/.wrangler/`
+- Remove: `apps/api/worker-configuration.d.ts`
 
-**Step 1: Replace Hono with Elysia in package.json**
+**Step 1: Rewrite package.json for Bun**
 
 Update `apps/api/package.json`:
 
@@ -37,28 +40,29 @@ Update `apps/api/package.json`:
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
-    "start": "bun run dist/index.js",
+    "start": "bun run src/index.ts",
     "lint": "ultracite check",
     "check-types": "tsc --noEmit",
     "test": "bun test"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
     "@repo/database": "*",
+    "drizzle-orm": "^0.45.2",
     "elysia": "^1.3"
   },
   "devDependencies": {
-    "@repo/typescript-config": "*",
+    "drizzle-kit": "^0.31.10",
     "typescript": "5.9.2"
   }
 }
 ```
 
-**Step 2: Install dependencies**
+**Step 2: Remove Cloudflare Workers files**
 
-Run: `cd apps/api && bun install`
+Remove `wrangler.jsonc`, `.wrangler/`, `worker-configuration.d.ts`.
 
-**Step 3: Rewrite src/index.ts with Elysia**
+**Step 3: Rewrite src/index.ts with Elysia (Bun-native)**
 
 ```typescript
 import { Elysia } from "elysia";
@@ -72,28 +76,37 @@ console.log(`API running at http://localhost:${app.server!.port}`);
 
 **Step 4: Update tsconfig.json**
 
-Remove `jsxImportSource: "hono/jsx"`:
-
 ```json
 {
-  "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-    "noEmit": true
+    "target": "es2024",
+    "lib": ["es2024"],
+    "module": "es2022",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "strict": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts"]
 }
 ```
 
-**Step 5: Verify dev server starts**
+**Step 5: Install dependencies**
+
+Run: `cd apps/api && bun install`
+
+**Step 6: Verify dev server starts**
 
 Run: `cd apps/api && bun run dev`
 Expected: "API running at http://localhost:3001"
 
-**Step 6: Commit**
+**Step 7: Commit**
 
 ```bash
 git add apps/api/
-git commit -m "feat(api): re-init with Elysia, remove Hono"
+git commit -m "feat(api): re-init with Elysia on Bun, remove Cloudflare Workers"
 ```
 
 ---
@@ -101,119 +114,23 @@ git commit -m "feat(api): re-init with Elysia, remove Hono"
 ### Task 2: Add Turso + Drizzle to API
 
 **Files:**
-- Modify: `apps/api/package.json`
-- Create: `apps/api/src/db/schema.ts`
 - Create: `apps/api/src/db/index.ts`
 - Create: `apps/api/drizzle.config.ts`
+
+> Note: Schema lives in `packages/database/src/api-schema.ts` (colocated with POS schema).
 
 **Step 1: Install Turso + Drizzle dependencies**
 
 Run: `cd apps/api && bun add drizzle-orm @libsql/client && bun add -d drizzle-kit`
 
-**Step 2: Create API schema**
-
-Create `apps/api/src/db/schema.ts` — SEPARATE from `@repo/database`. Turso schema with UUIDs and `shop_id`:
-
-```typescript
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-
-export const shops = sqliteTable("shops", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => users.id),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
-
-export const users = sqliteTable("users", {
-  id: text("id").primaryKey(),
-  shopId: text("shop_id")
-    .notNull()
-    .references(() => shops.id),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
-  role: text("role", { enum: ["owner", "manager", "cashier"] }).notNull(),
-  isActive: integer("is_active", { mode: "boolean" })
-    .notNull()
-    .default(true),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
-
-export const categories = sqliteTable("categories", {
-  id: text("id").primaryKey(),
-  shopId: text("shop_id")
-    .notNull()
-    .references(() => shops.id),
-  name: text("name").notNull(),
-  sortOrder: integer("sort_order").notNull().default(0),
-  isActive: integer("is_active", { mode: "boolean" })
-    .notNull()
-    .default(true),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
-
-export const products = sqliteTable("products", {
-  id: text("id").primaryKey(),
-  shopId: text("shop_id")
-    .notNull()
-    .references(() => shops.id),
-  categoryId: text("category_id").references(() => categories.id),
-  name: text("name").notNull(),
-  price: integer("price").notNull(),
-  imageUrl: text("image_url"),
-  isActive: integer("is_active", { mode: "boolean" })
-    .notNull()
-    .default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
-
-export const orders = sqliteTable("orders", {
-  id: text("id").primaryKey(),
-  shopId: text("shop_id")
-    .notNull()
-    .references(() => shops.id),
-  orderNumber: text("order_number").notNull().unique(),
-  userId: text("user_id").references(() => users.id),
-  total: integer("total").notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "qris"] }).notNull(),
-  amountPaid: integer("amount_paid"),
-  changeAmount: integer("change_amount"),
-  status: text("status", { enum: ["completed", "cancelled"] }).notNull(),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
-
-export const orderItems = sqliteTable("order_items", {
-  id: text("id").primaryKey(),
-  shopId: text("shop_id")
-    .notNull()
-    .references(() => shops.id),
-  orderId: text("order_id")
-    .references(() => orders.id)
-    .notNull(),
-  productId: text("product_id").references(() => products.id),
-  productName: text("product_name").notNull(),
-  quantity: integer("quantity").notNull(),
-  unitPrice: integer("unit_price").notNull(),
-  subtotal: integer("subtotal").notNull(),
-  createdAt: text("created_at").notNull(),
-});
-```
-
-**Step 3: Create Drizzle client**
+**Step 2: Create Drizzle client**
 
 Create `apps/api/src/db/index.ts`:
 
 ```typescript
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
-import * as schema from "./schema";
+import * as schema from "@repo/database/api-schema";
 
 const tursoUrl = process.env.TURSO_DATABASE_URL ?? "http://127.0.0.1:8080";
 const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
@@ -226,100 +143,216 @@ const client = createClient({
 export const db = drizzle(client, { schema });
 ```
 
-**Step 4: Create drizzle.config.ts**
+**Step 3: Create drizzle.config.ts**
 
 ```typescript
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "drizzle-kit";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   dialect: "sqlite",
-  schema: "./src/db/schema.ts",
+  schema: path.resolve(__dirname, "../../packages/database/src/api-schema.ts"),
   out: "./drizzle",
 });
 ```
 
-**Step 5: Generate initial migration**
+**Step 4: Generate initial migration**
 
 Run: `cd apps/api && bunx drizzle-kit generate`
 
-**Step 6: Commit**
+**Step 5: Commit**
 
 ```bash
 git add apps/api/
-git commit -m "feat(api): add Turso schema, Drizzle client, and initial migration"
+git commit -m "feat(api): add Turso Drizzle client and initial migration"
 ```
 
 ---
 
-### Task 3: Add Better Auth to API
+### Task 3: Add Narvik Auth + Arctic OAuth + Argon2
 
 **Files:**
 - Modify: `apps/api/package.json`
-- Create: `apps/api/src/lib/auth.ts`
-- Modify: `apps/api/src/index.ts`
+- Modify: `packages/database/src/api-schema.ts` (add session table)
+- Create: `apps/api/src/lib/auth.ts` (Narvik instance + helpers)
+- Create: `apps/api/src/lib/oauth.ts` (Arctic Google OAuth)
+- Create: `apps/api/src/routes/auth.ts` (register, login, logout, session, OAuth routes)
+- Modify: `apps/api/src/index.ts` (mount auth routes)
 
-**Step 1: Install Better Auth**
+**Step 1: Install dependencies**
 
-Run: `cd apps/api && bun add better-auth`
+Run: `cd apps/api && bun add narvik arctic @node-rs/argon2`
 
-**Step 2: Create Better Auth config**
+**Step 2: Add session table to API schema**
+
+Add to `packages/database/src/api-schema.ts`:
+
+```typescript
+export const userSessions = sqliteTable("user_session", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
+```
+
+Regenerate migration: `cd apps/api && bunx drizzle-kit generate`
+
+**Step 3: Create Narvik auth instance**
 
 Create `apps/api/src/lib/auth.ts`:
 
 ```typescript
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { Narvik } from "narvik";
 import { db } from "../db";
+import { userSessions } from "@repo/database/api-schema";
+import { eq } from "drizzle-orm";
 
-export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "sqlite",
-  }),
-  emailAndPassword: {
-    enabled: true,
+export const narvik = new Narvik({
+  data: {
+    saveSession: async (session) => {
+      await db.insert(userSessions).values({
+        id: session.id,
+        userId: session.userId,
+        expiresAt: session.expiresAt,
+      });
+    },
+    fetchSession: async (sessionId) => {
+      const [row] = await db
+        .select()
+        .from(userSessions)
+        .where(eq(userSessions.id, sessionId))
+        .limit(1);
+      if (!row) return null;
+      return {
+        id: row.id,
+        userId: row.userId,
+        expiresAt: new Date(row.expiresAt.getTime()),
+      };
+    },
+    updateSessionExpiry: async (sessionId, updatedExpiresAt) => {
+      await db
+        .update(userSessions)
+        .set({ expiresAt: updatedExpiresAt })
+        .where(eq(userSessions.id, sessionId));
+    },
+    deleteSession: async (sessionId) => {
+      await db
+        .delete(userSessions)
+        .where(eq(userSessions.id, sessionId));
+    },
+    deleteSessionsForUser: async (userId) => {
+      await db
+        .delete(userSessions)
+        .where(eq(userSessions.userId, userId));
+    },
+    deleteAllExpiredSessions: async () => {
+      await db
+        .delete(userSessions)
+        .where(eq(userSessions.expiresAt, new Date(0)));
+    },
   },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  cookie: {
+    cookieExpiresInMs: 1000 * 60 * 60 * 24 * 30,
+    attributes: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      httpOnly: true,
+      path: "/",
     },
   },
 });
 ```
 
-**Step 3: Mount Better Auth on Elysia**
+**Step 4: Create Arctic OAuth helper**
 
-Update `apps/api/src/index.ts`:
+Create `apps/api/src/lib/oauth.ts`:
 
 ```typescript
-import { Elysia } from "elysia";
-import { auth } from "./lib/auth";
+import { Google, generateCodeVerifier, generateState } from "arctic";
 
-const app = new Elysia()
-  .all("/api/auth/*", (context) => {
-    return auth.handler(context.request);
-  })
-  .get("/", () => "Sakti POS API v1")
-  .listen(3001);
+export const google = new Google(
+  process.env.GOOGLE_CLIENT_ID ?? "",
+  process.env.GOOGLE_CLIENT_SECRET ?? "",
+  `${process.env.API_URL ?? "http://localhost:3001"}/api/auth/google/callback`,
+);
 
-console.log(`API running at http://localhost:${app.server!.port}`);
+export { generateState, generateCodeVerifier };
 ```
 
-**Step 4: Generate Better Auth tables**
+**Step 5: Create auth routes**
 
-Run: `cd apps/api && bunx @better-auth/cli generate`
-Or manually add Better Auth's expected tables (user, session, account, verification) to the schema.
+Create `apps/api/src/routes/auth.ts` — hand-written endpoints:
 
-**Step 5: Verify auth endpoints**
+- `POST /api/auth/register` — email + password → hash with argon2 → insert user → create Narvik session → set cookie
+- `POST /api/auth/login` — email + password → verify → create Narvik session → set cookie
+- `POST /api/auth/logout` — validate session → invalidate → clear cookie
+- `GET /api/auth/session` — validate session → return user
+- `GET /api/auth/google` — generate state → redirect to Google
+- `GET /api/auth/google/callback` — exchange code → upsert user → create Narvik session → set cookie
+
+All routes use `narvik.validateSession(token)` to read the session cookie and `narvik.createSession(userId)` / `narvik.invalidateSession(sessionId)` to manage sessions. Use `narvik.createCookie(token)` / `narvik.createBlankCookie()` for Set-Cookie headers.
+
+Password hashing:
+```typescript
+import { hash, verify } from "@node-rs/argon2";
+
+const passwordHash = await hash(password, {
+  memoryCost: 19456,
+  timeCost: 2,
+  outputLen: 32,
+  parallelism: 1,
+});
+
+const isValid = await verify(passwordHash, password);
+```
+
+**Step 6: Create auth middleware helper**
+
+Create `apps/api/src/lib/session.ts` — reusable helper for protected routes:
+
+```typescript
+import { narvik } from "./auth";
+import type { Session } from "narvik";
+
+export async function getSessionFromRequest(request: Request): Promise<Session | null> {
+  const token = getCookie(request, narvik.cookieName);
+  if (!token) return null;
+  return narvik.validateSession(token);
+}
+
+function getCookie(request: Request, name: string): string | undefined {
+  const cookie = request.headers.get("cookie");
+  const match = cookie?.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return match?.[1] ?? undefined;
+}
+```
+
+**Step 7: Mount auth routes in index.ts**
+
+```typescript
+import { authRoutes } from "./routes/auth";
+
+const app = new Elysia()
+  .use(authRoutes)
+  .get("/", () => "Sakti POS API v1")
+  .listen(3001);
+```
+
+**Step 8: Verify auth endpoints**
 
 Run: `cd apps/api && bun run dev`
-Test: `curl http://localhost:3001/api/auth/session` — should return empty session
+Test: `curl http://localhost:3001/api/auth/session` — should return null/empty session
 
-**Step 6: Commit**
+**Step 9: Commit**
 
 ```bash
-git add apps/api/
-git commit -m "feat(api): add Better Auth with email/password + Google OAuth"
+git add apps/api/ packages/database/
+git commit -m "feat(api): add Narvik auth, Arctic Google OAuth, and argon2 password hashing"
 ```
 
 ---
@@ -338,18 +371,17 @@ Create `apps/api/src/routes/shops.ts`:
 import { Elysia, t } from "elysia";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { shops } from "../db/schema";
-import { auth } from "../lib/auth";
+import { shops, users } from "@repo/database/api-schema";
+import { getSessionFromRequest } from "../lib/session";
 
 export const shopsRoutes = new Elysia({ prefix: "/api/shops" })
   .post(
     "/",
-    async ({ body, request }) => {
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
-      if (!session?.user) {
-        throw new Error("Unauthorized");
+    async ({ body, set, request }) => {
+      const session = await getSessionFromRequest(request);
+      if (!session) {
+        set.status = 401;
+        return { error: "Unauthorized" };
       }
 
       const now = new Date().toISOString();
@@ -359,7 +391,7 @@ export const shopsRoutes = new Elysia({ prefix: "/api/shops" })
         .values({
           id,
           name: body.name,
-          ownerId: session.user.id,
+          ownerId: session.userId,
           createdAt: now,
           updatedAt: now,
         })
@@ -373,25 +405,23 @@ export const shopsRoutes = new Elysia({ prefix: "/api/shops" })
       }),
     },
   )
-  .get("/", async ({ request }) => {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-    if (!session?.user) {
-      throw new Error("Unauthorized");
+  .get("/", async ({ set, request }) => {
+    const session = await getSessionFromRequest(request);
+    if (!session) {
+      set.status = 401;
+      return { error: "Unauthorized" };
     }
 
     return db
       .select()
       .from(shops)
-      .where(eq(shops.ownerId, session.user.id));
+      .where(eq(shops.ownerId, session.userId));
   })
-  .get("/:id", async ({ params: { id }, request }) => {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-    if (!session?.user) {
-      throw new Error("Unauthorized");
+  .get("/:id", async ({ params: { id }, set, request }) => {
+    const session = await getSessionFromRequest(request);
+    if (!session) {
+      set.status = 401;
+      return { error: "Unauthorized" };
     }
 
     const [shop] = await db
@@ -404,14 +434,14 @@ export const shopsRoutes = new Elysia({ prefix: "/api/shops" })
 
 **Step 2: Mount route in index.ts**
 
-Update `apps/api/src/index.ts` — add import and `.use(shopsRoutes)`.
+Add `.use(shopsRoutes)` to the Elysia app chain.
 
 **Step 3: Test with curl**
 
 ```bash
 curl -X POST http://localhost:3001/api/shops \
   -H "Content-Type: application/json" \
-  -H "Cookie: <session-cookie>" \
+  -H "Cookie: narvik_session=<token>" \
   -d '{"name": "Kopi Kenangan"}'
 ```
 
@@ -424,197 +454,23 @@ git commit -m "feat(api): add shop CRUD endpoints"
 
 ---
 
-### Task 5: Shared Proto Schema
+### Task 5: JSON Sync Endpoints
 
 **Files:**
-- Create: `proto/sync.proto`
-- Create: `proto/generate-api.sh`
-- Create: `proto/generate-rust.sh`
-- Modify: `.gitignore` (add generated proto output dirs)
-
-This is the contract between the API (TypeScript) and the POS (Rust). Both sides generate code from this single `.proto` file.
-
-**Step 1: Create proto/sync.proto**
-
-```protobuf
-syntax = "proto3";
-
-package sakti;
-
-option go_package = "sakti/v1";
-
-// ─── Row messages ───
-
-message CategoryRow {
-  string id = 1;
-  string shop_id = 2;
-  string name = 3;
-  int32 sort_order = 4;
-  bool is_active = 5;
-  string created_at = 6;
-  string updated_at = 7;
-}
-
-message ProductRow {
-  string id = 1;
-  string shop_id = 2;
-  string category_id = 3;
-  string name = 4;
-  int64 price = 5;
-  string image_url = 6;
-  bool is_active = 7;
-  int32 sort_order = 8;
-  string created_at = 9;
-  string updated_at = 10;
-}
-
-message OrderRow {
-  string id = 1;
-  string shop_id = 2;
-  string order_number = 3;
-  string user_id = 4;
-  int64 total = 5;
-  string payment_method = 6;
-  int64 amount_paid = 7;
-  int64 change_amount = 8;
-  string status = 9;
-  string created_at = 10;
-  string updated_at = 11;
-}
-
-message OrderItemRow {
-  string id = 1;
-  string shop_id = 2;
-  string order_id = 3;
-  string product_id = 4;
-  string product_name = 5;
-  int32 quantity = 6;
-  int64 unit_price = 7;
-  int64 subtotal = 8;
-  string created_at = 9;
-}
-
-message UserRow {
-  string id = 1;
-  string shop_id = 2;
-  string email = 3;
-  string name = 4;
-  string role = 5;
-  bool is_active = 6;
-  string created_at = 7;
-  string updated_at = 8;
-}
-
-// ─── Sync request/response ───
-
-message SyncPushRequest {
-  string shop_id = 1;
-  repeated CategoryRow categories = 2;
-  repeated ProductRow products = 3;
-  repeated OrderRow orders = 4;
-  repeated OrderItemRow order_items = 5;
-  repeated UserRow users = 6;
-}
-
-message ServerWins {
-  string table = 1;
-  repeated string ids = 2;
-}
-
-message SyncPushResponse {
-  repeated ServerWins server_wins = 1;
-  string server_time = 2;
-}
-
-message SyncPullRequest {
-  string shop_id = 1;
-  repeated string tables = 2;
-  string since = 3;
-}
-
-message SyncPullResponse {
-  repeated CategoryRow categories = 1;
-  repeated ProductRow products = 2;
-  repeated OrderRow orders = 3;
-  repeated OrderItemRow order_items = 4;
-  repeated UserRow users = 5;
-  string server_time = 6;
-}
-```
-
-**Step 2: Create generate-api.sh**
-
-Generates TypeScript via `ts-proto` for the API side:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-API_DIR="$SCRIPT_DIR/../apps/api/src"
-
-protoc \
-  --plugin="$SCRIPT_DIR/../node_modules/.bin/protoc-gen-ts_proto" \
-  --ts_proto_opt=esModuleInterop=true \
-  --ts_proto_opt=importSuffix=.js \
-  --ts_proto_out="$API_DIR/proto" \
-  -I "$SCRIPT_DIR" \
-  "$SCRIPT_DIR"/*.proto
-
-echo "Proto → TypeScript generated in $API_DIR/proto/"
-```
-
-**Step 3: Create generate-rust.sh**
-
-Generates Rust via `prost-build` (called from `build.rs`):
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-RUST_DIR="$SCRIPT_DIR/../apps/pos-app/src-tauri"
-
-echo "Proto → Rust: prost-build handles this in build.rs"
-echo "Run: cd $RUST_DIR && cargo build"
-```
-
-**Step 4: Install ts-proto and generate**
-
-Run: `cd apps/api && bun add -d ts-proto @bufbuild/protobuf`
-Run: `cd apps/api && bun add elysia-protobuf`
-Run: `bash proto/generate-api.sh`
-
-**Step 5: Commit**
-
-```bash
-git add proto/ apps/api/src/proto/
-git commit -m "feat: add shared protobuf schema and API codegen"
-```
-
----
-
-### Task 6: Protobuf Sync Endpoints on API
-
-**Files:**
-- Create: `apps/api/src/routes/sync.ts`
 - Create: `apps/api/src/lib/sync.ts`
+- Create: `apps/api/src/routes/sync.ts`
 - Modify: `apps/api/src/index.ts`
 
 **Step 1: Create sync logic**
 
-Create `apps/api/src/lib/sync.ts` — handles push/pull with last-write-wins, returns typed proto-compatible data:
+Create `apps/api/src/lib/sync.ts` — handles push/pull with last-write-wins:
 
 ```typescript
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "../db";
-import * as schema from "../db/schema";
+import * as schema from "@repo/database/api-schema";
 
-export async function handlePush(shopId: string, data: {
-  categories?: unknown[];
-  products?: unknown[];
-  orders?: unknown[];
-  order_items?: unknown[];
-  users?: unknown[];
-}) {
+export async function handlePush(shopId: string, data: Record<string, unknown[]>) {
   const serverWins: { table: string; ids: string[] }[] = [];
 
   const tableMap: Record<string, typeof schema.categories> = {
@@ -702,85 +558,55 @@ export async function handlePull(
 }
 ```
 
-**Step 2: Create sync routes with elysia-protobuf**
+**Step 2: Create sync routes**
 
 Create `apps/api/src/routes/sync.ts`:
 
 ```typescript
-import { Elysia } from "elysia";
-import { protobuf } from "elysia-protobuf";
-import {
-  SyncPushRequest,
-  SyncPushResponse,
-  SyncPullResponse,
-} from "../proto/sync";
+import { Elysia, t } from "elysia";
 import { handlePush, handlePull } from "../lib/sync";
-import { auth } from "../lib/auth";
+import { getSessionFromRequest } from "../lib/session";
 
 export const syncRoutes = new Elysia({ prefix: "/api/sync" })
-  .use(
-    protobuf({
-      schemas: {
-        "sync.push.request": SyncPushRequest,
-        "sync.push.response": SyncPushResponse,
-        "sync.pull.response": SyncPullResponse,
-      },
-    }),
-  )
   .post(
     "/push",
-    async ({ body, decode, headers }) => {
-      const session = await auth.api.getSession({ headers });
-      if (!session?.user) throw new Error("Unauthorized");
+    async ({ body, set, request }) => {
+      const session = await getSessionFromRequest(request);
+      if (!session) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
 
-      const data = await decode("sync.push.request", body, headers);
-
-      const result = await handlePush(data.shopId, {
-        categories: data.categories,
-        products: data.products,
-        orders: data.orders,
-        order_items: data.orderItems,
-        users: data.users,
-      });
-
-      return {
-        serverWins: result.serverWins.map((w) => ({
-          table: w.table,
-          ids: w.ids,
-        })),
-        serverTime: result.serverTime,
-      };
+      return handlePush(body.shopId, body.tables);
     },
     {
-      parse: "protobuf",
-      responseSchema: "sync.push.response",
+      body: t.Object({
+        shopId: t.String(),
+        tables: t.Record(t.String(), t.Array(t.Any())),
+      }),
     },
   )
   .get(
     "/pull",
-    async ({ query, headers }) => {
-      const session = await auth.api.getSession({ headers });
-      if (!session?.user) throw new Error("Unauthorized");
+    async ({ query, set, request }) => {
+      const session = await getSessionFromRequest(request);
+      if (!session) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
 
       const tables = query.tables.split(",");
-      const result = await handlePull(query.shopId, tables, query.since);
-
-      return {
-        categories: (result.categories ?? []) as unknown[],
-        products: (result.products ?? []) as unknown[],
-        orders: (result.orders ?? []) as unknown[],
-        orderItems: (result.order_items ?? []) as unknown[],
-        users: (result.users ?? []) as unknown[],
-        serverTime: result.serverTime,
-      };
+      return handlePull(query.shopId, tables, query.since);
     },
     {
-      responseSchema: "sync.pull.response",
+      query: t.Object({
+        shopId: t.String(),
+        tables: t.String(),
+        since: t.String(),
+      }),
     },
   );
 ```
-
-> **Note:** The pull endpoint uses JSON response (not protobuf) for simplicity since it's a GET with query params. Only push uses binary protobuf. If you want pull to also be protobuf, change to POST with binary body.
 
 **Step 3: Mount route in index.ts**
 
@@ -790,12 +616,12 @@ Add `.use(syncRoutes)` to the Elysia app chain.
 
 ```bash
 git add apps/api/
-git commit -m "feat(api): add protobuf sync push/pull endpoints"
+git commit -m "feat(api): add JSON sync push/pull endpoints"
 ```
 
 ---
 
-### Task 7: Local Turso Dev Setup
+### Task 6: Local Turso Dev Setup
 
 **Files:**
 - Create: `apps/api/.env.example`
@@ -807,8 +633,7 @@ TURSO_DATABASE_URL=http://127.0.0.1:8080
 TURSO_AUTH_TOKEN=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-BETTER_AUTH_SECRET=your-secret-here
-BETTER_AUTH_URL=http://localhost:3001
+API_URL=http://localhost:3001
 ```
 
 **Step 2: Install Turso CLI and create local DB**
@@ -831,15 +656,17 @@ git commit -m "chore(api): add local Turso dev setup and env example"
 
 ## Phase 2: POS Schema Migration
 
-### Task 8: Add shop_id to POS Schema
+### Task 7: Add shop_id, Tombstone & Sync Columns to POS Schema
 
 **Files:**
-- Modify: `packages/database/src/schema.ts`
+- Modify: `packages/database/src/local-schema.ts`
 - Create: `apps/pos-app/drizzle/000X_add_shop_id.sql`
 
-**Step 1: Update shared schema**
+**Context:** In an offline-first architecture, hard deletes (`db.delete()`) are dangerous — if a record is deleted offline, there's no payload to send to the server when reconnecting, causing "zombie records" to reappear on pull. The solution is the **Tombstone Pattern**: soft-delete by setting `deletedAt`, then garbage-collect locally after confirming the server received it.
 
-Add `shop_id` and `cloud_id` columns to all tables. Add new `shops` and `sync_meta` tables.
+**Step 1: Update local POS schema**
+
+Add `shop_id`, `cloud_id`, `deleted_at`, and `is_synced` columns to all sync tables. Add new `shops` and `sync_meta` tables.
 
 ```typescript
 // New tables:
@@ -863,12 +690,15 @@ export const syncMeta = sqliteTable("sync_meta", {
   lastSyncAt: text("last_sync_at").notNull(),
 });
 
-// Add to each existing table:
-// users:      shopId: text("shop_id"), cloudId: text("cloud_id"),
-// categories: shopId: text("shop_id"), cloudId: text("cloud_id"),
-// products:   shopId: text("shop_id"), cloudId: text("cloud_id"),
-// orders:     shopId: text("shop_id"), cloudId: text("cloud_id"),
-// orderItems: shopId: text("shop_id"), cloudId: text("cloud_id"),
+// Add to each sync table (categories, products, orders, orderItems):
+//   shopId: text("shop_id"),
+//   cloudId: text("cloud_id"),
+//   deletedAt: text("deleted_at"),                                    // TOMBSTONE
+//   isSynced: integer("is_synced", { mode: "boolean" })              // SYNC TRACKING
+//     .default(false).notNull(),
+//
+// Note: `isSynced` is client-only — never sent to server.
+// Note: `deletedAt` is null = active, ISO string = tombstoned.
 ```
 
 **Step 2: Generate migration**
@@ -883,12 +713,12 @@ Add new migration to `apps/pos-app/src-tauri/src/lib.rs` migrations vec.
 
 ```bash
 git add packages/database/ apps/pos-app/drizzle/ apps/pos-app/src-tauri/
-git commit -m "feat(schema): add shop_id, cloud_id, shops table, and sync_meta"
+git commit -m "feat(schema): add shop_id, cloud_id, deletedAt, isSynced, shops, sync_meta"
 ```
 
 ---
 
-### Task 9: Update POS Queries with shop_id Filter
+### Task 8: Update POS Queries — shop_id Filter + Soft Deletes
 
 **Files:**
 - Create: `apps/pos-app/src/lib/shop.ts`
@@ -896,6 +726,8 @@ git commit -m "feat(schema): add shop_id, cloud_id, shops table, and sync_meta"
 - Modify: `apps/pos-app/src/db/orders.ts`
 - Modify: `apps/pos-app/src/db/users.ts`
 - Modify: `apps/pos-app/src/db/dashboard.ts`
+
+**Context:** Every SELECT query must hide tombstoned records (`deletedAt IS NULL`). Every "delete" operation must use soft delete (set `deletedAt` + `updatedAt`, set `isSynced: false`). Hard delete is only safe for **unsynced draft records** (created offline, never pushed to server).
 
 **Step 1: Create shop context store**
 
@@ -925,78 +757,142 @@ export function setShopId(id: string) {
 
 For each file (`menu.ts`, `orders.ts`, `users.ts`, `dashboard.ts`):
 - Import `currentShopId` from `~/lib/shop`
-- Add `where` clause: `eq(table.shopId, currentShopId())` to all SELECT queries
+- Import `isNull` from `drizzle-orm`
+- Add `where` clause: `and(eq(table.shopId, currentShopId()), isNull(table.deletedAt))` to all SELECT queries
 - Add `shopId: currentShopId()` to all INSERT values
-- When `currentShopId()` is null, skip the filter (backward compatible for local-only mode)
+- When `currentShopId()` is null, skip the shop filter (backward compatible for local-only mode)
+- **Always** include `isNull(table.deletedAt)` — tombstoned records must never appear in the UI
 
-**Step 3: Run existing tests**
+**Step 3: Replace all hard deletes with soft deletes**
+
+Find all `db.delete()` calls in query files and replace with:
+
+```typescript
+import { and, eq, isNull } from "drizzle-orm";
+
+// BEFORE (dangerous in offline-first):
+// await db.delete(products).where(eq(products.id, productId));
+
+// AFTER (tombstone pattern):
+async function softDeleteProduct(productId: string) {
+  const now = new Date().toISOString();
+  await db.update(products)
+    .set({
+      deletedAt: now,    // Marks as tombstone
+      updatedAt: now,    // Forces sync engine to push
+      isSynced: false,   // Mark as pending sync
+    })
+    .where(eq(products.id, productId));
+}
+
+// EXCEPTION: Hard delete is safe for unsynced draft records only:
+async function deleteUnsyncedDraft(productId: string) {
+  const [record] = await db.select()
+    .from(products)
+    .where(eq(products.id, productId))
+    .limit(1);
+
+  if (record && !record.isSynced && !record.deletedAt) {
+    await db.delete(products).where(eq(products.id, productId));
+  } else {
+    await softDeleteProduct(productId);
+  }
+}
+```
+
+**Step 4: Run existing tests**
 
 Run: `cd apps/pos-app && bun run test`
 Expected: All 61 existing tests still pass
 
-**Step 4: Commit**
+**Step 5: Commit**
 
 ```bash
 git add apps/pos-app/src/
-git commit -m "feat(pos): add shop_id filter to all DB queries"
+git commit -m "feat(pos): add shop_id filter, soft deletes, and tombstone queries"
 ```
 
 ---
 
 ## Phase 3: Cloud Auth on POS
 
-### Task 10: Cloud Login/Register Pages
+### Task 9: Cloud Login/Register Pages
 
 **Files:**
-- Modify: `apps/pos-app/package.json`
 - Create: `apps/pos-app/src/lib/cloud-auth.ts`
 - Create: `apps/pos-app/src/pages/cloud-login.tsx`
 - Create: `apps/pos-app/src/pages/onboarding.tsx`
 - Modify: `apps/pos-app/src/pages/login.tsx`
 - Modify: `apps/pos-app/src/App.tsx`
 
-**Step 1: Install Better Auth client**
+**Step 1: Create cloud auth client**
 
-Run: `cd apps/pos-app && bun add better-auth`
-
-**Step 2: Create cloud auth client**
-
-Create `apps/pos-app/src/lib/cloud-auth.ts`:
+Create `apps/pos-app/src/lib/cloud-auth.ts` — fetch-based wrapper for the API auth endpoints:
 
 ```typescript
-import { createAuthClient } from "better-auth/client";
-
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-export const authClient = createAuthClient({
-  baseURL: API_URL,
-});
+export async function register(email: string, password: string, name: string) {
+  const res = await fetch(`${API_URL}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, name }),
+    credentials: "include",
+  });
+  return res.json();
+}
 
-export const { signIn, signUp, useSession, signOut } = authClient;
+export async function login(email: string, password: string) {
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+    credentials: "include",
+  });
+  return res.json();
+}
+
+export async function getSession() {
+  const res = await fetch(`${API_URL}/api/auth/session`, {
+    credentials: "include",
+  });
+  return res.json();
+}
+
+export async function logout() {
+  await fetch(`${API_URL}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
+export function getGoogleOAuthUrl() {
+  return `${API_URL}/api/auth/google`;
+}
 ```
 
-**Step 3: Create cloud login page**
+**Step 2: Create cloud login page**
 
-Create `apps/pos-app/src/pages/cloud-login.tsx` — email/password form + Google OAuth button. On success:
+Create `apps/pos-app/src/pages/cloud-login.tsx` — email/password form + Google OAuth link. On success:
 - If user has shops → show shop picker → store `shopId` → navigate to `/login`
 - If user has no shops → navigate to `/onboarding`
 
-**Step 4: Create onboarding page**
+**Step 3: Create onboarding page**
 
 Create `apps/pos-app/src/pages/onboarding.tsx` — shop name input → POST `/api/shops` → store `shopId` → navigate to `/login`.
 
-**Step 5: Update login page**
+**Step 4: Update login page**
 
 Add "Masuk Cloud" and "Daftar" buttons below the existing PIN login. These navigate to `/cloud-login`.
 
-**Step 6: Add routes to App.tsx**
+**Step 5: Add routes to App.tsx**
 
 ```tsx
 <Route component={CloudLogin} path="/cloud-login" />
 <Route component={Onboarding} path="/onboarding" />
 ```
 
-**Step 7: Commit**
+**Step 6: Commit**
 
 ```bash
 git add apps/pos-app/
@@ -1005,7 +901,7 @@ git commit -m "feat(pos): add cloud login, register, and onboarding pages"
 
 ---
 
-### Task 11: Settings — Cloud Account & Sync Controls
+### Task 10: Settings — Cloud Account & Sync Controls
 
 **Files:**
 - Modify: `apps/pos-app/src/pages/settings.tsx`
@@ -1030,81 +926,53 @@ git commit -m "feat(pos): add cloud account and sync controls to settings"
 
 ## Phase 4: POS Rust Sync Layer
 
-### Task 12: Add Rust Dependencies for Protobuf + HTTP
+### Task 11: Add Rust Dependencies for HTTP + JSON
 
 **Files:**
 - Modify: `apps/pos-app/src-tauri/Cargo.toml`
-- Create: `apps/pos-app/src-tauri/build.rs`
 
 **Step 1: Add dependencies to Cargo.toml**
 
 ```toml
 [dependencies]
 # ... existing deps ...
-prost = "0.13"
 reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
-
-[build-dependencies]
-# ... existing deps ...
-prost-build = "0.13"
+serde_json = "1"
 ```
 
-> **Note:** Using `rustls-tls` instead of `native-tls` to avoid C compiler dependency on Android.
+> **Note:** Using `rustls-tls` instead of `native-tls` to avoid C compiler dependency on Android. No protobuf needed — sync uses JSON.
 
-**Step 2: Create build.rs**
+**Step 2: Verify it compiles**
 
-Create `apps/pos-app/src-tauri/build.rs`:
+Run: `cd apps/pos-app/src-tauri && cargo check`
+Expected: compiles successfully
 
-```rust
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    prost_build::compile_protos(
-        &["../../../proto/sync.proto"],
-        &["../../../proto/"],
-    )?;
-    Ok(())
-}
-```
-
-This compiles the shared `.proto` schema into Rust structs at build time.
-
-**Step 3: Verify it compiles**
-
-Run: `cd apps/pos-app/src-tauri && cargo check --target aarch64-linux-android`
-Expected: compiles successfully (may need Android NDK in PATH)
-
-**Step 4: Commit**
+**Step 3: Commit**
 
 ```bash
 git add apps/pos-app/src-tauri/
-git commit -m "feat(rust): add prost + reqwest for protobuf sync"
+git commit -m "feat(rust): add reqwest + serde_json for JSON sync"
 ```
 
 ---
 
-### Task 13: Rust Sync Module — Push
+### Task 12: Rust Sync Module — Push (with isSynced tracking)
 
 **Files:**
 - Create: `apps/pos-app/src-tauri/src/sync.rs`
 - Modify: `apps/pos-app/src-tauri/src/lib.rs`
+
+**Context:** After a successful push, the server has received our tombstones. We must mark local records as `isSynced = true` so garbage collection can safely purge them later.
 
 **Step 1: Create sync module**
 
 Create `apps/pos-app/src-tauri/src/sync.rs`:
 
 ```rust
-use prost::Message;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqliteRow, Column, Row, SqlitePool};
+use sqlx::SqlitePool;
 use tauri::{command, AppHandle, Manager};
-use std::path::PathBuf;
-
-include!(concat!(env!("OUT_DIR"), "/sakti.rs"));
-
-// Include the proto-generated modules
-pub mod pb {
-    include!(concat!(env!("OUT_DIR"), "/sakti.pos.rs"));
-}
 
 #[derive(Debug, Serialize)]
 struct SyncResult {
@@ -1114,73 +982,89 @@ struct SyncResult {
 }
 
 #[command]
-pub async fn sync_push(app: AppHandle, shop_id: String, api_url: String, auth_token: String) -> Result<SyncResult, String> {
+pub async fn sync_push(app: AppHandle, shop_id: String, api_url: String) -> Result<SyncResult, String> {
     let pool = get_pool(&app)?;
     let client = Client::new();
 
-    // Read changed rows from local DB
-    let categories = read_table(&pool, "categories", &shop_id).await?;
-    let products = read_table(&pool, "products", &shop_id).await?;
-    let orders = read_table(&pool, "orders", &shop_id).await?;
-    let order_items = read_table(&pool, "order_items", &shop_id).await?;
+    // Read unsynced rows from local DB (WHERE is_synced = false)
+    let categories = read_unsynced_table(&pool, "categories", &shop_id).await?;
+    let products = read_unsynced_table(&pool, "products", &shop_id).await?;
+    let orders = read_unsynced_table(&pool, "orders", &shop_id).await?;
+    let order_items = read_unsynced_table(&pool, "order_items", &shop_id).await?;
 
-    // Build protobuf request
-    let request = pb::SyncPushRequest {
-        shop_id,
-        categories,
-        products,
-        orders,
-        order_items,
-        users: vec![],
-    };
+    let body = serde_json::json!({
+        "shopId": shop_id,
+        "tables": {
+            "categories": categories,
+            "products": products,
+            "orders": orders,
+            "order_items": order_items,
+        }
+    });
 
-    let mut buf = Vec::new();
-    request.encode(&mut buf).map_err(|e| e.to_string())?;
-
-    // Send to API
     let response = client
         .post(format!("{}/api/sync/push", api_url))
-        .header("Content-Type", "application/x-protobuf")
-        .header("Authorization", format!("Bearer {}", auth_token))
-        .body(buf)
+        .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Sync push request failed: {}", e))?;
+        .map_err(|e| format!("Sync push failed: {}", e))?;
 
     if !response.status().is_success() {
         return Err(format!("Sync push failed: {}", response.status()));
     }
 
-    let response_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-    let push_response = pb::SyncPushResponse::decode(response_bytes.as_ref())
-        .map_err(|e| format!("Failed to decode push response: {}", e))?;
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
 
-    // Handle server wins — update local rows with server's updatedAt
-    for win in &push_response.server_wins {
-        for id in &win.ids {
-            // Re-pull server's version for this row
-            // (handled on next pull cycle)
-        }
-    }
-
-    let tables_synced = vec![
-        "categories".to_string(),
-        "products".to_string(),
-        "orders".to_string(),
-        "order_items".to_string(),
-    ];
+    // POST-SYNC: Mark all pushed records as synced
+    mark_table_synced(&pool, "categories", &shop_id).await?;
+    mark_table_synced(&pool, "products", &shop_id).await?;
+    mark_table_synced(&pool, "orders", &shop_id).await?;
+    mark_table_synced(&pool, "order_items", &shop_id).await?;
 
     Ok(SyncResult {
-        tables_synced,
-        server_wins_count: push_response.server_wins.len(),
-        server_time: push_response.server_time,
+        tables_synced: vec!["categories".into(), "products".into(), "orders".into(), "order_items".into()],
+        server_wins_count: result["serverWins"].as_array().map(|a| a.len()).unwrap_or(0),
+        server_time: result["serverTime"].as_str().unwrap_or("").to_string(),
     })
 }
 ```
 
 **Step 2: Add helper functions**
 
-Add `get_pool()` (reuses existing DB path logic from `drizzle_proxy.rs`), `read_table()` (reads rows from SQLite as proto-compatible structs).
+Add `get_pool()` (reuses existing DB path logic from `drizzle_proxy.rs`), `read_unsynced_table()` (reads rows WHERE `is_synced = 0` from SQLite as JSON), `mark_table_synced()` (UPDATE table SET `is_synced = 1` WHERE `is_synced = 0`).
+
+```rust
+/// Read rows that haven't been synced yet (is_synced = false)
+async fn read_unsynced_table(pool: &SqlitePool, table: &str, shop_id: &str) -> Result<Vec<serde_json::Value>, String> {
+    let query = format!(
+        "SELECT * FROM {} WHERE shop_id = ? AND is_synced = 0",
+        table
+    );
+    let rows: Vec<(String,)> = sqlx::query_as(&query)
+        .bind(shop_id)
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Convert rows to JSON (implementation depends on column structure)
+    // Use sqlx::Row to extract columns dynamically
+    todo!("Implement row-to-JSON conversion for each table")
+}
+
+/// Mark all records in a table as synced after successful push
+async fn mark_table_synced(pool: &SqlitePool, table: &str, shop_id: &str) -> Result<(), String> {
+    let query = format!(
+        "UPDATE {} SET is_synced = 1 WHERE shop_id = ? AND is_synced = 0",
+        table
+    );
+    sqlx::query(&query)
+        .bind(shop_id)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+```
 
 **Step 3: Register in lib.rs**
 
@@ -1190,12 +1074,12 @@ Add `mod sync;` and register `sync::sync_push` in `tauri::generate_handler![]`.
 
 ```bash
 git add apps/pos-app/src-tauri/
-git commit -m "feat(rust): implement sync push command"
+git commit -m "feat(rust): implement sync push with isSynced tracking"
 ```
 
 ---
 
-### Task 14: Rust Sync Module — Pull
+### Task 13: Rust Sync Module — Pull
 
 **Files:**
 - Modify: `apps/pos-app/src-tauri/src/sync.rs`
@@ -1210,7 +1094,7 @@ struct PullResult {
 }
 
 #[command]
-pub async fn sync_pull(app: AppHandle, shop_id: String, api_url: String, auth_token: String) -> Result<PullResult, String> {
+pub async fn sync_pull(app: AppHandle, shop_id: String, api_url: String) -> Result<PullResult, String> {
     let pool = get_pool(&app)?;
     let client = Client::new();
 
@@ -1226,45 +1110,41 @@ pub async fn sync_pull(app: AppHandle, shop_id: String, api_url: String, auth_to
 
     let response = client
         .get(&url)
-        .header("Authorization", format!("Bearer {}", auth_token))
         .send()
         .await
-        .map_err(|e| format!("Sync pull request failed: {}", e))?;
+        .map_err(|e| format!("Sync pull failed: {}", e))?;
 
     if !response.status().is_success() {
         return Err(format!("Sync pull failed: {}", response.status()));
     }
 
-    let response_bytes = response.bytes().await.map_err(|e| e.to_string())?;
-    let pull_response = pb::SyncPullResponse::decode(response_bytes.as_ref())
-        .map_err(|e| format!("Failed to decode pull response: {}", e))?;
-
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
     let mut total_rows = 0;
 
-    // Upsert categories
-    for row in &pull_response.categories {
-        upsert_row(&pool, "categories", &row.id, &row.shop_id, &shop_id).await?;
-        total_rows += 1;
+    // Upsert each table's rows into local SQLite
+    for table in ["categories", "products", "orders", "order_items"] {
+        if let Some(rows) = result[table].as_array() {
+            for row in rows {
+                upsert_row(&pool, table, row).await?;
+                total_rows += 1;
+            }
+        }
     }
 
-    // Upsert products, orders, order_items similarly...
-    for row in &pull_response.products { /* ... */ total_rows += 1; }
-    for row in &pull_response.orders { /* ... */ total_rows += 1; }
-    for row in &pull_response.order_items { /* ... */ total_rows += 1; }
-
     // Update sync_meta
+    let server_time = result["serverTime"].as_str().unwrap_or("");
     for table in ["categories", "products", "orders", "order_items"] {
-        set_last_sync_at(&pool, table, &shop_id, &pull_response.server_time).await?;
+        set_last_sync_at(&pool, table, &shop_id, server_time).await?;
     }
 
     Ok(PullResult {
         rows_received: total_rows,
-        server_time: pull_response.server_time,
+        server_time: server_time.to_string(),
     })
 }
 ```
 
-**Step 2: Add helper: upsert_row, get_last_sync_at, set_last_sync_at**
+**Step 2: Add helpers: upsert_row, get_last_sync_at, set_last_sync_at**
 
 `upsert_row`: INSERT OR REPLACE into local SQLite using `cloud_id` as the unique key.
 `get_last_sync_at` / `set_last_sync_at`: read/write `sync_meta` table.
@@ -1277,60 +1157,87 @@ Add `sync::sync_pull` to `tauri::generate_handler![]`.
 
 ```bash
 git add apps/pos-app/src-tauri/
-git commit -m "feat(rust): implement sync pull command"
+git commit -m "feat(rust): implement sync pull command (JSON)"
 ```
 
 ---
 
-### Task 15: Rust Sync — Combined Sync Command + Scheduler
+### Task 14: Rust Sync — Combined Sync + Garbage Collection
 
 **Files:**
 - Modify: `apps/pos-app/src-tauri/src/sync.rs`
 - Modify: `apps/pos-app/src-tauri/src/lib.rs`
 
-**Step 1: Add sync_now command**
+**Context:** After sync completes, we can safely purge tombstoned records that the server has confirmed. The rule: only hard-delete where `deletedAt IS NOT NULL AND isSynced = true`. This is crash-proof — if the app dies before GC runs, the next startup will find the same records and purge them then.
 
-Combines pull then push:
+**Step 1: Add garbage collection command**
+
+```rust
+#[command]
+pub async fn run_garbage_collection(app: AppHandle, shop_id: String) -> Result<usize, String> {
+    let pool = get_pool(&app)?;
+    let mut total_purged = 0;
+
+    // Hard-delete tombstones that have been synced to server
+    for table in ["categories", "products", "orders", "order_items"] {
+        let query = format!(
+            "DELETE FROM {} WHERE shop_id = ? AND deleted_at IS NOT NULL AND is_synced = 1",
+            table
+        );
+        let result = sqlx::query(&query)
+            .bind(&shop_id)
+            .execute(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        total_purged += result.rows_affected();
+    }
+
+    Ok(total_purged)
+}
+```
+
+**Step 2: Add startup sync command**
+
+Combines pull → push → garbage collection (used by splash screen):
 
 ```rust
 #[derive(Debug, Serialize)]
 struct SyncNowResult {
     pull: PullResult,
     push: SyncResult,
+    purged: usize,
 }
 
 #[command]
-pub async fn sync_now(
-    app: AppHandle,
-    shop_id: String,
-    api_url: String,
-    auth_token: String,
-) -> Result<SyncNowResult, String> {
-    let pull = sync_pull(app.clone(), shop_id.clone(), api_url.clone(), auth_token.clone()).await?;
-    let push = sync_push(app, shop_id, api_url, auth_token).await?;
-    Ok(SyncNowResult { pull, push })
+pub async fn sync_now(app: AppHandle, shop_id: String, api_url: String) -> Result<SyncNowResult, String> {
+    let pull = sync_pull(app.clone(), shop_id.clone(), api_url.clone()).await?;
+    let push = sync_push(app.clone(), shop_id.clone(), api_url).await?;
+    let purged = run_garbage_collection(app, shop_id).await?;
+    Ok(SyncNowResult { pull, push, purged })
 }
 ```
 
-**Step 2: Register in lib.rs**
+**Step 3: Register in lib.rs**
 
-Add `sync::sync_now` to `tauri::generate_handler![]`.
+Add `sync::sync_now` and `sync::run_garbage_collection` to `tauri::generate_handler![]`.
 
-**Step 3: Commit**
+**Step 4: Commit**
 
 ```bash
 git add apps/pos-app/src-tauri/
-git commit -m "feat(rust): add combined sync_now command"
+git commit -m "feat(rust): add combined sync with post-sync garbage collection"
 ```
 
 ---
 
-### Task 16: POS Frontend — Sync Integration
+### Task 15: POS Frontend — Sync Integration + Splash Screen
 
 **Files:**
 - Create: `apps/pos-app/src/lib/sync.ts`
 - Create: `apps/pos-app/src/components/sync-status.tsx`
 - Modify: `apps/pos-app/src/components/layout.tsx`
+
+**Context:** The splash screen runs on every app launch. It executes the 4-step boot sequence: gather pending changes → push to server → mark as synced → garbage collect. If the device is offline, the app proceeds with local data (no blocking).
 
 **Step 1: Create sync bridge**
 
@@ -1351,11 +1258,11 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 
-export function startSyncScheduler(authToken: string) {
+export function startSyncScheduler() {
   if (syncInterval) return;
 
-  syncNow(authToken);
-  syncInterval = setInterval(() => syncNow(authToken), 5 * 60 * 1000);
+  syncNow();
+  syncInterval = setInterval(() => syncNow(), 5 * 60 * 1000);
 }
 
 export function stopSyncScheduler() {
@@ -1365,7 +1272,7 @@ export function stopSyncScheduler() {
   }
 }
 
-export async function syncNow(authToken: string) {
+export async function syncNow() {
   const shopId = currentShopId();
   if (!shopId) return;
 
@@ -1374,71 +1281,137 @@ export async function syncNow(authToken: string) {
     const result = await invoke<{
       pull: { rows_received: number; server_time: string };
       push: { tables_synced: string[]; server_wins_count: number; server_time: string };
+      purged: number;
     }>("sync_now", {
       shopId,
       apiUrl: API_URL,
-      authToken,
     });
 
     setLastSyncTime(result.pull.server_time);
     setSyncStatus("idle");
   } catch {
-    setSyncStatus("error");
+    setSyncStatus("offline");
+  }
+}
+
+/**
+ * Startup sync — called from splash screen on app launch.
+ * Runs pull → push → garbage collection.
+ * Does NOT block the app if offline.
+ */
+export async function runStartupSync(): Promise<void> {
+  const shopId = currentShopId();
+  if (!shopId) return;
+
+  try {
+    await invoke("sync_now", { shopId, apiUrl: API_URL });
+  } catch {
+    // Offline — proceed with local data, don't block
   }
 }
 ```
 
-**Step 2: Create sync status indicator**
+> Note: No auth token needed for sync — Rust sends the session cookie automatically via `reqwest`'s cookie jar. Alternatively, pass the cookie string from the frontend.
+
+**Step 2: Create splash screen component**
+
+Create `apps/pos-app/src/pages/splash.tsx` — shown on every app launch:
+
+```tsx
+import { onMount, createSignal } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { runStartupSync } from "~/lib/sync";
+
+export function SplashScreen() {
+  const navigate = useNavigate();
+  const [status, setStatus] = createSignal("Memulai aplikasi...");
+
+  onMount(async () => {
+    try {
+      setStatus("Menyinkronkan data...");
+      await runStartupSync();
+      setStatus("Selesai!");
+    } catch {
+      // Offline — proceed with local data
+    } finally {
+      setTimeout(() => navigate("/pos"), 500);
+    }
+  });
+
+  return (
+    <div class="flex flex-col items-center justify-center h-screen bg-blue-600 text-white">
+      <h1 class="text-4xl font-bold mb-4">Sakti POS</h1>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-4" />
+      <p class="text-sm opacity-80">{status()}</p>
+    </div>
+  );
+}
+```
+
+**Step 3: Create sync status indicator**
 
 Create `apps/pos-app/src/components/sync-status.tsx` — small icon in the topbar:
 - Spinning icon when syncing
 - Checkmark when idle
-- Warning icon on error
+- Warning icon on error/offline
 - Hidden when no cloud account
 
-**Step 3: Add to Layout**
+**Step 4: Add to Layout**
 
 Import and render `<SyncStatus />` in the topbar. Start scheduler on mount if cloud session exists and `currentShopId()` is set.
 
-**Step 4: Wire settings "Sync Now" button**
+**Step 5: Wire settings "Sync Now" button**
 
-Call `syncNow(authToken)` from the settings page button.
+Call `syncNow()` from the settings page button.
 
-**Step 5: Commit**
+**Step 6: Add splash route to App.tsx**
+
+```tsx
+<Route component={SplashScreen} path="/" />
+```
+
+Set splash as the root route — it auto-redirects to `/pos` after sync completes.
+
+**Step 7: Commit**
 
 ```bash
 git add apps/pos-app/src/
-git commit -m "feat(pos): add sync bridge, scheduler, and status indicator"
+git commit -m "feat(pos): add sync bridge, splash screen, scheduler, and GC"
 ```
 
 ---
 
 ## Phase 5: Testing
 
-### Task 17: API Tests
+### Task 16: API Tests
 
 **Files:**
+- Create: `apps/api/src/__test__/auth.test.ts`
 - Create: `apps/api/src/__test__/shops.test.ts`
 - Create: `apps/api/src/__test__/sync.test.ts`
 
-**Step 1: Write shop endpoint tests**
+**Step 1: Write auth endpoint tests**
+
+Test: register, login, session validation, logout, invalid credentials rejected.
+
+**Step 2: Write shop endpoint tests**
 
 Test: create shop, list shops, get shop by ID, unauthorized access rejected.
 
-**Step 2: Write sync endpoint tests**
+**Step 3: Write sync endpoint tests**
 
-Test: push new rows, push update (last-write-wins), pull changes since timestamp, empty sync.
+Test: push new rows, push update (last-write-wins), pull changes since timestamp, empty sync, push tombstoned records (with `deletedAt` set), pull tombstones and verify they propagate to client.
 
-**Step 3: Commit**
+**Step 4: Commit**
 
 ```bash
 git add apps/api/src/__test__/
-git commit -m "test(api): add shop and sync endpoint tests"
+git commit -m "test(api): add auth, shop, and sync endpoint tests"
 ```
 
 ---
 
-### Task 18: POS Sync Tests
+### Task 17: POS Sync Tests
 
 **Files:**
 - Create: `apps/pos-app/src/lib/__test__/sync.test.ts`
@@ -1447,11 +1420,21 @@ git commit -m "test(api): add shop and sync endpoint tests"
 
 Test: `startSyncScheduler` sets up interval, `stopSyncScheduler` clears it, `syncNow` calls invoke with correct params, status signals update correctly.
 
-**Step 2: Commit**
+**Step 2: Write tombstone + GC tests**
+
+Test:
+- Soft-deleted record sets `deletedAt` and `updatedAt` and `isSynced: false`
+- `isSynced` becomes `true` after successful push
+- Garbage collection hard-deletes records where `deletedAt IS NOT NULL AND isSynced = true`
+- Garbage collection does NOT delete records where `isSynced = false` (not yet pushed)
+- Garbage collection does NOT delete records where `deletedAt IS NULL` (active records)
+- Hard delete is safe for unsynced draft records
+
+**Step 3: Commit**
 
 ```bash
 git add apps/pos-app/src/
-git commit -m "test(pos): add sync bridge tests"
+git commit -m "test(pos): add sync bridge and tombstone/GC tests"
 ```
 
 ---
@@ -1460,20 +1443,28 @@ git commit -m "test(pos): add sync bridge tests"
 
 | Phase | Tasks | Description |
 |-------|-------|-------------|
-| 1 | 1-7 | API foundation (Elysia, Turso, Better Auth, Shops, Proto schema, Protobuf sync, dev setup) |
-| 2 | 8-9 | POS schema migration (shop_id, cloud_id, query filters) |
-| 3 | 10-11 | Cloud auth on POS (login/register, onboarding, settings) |
-| 4 | 12-16 | POS Rust sync layer (prost, reqwest, push, pull, scheduler, frontend bridge) |
-| 5 | 17-18 | Testing (API + POS sync) |
+| 1 | 1-6 | API foundation (Elysia on Bun, Turso/Drizzle, Narvik auth, Shops, JSON sync, dev setup) |
+| 2 | 7-8 | POS schema migration (shop_id, cloud_id, query filters) |
+| 3 | 9-10 | Cloud auth on POS (login/register, onboarding, settings) |
+| 4 | 11-15 | POS Rust sync layer (reqwest, JSON push/pull, scheduler, frontend bridge) |
+| 5 | 16-17 | Testing (API + POS sync) |
 
-**Total: 18 tasks, 5 phases**
+**Total: 17 tasks, 5 phases**
 
 **Key architectural decisions:**
-- Protobuf contract defined in `proto/sync.proto` — single source of truth
-- API generates TS from proto via `ts-proto` + `elysia-protobuf`
-- Rust generates structs from proto via `prost-build` in `build.rs`
-- Sync runs entirely in Rust — SolidJS never touches binary data
-- `reqwest` with `rustls-tls` — no C compiler needed for Android
-- Last-write-wins on `updated_at` — silent conflict resolution
-- `shop_id` on every table — multi-tenant isolation
-- `cloud_id` on POS rows — maps local integers to server UUIDs
+- **Narvik** for session management — token in cookie, SHA-256 hash in DB, sliding-window expiry
+- **Arctic** for Google OAuth — lightweight, edge-compatible
+- **PBKDF2** for password hashing via Web Crypto API — CF Workers compatible (no CPU time issue)
+- **JSON sync** over HTTP — simple, no codegen, debuggable
+- **Cloudflare Workers** deployment — Elysia + CloudflareAdapter, `env` from `cloudflare:workers`
+- **Colocated schemas** in `packages/database/src/` — `local-schema.ts` (POS) and `api-schema.ts` (Turso)
+- **Rust sync layer** — `reqwest` + `serde_json`, no binary protocol
+- **`reqwest` with `rustls-tls`** — no C compiler needed for Android
+- **Last-write-wins** on `updated_at` — silent conflict resolution
+- **`shop_id`** on every table — multi-tenant isolation
+- **`cloud_id`** on POS rows — maps local integers to server UUIDs
+- **Tombstone pattern** (soft deletes) — `deletedAt` column on all sync tables. Never hard-delete synced records on the client. Set `deletedAt` + `updatedAt` on delete, which triggers sync push naturally. Server `handlePush`/`handlePull` need no changes — tombstones flow through existing LWW logic.
+- **`isSynced` flag** — client-only column tracking whether a record has been pushed to server. After successful push, Rust marks records as `isSynced = true`. Only tombstoned + synced records can be garbage-collected.
+- **Post-sync garbage collection** — Hard-delete local records where `deletedAt IS NOT NULL AND isSynced = true`. Runs on splash screen startup and after manual sync. Crash-proof: if GC is interrupted, next startup re-runs it.
+- **Hard delete exception** — Only safe for unsynced draft records (created offline, never pushed to server). Check `isSynced == false && deletedAt == null` before hard-deleting.
+- **Splash screen boot sequence** — pull → push → mark synced → garbage collect. Non-blocking if offline.
