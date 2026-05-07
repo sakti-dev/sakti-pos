@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockSetUser = vi.fn();
-const mockUser = vi.fn<() => { id: number; name: string; role: string } | null>(
+const mockUser = vi.fn<() => { id: string; name: string; role: string } | null>(
 	() => null,
 );
 const mockVerifyPin = vi.fn();
@@ -39,10 +39,10 @@ describe("auth", () => {
 			expect(getLastUserId()).toBeNull();
 		});
 
-		test("returns stored user id", async () => {
+		test("returns stored staff id", async () => {
 			const { getLastUserId, setLastUserId } = await import("~/lib/auth");
-			setLastUserId(42);
-			expect(getLastUserId()).toBe(42);
+			setLastUserId("staff-42");
+			expect(getLastUserId()).toBe("staff-42");
 		});
 	});
 
@@ -54,20 +54,28 @@ describe("auth", () => {
 		});
 
 		test("returns true when user is set", async () => {
-			mockUser.mockReturnValue({ id: 1, name: "Owner", role: "owner" });
+			mockUser.mockReturnValue({
+				id: "staff-1",
+				name: "Manager",
+				role: "manager",
+			});
 			const { isAuthenticated } = await import("~/lib/auth");
 			expect(isAuthenticated()).toBe(true);
 		});
 
 		test("currentUser returns the user object", async () => {
-			const u = { id: 2, name: "Kasir", role: "cashier" };
+			const u = { id: "staff-2", name: "Kasir", role: "cashier" };
 			mockUser.mockReturnValue(u);
 			const { currentUser } = await import("~/lib/auth");
 			expect(currentUser()).toEqual(u);
 		});
 
 		test("currentUserRole returns role when set", async () => {
-			mockUser.mockReturnValue({ id: 1, name: "Owner", role: "manager" });
+			mockUser.mockReturnValue({
+				id: "staff-1",
+				name: "Manager",
+				role: "manager",
+			});
 			const { currentUserRole } = await import("~/lib/auth");
 			expect(currentUserRole()).toBe("manager");
 		});
@@ -80,17 +88,17 @@ describe("auth", () => {
 	});
 
 	describe("login", () => {
-		test("calls verifyPin, sets user, and stores last user id", async () => {
-			const authUser = { id: 5, name: "Test", role: "cashier" };
+		test("calls verifyPin, sets user, and stores last staff id", async () => {
+			const authUser = { id: "staff-5", name: "Test", role: "cashier" };
 			mockVerifyPin.mockResolvedValue(authUser);
 
 			const { login } = await import("~/lib/auth");
-			const result = await login(5, "123456");
+			const result = await login("staff-5", "123456");
 
-			expect(mockVerifyPin).toHaveBeenCalledWith(5, "123456");
+			expect(mockVerifyPin).toHaveBeenCalledWith("staff-5", "123456");
 			expect(mockSetUser).toHaveBeenCalledWith(authUser);
 			expect(result).toEqual(authUser);
-			expect(localStorage.getItem("sakti-pos:last-user-id")).toBe("5");
+			expect(localStorage.getItem("sakti-pos:last-staff-id")).toBe("staff-5");
 		});
 	});
 
@@ -111,35 +119,39 @@ describe("auth", () => {
 			);
 		});
 
-		test("calls changePin with user id", async () => {
-			mockUser.mockReturnValue({ id: 3, name: "Test", role: "owner" });
+		test("calls changePin with staff id", async () => {
+			mockUser.mockReturnValue({
+				id: "staff-3",
+				name: "Test",
+				role: "manager",
+			});
 			const { changeCurrentUserPin } = await import("~/lib/auth");
 			await changeCurrentUserPin("654321");
-			expect(mockChangePin).toHaveBeenCalledWith(3, "654321");
+			expect(mockChangePin).toHaveBeenCalledWith("staff-3", "654321");
 		});
 	});
 
-	describe("getActiveUsers", () => {
-		test("returns active users from db", async () => {
+	describe("getActiveStaff", () => {
+		test("returns active staff from db", async () => {
 			mockDbSelect.mockResolvedValue([
-				{ id: 1, name: "Owner", role: "owner" },
-				{ id: 2, name: "Kasir", role: "cashier" },
+				{ id: "staff-1", name: "Manager", role: "manager" },
+				{ id: "staff-2", name: "Kasir", role: "cashier" },
 			]);
 
-			const { getActiveUsers } = await import("~/lib/auth");
-			const users = await getActiveUsers();
+			const { getActiveStaff } = await import("~/lib/auth");
+			const staff = await getActiveStaff();
 
-			expect(users).toEqual([
-				{ id: 1, name: "Owner", role: "owner" },
-				{ id: 2, name: "Kasir", role: "cashier" },
+			expect(staff).toEqual([
+				{ id: "staff-1", name: "Manager", role: "manager" },
+				{ id: "staff-2", name: "Kasir", role: "cashier" },
 			]);
 		});
 
-		test("returns empty array when no active users", async () => {
+		test("returns empty array when no active staff", async () => {
 			mockDbSelect.mockResolvedValue([]);
-			const { getActiveUsers } = await import("~/lib/auth");
-			const users = await getActiveUsers();
-			expect(users).toEqual([]);
+			const { getActiveStaff } = await import("~/lib/auth");
+			const staff = await getActiveStaff();
+			expect(staff).toEqual([]);
 		});
 	});
 });

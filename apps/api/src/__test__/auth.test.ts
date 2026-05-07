@@ -10,12 +10,13 @@ vi.mock("../db", () => ({
 	},
 }));
 
+const mockValidateSession = vi.fn();
 vi.mock("../lib/auth", () => ({
 	narvik: {
 		createSession: vi.fn().mockResolvedValue({ token: "session-token-123" }),
 		invalidateSession: vi.fn().mockResolvedValue(undefined),
 		cookieName: "narvik_session",
-		validateSession: vi.fn(),
+		validateSession: (...args: unknown[]) => mockValidateSession(...args),
 		createCookie: vi.fn(() => ({ serialize: () => "narvik_session=test" })),
 		createBlankCookie: vi.fn(() => ({
 			serialize: () => "narvik_session=; Max-Age=0",
@@ -89,7 +90,7 @@ describe("POST /api/auth/register", () => {
 		vi.clearAllMocks();
 	});
 
-	test("registers a new user and returns user object", async () => {
+	test("registers a new user without role or shopId", async () => {
 		mockSelect.mockReturnValue({
 			from: vi.fn().mockReturnValue({
 				where: vi.fn().mockReturnValue({
@@ -99,21 +100,25 @@ describe("POST /api/auth/register", () => {
 		});
 
 		const now = new Date().toISOString();
+		const insertedValues: Record<string, unknown>[] = [];
 		mockInsert.mockReturnValue({
-			values: vi.fn().mockReturnValue({
-				returning: vi.fn().mockResolvedValue([
-					{
-						id: "user-1",
-						email: "test@example.com",
-						name: "Test User",
-						createdAt: now,
-						updatedAt: now,
-					},
-				]),
+			values: vi.fn().mockImplementation((vals: Record<string, unknown>) => {
+				insertedValues.push(vals);
+				return {
+					returning: vi.fn().mockResolvedValue([
+						{
+							id: vals.id,
+							email: vals.email,
+							name: vals.name,
+							createdAt: now,
+							updatedAt: now,
+						},
+					]),
+				};
 			}),
 		});
 
-		const { json, status } = await makeRequest("/api/auth/register", {
+		const { status } = await makeRequest("/api/auth/register", {
 			method: "POST",
 			body: {
 				email: "test@example.com",
@@ -123,12 +128,8 @@ describe("POST /api/auth/register", () => {
 		});
 
 		expect(status).toBe(200);
-		const user = (json as Record<string, unknown>).user as Record<
-			string,
-			unknown
-		>;
-		expect(user).toBeDefined();
-		expect(user.email).toBe("test@example.com");
+		expect(insertedValues[0]).not.toHaveProperty("role");
+		expect(insertedValues[0]).not.toHaveProperty("shopId");
 	});
 
 	test("returns 409 when email already registered", async () => {
@@ -200,6 +201,43 @@ describe("GET /api/auth/session", () => {
 		const { json, status } = await makeRequest("/api/auth/session");
 		expect(status).toBe(200);
 		expect((json as Record<string, unknown>).user).toBeNull();
+	});
+
+	test("returns user with merchants when session is valid", async () => {
+		mockValidateSession.mockResolvedValue({
+			id: "session-1",
+			userId: "user-1",
+		});
+
+		let selectCallCount = 0;
+		mockSelect.mockImplementation(() => ({
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockReturnValue({
+					limit: vi.fn().mockImplementation(async () => {
+						selectCallCount++;
+						if (selectCallCount === 1) {
+							return [
+								{
+									id: "user-1",
+									email: "test@test.com",
+									name: "Test",
+								},
+							];
+						}
+						return [];
+					}),
+				}),
+			}),
+		}));
+
+		const { json, status } = await makeRequest("/api/auth/session", {
+			cookie: "narvik_session=valid-token",
+		});
+
+		expect(status).toBe(200);
+		const result = json as Record<string, unknown>;
+		expect(result.user).toBeDefined();
+		expect(result.merchants).toBeDefined();
 	});
 });
 

@@ -21,7 +21,7 @@ export default function ProductList() {
 		initialValue: undefined,
 	});
 	const [filterCategoryId, setFilterCategoryId] = createSignal<
-		number | undefined
+		string | undefined
 	>(undefined);
 	const [products, { refetch }] = createResource(
 		() => ({ filter: filterCategoryId() }),
@@ -100,7 +100,7 @@ export default function ProductList() {
 						class="flex-1"
 						label="Kategori"
 						onChange={(v) =>
-							setFilterCategoryId(v === "" ? undefined : (v as number))
+							setFilterCategoryId(v === "" ? undefined : String(v))
 						}
 						options={categoryOptions()}
 						placeholder="Semua Kategori"

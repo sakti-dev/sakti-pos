@@ -1,6 +1,9 @@
+import { outlets } from "@repo/database/api-schema";
+import { eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
+import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
-import { handlePull, handlePush, verifyShopAccess } from "../lib/sync";
+import { handlePull, handlePush, verifyOutletAccess } from "../lib/sync";
 
 export const syncRoutes = new Elysia({ prefix: "/api/sync" })
 	.post(
@@ -12,17 +15,31 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
 				return { error: "Unauthorized" };
 			}
 
-			const authorized = await verifyShopAccess(session.userId, body.shopId);
+			const authorized = await verifyOutletAccess(
+				session.userId,
+				body.outletId,
+			);
 			if (!authorized) {
 				set.status = 403;
 				return { error: "Forbidden" };
 			}
 
-			return handlePush(body.shopId, body.tables);
+			const [outlet] = await db
+				.select({ merchantId: outlets.merchantId })
+				.from(outlets)
+				.where(eq(outlets.id, body.outletId))
+				.limit(1);
+
+			if (!outlet) {
+				set.status = 404;
+				return { error: "Outlet not found" };
+			}
+
+			return handlePush(body.outletId, outlet.merchantId, body.tables);
 		},
 		{
 			body: t.Object({
-				shopId: t.String(),
+				outletId: t.String(),
 				tables: t.Record(t.String(), t.Array(t.Any())),
 			}),
 		},
@@ -36,18 +53,32 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
 				return { error: "Unauthorized" };
 			}
 
-			const authorized = await verifyShopAccess(session.userId, query.shopId);
+			const authorized = await verifyOutletAccess(
+				session.userId,
+				query.outletId,
+			);
 			if (!authorized) {
 				set.status = 403;
 				return { error: "Forbidden" };
 			}
 
+			const [outlet] = await db
+				.select({ merchantId: outlets.merchantId })
+				.from(outlets)
+				.where(eq(outlets.id, query.outletId))
+				.limit(1);
+
+			if (!outlet) {
+				set.status = 404;
+				return { error: "Outlet not found" };
+			}
+
 			const tables = query.tables.split(",");
-			return handlePull(query.shopId, tables, query.since);
+			return handlePull(query.outletId, outlet.merchantId, tables, query.since);
 		},
 		{
 			query: t.Object({
-				shopId: t.String(),
+				outletId: t.String(),
 				tables: t.String(),
 				since: t.String(),
 			}),

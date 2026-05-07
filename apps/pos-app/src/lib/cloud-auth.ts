@@ -1,18 +1,38 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 interface ApiUser {
-	id: string;
 	email: string;
+	id: string;
 	name: string;
-	role?: string;
 }
 
-interface Shop {
+interface Merchant {
 	id: string;
 	name: string;
-	ownerId: string;
 	createdAt: string;
 	updatedAt: string;
+}
+
+interface Outlet {
+	address: string | null;
+	id: string;
+	isActive: boolean;
+	merchantId: string;
+	name: string;
+}
+
+interface Register {
+	id: string;
+	isActive: boolean;
+	name: string;
+	outletId: string;
+	pairingCode: string | null;
+	shortId: string;
+}
+
+interface PairResult {
+	outlet: Outlet;
+	register: Register;
 }
 
 class ApiError extends Error {
@@ -51,7 +71,7 @@ export async function register(
 	name: string,
 ): Promise<{ user: ApiUser }> {
 	return apiFetch("/api/auth/register", {
-		body: JSON.stringify({ email, password, name }),
+		body: JSON.stringify({ email, name, password }),
 		method: "POST",
 	});
 }
@@ -66,7 +86,10 @@ export async function login(
 	});
 }
 
-export async function getSession(): Promise<{ user: ApiUser | null }> {
+export async function getSession(): Promise<{
+	merchants: Merchant[];
+	user: ApiUser | null;
+}> {
 	return apiFetch("/api/auth/session");
 }
 
@@ -78,16 +101,38 @@ export function getGoogleOAuthUrl(): string {
 	return `${API_URL}/api/auth/google`;
 }
 
-export async function getShops(): Promise<Shop[]> {
-	return apiFetch("/api/shops");
+export async function getMerchants(): Promise<Merchant[]> {
+	return apiFetch("/api/merchants");
 }
 
-export async function createShop(name: string): Promise<Shop> {
-	return apiFetch("/api/shops", {
+export async function createMerchant(name: string): Promise<Merchant> {
+	return apiFetch("/api/merchants", {
 		body: JSON.stringify({ name }),
 		method: "POST",
 	});
 }
 
-export type { ApiUser, Shop };
+export async function getOutlets(merchantId: string): Promise<Outlet[]> {
+	return apiFetch(`/api/merchants/${merchantId}/outlets`);
+}
+
+export async function createOutlet(
+	merchantId: string,
+	name: string,
+	address?: string,
+): Promise<Outlet> {
+	return apiFetch(`/api/merchants/${merchantId}/outlets`, {
+		body: JSON.stringify({ address, name }),
+		method: "POST",
+	});
+}
+
+export async function pairRegister(pairingCode: string): Promise<PairResult> {
+	return apiFetch("/api/registers/pair", {
+		body: JSON.stringify({ pairingCode }),
+		method: "POST",
+	});
+}
+
+export type { ApiUser, Merchant, Outlet, PairResult, Register };
 export { ApiError };

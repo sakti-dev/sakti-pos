@@ -54,7 +54,7 @@ export default function OrderHistory() {
 	const [summary] = createResource(dateFrom, getDailySummary);
 
 	const [orderItemsCache, setOrderItemsCache] = createSignal<
-		Record<number, OrderItemRow[]>
+		Record<string, OrderItemRow[]>
 	>({});
 	const [cancelTarget, setCancelTarget] = createSignal<OrderRow | undefined>();
 
@@ -75,7 +75,7 @@ export default function OrderHistory() {
 
 	const canCancel = () => {
 		const role = currentUserRole();
-		return role === "owner" || role === "manager";
+		return role === "manager";
 	};
 
 	const handleCancel = async () => {

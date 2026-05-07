@@ -8,7 +8,8 @@
 		"./api-schema": "./src/api-schema.ts"
 	},
 	"dependencies": {
-		"drizzle-orm": "^0.45.2"
+		"drizzle-orm": "^0.45.2",
+		"uuid": "^14.0.0"
 	},
 	"devDependencies": {
 		"typescript": "5.9.2"

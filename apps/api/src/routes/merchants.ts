@@ -1,10 +1,10 @@
-import { shops, users } from "@repo/database/api-schema";
+import { merchants, userMerchants } from "@repo/database/api-schema";
 import { eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
 
-export const shopsRoutes = new Elysia({ prefix: "/api/shops" })
+export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
 	.post(
 		"/",
 		async ({ body, set, request }) => {
@@ -15,24 +15,23 @@ export const shopsRoutes = new Elysia({ prefix: "/api/shops" })
 			}
 
 			const now = new Date().toISOString();
-			const id = crypto.randomUUID();
-			const [shop] = await db
-				.insert(shops)
+			const [merchant] = await db
+				.insert(merchants)
 				.values({
-					id,
 					name: body.name,
-					ownerId: session.userId,
 					createdAt: now,
 					updatedAt: now,
 				})
 				.returning();
 
-			await db
-				.update(users)
-				.set({ shopId: id })
-				.where(eq(users.id, session.userId));
+			await db.insert(userMerchants).values({
+				userId: session.userId,
+				merchantId: merchant.id,
+				role: "owner",
+				joinedAt: now,
+			});
 
-			return shop;
+			return merchant;
 		},
 		{
 			body: t.Object({
@@ -47,15 +46,13 @@ export const shopsRoutes = new Elysia({ prefix: "/api/shops" })
 			return { error: "Unauthorized" };
 		}
 
-		return db.select().from(shops).where(eq(shops.ownerId, session.userId));
-	})
-	.get("/:id", async ({ params: { id }, set, request }) => {
-		const session = await getSessionFromRequest(request);
-		if (!session) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
-
-		const [shop] = await db.select().from(shops).where(eq(shops.id, id));
-		return shop ?? null;
+		return db
+			.select({
+				merchantId: userMerchants.merchantId,
+				name: merchants.name,
+				role: userMerchants.role,
+			})
+			.from(userMerchants)
+			.innerJoin(merchants, eq(userMerchants.merchantId, merchants.id))
+			.where(eq(userMerchants.userId, session.userId));
 	});

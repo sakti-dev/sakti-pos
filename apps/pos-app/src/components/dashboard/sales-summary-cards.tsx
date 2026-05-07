@@ -87,9 +87,7 @@ const SalesSummaryCards: Component<SalesSummaryCardsProps> = (props) => {
 				</div>
 				<div class="rounded-xl border bg-card p-3">
 					<p class="text-muted-foreground text-xs">Rata-rata/Pesanan</p>
-					<p class="font-bold">
-						{formatIDR(props.summary?.avgOrderValue)}
-					</p>
+					<p class="font-bold">{formatIDR(props.summary?.avgOrderValue)}</p>
 				</div>
 				<div class="rounded-xl border bg-card p-3">
 					<p class="text-muted-foreground text-xs">vs Periode Lalu</p>

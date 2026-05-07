@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createSignal } from "solid-js";
-import { currentShopId } from "./shop";
+import { currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";
 
@@ -35,19 +35,19 @@ export function stopSyncScheduler() {
 export interface SyncNowResult {
 	pull: { rows_received: number; server_time: string };
 	push: {
-		tables_synced: string[];
-		server_wins_count: number;
 		server_time: string;
+		server_wins_count: number;
+		tables_synced: string[];
 	};
 	purged: number;
 }
 
 export async function syncNow(): Promise<SyncNowResult> {
-	const shopId = currentShopId();
-	if (!shopId) {
+	const outletId = currentOutletId();
+	if (!outletId) {
 		return {
 			pull: { rows_received: 0, server_time: "" },
-			push: { tables_synced: [], server_wins_count: 0, server_time: "" },
+			push: { server_time: "", server_wins_count: 0, tables_synced: [] },
 			purged: 0,
 		};
 	}
@@ -60,8 +60,8 @@ export async function syncNow(): Promise<SyncNowResult> {
 	setSyncStatus("syncing");
 	try {
 		const result = await invoke<SyncNowResult>("sync_now", {
-			shopId,
 			apiUrl: API_URL,
+			outletId,
 			sessionCookie,
 		});
 
@@ -75,8 +75,8 @@ export async function syncNow(): Promise<SyncNowResult> {
 }
 
 export async function runStartupSync(): Promise<void> {
-	const shopId = currentShopId();
-	if (!shopId) return;
+	const outletId = currentOutletId();
+	if (!outletId) return;
 
 	const sessionCookie = getSessionCookie();
 	if (!sessionCookie) return;
@@ -84,8 +84,8 @@ export async function runStartupSync(): Promise<void> {
 	setSyncStatus("syncing");
 	try {
 		await invoke<SyncNowResult>("sync_now", {
-			shopId,
 			apiUrl: API_URL,
+			outletId,
 			sessionCookie,
 		});
 		setSyncStatus("idle");

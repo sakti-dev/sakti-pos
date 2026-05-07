@@ -4,24 +4,22 @@ import { createResource, For, Show } from "solid-js";
 import { AppShell } from "~/components/layout";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { getUsers } from "~/db/users";
+import { getStaff } from "~/db/staff";
 import { cn } from "~/lib/utils";
 
 const ROLE_STYLES: Record<string, string> = {
-	owner: "bg-primary text-primary-foreground",
 	manager: "bg-blue-600 text-white",
 	cashier: "bg-muted text-muted-foreground",
 };
 
 const ROLE_LABELS: Record<string, string> = {
-	owner: "Owner",
 	manager: "Manajer",
 	cashier: "Kasir",
 };
 
 export default function UserList() {
 	const navigate = useNavigate();
-	const [users] = createResource(getUsers);
+	const [users] = createResource(getStaff);
 
 	return (
 		<AppShell title="Pengguna">

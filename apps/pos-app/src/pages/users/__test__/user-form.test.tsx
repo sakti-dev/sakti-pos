@@ -6,9 +6,9 @@ import { Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const mockNavigate = vi.fn();
-const mockCreateUser = vi.fn();
-const mockUpdateUser = vi.fn();
-const mockCountActiveOwners = vi.fn(() => Promise.resolve(2));
+const mockCreateStaffMember = vi.fn();
+const mockUpdateStaffMember = vi.fn();
+const mockCountActiveManagers = vi.fn(() => Promise.resolve(2));
 
 vi.mock("@solidjs/router", () => ({
 	useNavigate: () => mockNavigate,
@@ -16,28 +16,31 @@ vi.mock("@solidjs/router", () => ({
 }));
 
 vi.mock("~/lib/auth", () => ({
-	currentUser: vi.fn(() => ({ id: 1, name: "Admin", role: "owner" })),
+	currentUser: vi.fn(() => ({ id: "staff-1", name: "Admin", role: "manager" })),
 }));
 
 vi.mock("~/lib/auth-provider", () => ({
 	hashPin: vi.fn((pin: string) => Promise.resolve(`$2b$${pin}`)),
 }));
 
-vi.mock("~/db/users", () => ({
-	getUser: vi.fn(() =>
+vi.mock("~/db/staff", () => ({
+	getStaffMember: vi.fn(() =>
 		Promise.resolve({
-			id: 1,
+			id: "staff-1",
 			name: "Admin",
-			role: "owner",
+			role: "manager",
 			isActive: true,
 			pin: "$2b$hashed",
 			createdAt: "",
 			updatedAt: "",
+			merchantId: "merchant-1",
+			outletId: null,
+			isSynced: false,
 		}),
 	),
-	createUser: (...args: unknown[]) => mockCreateUser(...args),
-	updateUser: (...args: unknown[]) => mockUpdateUser(...args),
-	countActiveOwners: () => mockCountActiveOwners(),
+	createStaffMember: (...args: unknown[]) => mockCreateStaffMember(...args),
+	updateStaffMember: (...args: unknown[]) => mockUpdateStaffMember(...args),
+	countActiveManagers: () => mockCountActiveManagers(),
 }));
 
 vi.mock("~/components/ui/button", () => ({
@@ -87,7 +90,6 @@ vi.mock("~/components/ui/select", () => ({
 			<option value="">{props.placeholder}</option>
 			<option value="cashier">Kasir</option>
 			<option value="manager">Manajer</option>
-			<option value="owner">Owner</option>
 		</select>
 	),
 }));
@@ -188,14 +190,14 @@ describe("UserForm (edit mode)", () => {
 	});
 
 	test("shows 'Edit Pengguna' title and prefills data", async () => {
-		vi.mocked(useParams).mockReturnValue({ id: "1" });
+		vi.mocked(useParams).mockReturnValue({ id: "staff-1" });
 		render(() => <UserForm />);
 		await screen.findByText("Edit Pengguna");
 		expect(screen.getByText("Edit Pengguna")).toBeInTheDocument();
 	});
 
 	test("shows active status toggle", async () => {
-		vi.mocked(useParams).mockReturnValue({ id: "1" });
+		vi.mocked(useParams).mockReturnValue({ id: "staff-1" });
 		render(() => <UserForm />);
 		await screen.findByText("Edit Pengguna");
 		expect(screen.getByText("Status Aktif")).toBeInTheDocument();

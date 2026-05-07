@@ -5,6 +5,7 @@ import "./index.css";
 import Layout from "./components/layout";
 import CloudLogin from "./pages/cloud-login";
 import Dashboard from "./pages/dashboard";
+import DevicePair from "./pages/device-pair";
 import Login from "./pages/login";
 import CategoryForm from "./pages/menu/category-form";
 import CategoryList from "./pages/menu/category-list";
@@ -50,10 +51,11 @@ function App() {
 	return (
 		<Router root={Layout}>
 			<Route component={CloudLogin} path="/cloud-login" />
+			<Route component={DevicePair} path="/device-pair" />
 			<Route component={Onboarding} path="/onboarding" />
 			<Route
 				component={() => (
-					<RequireAuth roles={["owner", "manager"]}>
+					<RequireAuth roles={["manager"]}>
 						<Dashboard />
 					</RequireAuth>
 				)}
@@ -70,7 +72,7 @@ function App() {
 			/>
 			<Route
 				component={(props) => (
-					<RequireAuth roles={["owner", "manager"]}>
+					<RequireAuth roles={["manager"]}>
 						<MenuManagement {...props} />
 					</RequireAuth>
 				)}
@@ -94,7 +96,7 @@ function App() {
 			/>
 			<Route
 				component={(props) => (
-					<RequireAuth roles={["owner"]}>
+					<RequireAuth roles={["manager"]}>
 						<UserManagement {...props} />
 					</RequireAuth>
 				)}

@@ -2,9 +2,11 @@ import {
 	categories,
 	orderItems,
 	orders,
+	outletProducts,
+	outlets,
 	products,
-	shops,
-	users,
+	staff,
+	userMerchants,
 } from "@repo/database/api-schema";
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "../db";
@@ -12,36 +14,43 @@ import { db } from "../db";
 const ALL_SYNC_TABLE_NAMES = [
 	"categories",
 	"products",
+	"outlet_products",
+	"staff",
 	"orders",
 	"order_items",
 ];
 
-export async function verifyShopAccess(
+export async function verifyOutletAccess(
 	sessionUserId: string,
-	requestedShopId: string,
+	requestedOutletId: string,
 ): Promise<boolean> {
-	const [user] = await db
-		.select({ shopId: users.shopId })
-		.from(users)
-		.where(eq(users.id, sessionUserId))
+	const [outlet] = await db
+		.select({ merchantId: outlets.merchantId })
+		.from(outlets)
+		.where(eq(outlets.id, requestedOutletId))
 		.limit(1);
 
-	if (!user || user.shopId !== requestedShopId) {
-		const [owned] = await db
-			.select({ id: shops.id })
-			.from(shops)
-			.where(
-				and(eq(shops.id, requestedShopId), eq(shops.ownerId, sessionUserId)),
-			)
-			.limit(1);
-		return !!owned;
-	}
+	if (!outlet) return false;
 
-	return true;
+	const [membership] = await db
+		.select({ id: userMerchants.id })
+		.from(userMerchants)
+		.where(
+			and(
+				eq(userMerchants.userId, sessionUserId),
+				eq(userMerchants.merchantId, outlet.merchantId),
+			),
+		)
+		.limit(1);
+
+	return !!membership;
 }
 
+type TransactionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export async function handlePush(
-	shopId: string,
+	outletId: string,
+	merchantId: string,
 	data: Record<string, unknown[]>,
 ) {
 	const serverWins: { table: string; ids: string[] }[] = [];
@@ -57,16 +66,32 @@ export async function handlePush(
 
 				switch (tableName) {
 					case "categories":
-						serverWin = await upsertRow(tx, categories, row, shopId);
+						serverWin = await upsertMerchantRow(
+							tx,
+							categories,
+							row,
+							merchantId,
+						);
 						break;
 					case "products":
-						serverWin = await upsertRow(tx, products, row, shopId);
+						serverWin = await upsertMerchantRow(tx, products, row, merchantId);
+						break;
+					case "outlet_products":
+						serverWin = await upsertOutletRow(
+							tx,
+							outletProducts,
+							row,
+							outletId,
+						);
+						break;
+					case "staff":
+						serverWin = await upsertStaffRow(tx, row, merchantId);
 						break;
 					case "orders":
-						serverWin = await upsertRow(tx, orders, row, shopId);
+						serverWin = await upsertOutletRow(tx, orders, row, outletId);
 						break;
 					case "order_items":
-						serverWin = await upsertOrderItem(tx, row, shopId);
+						serverWin = await upsertOrderItem(tx, row, outletId);
 						break;
 				}
 
@@ -82,11 +107,11 @@ export async function handlePush(
 	return { serverWins, serverTime: new Date().toISOString() };
 }
 
-async function upsertRow(
-	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-	table: typeof categories | typeof products | typeof orders,
+async function upsertMerchantRow(
+	tx: TransactionTx,
+	table: typeof categories | typeof products,
 	row: Record<string, unknown>,
-	shopId: string,
+	merchantId: string,
 ): Promise<string | null> {
 	const existing = await tx
 		.select()
@@ -110,14 +135,77 @@ async function upsertRow(
 		return row.id as string;
 	}
 
-	await tx.insert(table).values({ ...row, shopId } as never);
+	await tx.insert(table).values({ ...row, merchantId } as never);
+	return null;
+}
+
+async function upsertOutletRow(
+	tx: TransactionTx,
+	table: typeof outletProducts | typeof orders,
+	row: Record<string, unknown>,
+	outletId: string,
+): Promise<string | null> {
+	const existing = await tx
+		.select()
+		.from(table)
+		.where(eq(table.id, row.id as string))
+		.limit(1);
+
+	if (existing.length > 0) {
+		const serverUpdated = new Date(
+			(existing[0] as Record<string, unknown>).updatedAt as string,
+		).getTime();
+		const clientUpdated = new Date(row.updatedAt as string).getTime();
+
+		if (clientUpdated >= serverUpdated) {
+			await tx
+				.update(table)
+				.set(row)
+				.where(eq(table.id, row.id as string));
+			return null;
+		}
+		return row.id as string;
+	}
+
+	await tx.insert(table).values({ ...row, outletId } as never);
+	return null;
+}
+
+async function upsertStaffRow(
+	tx: TransactionTx,
+	row: Record<string, unknown>,
+	merchantId: string,
+): Promise<string | null> {
+	const existing = await tx
+		.select()
+		.from(staff)
+		.where(eq(staff.id, row.id as string))
+		.limit(1);
+
+	if (existing.length > 0) {
+		const serverUpdated = new Date(
+			(existing[0] as Record<string, unknown>).updatedAt as string,
+		).getTime();
+		const clientUpdated = new Date(row.updatedAt as string).getTime();
+
+		if (clientUpdated >= serverUpdated) {
+			await tx
+				.update(staff)
+				.set(row)
+				.where(eq(staff.id, row.id as string));
+			return null;
+		}
+		return row.id as string;
+	}
+
+	await tx.insert(staff).values({ ...row, merchantId } as never);
 	return null;
 }
 
 async function upsertOrderItem(
-	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+	tx: TransactionTx,
 	row: Record<string, unknown>,
-	shopId: string,
+	outletId: string,
 ): Promise<string | null> {
 	const existing = await tx
 		.select()
@@ -141,12 +229,13 @@ async function upsertOrderItem(
 		return row.id as string;
 	}
 
-	await tx.insert(orderItems).values({ ...row, shopId } as never);
+	await tx.insert(orderItems).values({ ...row, outletId } as never);
 	return null;
 }
 
 export async function handlePull(
-	shopId: string,
+	outletId: string,
+	merchantId: string,
 	tables: string[],
 	since: string,
 ) {
@@ -159,7 +248,10 @@ export async function handlePull(
 					.select()
 					.from(categories)
 					.where(
-						and(eq(categories.shopId, shopId), gt(categories.updatedAt, since)),
+						and(
+							eq(categories.merchantId, merchantId),
+							gt(categories.updatedAt, since),
+						),
 					);
 				break;
 			}
@@ -168,7 +260,31 @@ export async function handlePull(
 					.select()
 					.from(products)
 					.where(
-						and(eq(products.shopId, shopId), gt(products.updatedAt, since)),
+						and(
+							eq(products.merchantId, merchantId),
+							gt(products.updatedAt, since),
+						),
+					);
+				break;
+			}
+			case "outlet_products": {
+				result.outlet_products = await db
+					.select()
+					.from(outletProducts)
+					.where(
+						and(
+							eq(outletProducts.outletId, outletId),
+							gt(outletProducts.updatedAt, since),
+						),
+					);
+				break;
+			}
+			case "staff": {
+				result.staff = await db
+					.select()
+					.from(staff)
+					.where(
+						and(eq(staff.merchantId, merchantId), gt(staff.updatedAt, since)),
 					);
 				break;
 			}
@@ -176,7 +292,9 @@ export async function handlePull(
 				result.orders = await db
 					.select()
 					.from(orders)
-					.where(and(eq(orders.shopId, shopId), gt(orders.updatedAt, since)));
+					.where(
+						and(eq(orders.outletId, outletId), gt(orders.updatedAt, since)),
+					);
 				break;
 			}
 			case "order_items": {
@@ -184,7 +302,10 @@ export async function handlePull(
 					.select()
 					.from(orderItems)
 					.where(
-						and(eq(orderItems.shopId, shopId), gt(orderItems.updatedAt, since)),
+						and(
+							eq(orderItems.outletId, outletId),
+							gt(orderItems.updatedAt, since),
+						),
 					);
 				break;
 			}

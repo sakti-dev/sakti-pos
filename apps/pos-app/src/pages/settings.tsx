@@ -19,7 +19,7 @@ import {
 } from "~/components/ui/drawer";
 import { changeCurrentUserPin, currentUser, logout } from "~/lib/auth";
 import { logout as cloudLogout, getSession } from "~/lib/cloud-auth";
-import { currentShopId, setShopId } from "~/lib/shop";
+import { clearOutletContext, currentOutletId } from "~/lib/outlet";
 import { syncNow, syncStatus } from "~/lib/sync";
 import { setTheme, theme } from "~/lib/theme";
 import { cn } from "~/lib/utils";
@@ -51,8 +51,7 @@ export default function Settings() {
 		} catch {
 			// Session may already be expired
 		}
-		setShopId("");
-		localStorage.removeItem("sakti-pos:current-shop-id");
+		clearOutletContext();
 		toast.success("Akun cloud terputus");
 		setShowDisconnectConfirm(false);
 		refetchCloudSession();
@@ -106,14 +105,14 @@ export default function Settings() {
 									<p class="truncate text-sm font-medium">
 										{cloudSession()?.user?.email}
 									</p>
-									<Show when={currentShopId()}>
+									<Show when={currentOutletId()}>
 										<p class="text-muted-foreground text-xs">
 											Toko aktif terhubung
 										</p>
 									</Show>
 								</div>
 							</div>
-							<Show when={currentShopId()}>
+							<Show when={currentOutletId()}>
 								<div class="flex items-center justify-between border-b p-4">
 									<span class="text-sm">Sinkronisasi</span>
 									<Button
@@ -206,7 +205,7 @@ export default function Settings() {
 								{dbInfo()?.size_formatted ?? "Memuat..."}
 							</span>
 						</div>
-						<Show when={user?.role === "owner"}>
+						<Show when={user?.role === "manager"}>
 							<div class="flex items-center justify-between p-4">
 								<span>Akses</span>
 								<span class="text-muted-foreground text-sm">Owner</span>

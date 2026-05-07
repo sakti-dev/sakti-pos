@@ -5,36 +5,8 @@
 		{
 			"idx": 0,
 			"version": "6",
-			"when": 1777923350982,
-			"tag": "0000_equal_korvac",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "6",
-			"when": 1777941048290,
-			"tag": "0001_violet_jack_flag",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "6",
-			"when": 1777944687673,
-			"tag": "0002_goofy_sway",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "6",
-			"when": 1778143254766,
-			"tag": "0003_dazzling_metal_master",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "6",
-			"when": 1778144216793,
-			"tag": "0004_old_magma",
+			"when": 1778183221802,
+			"tag": "0000_steady_ma_gnuci",
 			"breakpoints": true
 		}
 	]

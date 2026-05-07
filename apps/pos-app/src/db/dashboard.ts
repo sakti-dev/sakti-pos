@@ -1,7 +1,7 @@
 import { categories, orderItems, orders, products } from "@repo/database";
 import dayjs from "dayjs";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
-import { currentShopId } from "~/lib/shop";
+import { currentOutletId } from "~/lib/outlet";
 import { db } from "./index";
 
 export interface DashboardSummary {
@@ -52,20 +52,24 @@ function getNextDayStr(dateTo: string): string {
 	return dayjs(dateTo).add(1, "day").format("YYYY-MM-DD");
 }
 
+function addOutletCondition(conditions: unknown[], outletId: string | null) {
+	if (outletId) conditions.push(eq(orders.outletId, outletId));
+}
+
 export async function getDashboardSummary(
 	dateFrom: string,
 	dateTo: string,
 ): Promise<DashboardSummary> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
 		eq(orders.status, "completed"),
 		isNull(orders.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	addOutletCondition(conditions, outletId);
 
 	const rows = await db
 		.select({
@@ -92,14 +96,14 @@ export async function getPaymentBreakdown(
 ): Promise<PaymentBreakdown> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
 		eq(orders.status, "completed"),
 		isNull(orders.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	addOutletCondition(conditions, outletId);
 
 	const rows = await db
 		.select({
@@ -126,14 +130,14 @@ export async function getHourlyBreakdown(
 ): Promise<HourlyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
 		eq(orders.status, "completed"),
 		isNull(orders.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	addOutletCondition(conditions, outletId);
 
 	const rows = await db
 		.select({
@@ -162,14 +166,14 @@ export async function getDailyBreakdown(
 ): Promise<DailyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
 		eq(orders.status, "completed"),
 		isNull(orders.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	addOutletCondition(conditions, outletId);
 
 	const rows = await db
 		.select({
@@ -190,14 +194,14 @@ export async function getWeeklyBreakdown(
 ): Promise<WeeklyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
 		eq(orders.status, "completed"),
 		isNull(orders.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	addOutletCondition(conditions, outletId);
 
 	const rows = await db
 		.select({
@@ -218,14 +222,14 @@ export async function getMonthlyBreakdown(
 ): Promise<MonthlyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
 		eq(orders.status, "completed"),
 		isNull(orders.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	addOutletCondition(conditions, outletId);
 
 	const rows = await db
 		.select({
@@ -247,7 +251,7 @@ export async function getTopProducts(
 ): Promise<TopProductRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
@@ -255,7 +259,7 @@ export async function getTopProducts(
 		isNull(orders.deletedAt),
 		isNull(orderItems.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	if (outletId) conditions.push(eq(orderItems.outletId, outletId));
 
 	const rows = await db
 		.select({
@@ -279,7 +283,7 @@ export async function getSalesByCategory(
 ): Promise<CategoryRevenueRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, dateFrom),
 		lt(orders.createdAt, nextDayStr),
@@ -289,7 +293,7 @@ export async function getSalesByCategory(
 		isNull(products.deletedAt),
 		isNull(categories.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	if (outletId) conditions.push(eq(orderItems.outletId, outletId));
 
 	const rows = await db
 		.select({

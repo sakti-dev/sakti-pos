@@ -3,12 +3,14 @@ import { afterEach, describe, expect, test, vi } from "bun:test";
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
 
 vi.mock("../db", () => ({
 	db: {
 		insert: (...args: unknown[]) => mockInsert(...args),
 		select: (...args: unknown[]) => mockSelect(...args),
 		update: (...args: unknown[]) => mockUpdate(...args),
+		delete: (...args: unknown[]) => mockDelete(...args),
 	},
 }));
 
@@ -37,7 +39,7 @@ vi.mock("cloudflare:workers", () => ({
 	},
 }));
 
-const { shopsRoutes } = await import("../routes/shops");
+const { merchantsRoutes } = await import("../routes/merchants");
 
 async function makeRequest(
 	path: string,
@@ -52,7 +54,7 @@ async function makeRequest(
 	if (options.body) init.body = JSON.stringify(options.body);
 
 	const request = new Request(url, init);
-	const app = shopsRoutes.compile();
+	const app = merchantsRoutes.compile();
 	const response = await app.handle(request);
 
 	const status = response.status;
@@ -66,76 +68,84 @@ async function makeRequest(
 	return { json, status };
 }
 
-describe("POST /api/shops", () => {
+describe("POST /api/merchants", () => {
 	afterEach(() => {
 		vi.clearAllMocks();
 	});
 
 	test("returns 401 when no session", async () => {
-		const { json, status } = await makeRequest("/api/shops", {
+		const { json, status } = await makeRequest("/api/merchants", {
 			method: "POST",
-			body: { name: "Test Shop" },
+			body: { name: "Test Merchant" },
 		});
 		expect(status).toBe(401);
 		expect((json as Record<string, unknown>).error).toBe("Unauthorized");
 	});
 
-	test("creates shop and returns it", async () => {
-		const now = new Date().toISOString();
-		const shop = {
-			id: "shop-1",
-			name: "Test Shop",
-			ownerId: "user-1",
-			createdAt: now,
-			updatedAt: now,
-		};
-
+	test("creates merchant and adds user as owner via user_merchants", async () => {
 		mockValidateSession.mockResolvedValue({
 			id: "session-1",
 			userId: "user-1",
 		});
-		mockInsert.mockReturnValue({
-			values: vi.fn().mockReturnValue({
-				returning: vi.fn().mockResolvedValue([shop]),
-			}),
-		});
-		mockUpdate.mockReturnValue({
-			set: vi.fn().mockReturnValue({
-				where: vi.fn().mockResolvedValue(undefined),
-			}),
-		});
 
-		const { json, status } = await makeRequest("/api/shops", {
+		let insertCallCount = 0;
+		mockInsert.mockImplementation(() => ({
+			values: vi.fn().mockImplementation((vals: unknown) => {
+				insertCallCount++;
+				return {
+					returning: vi.fn().mockResolvedValue([vals]),
+				};
+			}),
+		}));
+
+		const { json, status } = await makeRequest("/api/merchants", {
 			method: "POST",
-			body: { name: "Test Shop" },
+			body: { name: "Test Merchant" },
 			cookie: "narvik_session=valid-token",
 		});
 
 		expect(status).toBe(200);
-		expect((json as Record<string, unknown>).name).toBe("Test Shop");
+		expect((json as Record<string, unknown>).name).toBe("Test Merchant");
+		expect(insertCallCount).toBe(2);
 	});
 });
 
-describe("GET /api/shops", () => {
+describe("GET /api/merchants", () => {
 	afterEach(() => {
 		vi.clearAllMocks();
 	});
 
 	test("returns 401 when no session", async () => {
-		const { json, status } = await makeRequest("/api/shops");
+		const { json, status } = await makeRequest("/api/merchants");
 		expect(status).toBe(401);
 		expect((json as Record<string, unknown>).error).toBe("Unauthorized");
 	});
-});
 
-describe("GET /api/shops/:id", () => {
-	afterEach(() => {
-		vi.clearAllMocks();
-	});
+	test("returns user's merchants", async () => {
+		mockValidateSession.mockResolvedValue({
+			id: "session-1",
+			userId: "user-1",
+		});
 
-	test("returns 401 when no session", async () => {
-		const { json, status } = await makeRequest("/api/shops/shop-1");
-		expect(status).toBe(401);
-		expect((json as Record<string, unknown>).error).toBe("Unauthorized");
+		mockSelect.mockImplementation(() => ({
+			from: vi.fn().mockReturnValue({
+				innerJoin: vi.fn().mockReturnValue({
+					where: vi
+						.fn()
+						.mockResolvedValue([
+							{ merchantId: "m-1", name: "Merchant 1", role: "owner" },
+						]),
+				}),
+			}),
+		}));
+
+		const { json, status } = await makeRequest("/api/merchants", {
+			cookie: "narvik_session=valid-token",
+		});
+
+		expect(status).toBe(200);
+		const result = json as Record<string, unknown>[];
+		expect(result).toHaveLength(1);
+		expect(result[0].name).toBe("Merchant 1");
 	});
 });

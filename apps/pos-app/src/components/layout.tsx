@@ -27,7 +27,7 @@ import { Toaster } from "solid-sonner";
 import { SyncStatusIndicator } from "~/components/sync-status";
 import { OfflineBanner } from "~/components/ui/offline-banner";
 import { currentUserRole, isAuthenticated } from "~/lib/auth";
-import { currentShopId } from "~/lib/shop";
+import { currentOutletId } from "~/lib/outlet";
 import { startSyncScheduler, stopSyncScheduler } from "~/lib/sync";
 
 const navItems = [
@@ -35,7 +35,7 @@ const navItems = [
 		href: "/",
 		icon: TbOutlineChartBar,
 		label: "Dashboard",
-		roles: ["owner", "manager"] as string[],
+		roles: ["manager"] as string[],
 	},
 	{
 		href: "/pos",
@@ -53,13 +53,13 @@ const navItems = [
 		href: "/menu",
 		icon: TbOutlinePencil,
 		label: "Menu",
-		roles: ["owner", "manager"] as string[],
+		roles: ["manager"] as string[],
 	},
 	{
 		href: "/users",
 		icon: TbOutlineUserPlus,
 		label: "Pengguna",
-		roles: ["owner"] as string[],
+		roles: ["manager"] as string[],
 	},
 	{
 		href: "/settings",
@@ -73,7 +73,9 @@ export default function Layout(props: RouteSectionProps) {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const isPublicRoute = () =>
-		["/login", "/cloud-login", "/onboarding"].includes(location.pathname);
+		["/login", "/cloud-login", "/onboarding", "/device-pair"].includes(
+			location.pathname,
+		);
 
 	createEffect(() => {
 		if (!isPublicRoute() && !isAuthenticated()) {
@@ -108,7 +110,7 @@ export function AppShell(props: AppShellProps) {
 	const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
 	onMount(() => {
-		if (currentShopId()) {
+		if (currentOutletId()) {
 			startSyncScheduler();
 		}
 	});
@@ -142,7 +144,7 @@ export function AppShell(props: AppShellProps) {
 				</button>
 				<h1 class="font-semibold text-lg">{props.title}</h1>
 				<div class="ml-auto flex items-center gap-1">
-					<Show when={currentShopId()}>
+					<Show when={currentOutletId()}>
 						<SyncStatusIndicator />
 					</Show>
 					<Show when={props.topbarSuffix}>{props.topbarSuffix}</Show>

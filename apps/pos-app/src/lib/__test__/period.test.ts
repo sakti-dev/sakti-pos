@@ -32,7 +32,7 @@ describe("getYesterdayRange", () => {
 
 	test("returns a date before today", () => {
 		const range = getYesterdayRange();
-		const today = new Date().toISOString().slice(0, 10);
+		const today = dayjs().format("YYYY-MM-DD");
 		expect(range.dateFrom).not.toBe(today);
 	});
 });

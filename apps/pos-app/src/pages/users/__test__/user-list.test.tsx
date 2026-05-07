@@ -2,33 +2,42 @@ import { render, screen } from "@solidjs/testing-library";
 import type { JSX } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-const mockUsers = [
+const mockStaff = [
 	{
-		id: 1,
+		id: "staff-1",
 		name: "Admin",
-		role: "owner",
+		role: "manager",
 		isActive: true,
 		pin: "$2b$",
 		createdAt: "",
 		updatedAt: "",
+		merchantId: "merchant-1",
+		outletId: null,
+		isSynced: false,
 	},
 	{
-		id: 2,
+		id: "staff-2",
 		name: "Kasir 1",
 		role: "cashier",
 		isActive: true,
 		pin: "$2b$",
 		createdAt: "",
 		updatedAt: "",
+		merchantId: "merchant-1",
+		outletId: null,
+		isSynced: false,
 	},
 	{
-		id: 3,
+		id: "staff-3",
 		name: "Kasir 2",
 		role: "cashier",
 		isActive: false,
 		pin: "$2b$",
 		createdAt: "",
 		updatedAt: "",
+		merchantId: "merchant-1",
+		outletId: null,
+		isSynced: false,
 	},
 ];
 
@@ -43,8 +52,8 @@ vi.mock("@solidjs/router", () => ({
 	useNavigate: () => mockNavigate,
 }));
 
-vi.mock("~/db/users", () => ({
-	getUsers: vi.fn(() => Promise.resolve(mockUsers)),
+vi.mock("~/db/staff", () => ({
+	getStaff: vi.fn(() => Promise.resolve(mockStaff)),
 }));
 
 vi.mock("~/components/layout", () => ({
@@ -83,7 +92,7 @@ describe("UserList", () => {
 		expect(screen.getByText("Admin")).toBeInTheDocument();
 		expect(screen.getByText("Kasir 1")).toBeInTheDocument();
 		expect(screen.getByText("Kasir 2")).toBeInTheDocument();
-		expect(screen.getByText("Owner")).toBeInTheDocument();
+		expect(screen.getByText("Manajer")).toBeInTheDocument();
 		expect(screen.getAllByText("Kasir").length).toBeGreaterThanOrEqual(2);
 		expect(screen.getByText("Nonaktif")).toBeInTheDocument();
 	});
@@ -95,8 +104,8 @@ describe("UserList", () => {
 	});
 
 	test("shows empty state when no users", async () => {
-		const { getUsers } = await import("~/db/users");
-		vi.mocked(getUsers).mockResolvedValueOnce([]);
+		const { getStaff } = await import("~/db/staff");
+		vi.mocked(getStaff).mockResolvedValueOnce([]);
 		render(() => <UserList />);
 		await screen.findByText("Pengguna");
 		expect(screen.getByText("Belum ada pengguna")).toBeInTheDocument();

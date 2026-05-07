@@ -28,7 +28,7 @@ const OrderCard: Component<OrderCardProps> = (props) => {
 						<span class="text-muted-foreground text-xs">{time()}</span>
 					</div>
 					<div class="text-muted-foreground text-xs">
-						{props.order.userName}
+						{props.order.staffName}
 					</div>
 				</div>
 				<div class="flex items-center gap-2">

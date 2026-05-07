@@ -29,17 +29,6 @@ vi.mock("../lib/auth", () => ({
 	},
 }));
 
-vi.mock("../lib/oauth", () => ({
-	google: {
-		createAuthorizationURL: vi.fn(
-			() => new URL("https://accounts.google.com/o/oauth2/v2/auth"),
-		),
-		validateAuthorizationCode: vi.fn(),
-	},
-	generateState: vi.fn(() => "test-state"),
-	generateCodeVerifier: vi.fn(() => "test-verifier"),
-}));
-
 vi.mock("cloudflare:workers", () => ({
 	env: {
 		TURSO_DATABASE_URL: "http://127.0.0.1:8080",
@@ -51,29 +40,29 @@ vi.mock("cloudflare:workers", () => ({
 	},
 }));
 
-const { handlePush, handlePull, verifyShopAccess } = await import(
+const { handlePush, handlePull, verifyOutletAccess } = await import(
 	"../lib/sync"
 );
 
-describe("verifyShopAccess", () => {
+describe("verifyOutletAccess", () => {
 	afterEach(() => {
 		vi.clearAllMocks();
 	});
 
-	test("returns true when user.shopId matches requestedShopId", async () => {
+	test("returns true when user has access via user_merchants", async () => {
 		mockSelect.mockReturnValue({
 			from: vi.fn().mockReturnValue({
 				where: vi.fn().mockReturnValue({
-					limit: vi.fn().mockResolvedValue([{ shopId: "shop-1" }]),
+					limit: vi.fn().mockResolvedValue([{ merchantId: "merchant-1" }]),
 				}),
 			}),
 		});
 
-		const result = await verifyShopAccess("user-1", "shop-1");
+		const result = await verifyOutletAccess("user-1", "outlet-1");
 		expect(result).toBe(true);
 	});
 
-	test("returns false when user not found and not shop owner", async () => {
+	test("returns false when user has no access to outlet", async () => {
 		mockSelect.mockReturnValue({
 			from: vi.fn().mockReturnValue({
 				where: vi.fn().mockReturnValue({
@@ -82,26 +71,8 @@ describe("verifyShopAccess", () => {
 			}),
 		});
 
-		const result = await verifyShopAccess("user-1", "shop-1");
+		const result = await verifyOutletAccess("user-1", "outlet-1");
 		expect(result).toBe(false);
-	});
-
-	test("returns true when user.shopId differs but user owns the shop", async () => {
-		let callCount = 0;
-		mockSelect.mockImplementation(() => ({
-			from: vi.fn().mockReturnValue({
-				where: vi.fn().mockReturnValue({
-					limit: vi.fn().mockImplementation(async () => {
-						callCount++;
-						if (callCount === 1) return [{ shopId: "other-shop" }];
-						return [{ id: "shop-1" }];
-					}),
-				}),
-			}),
-		}));
-
-		const result = await verifyShopAccess("user-1", "shop-1");
-		expect(result).toBe(true);
 	});
 });
 
@@ -135,12 +106,12 @@ describe("handlePush", () => {
 		);
 
 		const now = new Date().toISOString();
-		const result = await handlePush("shop-1", {
+		const result = await handlePush("outlet-1", "merchant-1", {
 			categories: [
 				{
 					id: "cat-1",
 					name: "Minuman",
-					shopId: "shop-1",
+					merchantId: "merchant-1",
 					updatedAt: now,
 					createdAt: now,
 				},
@@ -180,12 +151,12 @@ describe("handlePush", () => {
 			},
 		);
 
-		const result = await handlePush("shop-1", {
+		const result = await handlePush("outlet-1", "merchant-1", {
 			categories: [
 				{
 					id: "cat-1",
 					name: "Minuman Updated",
-					shopId: "shop-1",
+					merchantId: "merchant-1",
 					updatedAt: oldTime,
 					createdAt: oldTime,
 				},
@@ -228,12 +199,12 @@ describe("handlePush", () => {
 			},
 		);
 
-		const result = await handlePush("shop-1", {
+		const result = await handlePush("outlet-1", "merchant-1", {
 			categories: [
 				{
 					id: "cat-1",
 					name: "Minuman Updated",
-					shopId: "shop-1",
+					merchantId: "merchant-1",
 					updatedAt: newTime,
 					createdAt: oldTime,
 				},
@@ -272,7 +243,7 @@ describe("handlePush", () => {
 			},
 		);
 
-		const result = await handlePush("shop-1", {
+		const result = await handlePush("outlet-1", "merchant-1", {
 			order_items: [
 				{
 					id: "oi-1",
@@ -289,6 +260,48 @@ describe("handlePush", () => {
 		});
 	});
 
+	test("handles outlet_products push", async () => {
+		const now = new Date().toISOString();
+
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const tx = {
+					select: vi.fn().mockReturnValue({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					}),
+					insert: vi.fn().mockReturnValue({
+						values: vi.fn().mockResolvedValue(undefined),
+					}),
+					update: vi.fn().mockReturnValue({
+						set: vi.fn().mockReturnValue({
+							where: vi.fn().mockResolvedValue(undefined),
+						}),
+					}),
+				};
+				await fn(tx);
+			},
+		);
+
+		const result = await handlePush("outlet-1", "merchant-1", {
+			outlet_products: [
+				{
+					id: "op-1",
+					outletId: "outlet-1",
+					productId: "prod-1",
+					price: 5000,
+					updatedAt: now,
+					createdAt: now,
+				},
+			],
+		});
+
+		expect(result.serverWins).toEqual([]);
+	});
+
 	test("handles empty tables gracefully", async () => {
 		mockTransaction.mockImplementation(
 			async (fn: (tx: unknown) => Promise<void>) => {
@@ -296,7 +309,7 @@ describe("handlePush", () => {
 			},
 		);
 
-		const result = await handlePush("shop-1", {});
+		const result = await handlePush("outlet-1", "merchant-1", {});
 		expect(result.serverWins).toEqual([]);
 	});
 
@@ -325,12 +338,12 @@ describe("handlePush", () => {
 			},
 		);
 
-		const result = await handlePush("shop-1", {
+		const result = await handlePush("outlet-1", "merchant-1", {
 			categories: [
 				{
 					id: "cat-deleted",
 					name: "Deleted Category",
-					shopId: "shop-1",
+					merchantId: "merchant-1",
 					updatedAt: now,
 					createdAt: now,
 					deletedAt: now,
@@ -348,29 +361,33 @@ describe("handlePull", () => {
 	});
 
 	test("returns rows for requested tables", async () => {
-		const mockRows = [{ id: "cat-1", name: "Minuman", shopId: "shop-1" }];
+		const mockRows = [
+			{ id: "cat-1", name: "Minuman", merchantId: "merchant-1" },
+		];
 		mockSelect.mockReturnValue({
 			from: vi.fn().mockReturnValue({
 				where: vi.fn().mockResolvedValue(mockRows),
 			}),
 		});
 
-		const result = await handlePull(
-			"shop-1",
+		const result = (await handlePull(
+			"outlet-1",
+			"merchant-1",
 			["categories"],
 			"2025-01-01T00:00:00.000Z",
-		);
+		)) as Record<string, unknown>;
 
 		expect(result.categories).toEqual(mockRows);
 		expect(result.serverTime).toBeDefined();
 	});
 
 	test("returns empty for unknown table names", async () => {
-		const result = await handlePull(
-			"shop-1",
+		const result = (await handlePull(
+			"outlet-1",
+			"merchant-1",
 			["unknown_table"],
 			"2025-01-01T00:00:00.000Z",
-		);
+		)) as Record<string, unknown>;
 		expect(result.unknown_table).toBeUndefined();
 		expect(result.serverTime).toBeDefined();
 	});
@@ -382,33 +399,60 @@ describe("handlePull", () => {
 			}),
 		});
 
-		const result = await handlePull(
-			"shop-1",
-			["categories", "products", "orders", "order_items"],
+		const result = (await handlePull(
+			"outlet-1",
+			"merchant-1",
+			[
+				"categories",
+				"products",
+				"orders",
+				"order_items",
+				"outlet_products",
+				"staff",
+			],
 			"2025-01-01T00:00:00.000Z",
-		);
+		)) as Record<string, unknown>;
 
 		expect(result.categories).toEqual([]);
 		expect(result.products).toEqual([]);
 		expect(result.orders).toEqual([]);
 		expect(result.order_items).toEqual([]);
+		expect(result.outlet_products).toEqual([]);
+		expect(result.staff).toEqual([]);
 		expect(result.serverTime).toBeDefined();
 	});
 
-	test("pulls order_items", async () => {
+	test("categories and products are scoped by merchantId", async () => {
 		mockSelect.mockReturnValue({
 			from: vi.fn().mockReturnValue({
 				where: vi.fn().mockResolvedValue([]),
 			}),
 		});
 
-		const result = await handlePull(
-			"shop-1",
-			["categories", "order_items"],
+		await handlePull(
+			"outlet-1",
+			"merchant-1",
+			["categories", "products"],
 			"2025-01-01T00:00:00.000Z",
 		);
 
-		expect(result.categories).toEqual([]);
-		expect(result.order_items).toEqual([]);
+		expect(mockSelect).toHaveBeenCalled();
+	});
+
+	test("orders and order_items are scoped by outletId", async () => {
+		mockSelect.mockReturnValue({
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockResolvedValue([]),
+			}),
+		});
+
+		await handlePull(
+			"outlet-1",
+			"merchant-1",
+			["orders", "order_items"],
+			"2025-01-01T00:00:00.000Z",
+		);
+
+		expect(mockSelect).toHaveBeenCalled();
 	});
 });

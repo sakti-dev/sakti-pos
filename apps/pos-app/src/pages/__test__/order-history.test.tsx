@@ -9,41 +9,41 @@ const mockOrders: OrderRow[] = [
 		amountPaid: 20_000,
 		changeAmount: 0,
 		createdAt: "2026-05-04T10:00:00.000Z",
-		id: 1,
+		id: "order-1",
 		orderNumber: "2026-05-04-001",
 		paymentMethod: "cash",
 		status: "completed",
+		staffId: "staff-1",
+		staffName: "Kasir 1",
 		total: 20_000,
-		userId: 1,
-		userName: "Kasir 1",
 	},
 	{
 		amountPaid: 30_000,
 		changeAmount: 5000,
 		createdAt: "2026-05-04T11:00:00.000Z",
-		id: 2,
+		id: "order-2",
 		orderNumber: "2026-05-04-002",
 		paymentMethod: "qris",
 		status: "cancelled",
+		staffId: "staff-2",
+		staffName: "Kasir 2",
 		total: 25_000,
-		userId: 2,
-		userName: "Kasir 2",
 	},
 ];
 
-const mockItems: Record<number, OrderItemRow[]> = {
-	1: [
+const mockItems: Record<string, OrderItemRow[]> = {
+	"order-1": [
 		{
-			id: 1,
+			id: "item-1",
 			productName: "Kopi Susu",
 			quantity: 2,
 			subtotal: 20_000,
 			unitPrice: 10_000,
 		},
 	],
-	2: [
+	"order-2": [
 		{
-			id: 2,
+			id: "item-2",
 			productName: "Nasi Goreng",
 			quantity: 1,
 			subtotal: 25_000,
@@ -63,13 +63,13 @@ const mockCancelOrder = vi.fn();
 
 vi.mock("~/db/orders", () => ({
 	getOrders: vi.fn(() => Promise.resolve(mockOrders)),
-	getOrderItems: vi.fn((id: number) => Promise.resolve(mockItems[id] ?? [])),
+	getOrderItems: vi.fn((id: string) => Promise.resolve(mockItems[id] ?? [])),
 	getDailySummary: vi.fn(() => Promise.resolve(mockSummary)),
 	cancelOrder: (...args: unknown[]) => mockCancelOrder(...args),
 }));
 
 vi.mock("~/lib/auth", () => ({
-	currentUserRole: vi.fn(() => "owner"),
+	currentUserRole: vi.fn(() => "manager"),
 }));
 
 vi.mock("~/lib/responsive", () => ({

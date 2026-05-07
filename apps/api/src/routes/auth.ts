@@ -1,5 +1,4 @@
-import { env } from "cloudflare:workers";
-import { users } from "@repo/database/api-schema";
+import { userMerchants, users } from "@repo/database/api-schema";
 import type { OAuth2Tokens } from "arctic";
 import { eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
@@ -113,14 +112,11 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 			const passwordHash = await hashPassword(body.password);
 
 			const now = new Date().toISOString();
-			const id = crypto.randomUUID();
 			const [user] = await db
 				.insert(users)
 				.values({
-					id,
 					email: body.email,
 					name: body.name,
-					role: "owner",
 					passwordHash,
 					createdAt: now,
 					updatedAt: now,
@@ -184,7 +180,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 	.get("/session", async ({ request }) => {
 		const session = await getSessionFromRequest(request);
 		if (!session) {
-			return { user: null };
+			return { user: null, merchants: [] };
 		}
 
 		const [user] = await db
@@ -192,13 +188,20 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 				id: users.id,
 				email: users.email,
 				name: users.name,
-				role: users.role,
 			})
 			.from(users)
 			.where(eq(users.id, session.userId))
 			.limit(1);
 
-		return { user: user ?? null };
+		const merchants = await db
+			.select({
+				id: userMerchants.merchantId,
+				role: userMerchants.role,
+			})
+			.from(userMerchants)
+			.where(eq(userMerchants.userId, session.userId));
+
+		return { user: user ?? null, merchants };
 	})
 	.get("/google", async ({ set }) => {
 		const state = generateState();
@@ -277,14 +280,11 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 				userId = existing[0].id;
 			} else {
 				const now = new Date().toISOString();
-				const id = crypto.randomUUID();
 				const [newUser] = await db
 					.insert(users)
 					.values({
-						id,
 						email: googleEmail,
 						name: googleName,
-						role: "owner",
 						createdAt: now,
 						updatedAt: now,
 					})

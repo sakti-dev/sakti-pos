@@ -28,7 +28,7 @@ export function addToCart(product: Product) {
 	}
 }
 
-export function updateQuantity(productId: number, quantity: number) {
+export function updateQuantity(productId: string, quantity: number) {
 	if (quantity <= 0) {
 		removeFromCart(productId);
 		return;
@@ -39,7 +39,7 @@ export function updateQuantity(productId: number, quantity: number) {
 	}
 }
 
-export function removeFromCart(productId: number) {
+export function removeFromCart(productId: string) {
 	setItems(
 		produce((current) => {
 			const index = current.findIndex((i) => i.product.id === productId);

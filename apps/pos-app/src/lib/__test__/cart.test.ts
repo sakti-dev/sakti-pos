@@ -9,22 +9,21 @@ import {
 	updateQuantity,
 } from "../cart";
 
-const makeProduct = (id: number, price = 10_000) =>
-	({
-		categoryId: 1,
-		createdAt: "2026-01-01",
-		id,
-		imageUrl: null,
-		isActive: true,
-		name: `Product ${id}`,
-		price,
-		sortOrder: 0,
-		updatedAt: "2026-01-01",
-		shopId: null,
-		cloudId: null,
-		deletedAt: null,
-		isSynced: false,
-	});
+const makeProduct = (id: number, price = 10_000) => ({
+	categoryId: 1,
+	createdAt: "2026-01-01",
+	id,
+	imageUrl: null,
+	isActive: true,
+	name: `Product ${id}`,
+	price,
+	sortOrder: 0,
+	updatedAt: "2026-01-01",
+	shopId: null,
+	cloudId: null,
+	deletedAt: null,
+	isSynced: false,
+});
 
 describe("cart", () => {
 	test("starts empty", () => {

@@ -8,26 +8,8 @@ pub fn run() {
     let migrations = vec![
         Migration {
             version: 1,
-            description: "init",
-            sql: include_str!("../../drizzle/0000_woozy_hulk.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 2,
-            description: "unique_name",
-            sql: include_str!("../../drizzle/0001_silky_genesis.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 3,
-            description: "unique_category_product_name",
-            sql: include_str!("../../drizzle/0002_glorious_major_mapleleaf.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 4,
-            description: "add_shop_id_cloud_sync_columns",
-            sql: include_str!("../../drizzle/0003_right_black_widow.sql"),
+            description: "multi_store_schema",
+            sql: include_str!("../../drizzle/0000_certain_mole_man.sql"),
             kind: MigrationKind::Up,
         },
     ];

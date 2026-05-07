@@ -1,18 +1,19 @@
-import { categories, products } from "@repo/database";
+import { categories, outletProducts, products } from "@repo/database";
 import dayjs from "dayjs";
 import { and, eq, isNull } from "drizzle-orm";
-import { currentShopId } from "~/lib/shop";
+import { currentMerchantId, currentOutletId } from "~/lib/outlet";
 import { db } from "./index";
 
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+export type OutletProduct = typeof outletProducts.$inferSelect;
 
 export async function getCategories(): Promise<Category[]> {
-	const shopId = currentShopId();
+	const merchantId = currentMerchantId();
 	const conditions = [isNull(categories.deletedAt)];
-	if (shopId) conditions.push(eq(categories.shopId, shopId));
+	if (merchantId) conditions.push(eq(categories.merchantId, merchantId));
 
 	return await db
 		.select()
@@ -21,10 +22,10 @@ export async function getCategories(): Promise<Category[]> {
 		.orderBy(categories.name, categories.id);
 }
 
-export async function getCategory(id: number): Promise<Category | undefined> {
-	const shopId = currentShopId();
+export async function getCategory(id: string): Promise<Category | undefined> {
+	const merchantId = currentMerchantId();
 	const conditions = [eq(categories.id, id), isNull(categories.deletedAt)];
-	if (shopId) conditions.push(eq(categories.shopId, shopId));
+	if (merchantId) conditions.push(eq(categories.merchantId, merchantId));
 
 	const [row] = await db
 		.select()
@@ -34,15 +35,16 @@ export async function getCategory(id: number): Promise<Category | undefined> {
 }
 
 export async function createCategory(data: NewCategory): Promise<Category> {
+	const merchantId = currentMerchantId() ?? "";
 	const [row] = await db
 		.insert(categories)
-		.values({ ...data, shopId: currentShopId() ?? undefined })
+		.values({ ...data, merchantId })
 		.returning();
 	return row;
 }
 
 export async function updateCategory(
-	id: number,
+	id: string,
 	data: Partial<Omit<NewCategory, "id">>,
 ): Promise<Category> {
 	const [row] = await db
@@ -53,7 +55,7 @@ export async function updateCategory(
 	return row;
 }
 
-export async function deleteCategory(id: number): Promise<void> {
+export async function deleteCategory(id: string): Promise<void> {
 	const now = dayjs().toISOString();
 	await db
 		.update(categories)
@@ -62,14 +64,14 @@ export async function deleteCategory(id: number): Promise<void> {
 }
 
 export async function getProductCountByCategory(
-	categoryId: number,
+	categoryId: string,
 ): Promise<number> {
-	const shopId = currentShopId();
+	const merchantId = currentMerchantId();
 	const conditions = [
 		eq(products.categoryId, categoryId),
 		isNull(products.deletedAt),
 	];
-	if (shopId) conditions.push(eq(products.shopId, shopId));
+	if (merchantId) conditions.push(eq(products.merchantId, merchantId));
 
 	const rows = await db
 		.select({ id: products.id })
@@ -80,11 +82,11 @@ export async function getProductCountByCategory(
 }
 
 export async function getProducts(
-	filterCategoryId?: number,
+	filterCategoryId?: string,
 ): Promise<Product[]> {
-	const shopId = currentShopId();
+	const merchantId = currentMerchantId();
 	const conditions = [isNull(products.deletedAt)];
-	if (shopId) conditions.push(eq(products.shopId, shopId));
+	if (merchantId) conditions.push(eq(products.merchantId, merchantId));
 
 	if (filterCategoryId !== undefined) {
 		conditions.push(eq(products.categoryId, filterCategoryId));
@@ -96,10 +98,10 @@ export async function getProducts(
 		.orderBy(products.name, products.id);
 }
 
-export async function getProduct(id: number): Promise<Product | undefined> {
-	const shopId = currentShopId();
+export async function getProduct(id: string): Promise<Product | undefined> {
+	const merchantId = currentMerchantId();
 	const conditions = [eq(products.id, id), isNull(products.deletedAt)];
-	if (shopId) conditions.push(eq(products.shopId, shopId));
+	if (merchantId) conditions.push(eq(products.merchantId, merchantId));
 
 	const [row] = await db
 		.select()
@@ -109,15 +111,16 @@ export async function getProduct(id: number): Promise<Product | undefined> {
 }
 
 export async function createProduct(data: NewProduct): Promise<Product> {
+	const merchantId = currentMerchantId() ?? "";
 	const [row] = await db
 		.insert(products)
-		.values({ ...data, shopId: currentShopId() ?? undefined })
+		.values({ ...data, merchantId })
 		.returning();
 	return row;
 }
 
 export async function updateProduct(
-	id: number,
+	id: string,
 	data: Partial<Omit<NewProduct, "id">>,
 ): Promise<Product> {
 	const [row] = await db
@@ -128,10 +131,20 @@ export async function updateProduct(
 	return row;
 }
 
-export async function deleteProduct(id: number): Promise<void> {
+export async function deleteProduct(id: string): Promise<void> {
 	const now = dayjs().toISOString();
 	await db
 		.update(products)
 		.set({ deletedAt: now, updatedAt: now, isSynced: false })
 		.where(eq(products.id, id));
+}
+
+export async function getOutletProducts(): Promise<OutletProduct[]> {
+	const outletId = currentOutletId();
+	if (!outletId) return [];
+
+	return await db
+		.select()
+		.from(outletProducts)
+		.where(eq(outletProducts.outletId, outletId));
 }

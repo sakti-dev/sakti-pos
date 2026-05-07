@@ -3,7 +3,7 @@ import {
 	orderItems,
 	orders,
 	products,
-	users,
+	staff,
 } from "@repo/database";
 import { invoke } from "@tauri-apps/api/core";
 import dayjs from "dayjs";
@@ -18,7 +18,11 @@ import {
 	type SQL,
 	sql,
 } from "drizzle-orm";
-import { currentShopId } from "~/lib/shop";
+import {
+	currentMerchantId,
+	currentOutletId,
+	currentRegisterId,
+} from "~/lib/outlet";
 import { db } from "./index";
 import type { Product } from "./menu";
 
@@ -36,46 +40,50 @@ export async function createOrder(data: {
 	amountPaid: number | null;
 	changeAmount: number | null;
 	items: {
+		originalPrice?: number;
 		price: number;
-		product_id: number;
+		product_id: string;
 		product_name: string;
 		qty: number;
 	}[];
 	paymentMethod: "cash" | "qris";
+	staffId: string;
 	total: number;
-	userId: number;
 }): Promise<string> {
 	const today = dayjs().format("YYYY-MM-DD");
 	const orderNumber = await getNextOrderNumber(today);
 
 	const now = dayjs().toISOString();
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
+	const registerId = currentRegisterId();
 
 	const insertOrder: SqlStatement = {
-		sql: `INSERT INTO orders (order_number, user_id, total, payment_method, amount_paid, change_amount, status, created_at, updated_at, is_synced, shop_id) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0, ?)`,
+		sql: `INSERT INTO orders (order_number, staff_id, register_id, outlet_id, total, payment_method, amount_paid, change_amount, status, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0)`,
 		params: [
 			orderNumber,
-			data.userId,
+			data.staffId,
+			registerId ?? null,
+			outletId ?? null,
 			data.total,
 			data.paymentMethod,
 			data.amountPaid,
 			data.changeAmount,
 			now,
 			now,
-			shopId ?? null,
 		],
 	};
 
 	const itemStatements: SqlStatement[] = data.items.map((item) => ({
-		sql: "INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, subtotal, created_at, is_synced, shop_id) VALUES (LAST_INSERT_ROWID(), ?, ?, ?, ?, ?, ?, 0, ?)",
+		sql: "INSERT INTO order_items (order_id, outlet_id, product_id, product_name, quantity, unit_price, original_price, subtotal, created_at, is_synced) VALUES (LAST_INSERT_ROWID(), ?, ?, ?, ?, ?, ?, ?, 0)",
 		params: [
+			outletId ?? null,
 			item.product_id,
 			item.product_name,
 			item.qty,
 			item.price,
+			item.originalPrice ?? null,
 			item.qty * item.price,
 			now,
-			shopId ?? null,
 		],
 	}));
 
@@ -110,32 +118,32 @@ export type ProductWithCategory = Product & { categoryName: string };
 export async function getActiveProductsByCategory(): Promise<
 	{ categoryName: string; products: ProductWithCategory[] }[]
 > {
-	const shopId = currentShopId();
+	const merchantId = currentMerchantId();
 	const conditions = [
 		eq(products.isActive, true),
 		eq(categories.isActive, true),
 		isNull(products.deletedAt),
 		isNull(categories.deletedAt),
 	];
-	if (shopId) conditions.push(eq(products.shopId, shopId));
+	if (merchantId) {
+		conditions.push(eq(products.merchantId, merchantId));
+	}
 
 	const rows = await db
 		.select({
 			categoryId: products.categoryId,
-			categoryIsActive: categories.isActive,
 			categoryName: categories.name,
 			createdAt: products.createdAt,
+			deletedAt: products.deletedAt,
 			id: products.id,
 			imageUrl: products.imageUrl,
 			isActive: products.isActive,
+			isSynced: products.isSynced,
+			merchantId: products.merchantId,
 			name: products.name,
 			price: products.price,
 			sortOrder: products.sortOrder,
 			updatedAt: products.updatedAt,
-			shopId: products.shopId,
-			cloudId: products.cloudId,
-			deletedAt: products.deletedAt,
-			isSynced: products.isSynced,
 		})
 		.from(products)
 		.innerJoin(categories, eq(products.categoryId, categories.id))
@@ -145,22 +153,7 @@ export async function getActiveProductsByCategory(): Promise<
 	const grouped = new Map<string, ProductWithCategory[]>();
 	for (const row of rows) {
 		const list = grouped.get(row.categoryName) ?? [];
-		list.push({
-			categoryId: row.categoryId,
-			categoryName: row.categoryName,
-			createdAt: row.createdAt,
-			id: row.id,
-			imageUrl: row.imageUrl,
-			isActive: row.isActive,
-			name: row.name,
-			price: row.price,
-			sortOrder: row.sortOrder,
-			updatedAt: row.updatedAt,
-			shopId: row.shopId,
-			cloudId: row.cloudId,
-			deletedAt: row.deletedAt,
-			isSynced: row.isSynced,
-		});
+		list.push(row);
 		grouped.set(row.categoryName, list);
 	}
 
@@ -174,17 +167,17 @@ export interface OrderRow {
 	amountPaid: number | null;
 	changeAmount: number | null;
 	createdAt: string;
-	id: number;
+	id: string;
 	orderNumber: string;
 	paymentMethod: "cash" | "qris";
 	status: "completed" | "cancelled";
+	staffId: string | null;
+	staffName: string;
 	total: number;
-	userId: number | null;
-	userName: string;
 }
 
 export interface OrderItemRow {
-	id: number;
+	id: string;
 	productName: string;
 	quantity: number;
 	subtotal: number;
@@ -199,8 +192,8 @@ export async function getOrders(filter: {
 	status?: "completed" | "cancelled";
 }): Promise<OrderRow[]> {
 	const conditions: SQL[] = [isNull(orders.deletedAt)];
-	const shopId = currentShopId();
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	const outletId = currentOutletId();
+	if (outletId) conditions.push(eq(orders.outletId, outletId));
 	if (filter.status) {
 		conditions.push(eq(orders.status, filter.status));
 	}
@@ -221,12 +214,12 @@ export async function getOrders(filter: {
 			orderNumber: orders.orderNumber,
 			paymentMethod: orders.paymentMethod,
 			status: orders.status,
+			staffId: orders.staffId,
+			staffName: staff.name,
 			total: orders.total,
-			userId: orders.userId,
-			userName: users.name,
 		})
 		.from(orders)
-		.innerJoin(users, eq(orders.userId, users.id))
+		.innerJoin(staff, eq(orders.staffId, staff.id))
 		.where(and(...conditions))
 		.orderBy(desc(orders.createdAt));
 
@@ -237,7 +230,7 @@ export async function getOrders(filter: {
 	}));
 }
 
-export async function getOrderItems(orderId: number): Promise<OrderItemRow[]> {
+export async function getOrderItems(orderId: string): Promise<OrderItemRow[]> {
 	return await db
 		.select({
 			id: orderItems.id,
@@ -250,7 +243,7 @@ export async function getOrderItems(orderId: number): Promise<OrderItemRow[]> {
 		.where(and(eq(orderItems.orderId, orderId), isNull(orderItems.deletedAt)));
 }
 
-export async function cancelOrder(orderId: number): Promise<void> {
+export async function cancelOrder(orderId: string): Promise<void> {
 	await db
 		.update(orders)
 		.set({
@@ -271,14 +264,14 @@ export interface DailySummary {
 export async function getDailySummary(date: string): Promise<DailySummary> {
 	const nextDayStr = dayjs(date).add(1, "day").format("YYYY-MM-DD");
 
-	const shopId = currentShopId();
+	const outletId = currentOutletId();
 	const conditions = [
 		gte(orders.createdAt, date),
 		lt(orders.createdAt, nextDayStr),
 		eq(orders.status, "completed"),
 		isNull(orders.deletedAt),
 	];
-	if (shopId) conditions.push(eq(orders.shopId, shopId));
+	if (outletId) conditions.push(eq(orders.outletId, outletId));
 
 	const rows = await db
 		.select({

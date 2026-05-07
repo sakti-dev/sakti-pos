@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
-let mockShopId: string | null = "shop-1";
+let mockOutletId: string | null = "outlet-1";
 
 vi.mock("@tauri-apps/api/core", () => ({
 	invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 
-vi.mock("~/lib/shop", () => ({
-	currentShopId: () => mockShopId,
+vi.mock("~/lib/outlet", () => ({
+	currentOutletId: () => mockOutletId,
 }));
 
 vi.mock("~/lib/sync", async () => {
@@ -31,12 +31,12 @@ const {
 describe("syncNow", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockShopId = "shop-1";
+		mockOutletId = "outlet-1";
 		document.cookie = "narvik_session=test-session-token";
 	});
 
-	test("returns empty result when no shopId", async () => {
-		mockShopId = null;
+	test("returns empty result when no outletId", async () => {
+		mockOutletId = null;
 
 		const result = await syncNow();
 		expect(result).toEqual({
@@ -71,7 +71,7 @@ describe("syncNow", () => {
 		const result = await syncNow();
 
 		expect(mockInvoke).toHaveBeenCalledWith("sync_now", {
-			shopId: "shop-1",
+			outletId: "outlet-1",
 			apiUrl: "http://localhost:3001",
 			sessionCookie: "narvik_session=test-session-token",
 		});
@@ -91,12 +91,12 @@ describe("syncNow", () => {
 describe("runStartupSync", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockShopId = "shop-1";
+		mockOutletId = "outlet-1";
 		document.cookie = "narvik_session=test-session-token";
 	});
 
-	test("does nothing when no shopId", async () => {
-		mockShopId = null;
+	test("does nothing when no outletId", async () => {
+		mockOutletId = null;
 
 		await runStartupSync();
 		expect(mockInvoke).not.toHaveBeenCalled();
@@ -132,7 +132,7 @@ describe("startSyncScheduler / stopSyncScheduler", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.useFakeTimers();
-		mockShopId = "shop-1";
+		mockOutletId = "outlet-1";
 		document.cookie = "narvik_session=test-session-token";
 		mockInvoke.mockResolvedValue({
 			pull: { rows_received: 0, server_time: "" },

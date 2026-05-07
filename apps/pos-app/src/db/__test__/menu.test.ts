@@ -100,7 +100,10 @@ describe("menu db", () => {
 		const result = await createCategory({ name: "Dessert" } as never);
 
 		expect(result).toEqual(newCategory);
-		expect(mockValues).toHaveBeenCalledWith({ name: "Dessert" });
+		expect(mockValues).toHaveBeenCalledWith({
+			name: "Dessert",
+			merchantId: "",
+		});
 	});
 
 	test("deleteCategory calls update with tombstone fields", async () => {
@@ -191,6 +194,7 @@ describe("menu db", () => {
 		expect(mockValues).toHaveBeenCalledWith({
 			name: "Nasi Goreng",
 			price: 15_000,
+			merchantId: "",
 		});
 	});
 

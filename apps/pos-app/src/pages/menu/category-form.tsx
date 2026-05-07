@@ -4,6 +4,7 @@ import { createResource, createSignal, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { createCategory, getCategory, updateCategory } from "~/db/menu";
+import { currentMerchantId } from "~/lib/outlet";
 
 export default function CategoryForm() {
 	const params = useParams();
@@ -12,7 +13,7 @@ export default function CategoryForm() {
 	const title = () => (isEdit() ? "Edit Kategori" : "Tambah Kategori");
 
 	const [category] = createResource(
-		() => (isEdit() ? Number(params.id) : undefined),
+		() => (isEdit() ? params.id : undefined),
 		(id) => (id === undefined ? undefined : getCategory(id)),
 	);
 
@@ -31,9 +32,12 @@ export default function CategoryForm() {
 
 		try {
 			if (isEdit()) {
-				await updateCategory(Number(params.id), { name: trimmed });
+				await updateCategory(params.id ?? "", { name: trimmed });
 			} else {
-				await createCategory({ name: trimmed });
+				await createCategory({
+					name: trimmed,
+					merchantId: currentMerchantId() ?? "",
+				});
 			}
 			navigate("/menu/categories", { replace: true });
 		} catch (e) {

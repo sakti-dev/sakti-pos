@@ -5,15 +5,20 @@ import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
-import { countActiveOwners, createUser, getUser, updateUser } from "~/db/users";
+import {
+	countActiveManagers,
+	createStaffMember,
+	getStaffMember,
+	updateStaffMember,
+} from "~/db/staff";
 import { currentUser } from "~/lib/auth";
 import { hashPin } from "~/lib/auth-provider";
+import { currentMerchantId } from "~/lib/outlet";
 import { cn } from "~/lib/utils";
 
 const ROLE_OPTIONS = [
 	{ value: "cashier", label: "Kasir" },
 	{ value: "manager", label: "Manajer" },
-	{ value: "owner", label: "Owner" },
 ];
 
 export default function UserForm() {
@@ -23,8 +28,8 @@ export default function UserForm() {
 	const title = () => (isEdit() ? "Edit Pengguna" : "Tambah Pengguna");
 
 	const [user] = createResource(
-		() => (isEdit() ? Number(params.id) : undefined),
-		(id) => (id === undefined ? undefined : getUser(id)),
+		() => (isEdit() ? params.id : undefined),
+		(id) => (id === undefined ? undefined : getStaffMember(id)),
 	);
 
 	const [name, setName] = createSignal("");
@@ -57,25 +62,25 @@ export default function UserForm() {
 
 	const checkBusinessRules = async (): Promise<string | null> => {
 		const me = currentUser();
-		const targetId = Number(params.id);
+		const targetId = params.id ?? "";
 		const newRole = role();
 
 		if (isEdit() && me?.id === targetId) {
 			if (!isActive()) {
 				return "Tidak dapat menonaktifkan akun sendiri";
 			}
-			if (newRole !== "owner") {
-				const ownerCount = await countActiveOwners();
-				if (ownerCount <= 1) {
-					return "Tidak dapat mengubah peran — Anda satu-satunya owner aktif";
+			if (newRole !== "manager") {
+				const managerCount = await countActiveManagers();
+				if (managerCount <= 1) {
+					return "Tidak dapat mengubah peran — Anda satu-satunya manajer aktif";
 				}
 			}
 		}
 
 		if (isEdit() && !isActive()) {
-			const ownerCount = await countActiveOwners();
-			if (ownerCount <= 1 && user()?.role === "owner") {
-				return "Tidak dapat menonaktifkan — setidaknya harus ada satu owner aktif";
+			const managerCount = await countActiveManagers();
+			if (managerCount <= 1 && user()?.role === "manager") {
+				return "Tidak dapat menonaktifkan — setidaknya harus ada satu manajer aktif";
 			}
 		}
 
@@ -101,17 +106,18 @@ export default function UserForm() {
 					return;
 				}
 
-				await updateUser(Number(params.id), {
+				await updateStaffMember(params.id ?? "", {
 					name: name().trim(),
-					role: role() as "owner" | "manager" | "cashier",
+					role: role() as "manager" | "cashier",
 					isActive: isActive(),
 				});
 				toast.success("Pengguna diperbarui");
 			} else {
 				const hashedPin = await hashPin(pin());
-				await createUser({
+				await createStaffMember({
+					merchantId: currentMerchantId() ?? "",
 					name: name().trim(),
-					role: role() as "owner" | "manager" | "cashier",
+					role: role() as "manager" | "cashier",
 					pin: hashedPin,
 				});
 				toast.success("Pengguna ditambahkan");

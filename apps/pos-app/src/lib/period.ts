@@ -25,16 +25,16 @@ export function getYesterdayRange(): DateRange {
 }
 
 export function getWeekRange(): DateRange {
-  const now = dayjs();
-  const day = now.day();
-  const diffToMonday = day === 0 ? 6 : day - 1;
-  const monday = now.subtract(diffToMonday, "day");
-  const sunday = monday.add(6, "day");
-  return {
-    dateFrom: monday.format("YYYY-MM-DD"),
-    dateTo: sunday.format("YYYY-MM-DD"),
-    preset: "week",
-  };
+	const now = dayjs();
+	const day = now.day();
+	const diffToMonday = day === 0 ? 6 : day - 1;
+	const monday = now.subtract(diffToMonday, "day");
+	const sunday = monday.add(6, "day");
+	return {
+		dateFrom: monday.format("YYYY-MM-DD"),
+		dateTo: sunday.format("YYYY-MM-DD"),
+		preset: "week",
+	};
 }
 
 export function getMonthRange(): DateRange {

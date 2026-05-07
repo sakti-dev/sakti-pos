@@ -28,7 +28,7 @@ export default function ResetPin() {
 		setError("");
 
 		try {
-			await changePin(Number(params.id), pin());
+			await changePin(params.id ?? "", pin());
 			toast.success("PIN berhasil direset");
 			navigate("/users", { replace: true });
 		} catch (e) {

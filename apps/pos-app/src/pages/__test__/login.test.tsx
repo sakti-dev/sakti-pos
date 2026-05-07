@@ -3,17 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const mockLogin = vi.fn();
-const mockGetActiveUsers = vi.fn(() =>
+const mockGetActiveStaff = vi.fn(() =>
 	Promise.resolve([
-		{ id: 1, name: "Owner", role: "owner" },
-		{ id: 2, name: "Kasir", role: "cashier" },
+		{ id: "staff-1", name: "Manager", role: "manager" },
+		{ id: "staff-2", name: "Kasir", role: "cashier" },
 	]),
 );
-const mockGetLastUserId = vi.fn<() => number | null>(() => 1);
+const mockGetLastUserId = vi.fn<() => string | null>(() => null);
 const mockNavigate = vi.fn();
 
 vi.mock("~/lib/auth", () => ({
-	getActiveUsers: () => mockGetActiveUsers(),
+	getActiveStaff: () => mockGetActiveStaff(),
 	getLastUserId: () => mockGetLastUserId(),
 	login: () => mockLogin(),
 }));
@@ -36,23 +36,23 @@ describe("Login", () => {
 		vi.clearAllMocks();
 	});
 
-	test("renders user list after loading", async () => {
+	test("renders staff list after loading", async () => {
 		mockGetLastUserId.mockReturnValue(null);
 		render(() => <Login />);
-		expect(await screen.findByText("Owner")).toBeInTheDocument();
+		expect(await screen.findByText("Manager")).toBeInTheDocument();
 		expect(screen.getByText("Kasir")).toBeInTheDocument();
 	});
 
-	test("shows PinPad after selecting a user", async () => {
+	test("shows PinPad after selecting a staff member", async () => {
 		mockGetLastUserId.mockReturnValue(null);
 		render(() => <Login />);
-		await screen.findByText("Owner");
-		await user.click(screen.getByText("Owner"));
+		await screen.findByText("Manager");
+		await user.click(screen.getByText("Manager"));
 		expect(screen.getByText("Masukkan PIN")).toBeInTheDocument();
 	});
 
 	test("shows error when login fails", async () => {
-		mockGetLastUserId.mockReturnValue(1);
+		mockGetLastUserId.mockReturnValue("staff-1");
 		mockLogin.mockRejectedValueOnce(new Error("Invalid PIN"));
 		render(() => <Login />);
 		await screen.findByText("Masukkan PIN");
@@ -64,7 +64,7 @@ describe("Login", () => {
 	});
 
 	test("does not show error initially", async () => {
-		mockGetLastUserId.mockReturnValue(1);
+		mockGetLastUserId.mockReturnValue("staff-1");
 		render(() => <Login />);
 		await screen.findByText("Masukkan PIN");
 		expect(screen.queryByText("PIN salah")).not.toBeInTheDocument();

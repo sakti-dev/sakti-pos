@@ -72,7 +72,7 @@ export default function POS() {
 				})),
 				paymentMethod: data.paymentMethod,
 				total: cartTotal(),
-				userId: user.id,
+				staffId: user.id,
 			});
 
 			setPaymentOpen(false);

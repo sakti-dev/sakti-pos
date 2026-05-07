@@ -1,7 +1,9 @@
 import { Elysia } from "elysia";
 import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
 import { authRoutes } from "./routes/auth";
-import { shopsRoutes } from "./routes/shops";
+import { merchantsRoutes } from "./routes/merchants";
+import { outletsRoutes } from "./routes/outlets";
+import { registersRoutes } from "./routes/registers";
 import { syncRoutes } from "./routes/sync";
 
 const ALLOWED_ORIGINS = [
@@ -43,7 +45,9 @@ const cors = new Elysia({ name: "cors" })
 export default new Elysia({ adapter: CloudflareAdapter })
 	.use(cors)
 	.use(authRoutes)
-	.use(shopsRoutes)
+	.use(merchantsRoutes)
+	.use(outletsRoutes)
+	.use(registersRoutes)
 	.use(syncRoutes)
 	.get("/", () => "Sakti POS API v1")
 	.compile();

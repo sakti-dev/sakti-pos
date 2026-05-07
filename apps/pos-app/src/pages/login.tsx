@@ -3,7 +3,7 @@ import { createSignal, For, onMount, Show } from "solid-js";
 import PinPad from "~/components/ui/pinpad";
 import {
 	type AuthUser,
-	getActiveUsers,
+	getActiveStaff,
 	getLastUserId,
 	login,
 } from "~/lib/auth";
@@ -24,10 +24,10 @@ export default function Login() {
 
 	onMount(async () => {
 		try {
-			const activeUsers = await getActiveUsers();
-			setUsers(activeUsers);
+			const activeStaff = await getActiveStaff();
+			setUsers(activeStaff);
 			const lastUserId = getLastUserId();
-			const lastUser = activeUsers.find((u) => u.id === lastUserId);
+			const lastUser = activeStaff.find((u) => u.id === lastUserId);
 			if (lastUser) {
 				setSelectedUser(lastUser);
 			}

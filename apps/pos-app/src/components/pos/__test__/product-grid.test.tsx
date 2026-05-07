@@ -12,7 +12,7 @@ vi.mock("~/lib/cart", () => ({
 const user = userEvent.setup();
 
 const mockProducts: ProductWithCategory[] = [
-		{
+	{
 		id: 1,
 		name: "Nasi Goreng",
 		price: 15_000,

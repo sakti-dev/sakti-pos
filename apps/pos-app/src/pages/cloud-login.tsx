@@ -6,12 +6,14 @@ import {
 	login as cloudLogin,
 	register as cloudRegister,
 	getGoogleOAuthUrl,
-	getShops,
-	type Shop,
+	getMerchants,
+	getOutlets,
+	type Merchant,
+	type Outlet,
 } from "~/lib/cloud-auth";
-import { setShopId } from "~/lib/shop";
+import { setOutletContext } from "~/lib/outlet";
 
-type Step = "login" | "register" | "shop-picker";
+type Step = "login" | "register" | "merchant-picker" | "outlet-picker";
 
 export default function CloudLogin() {
 	const navigate = useNavigate();
@@ -21,7 +23,8 @@ export default function CloudLogin() {
 	const [name, setName] = createSignal("");
 	const [loading, setLoading] = createSignal(false);
 	const [error, setError] = createSignal("");
-	const [shops, setShops] = createSignal<Shop[]>([]);
+	const [merchants, setMerchants] = createSignal<Merchant[]>([]);
+	const [outlets, setOutlets] = createSignal<Outlet[]>([]);
 
 	const handleSubmit = async (e: Event) => {
 		e.preventDefault();
@@ -35,10 +38,10 @@ export default function CloudLogin() {
 				await cloudRegister(email(), password(), name());
 			}
 
-			const userShops = await getShops();
-			if (userShops.length > 0) {
-				setShops(userShops);
-				setStep("shop-picker");
+			const userMerchants = await getMerchants();
+			if (userMerchants.length > 0) {
+				setMerchants(userMerchants);
+				setStep("merchant-picker");
 			} else {
 				navigate("/onboarding", { replace: true });
 			}
@@ -57,9 +60,27 @@ export default function CloudLogin() {
 		}
 	};
 
-	const handleSelectShop = (shop: Shop) => {
-		setShopId(shop.id);
-		navigate("/login", { replace: true });
+	const handleSelectMerchant = async (merchant: Merchant) => {
+		setLoading(true);
+		setError("");
+		try {
+			const merchantOutlets = await getOutlets(merchant.id);
+			if (merchantOutlets.length > 0) {
+				setOutlets(merchantOutlets);
+				setStep("outlet-picker");
+			} else {
+				navigate("/onboarding", { replace: true });
+			}
+		} catch {
+			setError("Gagal memuat outlet");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleSelectOutlet = (outlet: Outlet) => {
+		setOutletContext(outlet.id, outlet.merchantId);
+		navigate("/device-pair", { replace: true });
 	};
 
 	const handleGoogle = () => {
@@ -71,41 +92,75 @@ export default function CloudLogin() {
 			<div class="w-full max-w-sm text-center">
 				<h1 class="font-bold text-3xl">Sakti POS</h1>
 				<p class="mt-1 text-muted-foreground text-sm">
-					{step() === "shop-picker"
-						? "Pilih toko"
-						: step() === "register"
-							? "Buat akun baru"
-							: "Masuk ke akun cloud"}
+					{step() === "outlet-picker"
+						? "Pilih outlet"
+						: step() === "merchant-picker"
+							? "Pilih bisnis"
+							: step() === "register"
+								? "Buat akun baru"
+								: "Masuk ke akun cloud"}
 				</p>
 			</div>
 
-			<Show
-				fallback={
-					<div class="flex w-full max-w-sm flex-col items-center gap-3">
-						<div class="grid w-full gap-2">
-							<For each={shops()}>
-								{(shop) => (
-									<Button
-										class="justify-start"
-										variant="outline"
-										onClick={() => handleSelectShop(shop)}
-									>
-										<span class="font-medium">{shop.name}</span>
-									</Button>
-								)}
-							</For>
-						</div>
-						<Button
-							class="w-full"
-							onClick={() => navigate("/onboarding", { replace: true })}
-							variant="secondary"
-						>
-							+ Buat toko baru
-						</Button>
+			<Show when={step() === "merchant-picker"}>
+				<div class="flex w-full max-w-sm flex-col items-center gap-3">
+					<div class="grid w-full gap-2">
+						<For each={merchants()}>
+							{(merchant) => (
+								<Button
+									class="justify-start"
+									variant="outline"
+									onClick={() => handleSelectMerchant(merchant)}
+									disabled={loading()}
+								>
+									<span class="font-medium">{merchant.name}</span>
+								</Button>
+							)}
+						</For>
 					</div>
-				}
-				when={step() === "shop-picker"}
-			>
+					<Button
+						class="w-full"
+						onClick={() => navigate("/onboarding", { replace: true })}
+						variant="secondary"
+					>
+						+ Buat bisnis baru
+					</Button>
+				</div>
+			</Show>
+
+			<Show when={step() === "outlet-picker"}>
+				<div class="flex w-full max-w-sm flex-col items-center gap-3">
+					<div class="grid w-full gap-2">
+						<For each={outlets()}>
+							{(outlet) => (
+								<Button
+									class="justify-start"
+									variant="outline"
+									onClick={() => handleSelectOutlet(outlet)}
+								>
+									<div class="text-left">
+										<span class="block font-medium">{outlet.name}</span>
+										<Show when={outlet.address}>
+											<span class="block text-muted-foreground text-xs">
+												{outlet.address}
+											</span>
+										</Show>
+									</div>
+								</Button>
+							)}
+						</For>
+					</div>
+					<Button
+						class="w-full"
+						onClick={() => setStep("merchant-picker")}
+						variant="secondary"
+					>
+						← Kembali ke pilih bisnis
+					</Button>
+				</div>
+			</Show>
+
+			<Show when={step() === "login" || step() === "register"}>
 				<form
 					class="flex w-full max-w-sm flex-col gap-4"
 					onSubmit={handleSubmit}

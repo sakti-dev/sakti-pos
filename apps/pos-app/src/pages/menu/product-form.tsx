@@ -10,6 +10,7 @@ import {
 	getProduct,
 	updateProduct,
 } from "~/db/menu";
+import { currentMerchantId } from "~/lib/outlet";
 
 export default function ProductForm() {
 	const params = useParams();
@@ -19,12 +20,12 @@ export default function ProductForm() {
 
 	const [categories] = createResource(getCategories);
 	const [product] = createResource(
-		() => (isEdit() ? Number(params.id) : undefined),
+		() => (isEdit() ? params.id : undefined),
 		(id) => (id === undefined ? undefined : getProduct(id)),
 	);
 
 	const [name, setName] = createSignal("");
-	const [categoryId, setCategoryId] = createSignal<number | null>(null);
+	const [categoryId, setCategoryId] = createSignal<string | null>(null);
 	const [price, setPrice] = createSignal("");
 	const [imageUrl, setImageUrl] = createSignal("");
 	const [loading, setLoading] = createSignal(false);
@@ -54,9 +55,9 @@ export default function ProductForm() {
 			};
 
 			if (isEdit()) {
-				await updateProduct(Number(params.id), data);
+				await updateProduct(params.id ?? "", data);
 			} else {
-				await createProduct(data);
+				await createProduct({ ...data, merchantId: currentMerchantId() ?? "" });
 			}
 			navigate("/menu/products", { replace: true });
 		} catch (e) {
@@ -109,9 +110,7 @@ export default function ProductForm() {
 							<Select
 								label="Kategori"
 								name="category"
-								onChange={(v) =>
-									setCategoryId(v == null ? null : (v as number))
-								}
+								onChange={(v) => setCategoryId(v == null ? null : String(v))}
 								options={
 									categories()?.map((cat) => ({
 										value: cat.id,

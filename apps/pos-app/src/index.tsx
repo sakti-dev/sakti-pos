@@ -2,8 +2,8 @@
 import Database from "@tauri-apps/plugin-sql";
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
-import { seedDefaultOwner } from "./lib/auth-provider";
-import { loadShopId } from "./lib/shop";
+import { seedDefaultManager } from "./lib/auth-provider";
+import { loadOutletContext } from "./lib/outlet";
 import { runStartupSync } from "./lib/sync";
 import "./index.css";
 import App from "./App";
@@ -19,8 +19,8 @@ async function bootstrap() {
 
 	try {
 		await Database.load("sqlite:sakti-pos.db");
-		await seedDefaultOwner();
-		loadShopId();
+		await seedDefaultManager();
+		loadOutletContext();
 		const syncPromise = runStartupSync();
 		const timeout = new Promise((r) => setTimeout(r, 5000));
 		await Promise.race([syncPromise, timeout]);
@@ -32,10 +32,7 @@ async function bootstrap() {
 
 function Root() {
 	return (
-		<Show
-			fallback={<App />}
-			when={!booted() && !bootError()}
-		>
+		<Show fallback={<App />} when={!booted() && !bootError()}>
 			<Show
 				fallback={<BootstrapError error={bootError()!} />}
 				when={!bootError()}
@@ -81,5 +78,5 @@ function BootstrapError(props: { error: string }) {
 	);
 }
 
-render(() => <Root />, root);
+render(() => <Root />, root!);
 bootstrap();

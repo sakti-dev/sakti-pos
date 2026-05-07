@@ -5,7 +5,17 @@ use sqlx::{Column, Row, SqlitePool, TypeInfo};
 use std::path::PathBuf;
 use tauri::{command, AppHandle, Manager};
 
-const SYNC_TABLES: &[&str] = &["categories", "products", "orders", "order_items"];
+const SYNC_TABLES: &[&str] = &[
+    "categories",
+    "products",
+    "orders",
+    "order_items",
+    "outlet_products",
+    "staff",
+    "merchants",
+    "outlets",
+    "registers",
+];
 
 fn build_client(session_cookie: &str) -> Result<reqwest::Client, String> {
     let mut headers = reqwest::header::HeaderMap::new();
@@ -35,17 +45,25 @@ async fn get_pool(app: &AppHandle) -> Result<SqlitePool, String> {
         .map_err(|e| format!("Failed to connect to DB: {}", e))
 }
 
+fn get_table_filter_column(table: &str) -> &'static str {
+    match table {
+        "merchants" | "categories" | "products" | "staff" => "merchant_id",
+        _ => "outlet_id",
+    }
+}
+
 async fn read_unsynced_rows(
     pool: &SqlitePool,
     table: &str,
-    shop_id: &str,
+    outlet_id: &str,
 ) -> Result<Vec<Value>, String> {
+    let filter_col = get_table_filter_column(table);
     let query = format!(
-        "SELECT * FROM {} WHERE shop_id = ?1 AND is_synced = 0",
-        table
+        "SELECT * FROM {} WHERE {} = ?1 AND is_synced = 0",
+        table, filter_col
     );
     let rows = sqlx::query(&query)
-        .bind(shop_id)
+        .bind(outlet_id)
         .fetch_all(pool)
         .await
         .map_err(|e| format!("Failed to read unsynced rows for {}: {}", table, e))?;
@@ -111,14 +129,15 @@ fn sqlx_value_to_json(row: &sqlx::sqlite::SqliteRow, index: usize) -> Value {
 async fn mark_table_synced(
     pool: &SqlitePool,
     table: &str,
-    shop_id: &str,
+    outlet_id: &str,
 ) -> Result<(), String> {
+    let filter_col = get_table_filter_column(table);
     let query = format!(
-        "UPDATE {} SET is_synced = 1 WHERE shop_id = ?1 AND is_synced = 0",
-        table
+        "UPDATE {} SET is_synced = 1 WHERE {} = ?1 AND is_synced = 0",
+        table, filter_col
     );
     sqlx::query(&query)
-        .bind(shop_id)
+        .bind(outlet_id)
         .execute(pool)
         .await
         .map_err(|e| format!("Failed to mark {} as synced: {}", table, e))?;
@@ -128,13 +147,13 @@ async fn mark_table_synced(
 async fn get_last_sync_at(
     pool: &SqlitePool,
     table: &str,
-    shop_id: &str,
+    outlet_id: &str,
 ) -> Result<Option<String>, String> {
     let query =
-        "SELECT last_sync_at FROM sync_meta WHERE table_name = ?1 AND shop_id = ?2";
+        "SELECT last_sync_at FROM sync_meta WHERE table_name = ?1 AND outlet_id = ?2";
     let row: Option<(String,)> = sqlx::query_as(query)
         .bind(table)
-        .bind(shop_id)
+        .bind(outlet_id)
         .fetch_optional(pool)
         .await
         .map_err(|e| format!("Failed to get last sync at: {}", e))?;
@@ -144,26 +163,26 @@ async fn get_last_sync_at(
 async fn set_last_sync_at(
     pool: &SqlitePool,
     table: &str,
-    shop_id: &str,
+    outlet_id: &str,
     time: &str,
 ) -> Result<(), String> {
-    let existing = get_last_sync_at(pool, table, shop_id).await?;
+    let existing = get_last_sync_at(pool, table, outlet_id).await?;
     if existing.is_some() {
         let query =
-            "UPDATE sync_meta SET last_sync_at = ?3 WHERE table_name = ?1 AND shop_id = ?2";
+            "UPDATE sync_meta SET last_sync_at = ?3 WHERE table_name = ?1 AND outlet_id = ?2";
         sqlx::query(query)
             .bind(table)
-            .bind(shop_id)
+            .bind(outlet_id)
             .bind(time)
             .execute(pool)
             .await
             .map_err(|e| format!("Failed to update last sync at: {}", e))?;
     } else {
         let query =
-            "INSERT INTO sync_meta (table_name, shop_id, last_sync_at) VALUES (?1, ?2, ?3)";
+            "INSERT INTO sync_meta (table_name, outlet_id, last_sync_at) VALUES (?1, ?2, ?3)";
         sqlx::query(query)
             .bind(table)
-            .bind(shop_id)
+            .bind(outlet_id)
             .bind(time)
             .execute(pool)
             .await
@@ -181,11 +200,7 @@ async fn upsert_row(
         .as_object()
         .ok_or_else(|| format!("Row for {} is not a JSON object", table))?;
 
-    let mut local_obj = obj.clone();
-    if let Some(server_id) = local_obj.remove("id") {
-        local_obj.insert("cloud_id".to_string(), server_id);
-    }
-    local_obj.remove("shop_id");
+    let local_obj = obj.clone();
 
     let columns: Vec<String> = local_obj.keys().cloned().collect();
     if columns.is_empty() {
@@ -196,7 +211,7 @@ async fn upsert_row(
 
     let set_clause: Vec<String> = columns
         .iter()
-        .filter(|c| *c != "cloud_id")
+        .filter(|c| *c != "id")
         .map(|c| format!("{} = excluded.{}", c, c))
         .collect();
 
@@ -209,7 +224,7 @@ async fn upsert_row(
         )
     } else {
         format!(
-            "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT(cloud_id) DO UPDATE SET {}",
+            "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT(id) DO UPDATE SET {}",
             table,
             columns.join(", "),
             placeholders.join(", "),
@@ -254,7 +269,7 @@ pub struct PushResult {
 
 async fn sync_push_inner(
     pool: &SqlitePool,
-    shop_id: &str,
+    outlet_id: &str,
     api_url: &str,
     session_cookie: &str,
 ) -> Result<PushResult, String> {
@@ -262,12 +277,12 @@ async fn sync_push_inner(
 
     let mut tables_json = serde_json::Map::new();
     for table in SYNC_TABLES {
-        let rows = read_unsynced_rows(pool, table, shop_id).await?;
+        let rows = read_unsynced_rows(pool, table, outlet_id).await?;
         tables_json.insert(table.to_string(), Value::Array(rows));
     }
 
     let body = serde_json::json!({
-        "shopId": shop_id,
+        "outletId": outlet_id,
         "tables": tables_json
     });
 
@@ -290,7 +305,7 @@ async fn sync_push_inner(
         .map_err(|e| format!("Failed to parse push response: {}", e))?;
 
     for table in SYNC_TABLES {
-        mark_table_synced(pool, table, shop_id).await?;
+        mark_table_synced(pool, table, outlet_id).await?;
     }
 
     let server_wins_count = result
@@ -315,12 +330,12 @@ async fn sync_push_inner(
 #[command]
 pub async fn sync_push(
     app: AppHandle,
-    shop_id: String,
+    outlet_id: String,
     api_url: String,
     session_cookie: String,
 ) -> Result<PushResult, String> {
     let pool = get_pool(&app).await?;
-    sync_push_inner(&pool, &shop_id, &api_url, &session_cookie).await
+    sync_push_inner(&pool, &outlet_id, &api_url, &session_cookie).await
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -331,22 +346,22 @@ pub struct PullResult {
 
 async fn sync_pull_inner(
     pool: &SqlitePool,
-    shop_id: &str,
+    outlet_id: &str,
     api_url: &str,
     session_cookie: &str,
 ) -> Result<PullResult, String> {
     let client = build_client(session_cookie)?;
 
-    let since = get_last_sync_at(pool, "orders", shop_id)
+    let since = get_last_sync_at(pool, "orders", outlet_id)
         .await
         .unwrap_or(None)
         .unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_string());
 
     let tables = SYNC_TABLES.join(",");
     let url = format!(
-        "{}/api/sync/pull?shopId={}&tables={}&since={}",
+        "{}/api/sync/pull?outletId={}&tables={}&since={}",
         api_url,
-        shop_id,
+        outlet_id,
         tables,
         urlencoding::encode(&since)
     );
@@ -385,7 +400,7 @@ async fn sync_pull_inner(
         .unwrap_or("");
 
     for table in SYNC_TABLES {
-        set_last_sync_at(pool, table, shop_id, server_time).await?;
+        set_last_sync_at(pool, table, outlet_id, server_time).await?;
     }
 
     Ok(PullResult {
@@ -397,29 +412,30 @@ async fn sync_pull_inner(
 #[command]
 pub async fn sync_pull(
     app: AppHandle,
-    shop_id: String,
+    outlet_id: String,
     api_url: String,
     session_cookie: String,
 ) -> Result<PullResult, String> {
     let pool = get_pool(&app).await?;
-    sync_pull_inner(&pool, &shop_id, &api_url, &session_cookie).await
+    sync_pull_inner(&pool, &outlet_id, &api_url, &session_cookie).await
 }
 
 #[command]
 pub async fn run_garbage_collection(
     app: AppHandle,
-    shop_id: String,
+    outlet_id: String,
 ) -> Result<usize, String> {
     let pool = get_pool(&app).await?;
     let mut total_purged: usize = 0;
 
     for table in SYNC_TABLES {
+        let filter_col = get_table_filter_column(table);
         let query = format!(
-            "DELETE FROM {} WHERE shop_id = ?1 AND deleted_at IS NOT NULL AND is_synced = 1",
-            table
+            "DELETE FROM {} WHERE {} = ?1 AND deleted_at IS NOT NULL AND is_synced = 1",
+            table, filter_col
         );
         let result = sqlx::query(&query)
-            .bind(&shop_id)
+            .bind(&outlet_id)
             .execute(&pool)
             .await
             .map_err(|e| format!("GC failed for {}: {}", table, e))?;
@@ -439,13 +455,13 @@ pub struct SyncNowResult {
 #[command]
 pub async fn sync_now(
     app: AppHandle,
-    shop_id: String,
+    outlet_id: String,
     api_url: String,
     session_cookie: String,
 ) -> Result<SyncNowResult, String> {
     let pool = get_pool(&app).await?;
-    let pull = sync_pull_inner(&pool, &shop_id, &api_url, &session_cookie).await?;
-    let push = sync_push_inner(&pool, &shop_id, &api_url, &session_cookie).await?;
-    let purged = run_garbage_collection(app, shop_id).await?;
+    let pull = sync_pull_inner(&pool, &outlet_id, &api_url, &session_cookie).await?;
+    let push = sync_push_inner(&pool, &outlet_id, &api_url, &session_cookie).await?;
+    let purged = run_garbage_collection(app, outlet_id).await?;
     Ok(SyncNowResult { pull, push, purged })
 }
