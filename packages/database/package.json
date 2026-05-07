@@ -1,15 +1,16 @@
 {
-  "name": "@repo/database",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": "./src/schema.ts"
-  },
-  "dependencies": {
-    "drizzle-orm": "^0.45.2"
-  },
-  "devDependencies": {
-    "typescript": "5.9.2"
-  }
+	"name": "@repo/database",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/local-schema.ts",
+		"./api-schema": "./src/api-schema.ts"
+	},
+	"dependencies": {
+		"drizzle-orm": "^0.45.2"
+	},
+	"devDependencies": {
+		"typescript": "5.9.2"
+	}
 }
