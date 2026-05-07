@@ -1,4 +1,5 @@
 mod drizzle_proxy;
+mod sync;
 
 use tauri_plugin_sql::{Migration, MigrationKind};
 
@@ -23,6 +24,12 @@ pub fn run() {
             sql: include_str!("../../drizzle/0002_glorious_major_mapleleaf.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "add_shop_id_cloud_sync_columns",
+            sql: include_str!("../../drizzle/0003_right_black_widow.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
@@ -35,7 +42,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             drizzle_proxy::run_sql,
             drizzle_proxy::run_sql_batch,
-            drizzle_proxy::get_db_info
+            drizzle_proxy::get_db_info,
+            sync::sync_push,
+            sync::sync_pull,
+            sync::run_garbage_collection,
+            sync::sync_now
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
