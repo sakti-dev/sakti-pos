@@ -45,6 +45,7 @@ vi.mock("drizzle-orm", () => ({
 	and: vi.fn((...args: unknown[]) => args),
 	eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
 	gte: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gte" })),
+	isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
 	lt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "lt" })),
 	sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
 		strings,

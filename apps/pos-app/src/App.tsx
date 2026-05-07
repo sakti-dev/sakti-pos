@@ -3,6 +3,7 @@ import { createEffect, type JSX, Show } from "solid-js";
 import { currentUserRole, isAuthenticated } from "./lib/auth";
 import "./index.css";
 import Layout from "./components/layout";
+import CloudLogin from "./pages/cloud-login";
 import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import CategoryForm from "./pages/menu/category-form";
@@ -11,6 +12,7 @@ import MenuHome from "./pages/menu/menu-home";
 import ProductForm from "./pages/menu/product-form";
 import ProductList from "./pages/menu/product-list";
 import MenuManagement from "./pages/menu-management";
+import Onboarding from "./pages/onboarding";
 import OrderHistory from "./pages/order-history";
 import POS from "./pages/pos";
 import Settings from "./pages/settings";
@@ -47,6 +49,8 @@ function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
 function App() {
 	return (
 		<Router root={Layout}>
+			<Route component={CloudLogin} path="/cloud-login" />
+			<Route component={Onboarding} path="/onboarding" />
 			<Route
 				component={() => (
 					<RequireAuth roles={["owner", "manager"]}>

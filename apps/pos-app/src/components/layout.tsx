@@ -15,10 +15,20 @@ import {
 	TbOutlineUserPlus,
 } from "solid-icons/tb";
 import type { JSX } from "solid-js";
-import { createEffect, createSignal, For, Show } from "solid-js";
+import {
+	createEffect,
+	createSignal,
+	For,
+	onCleanup,
+	onMount,
+	Show,
+} from "solid-js";
 import { Toaster } from "solid-sonner";
+import { SyncStatusIndicator } from "~/components/sync-status";
 import { OfflineBanner } from "~/components/ui/offline-banner";
 import { currentUserRole, isAuthenticated } from "~/lib/auth";
+import { currentShopId } from "~/lib/shop";
+import { startSyncScheduler, stopSyncScheduler } from "~/lib/sync";
 
 const navItems = [
 	{
@@ -62,10 +72,11 @@ const navItems = [
 export default function Layout(props: RouteSectionProps) {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const isLogin = () => location.pathname === "/login";
+	const isPublicRoute = () =>
+		["/login", "/cloud-login", "/onboarding"].includes(location.pathname);
 
 	createEffect(() => {
-		if (!(isLogin() || isAuthenticated())) {
+		if (!isPublicRoute() && !isAuthenticated()) {
 			navigate("/login");
 		}
 	});
@@ -96,6 +107,15 @@ export function AppShell(props: AppShellProps) {
 	const navigate = useNavigate();
 	const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
+	onMount(() => {
+		if (currentShopId()) {
+			startSyncScheduler();
+		}
+	});
+	onCleanup(() => {
+		stopSyncScheduler();
+	});
+
 	createEffect(() => {
 		setSidebarOpen(false);
 	});
@@ -121,9 +141,12 @@ export function AppShell(props: AppShellProps) {
 					<TbOutlineMenu2 class="size-6" />
 				</button>
 				<h1 class="font-semibold text-lg">{props.title}</h1>
-				<Show when={props.topbarSuffix}>
-					<div class="ml-auto">{props.topbarSuffix}</div>
-				</Show>
+				<div class="ml-auto flex items-center gap-1">
+					<Show when={currentShopId()}>
+						<SyncStatusIndicator />
+					</Show>
+					<Show when={props.topbarSuffix}>{props.topbarSuffix}</Show>
+				</div>
 			</header>
 			<div
 				class={

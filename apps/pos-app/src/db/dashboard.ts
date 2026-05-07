@@ -1,6 +1,7 @@
 import { categories, orderItems, orders, products } from "@repo/database";
 import dayjs from "dayjs";
-import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { currentShopId } from "~/lib/shop";
 import { db } from "./index";
 
 export interface DashboardSummary {
@@ -57,19 +58,22 @@ export async function getDashboardSummary(
 ): Promise<DashboardSummary> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			orderCount: sql<number>`CAST(COUNT(*) AS INTEGER)`,
 			totalRevenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
 		})
 		.from(orders)
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		);
+		.where(and(...conditions));
 
 	const row = rows[0];
 	return {
@@ -88,6 +92,15 @@ export async function getPaymentBreakdown(
 ): Promise<PaymentBreakdown> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			cashCount: sql<number>`CAST(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN 1 ELSE 0 END) AS INTEGER)`,
@@ -96,13 +109,7 @@ export async function getPaymentBreakdown(
 			qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN ${orders.total} ELSE 0 END), 0)`,
 		})
 		.from(orders)
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		);
+		.where(and(...conditions));
 
 	const row = rows[0];
 	return {
@@ -119,19 +126,22 @@ export async function getHourlyBreakdown(
 ): Promise<HourlyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			hour: sql<number>`CAST(strftime('%H', ${orders.createdAt}) AS INTEGER)`,
 			revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
 		})
 		.from(orders)
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		)
+		.where(and(...conditions))
 		.groupBy(sql`strftime('%H', ${orders.createdAt})`)
 		.orderBy(sql`strftime('%H', ${orders.createdAt})`);
 
@@ -152,19 +162,22 @@ export async function getDailyBreakdown(
 ): Promise<DailyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			date: sql<string>`strftime('%Y-%m-%d', ${orders.createdAt})`,
 			revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
 		})
 		.from(orders)
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		)
+		.where(and(...conditions))
 		.groupBy(sql`strftime('%Y-%m-%d', ${orders.createdAt})`)
 		.orderBy(sql`strftime('%Y-%m-%d', ${orders.createdAt})`);
 
@@ -177,19 +190,22 @@ export async function getWeeklyBreakdown(
 ): Promise<WeeklyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			weekStart: sql<string>`strftime('%Y-%m-%d', ${orders.createdAt}, '-6 days', 'weekday 1')`,
 			revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
 		})
 		.from(orders)
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		)
+		.where(and(...conditions))
 		.groupBy(sql`strftime('%Y-%W', ${orders.createdAt})`)
 		.orderBy(sql`strftime('%Y-%W', ${orders.createdAt})`);
 
@@ -202,19 +218,22 @@ export async function getMonthlyBreakdown(
 ): Promise<MonthlyRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			month: sql<string>`strftime('%Y-%m', ${orders.createdAt})`,
 			revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
 		})
 		.from(orders)
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		)
+		.where(and(...conditions))
 		.groupBy(sql`strftime('%Y-%m', ${orders.createdAt})`)
 		.orderBy(sql`strftime('%Y-%m', ${orders.createdAt})`);
 
@@ -228,6 +247,16 @@ export async function getTopProducts(
 ): Promise<TopProductRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+		isNull(orderItems.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			productName: orderItems.productName,
@@ -236,13 +265,7 @@ export async function getTopProducts(
 		})
 		.from(orderItems)
 		.innerJoin(orders, eq(orderItems.orderId, orders.id))
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		)
+		.where(and(...conditions))
 		.groupBy(orderItems.productName)
 		.orderBy(sql`SUM(${orderItems.subtotal}) DESC`)
 		.limit(limit);
@@ -256,6 +279,18 @@ export async function getSalesByCategory(
 ): Promise<CategoryRevenueRow[]> {
 	const nextDayStr = getNextDayStr(dateTo);
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, dateFrom),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+		isNull(orderItems.deletedAt),
+		isNull(products.deletedAt),
+		isNull(categories.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			categoryName: categories.name,
@@ -265,13 +300,7 @@ export async function getSalesByCategory(
 		.innerJoin(orders, eq(orderItems.orderId, orders.id))
 		.innerJoin(products, eq(orderItems.productId, products.id))
 		.innerJoin(categories, eq(products.categoryId, categories.id))
-		.where(
-			and(
-				gte(orders.createdAt, dateFrom),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		)
+		.where(and(...conditions))
 		.groupBy(categories.name)
 		.orderBy(sql`SUM(${orderItems.subtotal}) DESC`);
 

@@ -12,6 +12,10 @@ const mockCategories: Category[] = [
 		isActive: true,
 		createdAt: "",
 		updatedAt: "",
+		shopId: null,
+		cloudId: null,
+		deletedAt: null,
+		isSynced: false,
 	},
 	{
 		id: 2,
@@ -20,6 +24,10 @@ const mockCategories: Category[] = [
 		isActive: false,
 		createdAt: "",
 		updatedAt: "",
+		shopId: null,
+		cloudId: null,
+		deletedAt: null,
+		isSynced: false,
 	},
 ];
 

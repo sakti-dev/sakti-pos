@@ -3,22 +3,57 @@ import Database from "@tauri-apps/plugin-sql";
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { seedDefaultOwner } from "./lib/auth-provider";
+import { loadShopId } from "./lib/shop";
+import { runStartupSync } from "./lib/sync";
 import "./index.css";
 import App from "./App";
 
 const root = document.getElementById("root");
+const [booted, setBooted] = createSignal(false);
+const [bootError, setBootError] = createSignal<string | null>(null);
 
 async function bootstrap() {
 	if (!root) {
 		throw new Error("Root element not found");
 	}
+
 	try {
 		await Database.load("sqlite:sakti-pos.db");
 		await seedDefaultOwner();
-		render(() => <App />, root);
+		loadShopId();
+		const syncPromise = runStartupSync();
+		const timeout = new Promise((r) => setTimeout(r, 5000));
+		await Promise.race([syncPromise, timeout]);
+		setBooted(true);
 	} catch (err) {
-		render(() => <BootstrapError error={String(err)} />, root);
+		setBootError(String(err));
 	}
+}
+
+function Root() {
+	return (
+		<Show
+			fallback={<App />}
+			when={!booted() && !bootError()}
+		>
+			<Show
+				fallback={<BootstrapError error={bootError()!} />}
+				when={!bootError()}
+			>
+				<BootSplash />
+			</Show>
+		</Show>
+	);
+}
+
+function BootSplash() {
+	return (
+		<div class="flex h-screen flex-col items-center justify-center bg-primary text-primary-foreground">
+			<h1 class="mb-4 font-bold text-4xl">Sakti POS</h1>
+			<div class="mb-4 size-8 animate-spin rounded-full border-2 border-current border-b-transparent" />
+			<p class="text-sm opacity-80">Memulai aplikasi...</p>
+		</div>
+	);
 }
 
 function BootstrapError(props: { error: string }) {
@@ -46,4 +81,5 @@ function BootstrapError(props: { error: string }) {
 	);
 }
 
+render(() => <Root />, root);
 bootstrap();

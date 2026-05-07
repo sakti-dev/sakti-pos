@@ -7,7 +7,18 @@ import {
 } from "@repo/database";
 import { invoke } from "@tauri-apps/api/core";
 import dayjs from "dayjs";
-import { and, desc, eq, gte, like, lt, type SQL, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	gte,
+	isNull,
+	like,
+	lt,
+	type SQL,
+	sql,
+} from "drizzle-orm";
+import { currentShopId } from "~/lib/shop";
 import { db } from "./index";
 import type { Product } from "./menu";
 
@@ -38,9 +49,10 @@ export async function createOrder(data: {
 	const orderNumber = await getNextOrderNumber(today);
 
 	const now = dayjs().toISOString();
+	const shopId = currentShopId();
 
 	const insertOrder: SqlStatement = {
-		sql: `INSERT INTO orders (order_number, user_id, total, payment_method, amount_paid, change_amount, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?)`,
+		sql: `INSERT INTO orders (order_number, user_id, total, payment_method, amount_paid, change_amount, status, created_at, updated_at, is_synced, shop_id) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0, ?)`,
 		params: [
 			orderNumber,
 			data.userId,
@@ -50,11 +62,12 @@ export async function createOrder(data: {
 			data.changeAmount,
 			now,
 			now,
+			shopId ?? null,
 		],
 	};
 
 	const itemStatements: SqlStatement[] = data.items.map((item) => ({
-		sql: "INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, subtotal, created_at) VALUES (LAST_INSERT_ROWID(), ?, ?, ?, ?, ?, ?)",
+		sql: "INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, subtotal, created_at, is_synced, shop_id) VALUES (LAST_INSERT_ROWID(), ?, ?, ?, ?, ?, ?, 0, ?)",
 		params: [
 			item.product_id,
 			item.product_name,
@@ -62,6 +75,7 @@ export async function createOrder(data: {
 			item.price,
 			item.qty * item.price,
 			now,
+			shopId ?? null,
 		],
 	}));
 
@@ -77,7 +91,9 @@ async function getNextOrderNumber(date: string): Promise<string> {
 	const rows = await db
 		.select({ orderNumber: orders.orderNumber })
 		.from(orders)
-		.where(like(orders.orderNumber, `${prefix}%`))
+		.where(
+			and(like(orders.orderNumber, `${prefix}%`), isNull(orders.deletedAt)),
+		)
 		.orderBy(sql`LENGTH(${orders.orderNumber})`, orders.orderNumber);
 
 	const maxNum = rows.reduce((max, row) => {
@@ -94,6 +110,15 @@ export type ProductWithCategory = Product & { categoryName: string };
 export async function getActiveProductsByCategory(): Promise<
 	{ categoryName: string; products: ProductWithCategory[] }[]
 > {
+	const shopId = currentShopId();
+	const conditions = [
+		eq(products.isActive, true),
+		eq(categories.isActive, true),
+		isNull(products.deletedAt),
+		isNull(categories.deletedAt),
+	];
+	if (shopId) conditions.push(eq(products.shopId, shopId));
+
 	const rows = await db
 		.select({
 			categoryId: products.categoryId,
@@ -107,10 +132,14 @@ export async function getActiveProductsByCategory(): Promise<
 			price: products.price,
 			sortOrder: products.sortOrder,
 			updatedAt: products.updatedAt,
+			shopId: products.shopId,
+			cloudId: products.cloudId,
+			deletedAt: products.deletedAt,
+			isSynced: products.isSynced,
 		})
 		.from(products)
 		.innerJoin(categories, eq(products.categoryId, categories.id))
-		.where(and(eq(products.isActive, true), eq(categories.isActive, true)))
+		.where(and(...conditions))
 		.orderBy(categories.name, products.name, products.id);
 
 	const grouped = new Map<string, ProductWithCategory[]>();
@@ -127,6 +156,10 @@ export async function getActiveProductsByCategory(): Promise<
 			price: row.price,
 			sortOrder: row.sortOrder,
 			updatedAt: row.updatedAt,
+			shopId: row.shopId,
+			cloudId: row.cloudId,
+			deletedAt: row.deletedAt,
+			isSynced: row.isSynced,
 		});
 		grouped.set(row.categoryName, list);
 	}
@@ -165,7 +198,9 @@ export async function getOrders(filter: {
 	dateTo?: string;
 	status?: "completed" | "cancelled";
 }): Promise<OrderRow[]> {
-	const conditions: SQL[] = [];
+	const conditions: SQL[] = [isNull(orders.deletedAt)];
+	const shopId = currentShopId();
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
 	if (filter.status) {
 		conditions.push(eq(orders.status, filter.status));
 	}
@@ -192,7 +227,7 @@ export async function getOrders(filter: {
 		})
 		.from(orders)
 		.innerJoin(users, eq(orders.userId, users.id))
-		.where(conditions.length > 0 ? and(...conditions) : undefined)
+		.where(and(...conditions))
 		.orderBy(desc(orders.createdAt));
 
 	return rows.map((r) => ({
@@ -212,13 +247,17 @@ export async function getOrderItems(orderId: number): Promise<OrderItemRow[]> {
 			unitPrice: orderItems.unitPrice,
 		})
 		.from(orderItems)
-		.where(eq(orderItems.orderId, orderId));
+		.where(and(eq(orderItems.orderId, orderId), isNull(orderItems.deletedAt)));
 }
 
 export async function cancelOrder(orderId: number): Promise<void> {
 	await db
 		.update(orders)
-		.set({ status: "cancelled", updatedAt: dayjs().toISOString() })
+		.set({
+			status: "cancelled",
+			updatedAt: dayjs().toISOString(),
+			isSynced: false,
+		})
 		.where(eq(orders.id, orderId));
 }
 
@@ -232,6 +271,15 @@ export interface DailySummary {
 export async function getDailySummary(date: string): Promise<DailySummary> {
 	const nextDayStr = dayjs(date).add(1, "day").format("YYYY-MM-DD");
 
+	const shopId = currentShopId();
+	const conditions = [
+		gte(orders.createdAt, date),
+		lt(orders.createdAt, nextDayStr),
+		eq(orders.status, "completed"),
+		isNull(orders.deletedAt),
+	];
+	if (shopId) conditions.push(eq(orders.shopId, shopId));
+
 	const rows = await db
 		.select({
 			cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN ${orders.total} ELSE 0 END), 0)`,
@@ -240,13 +288,7 @@ export async function getDailySummary(date: string): Promise<DailySummary> {
 			totalRevenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
 		})
 		.from(orders)
-		.where(
-			and(
-				gte(orders.createdAt, date),
-				lt(orders.createdAt, nextDayStr),
-				eq(orders.status, "completed"),
-			),
-		);
+		.where(and(...conditions));
 
 	return (
 		rows[0] ?? { cashTotal: 0, orderCount: 0, qrisTotal: 0, totalRevenue: 0 }

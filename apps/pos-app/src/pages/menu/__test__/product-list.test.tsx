@@ -12,6 +12,10 @@ const mockCategories: Category[] = [
 		isActive: true,
 		createdAt: "",
 		updatedAt: "",
+		shopId: null,
+		cloudId: null,
+		deletedAt: null,
+		isSynced: false,
 	},
 	{
 		id: 2,
@@ -20,6 +24,10 @@ const mockCategories: Category[] = [
 		isActive: true,
 		createdAt: "",
 		updatedAt: "",
+		shopId: null,
+		cloudId: null,
+		deletedAt: null,
+		isSynced: false,
 	},
 ];
 
@@ -34,6 +42,10 @@ const mockProducts: Product[] = [
 		createdAt: "",
 		updatedAt: "",
 		sortOrder: 0,
+		shopId: null,
+		cloudId: null,
+		deletedAt: null,
+		isSynced: false,
 	},
 	{
 		id: 2,
@@ -45,6 +57,10 @@ const mockProducts: Product[] = [
 		createdAt: "",
 		updatedAt: "",
 		sortOrder: 0,
+		shopId: null,
+		cloudId: null,
+		deletedAt: null,
+		isSynced: false,
 	},
 	{
 		id: 3,
@@ -56,6 +72,10 @@ const mockProducts: Product[] = [
 		createdAt: "",
 		updatedAt: "",
 		sortOrder: 0,
+		shopId: null,
+		cloudId: null,
+		deletedAt: null,
+		isSynced: false,
 	},
 ];
 

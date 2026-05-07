@@ -20,27 +20,29 @@ vi.mock("@repo/database", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+	and: vi.fn((...args: unknown[]) => args),
 	eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
+	isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
 }));
 
 const mockFrom = vi.fn();
 const mockSelect = vi.fn(() => ({ from: mockFrom }));
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
-const mockDelete = vi.fn();
 
 vi.mock("../index", () => ({
 	db: {
 		select: mockSelect,
 		insert: mockInsert,
 		update: mockUpdate,
-		delete: mockDelete,
 	},
 }));
 
 function mockFromOrderBy(data: unknown[]) {
 	return {
-		where: vi.fn().mockResolvedValue(data),
+		where: vi.fn().mockReturnValue({
+			orderBy: vi.fn().mockResolvedValue(data),
+		}),
 		orderBy: vi.fn().mockResolvedValue(data),
 	};
 }
@@ -101,17 +103,23 @@ describe("menu db", () => {
 		expect(mockValues).toHaveBeenCalledWith({ name: "Dessert" });
 	});
 
-	test("deleteCategory calls delete with correct table and filter", async () => {
+	test("deleteCategory calls update with tombstone fields", async () => {
 		const mockWhere = vi.fn().mockResolvedValue(undefined);
-		mockDelete.mockReturnValue({ where: mockWhere });
+		const mockSet = vi.fn(() => ({ where: mockWhere }));
+		mockUpdate.mockReturnValue({ set: mockSet });
 
 		const { deleteCategory } = await import("../menu");
 		await deleteCategory(1);
 
-		expect(mockDelete).toHaveBeenCalledWith(
+		expect(mockUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({ id: "id" }),
 		);
-		expect(mockWhere).toHaveBeenCalled();
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				deletedAt: expect.any(String),
+				isSynced: false,
+			}),
+		);
 	});
 
 	test("getProductCountByCategory returns count of products", async () => {
@@ -186,16 +194,22 @@ describe("menu db", () => {
 		});
 	});
 
-	test("deleteProduct calls delete with correct table and filter", async () => {
+	test("deleteProduct calls update with tombstone fields", async () => {
 		const mockWhere = vi.fn().mockResolvedValue(undefined);
-		mockDelete.mockReturnValue({ where: mockWhere });
+		const mockSet = vi.fn(() => ({ where: mockWhere }));
+		mockUpdate.mockReturnValue({ set: mockSet });
 
 		const { deleteProduct } = await import("../menu");
 		await deleteProduct(1);
 
-		expect(mockDelete).toHaveBeenCalledWith(
+		expect(mockUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({ id: "id", categoryId: "category_id" }),
 		);
-		expect(mockWhere).toHaveBeenCalled();
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				deletedAt: expect.any(String),
+				isSynced: false,
+			}),
+		);
 	});
 });

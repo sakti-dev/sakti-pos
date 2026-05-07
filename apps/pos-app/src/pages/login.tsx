@@ -152,6 +152,13 @@ export default function Login() {
 							onSubmit={handlePinSubmit}
 						/>
 					</Show>
+					<button
+						class="text-muted-foreground text-sm hover:text-primary"
+						onClick={() => navigate("/cloud-login")}
+						type="button"
+					>
+						Masuk dengan akun cloud →
+					</button>
 				</div>
 			}
 			when={isLandscape() && selectedUser()}
@@ -160,6 +167,13 @@ export default function Login() {
 				<div class="flex flex-col items-center gap-3">
 					<h1 class="font-bold text-2xl">Sakti POS</h1>
 					{leftPanel}
+					<button
+						class="text-muted-foreground text-sm hover:text-primary"
+						onClick={() => navigate("/cloud-login")}
+						type="button"
+					>
+						Masuk dengan akun cloud →
+					</button>
 				</div>
 				<PinPad
 					disabled={pinDisabled() || loading()}

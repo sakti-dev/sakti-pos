@@ -33,6 +33,16 @@ vi.mock("~/lib/theme", () => ({
 	setTheme: (...args: unknown[]) => mockSetTheme(...args),
 }));
 
+vi.mock("~/lib/cloud-auth", () => ({
+	getSession: vi.fn(() => Promise.resolve({ user: null })),
+	logout: vi.fn(),
+}));
+
+vi.mock("~/lib/shop", () => ({
+	currentShopId: vi.fn(() => null),
+	setShopId: vi.fn(),
+}));
+
 vi.mock("~/components/layout", () => ({
 	AppShell: (props: { children: JSX.Element; title: string }) => (
 		<div>
