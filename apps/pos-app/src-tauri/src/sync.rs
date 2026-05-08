@@ -69,24 +69,6 @@ async fn read_unsynced_rows(
     Ok(result)
 }
 
-async fn mark_table_synced(
-    pool: &SqlitePool,
-    table: &str,
-    outlet_id: &str,
-) -> Result<(), String> {
-    let filter_col = get_table_filter_column(table);
-    let query = format!(
-        "UPDATE {} SET is_synced = 1 WHERE {} = ?1 AND is_synced = 0",
-        table, filter_col
-    );
-    sqlx::query(&query)
-        .bind(outlet_id)
-        .execute(pool)
-        .await
-        .map_err(|e| format!("Failed to mark {} as synced: {}", table, e))?;
-    Ok(())
-}
-
 async fn mark_table_synced_tx(
     conn: &mut SqliteConnection,
     table: &str,
@@ -119,37 +101,6 @@ async fn get_last_sync_at(
         .await
         .map_err(|e| format!("Failed to get last sync at: {}", e))?;
     Ok(row.map(|r| r.0))
-}
-
-async fn set_last_sync_at(
-    pool: &SqlitePool,
-    table: &str,
-    outlet_id: &str,
-    time: &str,
-) -> Result<(), String> {
-    let existing = get_last_sync_at(pool, table, outlet_id).await?;
-    if existing.is_some() {
-        let query =
-            "UPDATE sync_meta SET last_sync_at = ?3 WHERE table_name = ?1 AND outlet_id = ?2";
-        sqlx::query(query)
-            .bind(table)
-            .bind(outlet_id)
-            .bind(time)
-            .execute(pool)
-            .await
-            .map_err(|e| format!("Failed to update last sync at: {}", e))?;
-    } else {
-        let query =
-            "INSERT INTO sync_meta (table_name, outlet_id, last_sync_at) VALUES (?1, ?2, ?3)";
-        sqlx::query(query)
-            .bind(table)
-            .bind(outlet_id)
-            .bind(time)
-            .execute(pool)
-            .await
-            .map_err(|e| format!("Failed to insert last sync at: {}", e))?;
-    }
-    Ok(())
 }
 
 async fn set_last_sync_at_tx(
