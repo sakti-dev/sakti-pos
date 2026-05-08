@@ -44,7 +44,7 @@ const deltaColor = (type: "down" | "neutral" | "up") => {
 	}
 };
 
-const SalesSummaryCards: Component<SalesSummaryCardsProps> = (props) => {
+export const SalesSummaryCards: Component<SalesSummaryCardsProps> = (props) => {
 	const delta = () =>
 		props.summary && props.previous
 			? formatDelta(props.summary.totalRevenue, props.previous.totalRevenue)
@@ -101,5 +101,3 @@ const SalesSummaryCards: Component<SalesSummaryCardsProps> = (props) => {
 		</div>
 	);
 };
-
-export { SalesSummaryCards };

@@ -29,7 +29,7 @@ const presets: {
 	{ label: "Tahun ini", value: "year", range: getYearRange },
 ];
 
-const PeriodSelector: Component<PeriodSelectorProps> = (props) => {
+export const PeriodSelector: Component<PeriodSelectorProps> = (props) => {
 	const handlePreset = (_preset: PeriodPreset, range: () => DateRange) => {
 		props.onChange(range());
 	};
@@ -95,5 +95,3 @@ const PeriodSelector: Component<PeriodSelectorProps> = (props) => {
 		</div>
 	);
 };
-
-export { PeriodSelector };

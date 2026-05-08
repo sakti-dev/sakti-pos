@@ -7,6 +7,7 @@ import { SalesSummaryCards } from "~/components/dashboard/sales-summary-cards";
 import { TopProductsChart } from "~/components/dashboard/top-products-chart";
 import { AppShell } from "~/components/layout";
 import {
+	type DailyRow,
 	getDailyBreakdown,
 	getDashboardSummary,
 	getHourlyBreakdown,
@@ -15,6 +16,9 @@ import {
 	getSalesByCategory,
 	getTopProducts,
 	getWeeklyBreakdown,
+	type HourlyRow,
+	type MonthlyRow,
+	type WeeklyRow,
 } from "~/db/dashboard";
 import {
 	type DateRange,
@@ -33,38 +37,62 @@ export default function Dashboard() {
 		() => `${prevRange().dateFrom}-${prevRange().dateTo}`,
 	);
 
+	const safeSummary = async (from: string, to: string) => {
+		try {
+			return await getDashboardSummary(from, to);
+		} catch {
+			return { orderCount: 0, totalRevenue: 0, avgOrderValue: 0 };
+		}
+	};
+
 	const [summary] = createResource(rangeKey, () =>
-		getDashboardSummary(range().dateFrom, range().dateTo),
+		safeSummary(range().dateFrom, range().dateTo),
 	);
 	const [prevSummary] = createResource(prevKey, () =>
-		getDashboardSummary(prevRange().dateFrom, prevRange().dateTo),
+		safeSummary(prevRange().dateFrom, prevRange().dateTo),
 	);
-	const [payment] = createResource(rangeKey, () =>
-		getPaymentBreakdown(range().dateFrom, range().dateTo),
-	);
-	const [topProducts] = createResource(rangeKey, () =>
-		getTopProducts(range().dateFrom, range().dateTo),
-	);
-	const [categorySales] = createResource(rangeKey, () =>
-		getSalesByCategory(range().dateFrom, range().dateTo),
-	);
+	const [payment] = createResource(rangeKey, async () => {
+		try {
+			return await getPaymentBreakdown(range().dateFrom, range().dateTo);
+		} catch {
+			return { cashCount: 0, cashTotal: 0, qrisCount: 0, qrisTotal: 0 };
+		}
+	});
+	const [topProducts] = createResource(rangeKey, async () => {
+		try {
+			return await getTopProducts(range().dateFrom, range().dateTo);
+		} catch {
+			return [];
+		}
+	});
+	const [categorySales] = createResource(rangeKey, async () => {
+		try {
+			return await getSalesByCategory(range().dateFrom, range().dateTo);
+		} catch {
+			return [];
+		}
+	});
 
 	const granularity = createMemo(() => getChartGranularity(range()));
 
 	const [revenueData] = createResource(rangeKey, async () => {
 		const g = granularity();
 		const { dateFrom, dateTo } = range();
-		let data;
-		if (g === "hourly") {
-			data = await getHourlyBreakdown(dateFrom, dateTo);
-		} else if (g === "daily") {
-			data = await getDailyBreakdown(dateFrom, dateTo);
-		} else if (g === "weekly") {
-			data = await getWeeklyBreakdown(dateFrom, dateTo);
-		} else {
-			data = await getMonthlyBreakdown(dateFrom, dateTo);
+		try {
+			let data: DailyRow[] | HourlyRow[] | MonthlyRow[] | WeeklyRow[];
+			if (g === "hourly") {
+				data = await getHourlyBreakdown(dateFrom, dateTo);
+			} else if (g === "daily") {
+				data = await getDailyBreakdown(dateFrom, dateTo);
+			} else if (g === "weekly") {
+				data = await getWeeklyBreakdown(dateFrom, dateTo);
+			} else {
+				data = await getMonthlyBreakdown(dateFrom, dateTo);
+			}
+			return { data, type: g };
+		} catch {
+			return { data: [], type: g };
 		}
-		return { data, type: g };
 	});
 
 	const loading = () => summary.loading;

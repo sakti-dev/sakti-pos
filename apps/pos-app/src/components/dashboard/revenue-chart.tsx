@@ -1,15 +1,8 @@
 import dayjs from "dayjs";
 import "dayjs/locale/id";
-import {
-	BarElement,
-	CategoryScale,
-	Chart as ChartJS,
-	LinearScale,
-	Tooltip,
-} from "chart.js";
 import { Bar } from "solid-chartjs";
 import type { Component } from "solid-js";
-import { createMemo, createSignal, onMount, Show } from "solid-js";
+import { createMemo, Match, Show, Switch } from "solid-js";
 import { Skeleton } from "~/components/ui/skeleton";
 import type {
 	DailyRow,
@@ -17,12 +10,11 @@ import type {
 	MonthlyRow,
 	WeeklyRow,
 } from "~/db/dashboard";
+import { formatRupiahAxis } from "~/lib/chart-setup";
 import type { ChartGranularity } from "~/lib/period";
 import { useIsPhone } from "~/store/responsive";
 
 dayjs.locale("id");
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 type RevenueData = DailyRow[] | HourlyRow[] | MonthlyRow[] | WeeklyRow[];
 
@@ -30,19 +22,6 @@ interface RevenueChartProps {
 	data?: RevenueData;
 	loading?: boolean;
 	type: ChartGranularity;
-}
-
-function formatRupiahAxis(value: number): string {
-	if (value === 0) {
-		return "0";
-	}
-	if (value >= 1_000_000) {
-		return `${value / 1_000_000}jt`;
-	}
-	if (value >= 1000) {
-		return `${value / 1000}rb`;
-	}
-	return String(value);
 }
 
 const HIGHLIGHT_BG = "oklch(0.65 0.2 30 / 0.85)";
@@ -80,11 +59,8 @@ function getLabel(
 	return dayjs((row as MonthlyRow).month).format("MMM");
 }
 
-const RevenueChart: Component<RevenueChartProps> = (props) => {
-	const [mounted, setMounted] = createSignal(false);
+export const RevenueChart: Component<RevenueChartProps> = (props) => {
 	const isPhone = useIsPhone();
-
-	onMount(() => setMounted(true));
 
 	const hasData = () => props.data?.some((r) => r.revenue > 0);
 
@@ -150,58 +126,64 @@ const RevenueChart: Component<RevenueChartProps> = (props) => {
 		<div class="rounded-xl border bg-card p-4">
 			<h3 class="mb-3 font-medium text-sm">{title(props.type)}</h3>
 			<Show
-				fallback={<Skeleton class="h-48 w-full" />}
-				when={!props.loading && mounted() && hasData()}
-			>
-				<div class="overflow-x-auto">
-					<div class="h-48 min-w-[400px]">
-						<Bar
-							data={chartData()}
-							options={{
-								responsive: true,
-								maintainAspectRatio: false,
-								plugins: {
-									legend: { display: false },
-									tooltip: {
-										callbacks: {
-											label: (ctx: { parsed: { y: number } }) => {
-												const val = ctx.parsed.y;
-												return ` ${new Intl.NumberFormat("id-ID", {
-													maximumFractionDigits: 0,
-													style: "currency",
-													currency: "IDR",
-												}).format(val)}`;
+				when={props.loading}
+				fallback={
+					<Switch
+						fallback={
+							<p class="py-8 text-center text-muted-foreground text-sm">
+								Belum ada data
+							</p>
+						}
+					>
+						<Match when={hasData()}>
+							<div class="overflow-x-auto">
+								<div class="h-48 min-w-[400px]">
+									<Bar
+										data={chartData()}
+										options={{
+											responsive: true,
+											maintainAspectRatio: false,
+											plugins: {
+												legend: { display: false },
+												tooltip: {
+													callbacks: {
+														label: (ctx: { parsed: { y: number } }) => {
+															const val = ctx.parsed.y;
+															return ` ${new Intl.NumberFormat("id-ID", {
+																maximumFractionDigits: 0,
+																style: "currency",
+																currency: "IDR",
+															}).format(val)}`;
+														},
+													},
+												},
 											},
-										},
-									},
-								},
-								scales: {
-									x: {
-										grid: { display: false },
-										ticks: {
-											maxRotation: isPhone() ? 45 : 0,
-											maxTicksLimit: isPhone() ? 8 : undefined,
-										},
-									},
-									y: {
-										beginAtZero: true,
-										ticks: {
-											callback: (value: number) => formatRupiahAxis(value),
-										},
-									},
-								},
-							}}
-						/>
-					</div>
-				</div>
-			</Show>
-			<Show when={!(props.loading || hasData())}>
-				<p class="py-8 text-center text-muted-foreground text-sm">
-					Belum ada data
-				</p>
+											scales: {
+												x: {
+													grid: { display: false },
+													ticks: {
+														maxRotation: isPhone() ? 45 : 0,
+														maxTicksLimit: isPhone() ? 8 : undefined,
+													},
+												},
+												y: {
+													beginAtZero: true,
+													ticks: {
+														callback: (value: number) =>
+															formatRupiahAxis(value),
+													},
+												},
+											},
+										}}
+									/>
+								</div>
+							</div>
+						</Match>
+					</Switch>
+				}
+			>
+				<Skeleton class="h-48 w-full" />
 			</Show>
 		</div>
 	);
 };
-
-export { RevenueChart };
