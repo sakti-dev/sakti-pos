@@ -28,7 +28,7 @@ interface SelectProps {
 	value?: string | number | undefined;
 }
 
-const Select: Component<SelectProps> = (props) => {
+export const Select: Component<SelectProps> = (props) => {
 	const selectedLabel = createMemo(() => {
 		if (props.value == null) {
 			return;
@@ -110,5 +110,3 @@ const Select: Component<SelectProps> = (props) => {
 		</>
 	);
 };
-
-export { Select };

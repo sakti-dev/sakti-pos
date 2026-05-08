@@ -9,7 +9,7 @@ interface CategoryTabsProps {
 	selected: string | null;
 }
 
-const CategoryTabs: Component<CategoryTabsProps> = (props) => (
+export const CategoryTabs: Component<CategoryTabsProps> = (props) => (
 	<div class="scrollbar-none flex gap-3 overflow-x-auto px-4 py-3">
 		<CategoryCard
 			active={props.selected === null}
@@ -56,5 +56,3 @@ const CategoryCard: Component<CategoryCardProps> = (props) => (
 		<span class="truncate font-medium text-sm">{props.label}</span>
 	</button>
 );
-
-export { CategoryTabs };

@@ -10,7 +10,7 @@ interface OrderCardProps {
 	order: OrderRow;
 }
 
-const OrderCard: Component<OrderCardProps> = (props) => {
+export const OrderCard: Component<OrderCardProps> = (props) => {
 	const [expanded, setExpanded] = createSignal(false);
 
 	const time = () => dayjs(props.order.createdAt).format("HH:mm");
@@ -110,5 +110,3 @@ const OrderCard: Component<OrderCardProps> = (props) => {
 		</div>
 	);
 };
-
-export { OrderCard };

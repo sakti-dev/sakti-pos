@@ -22,7 +22,7 @@ interface ConfirmDrawerProps {
 	variant?: "destructive" | "default";
 }
 
-const ConfirmDrawer: Component<ConfirmDrawerProps> = (props) => (
+export const ConfirmDrawer: Component<ConfirmDrawerProps> = (props) => (
 	<Show when={props.open}>
 		<Drawer
 			closeOnEscapeKeyDown={false}
@@ -61,5 +61,3 @@ const ConfirmDrawer: Component<ConfirmDrawerProps> = (props) => (
 		</Drawer>
 	</Show>
 );
-
-export { ConfirmDrawer };

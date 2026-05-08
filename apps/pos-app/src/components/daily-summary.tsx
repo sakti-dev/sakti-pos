@@ -7,7 +7,7 @@ interface DailySummaryBarProps {
 	data: DailySummary | undefined;
 }
 
-const DailySummaryBar: Component<DailySummaryBarProps> = (props) => (
+export const DailySummaryBar: Component<DailySummaryBarProps> = (props) => (
 	<Show when={props.data}>
 		{(data) => (
 			<div class="grid grid-cols-2 gap-2">
@@ -33,5 +33,3 @@ const DailySummaryBar: Component<DailySummaryBarProps> = (props) => (
 		)}
 	</Show>
 );
-
-export { DailySummaryBar };

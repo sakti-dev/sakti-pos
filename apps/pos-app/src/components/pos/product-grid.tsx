@@ -8,7 +8,7 @@ interface ProductGridProps {
 	products: ProductWithCategory[];
 }
 
-const ProductGrid: Component<ProductGridProps> = (props) => (
+export const ProductGrid: Component<ProductGridProps> = (props) => (
 	<Show
 		fallback={
 			<div class="flex flex-1 flex-col items-center justify-center gap-1 py-12 text-muted-foreground">
@@ -38,5 +38,3 @@ const ProductGrid: Component<ProductGridProps> = (props) => (
 		</div>
 	</Show>
 );
-
-export { ProductGrid };

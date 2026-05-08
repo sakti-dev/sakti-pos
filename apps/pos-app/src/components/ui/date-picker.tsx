@@ -18,7 +18,7 @@ const formatDate = (dateStr: string): string => {
 	return dayjs(dateStr).format("DD MMM YYYY");
 };
 
-const DatePicker: Component<DatePickerProps> = (props) => (
+export const DatePicker: Component<DatePickerProps> = (props) => (
 	<div class={cn("relative", props.class)}>
 		<div class="pointer-events-none flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm">
 			<span class={cn(!props.value && "text-muted-foreground")}>
@@ -36,5 +36,3 @@ const DatePicker: Component<DatePickerProps> = (props) => (
 		/>
 	</div>
 );
-
-export { DatePicker };

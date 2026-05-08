@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "solid-sonner";
 
 type ToasterProps = ComponentProps<typeof Sonner>;
 
-const Toaster: Component<ToasterProps> = (props) => (
+export const Toaster: Component<ToasterProps> = (props) => (
 	<Sonner
 		class="toaster group"
 		toastOptions={{
@@ -21,5 +21,3 @@ const Toaster: Component<ToasterProps> = (props) => (
 		{...props}
 	/>
 );
-
-export { Toaster };
