@@ -17,9 +17,7 @@ import { cn, formatIDR } from "~/lib/utils";
 
 export default function ProductList() {
 	const navigate = useNavigate();
-	const [categories] = createResource(getCategories, {
-		initialValue: undefined,
-	});
+	const [categories] = createResource(getCategories);
 	const [filterCategoryId, setFilterCategoryId] = createSignal<
 		string | undefined
 	>(undefined);
@@ -115,31 +113,33 @@ export default function ProductList() {
 					fallback={
 						<Show
 							fallback={
-								<div class="space-y-2">
-									<For each={[1, 2, 3]}>
-										{() => (
-											<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
-												<div class="flex-1 space-y-2">
-													<Skeleton class="h-4 w-32" />
-													<Skeleton class="h-3 w-20" />
-												</div>
-												<Skeleton class="h-6 w-14" />
-												<Skeleton class="size-9" />
-												<Skeleton class="size-9" />
-											</div>
-										)}
-									</For>
+								<div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+									<p>Belum ada produk</p>
+									<p class="text-sm">
+										Tap "+ Tambah" untuk membuat produk baru
+									</p>
 								</div>
 							}
-							when={products() !== undefined}
+							when={products.loading}
 						>
-							<div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-								<p>Belum ada produk</p>
-								<p class="text-sm">Tap "+ Tambah" untuk membuat produk baru</p>
+							<div class="space-y-2">
+								<For each={[1, 2, 3]}>
+									{() => (
+										<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+											<div class="flex-1 space-y-2">
+												<Skeleton class="h-4 w-32" />
+												<Skeleton class="h-3 w-20" />
+											</div>
+											<Skeleton class="h-6 w-14" />
+											<Skeleton class="size-9" />
+											<Skeleton class="size-9" />
+										</div>
+									)}
+								</For>
 							</div>
 						</Show>
 					}
-					when={products() && products()!.length > 0}
+					when={products()?.length > 0}
 				>
 					<Show
 						fallback={

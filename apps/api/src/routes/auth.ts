@@ -126,7 +126,10 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 			const { token } = await narvik.createSession(user.id);
 			setCookies(set, [createSessionCookie(token)]);
 
-			return { user: { id: user.id, email: user.email, name: user.name } };
+			return {
+				sessionToken: token,
+				user: { id: user.id, email: user.email, name: user.name },
+			};
 		},
 		{
 			body: t.Object({
@@ -160,7 +163,10 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 			const { token } = await narvik.createSession(user.id);
 			setCookies(set, [createSessionCookie(token)]);
 
-			return { user: { id: user.id, email: user.email, name: user.name } };
+			return {
+				sessionToken: token,
+				user: { id: user.id, email: user.email, name: user.name },
+			};
 		},
 		{
 			body: t.Object({

@@ -47,8 +47,8 @@ export const narvik = new Narvik({
 	},
 	cookie: {
 		attributes: {
-			secure: (env.NODE_ENV as string) === "production",
-			sameSite: "lax",
+			secure: false,
+			sameSite: "none",
 			path: "/",
 		},
 	},

@@ -4,9 +4,9 @@ import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Product } from "~/db/menu";
-import { addToCart, clearCart } from "~/lib/cart";
+import { addToCart, clearCart } from "~/store/cart";
 
-vi.mock("~/lib/responsive", () => ({
+vi.mock("~/store/responsive", () => ({
 	useIsPhone: () => () => false,
 }));
 

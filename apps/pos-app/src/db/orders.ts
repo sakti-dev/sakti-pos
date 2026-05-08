@@ -22,7 +22,7 @@ import {
 	currentMerchantId,
 	currentOutletId,
 	currentRegisterId,
-} from "~/lib/outlet";
+} from "~/store/outlet";
 import { db } from "./index";
 import type { Product } from "./menu";
 

@@ -2,8 +2,8 @@ import type { Component } from "solid-js";
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "~/components/ui/drawer";
-import { cartItems, cartTotal } from "~/lib/cart";
 import { cn, formatIDR } from "~/lib/utils";
+import { cartItems, cartTotal } from "~/store/cart";
 
 type PaymentMethod = "cash" | "qris";
 

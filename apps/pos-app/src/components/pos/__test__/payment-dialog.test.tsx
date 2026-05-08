@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { PaymentDialog } from "../payment-dialog";
 
-vi.mock("~/lib/cart", () => ({
+vi.mock("~/store/cart", () => ({
 	cartItems: () => [],
 	cartTotal: () => 20_000,
 }));

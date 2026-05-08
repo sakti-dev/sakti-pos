@@ -1,7 +1,7 @@
 import { categories, orderItems, orders, products } from "@repo/database";
 import dayjs from "dayjs";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
-import { currentOutletId } from "~/lib/outlet";
+import { currentOutletId } from "~/store/outlet";
 import { db } from "./index";
 
 export interface DashboardSummary {

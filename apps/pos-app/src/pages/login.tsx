@@ -6,8 +6,8 @@ import {
 	getActiveStaff,
 	getLastUserId,
 	login,
-} from "~/lib/auth";
-import { useIsLandscape } from "~/lib/responsive";
+} from "~/store/auth";
+import { useIsLandscape } from "~/store/responsive";
 
 const MAX_PIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30_000;
@@ -25,11 +25,20 @@ export default function Login() {
 	onMount(async () => {
 		try {
 			const activeStaff = await getActiveStaff();
+			if (activeStaff.length === 0) {
+				navigate("/cloud-login", { replace: true });
+				return;
+			}
 			setUsers(activeStaff);
-			const lastUserId = getLastUserId();
-			const lastUser = activeStaff.find((u) => u.id === lastUserId);
-			if (lastUser) {
-				setSelectedUser(lastUser);
+
+			if (activeStaff.length === 1) {
+				setSelectedUser(activeStaff[0]);
+			} else {
+				const lastUserId = getLastUserId();
+				const lastUser = activeStaff.find((u) => u.id === lastUserId);
+				if (lastUser) {
+					setSelectedUser(lastUser);
+				}
 			}
 		} catch {
 			setUsers([]);
@@ -152,13 +161,6 @@ export default function Login() {
 							onSubmit={handlePinSubmit}
 						/>
 					</Show>
-					<button
-						class="text-muted-foreground text-sm hover:text-primary"
-						onClick={() => navigate("/cloud-login")}
-						type="button"
-					>
-						Masuk dengan akun cloud →
-					</button>
 				</div>
 			}
 			when={isLandscape() && selectedUser()}
@@ -167,13 +169,6 @@ export default function Login() {
 				<div class="flex flex-col items-center gap-3">
 					<h1 class="font-bold text-2xl">Sakti POS</h1>
 					{leftPanel}
-					<button
-						class="text-muted-foreground text-sm hover:text-primary"
-						onClick={() => navigate("/cloud-login")}
-						type="button"
-					>
-						Masuk dengan akun cloud →
-					</button>
 				</div>
 				<PinPad
 					disabled={pinDisabled() || loading()}

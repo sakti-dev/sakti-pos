@@ -10,7 +10,7 @@ import {
 	getProduct,
 	updateProduct,
 } from "~/db/menu";
-import { currentMerchantId } from "~/lib/outlet";
+import { currentMerchantId } from "~/store/outlet";
 
 export default function ProductForm() {
 	const params = useParams();

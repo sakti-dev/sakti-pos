@@ -23,9 +23,9 @@ import {
 	type OrderItemRow,
 	type OrderRow,
 } from "~/db/orders";
-import { currentUserRole } from "~/lib/auth";
-import { useIsPhone } from "~/lib/responsive";
 import { cn } from "~/lib/utils";
+import { currentUserRole } from "~/store/auth";
+import { useIsPhone } from "~/store/responsive";
 
 const statusOptions: SelectOption[] = [
 	{ label: "Semua", value: "" },
@@ -75,7 +75,7 @@ export default function OrderHistory() {
 
 	const canCancel = () => {
 		const role = currentUserRole();
-		return role === "manager";
+		return role === "manager" || role === "owner";
 	};
 
 	const handleCancel = async () => {

@@ -1,11 +1,12 @@
 import { clsx } from "clsx";
-import { createSignal, For } from "solid-js";
+import { createEffect, createSignal, For } from "solid-js";
 import { Button } from "./button";
 
 interface PinPadProps {
 	disabled?: boolean;
 	maxLength?: number;
 	onSubmit: (pin: string) => void;
+	resetTrigger?: unknown;
 }
 
 const KEYS = [
@@ -28,6 +29,11 @@ export default function PinPad(props: PinPadProps) {
 	const maxLen = () => props.maxLength ?? 6;
 	const isComplete = () => pin().length >= maxLen();
 	const dots = () => Array.from({ length: maxLen() }, (_, i) => i);
+
+	createEffect(() => {
+		props.resetTrigger;
+		setPin("");
+	});
 
 	const handleKey = (key: string) => {
 		if (props.disabled) {

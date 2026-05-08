@@ -1,7 +1,7 @@
 import { categories, outletProducts, products } from "@repo/database";
 import dayjs from "dayjs";
 import { and, eq, isNull } from "drizzle-orm";
-import { currentMerchantId, currentOutletId } from "~/lib/outlet";
+import { currentMerchantId, currentOutletId } from "~/store/outlet";
 import { db } from "./index";
 
 export type Category = typeof categories.$inferSelect;

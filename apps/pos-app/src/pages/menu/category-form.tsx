@@ -4,7 +4,7 @@ import { createResource, createSignal, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { createCategory, getCategory, updateCategory } from "~/db/menu";
-import { currentMerchantId } from "~/lib/outlet";
+import { currentMerchantId } from "~/store/outlet";
 
 export default function CategoryForm() {
 	const params = useParams();

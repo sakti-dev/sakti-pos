@@ -4,14 +4,18 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "wrangler dev",
+		"db:dev": "mkdir -p .turso && turso dev --port 8080 --db-file ./.turso/local.db",
+		"dev": "bun run db:dev & sleep 2 && wrangler dev; kill %1 2>/dev/null",
 		"deploy": "wrangler deploy",
 		"cf-typegen": "wrangler types",
 		"lint": "ultracite check",
 		"check-types": "tsc --noEmit",
-		"test": "bun test"
+		"test": "bun test",
+		"db:push": "drizzle-kit push",
+		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
+		"@elysiajs/cors": "^1.4.2",
 		"@libsql/client": "^0.17.3",
 		"@repo/database": "*",
 		"arctic": "^3.6.0",

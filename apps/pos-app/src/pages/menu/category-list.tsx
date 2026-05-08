@@ -16,9 +16,7 @@ import { cn } from "~/lib/utils";
 
 export default function CategoryList() {
 	const navigate = useNavigate();
-	const [categories, { refetch }] = createResource(getCategories, {
-		initialValue: undefined,
-	});
+	const [categories, { refetch }] = createResource(getCategories);
 	const [deleteTarget, setDeleteTarget] = createSignal<Category | undefined>();
 	const [deleteMessage, setDeleteMessage] = createSignal("");
 	const [error, setError] = createSignal("");
@@ -89,30 +87,30 @@ export default function CategoryList() {
 					fallback={
 						<Show
 							fallback={
-								<div class="space-y-2">
-									<For each={[1, 2, 3]}>
-										{() => (
-											<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
-												<Skeleton class="h-4 flex-1" />
-												<Skeleton class="h-6 w-14" />
-												<Skeleton class="size-9" />
-												<Skeleton class="size-9" />
-											</div>
-										)}
-									</For>
+								<div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+									<p>Belum ada kategori</p>
+									<p class="text-sm">
+										Tap "+ Tambah" untuk membuat kategori baru
+									</p>
 								</div>
 							}
-							when={categories() !== undefined}
+							when={categories.loading}
 						>
-							<div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-								<p>Belum ada kategori</p>
-								<p class="text-sm">
-									Tap "+ Tambah" untuk membuat kategori baru
-								</p>
+							<div class="space-y-2">
+								<For each={[1, 2, 3]}>
+									{() => (
+										<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+											<Skeleton class="h-4 flex-1" />
+											<Skeleton class="h-6 w-14" />
+											<Skeleton class="size-9" />
+											<Skeleton class="size-9" />
+										</div>
+									)}
+								</For>
 							</div>
 						</Show>
 					}
-					when={categories() && categories()!.length > 0}
+					when={categories()?.length > 0}
 				>
 					<div class="space-y-2">
 						<For each={categories()}>

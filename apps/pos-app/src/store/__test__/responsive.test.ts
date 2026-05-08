@@ -26,7 +26,7 @@ describe("responsive", () => {
 				writable: true,
 			});
 
-			const { useIsPhone } = await import("~/lib/responsive");
+			const { useIsPhone } = await import("~/store/responsive");
 			const isPhone = useIsPhone();
 			expect(typeof isPhone).toBe("function");
 
@@ -45,7 +45,7 @@ describe("responsive", () => {
 				writable: true,
 			});
 
-			const { useIsPhone } = await import("~/lib/responsive");
+			const { useIsPhone } = await import("~/store/responsive");
 			const isPhone = useIsPhone();
 			expect(typeof isPhone).toBe("function");
 
@@ -67,7 +67,7 @@ describe("responsive", () => {
 			window.innerWidth = 400;
 			window.innerHeight = 300;
 
-			const { useIsPhone } = await import("~/lib/responsive");
+			const { useIsPhone } = await import("~/store/responsive");
 			const isPhone = useIsPhone();
 			expect(typeof isPhone).toBe("function");
 
@@ -81,7 +81,7 @@ describe("responsive", () => {
 
 	describe("useIsLandscape", () => {
 		test("returns a signal function", async () => {
-			const { useIsLandscape } = await import("~/lib/responsive");
+			const { useIsLandscape } = await import("~/store/responsive");
 			const landscape = useIsLandscape();
 			expect(typeof landscape).toBe("function");
 		});
@@ -90,7 +90,7 @@ describe("responsive", () => {
 			window.innerWidth = 1024;
 			window.innerHeight = 768;
 
-			const { useIsLandscape } = await import("~/lib/responsive");
+			const { useIsLandscape } = await import("~/store/responsive");
 			const landscape = useIsLandscape();
 			expect(typeof landscape).toBe("function");
 

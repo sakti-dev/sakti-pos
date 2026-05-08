@@ -133,19 +133,35 @@ describe("POST /api/merchants/:merchantId/outlets", () => {
 		}));
 
 		const now = new Date().toISOString();
-		mockInsert.mockReturnValue({
+		let insertCallCount = 0;
+		mockInsert.mockImplementation(() => ({
 			values: vi.fn().mockReturnValue({
-				returning: vi.fn().mockResolvedValue([
-					{
-						id: "outlet-1",
-						merchantId: "merchant-1",
-						name: "Test Outlet",
-						createdAt: now,
-						updatedAt: now,
-					},
-				]),
+				returning: vi.fn().mockImplementation(async () => {
+					insertCallCount++;
+					if (insertCallCount === 1) {
+						return [
+							{
+								id: "outlet-1",
+								merchantId: "merchant-1",
+								name: "Test Outlet",
+								createdAt: now,
+								updatedAt: now,
+							},
+						];
+					}
+					return [
+						{
+							id: "register-1",
+							outletId: "outlet-1",
+							name: "Register 1",
+							shortId: "ABC123",
+							createdAt: now,
+							updatedAt: now,
+						},
+					];
+				}),
 			}),
-		});
+		}));
 
 		const { json, status } = await makeRequest(
 			"/api/merchants/merchant-1/outlets",
@@ -158,6 +174,11 @@ describe("POST /api/merchants/:merchantId/outlets", () => {
 
 		expect(status).toBe(200);
 		expect((json as Record<string, unknown>).name).toBe("Test Outlet");
+		expect(mockInsert).toHaveBeenCalledTimes(2);
+		expect(
+			((json as Record<string, unknown>).register as Record<string, unknown>)
+				.name,
+		).toBe("Register 1");
 	});
 });
 

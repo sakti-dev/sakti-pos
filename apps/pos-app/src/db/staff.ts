@@ -1,7 +1,7 @@
 import { staff } from "@repo/database";
 import dayjs from "dayjs";
-import { count, eq } from "drizzle-orm";
-import { currentMerchantId } from "~/lib/outlet";
+import { and, count, eq, inArray } from "drizzle-orm";
+import { currentMerchantId } from "~/store/outlet";
 import { db } from "./index";
 
 export type StaffMember = typeof staff.$inferSelect;
@@ -43,12 +43,15 @@ export async function updateStaffMember(
 
 export async function countActiveManagers(): Promise<number> {
 	const merchantId = currentMerchantId();
-	const conditions = [eq(staff.role, "manager"), eq(staff.isActive, true)];
+	const conditions = [
+		inArray(staff.role, ["manager", "owner"]),
+		eq(staff.isActive, true),
+	];
 	if (merchantId) conditions.push(eq(staff.merchantId, merchantId));
 
 	const [row] = await db
 		.select({ count: count() })
 		.from(staff)
-		.where(eq(staff.role, "manager"));
+		.where(and(...conditions));
 	return row?.count ?? 0;
 }

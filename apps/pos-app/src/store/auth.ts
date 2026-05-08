@@ -2,9 +2,10 @@ import { staff } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { createSignal } from "solid-js";
 import { db } from "~/db";
-import type { AuthUser } from "./auth-provider";
-import { changePin, verifyPin } from "./auth-provider";
+import type { AuthUser } from "~/lib/auth-provider";
+import { changePin, verifyPin } from "~/lib/auth-provider";
 
+export type { StaffRole } from "~/lib/auth-provider";
 export type { AuthUser };
 
 const LAST_USER_KEY = "sakti-pos:last-staff-id";

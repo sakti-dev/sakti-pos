@@ -2,18 +2,25 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
 let mockOutletId: string | null = "outlet-1";
+let mockToken: string | null = "test-session-token";
 
 vi.mock("@tauri-apps/api/core", () => ({
 	invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 
-vi.mock("~/lib/outlet", () => ({
+vi.mock("~/store/outlet", () => ({
 	currentOutletId: () => mockOutletId,
 }));
 
-vi.mock("~/lib/sync", async () => {
+vi.mock("~/lib/auth-storage", () => ({
+	AuthStorage: {
+		getToken: () => Promise.resolve(mockToken),
+	},
+}));
+
+vi.mock("~/store/sync", async () => {
 	const actual =
-		await vi.importActual<typeof import("~/lib/sync")>("~/lib/sync");
+		await vi.importActual<typeof import("~/store/sync")>("~/store/sync");
 	return {
 		...actual,
 	};
@@ -26,13 +33,13 @@ const {
 	lastSyncTime,
 	startSyncScheduler,
 	stopSyncScheduler,
-} = await import("~/lib/sync");
+} = await import("~/store/sync");
 
 describe("syncNow", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockOutletId = "outlet-1";
-		document.cookie = "narvik_session=test-session-token";
+		mockToken = "test-session-token";
 	});
 
 	test("returns empty result when no outletId", async () => {
@@ -47,8 +54,8 @@ describe("syncNow", () => {
 		expect(mockInvoke).not.toHaveBeenCalled();
 	});
 
-	test("throws when no session cookie", async () => {
-		document.cookie = "narvik_session=; Max-Age=0";
+	test("throws when no session token", async () => {
+		mockToken = null;
 
 		await expect(syncNow()).rejects.toThrow(
 			"Sesi tidak ditemukan. Silakan login ulang.",
@@ -56,7 +63,7 @@ describe("syncNow", () => {
 		expect(mockInvoke).not.toHaveBeenCalled();
 	});
 
-	test("calls invoke with correct params including sessionCookie", async () => {
+	test("calls invoke with correct params including sessionToken", async () => {
 		const syncResult = {
 			pull: { rows_received: 5, server_time: "2025-01-01T00:00:00.000Z" },
 			push: {
@@ -72,9 +79,54 @@ describe("syncNow", () => {
 
 		expect(mockInvoke).toHaveBeenCalledWith("sync_now", {
 			outletId: "outlet-1",
-			apiUrl: "http://localhost:3001",
-			sessionCookie: "narvik_session=test-session-token",
+			apiUrl: expect.any(String),
+			sessionToken: "test-session-token",
 		});
+		expect(result).toEqual(syncResult);
+		expect(syncStatus()).toBe("idle");
+		expect(lastSyncTime()).toBe("2025-01-01T00:00:00.000Z");
+	});
+
+	test("returns empty result when no outletId", async () => {
+		mockOutletId = null;
+
+		const result = await syncNow();
+		expect(result).toEqual({
+			pull: { rows_received: 0, server_time: "" },
+			push: { tables_synced: [], server_wins_count: 0, server_time: "" },
+			purged: 0,
+		});
+		expect(mockInvoke).not.toHaveBeenCalled();
+	});
+
+	test("throws when no session token", async () => {
+		mockToken = null;
+
+		await expect(syncNow()).rejects.toThrow(
+			"Sesi tidak ditemukan. Silakan login ulang.",
+		);
+		expect(mockInvoke).not.toHaveBeenCalled();
+	});
+
+	test("calls invoke with correct params including sessionToken", async () => {
+		const syncResult = {
+			pull: { rows_received: 5, server_time: "2025-01-01T00:00:00.000Z" },
+			push: {
+				tables_synced: ["categories", "products"],
+				server_wins_count: 0,
+				server_time: "2025-01-01T00:00:00.000Z",
+			},
+			purged: 1,
+		};
+		mockInvoke.mockResolvedValue(syncResult);
+
+		const result = await syncNow();
+
+		const call = mockInvoke.mock.calls[0];
+		expect(call[0]).toBe("sync_now");
+		expect(call[1].outletId).toBe("outlet-1");
+		expect(call[1].sessionToken).toBe("test-session-token");
+		expect(call[1].apiUrl).toContain("://");
 		expect(result).toEqual(syncResult);
 		expect(syncStatus()).toBe("idle");
 		expect(lastSyncTime()).toBe("2025-01-01T00:00:00.000Z");
@@ -92,7 +144,7 @@ describe("runStartupSync", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockOutletId = "outlet-1";
-		document.cookie = "narvik_session=test-session-token";
+		mockToken = "test-session-token";
 	});
 
 	test("does nothing when no outletId", async () => {
@@ -102,8 +154,22 @@ describe("runStartupSync", () => {
 		expect(mockInvoke).not.toHaveBeenCalled();
 	});
 
-	test("does nothing when no session cookie", async () => {
-		document.cookie = "narvik_session=; Max-Age=0";
+	test("does nothing when no session token", async () => {
+		mockToken = null;
+
+		await runStartupSync();
+		expect(mockInvoke).not.toHaveBeenCalled();
+	});
+
+	test("does nothing when no outletId", async () => {
+		mockOutletId = null;
+
+		await runStartupSync();
+		expect(mockInvoke).not.toHaveBeenCalled();
+	});
+
+	test("does nothing when no session token", async () => {
+		mockToken = null;
 
 		await runStartupSync();
 		expect(mockInvoke).not.toHaveBeenCalled();
@@ -133,7 +199,7 @@ describe("startSyncScheduler / stopSyncScheduler", () => {
 		vi.clearAllMocks();
 		vi.useFakeTimers();
 		mockOutletId = "outlet-1";
-		document.cookie = "narvik_session=test-session-token";
+		mockToken = "test-session-token";
 		mockInvoke.mockResolvedValue({
 			pull: { rows_received: 0, server_time: "" },
 			push: { tables_synced: [], server_wins_count: 0, server_time: "" },

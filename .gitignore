@@ -39,8 +39,10 @@ bun-debug.log*
 .direnv
 log.txt
 
+# Vercel
+.vercel
+
 # External docs (reference material, not tracked)
 docs/external/
 
-# Vercel
-.vercel
+.turso

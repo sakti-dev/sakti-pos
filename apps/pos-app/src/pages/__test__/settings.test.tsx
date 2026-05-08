@@ -20,7 +20,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 	),
 }));
 
-vi.mock("~/lib/auth", () => ({
+vi.mock("~/store/auth", () => ({
 	currentUser: vi.fn(() => ({ id: 1, name: "Admin", role: "owner" })),
 	currentUserRole: vi.fn(() => "owner"),
 	logout: (...args: unknown[]) => mockLogout(...args),
@@ -28,7 +28,7 @@ vi.mock("~/lib/auth", () => ({
 		mockChangeCurrentUserPin(...args),
 }));
 
-vi.mock("~/lib/theme", () => ({
+vi.mock("~/store/theme", () => ({
 	theme: vi.fn(() => "system"),
 	setTheme: (...args: unknown[]) => mockSetTheme(...args),
 }));

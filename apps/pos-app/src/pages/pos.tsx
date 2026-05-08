@@ -4,6 +4,7 @@ import { toast } from "solid-sonner";
 import { AppShell } from "~/components/layout";
 import { CartPanel, CartSidebar } from "~/components/pos/cart-panel";
 import { CategoryTabs } from "~/components/pos/category-tabs";
+import OutletSelector from "~/components/pos/outlet-selector";
 import { PaymentDialog } from "~/components/pos/payment-dialog";
 import { ProductGrid } from "~/components/pos/product-grid";
 import { TextField, TextFieldInput } from "~/components/ui/text-field";
@@ -12,14 +13,18 @@ import {
 	getActiveProductsByCategory,
 	type ProductWithCategory,
 } from "~/db/orders";
-import { currentUser } from "~/lib/auth";
-import { cartItems, cartTotal, clearCart } from "~/lib/cart";
-import { useIsPhone } from "~/lib/responsive";
+import { getAllOutlets } from "~/db/outlets";
 import { cn } from "~/lib/utils";
+import { currentUser, currentUserRole } from "~/store/auth";
+import { cartItems, cartTotal, clearCart } from "~/store/cart";
+import { setCurrentOutletId } from "~/store/outlet";
+import { useIsPhone } from "~/store/responsive";
 
 export default function POS() {
 	const isPhone = useIsPhone();
 	const [groupedData] = createResource(getActiveProductsByCategory);
+	const [outletsData] = createResource(getAllOutlets);
+	const role = currentUserRole();
 	const [selectedCategory, setSelectedCategory] = createSignal<string | null>(
 		null,
 	);
@@ -107,6 +112,19 @@ export default function POS() {
 				title="Kasir"
 				topbarSuffix={
 					<div class="hidden items-center landscape:flex">
+						<Show
+							when={(role === "manager" || role === "owner") && outletsData()}
+						>
+							{(() => {
+								const outlets = outletsData() as { id: string; name: string }[];
+								return (
+									<OutletSelector
+										outlets={outlets}
+										onChange={(id) => setCurrentOutletId(id)}
+									/>
+								);
+							})()}
+						</Show>
 						<TextField class="gap-0" onChange={setSearch} value={search()}>
 							<div class="relative flex items-center">
 								<TbOutlineSearch class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />

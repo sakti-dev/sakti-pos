@@ -89,7 +89,7 @@ export const staff = sqliteTable("staff", {
 	outletId: text("outlet_id").references(() => outlets.id),
 	name: text("name").notNull(),
 	pin: text("pin"),
-	role: text("role", { enum: ["cashier", "manager"] }).notNull(),
+	role: text("role", { enum: ["cashier", "manager", "owner"] }).notNull(),
 	isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 	createdAt: text("created_at").notNull(),
 	updatedAt: text("updated_at").notNull(),

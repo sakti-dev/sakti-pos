@@ -1,14 +1,19 @@
 import { useNavigate } from "@solidjs/router";
 import { createSignal, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
+import PinPad from "~/components/ui/pinpad";
+import { createStaffMember } from "~/db/staff";
+import { hashPin } from "~/lib/auth-provider";
 import {
 	ApiError,
 	createMerchant,
 	createOutlet,
 	type Merchant,
 } from "~/lib/cloud-auth";
+import { login } from "~/store/auth";
+import { setOutletContext } from "~/store/outlet";
 
-type Step = "merchant" | "outlet";
+type Step = "merchant" | "outlet" | "setup-pin";
 
 export default function Onboarding() {
 	const navigate = useNavigate();
@@ -21,6 +26,7 @@ export default function Onboarding() {
 	const [createdMerchant, setCreatedMerchant] = createSignal<Merchant | null>(
 		null,
 	);
+	const [pin, setPin] = createSignal("");
 
 	const handleCreateMerchant = async (e: Event) => {
 		e.preventDefault();
@@ -46,18 +52,20 @@ export default function Onboarding() {
 
 	const handleCreateOutlet = async (e: Event) => {
 		e.preventDefault();
-		if (!outletName().trim() || !createdMerchant()) return;
+		const merchant = createdMerchant();
+		if (!merchant) return;
 
 		setError("");
 		setLoading(true);
 
 		try {
-			await createOutlet(
-				createdMerchant()!.id,
+			const result = await createOutlet(
+				merchant.id,
 				outletName().trim(),
 				outletAddress().trim() || undefined,
 			);
-			navigate("/device-pair", { replace: true });
+			setOutletContext(result.id, result.merchantId, result.register?.id);
+			setStep("setup-pin");
 		} catch (err) {
 			if (err instanceof ApiError) {
 				setError(err.message);
@@ -69,12 +77,55 @@ export default function Onboarding() {
 		}
 	};
 
+	const handlePinSubmit = async (enteredPin: string) => {
+		if (pin().length === 0) {
+			setPin(enteredPin);
+			return;
+		}
+
+		if (pin() !== enteredPin) {
+			setError("PIN tidak cocok");
+			setPin("");
+			return;
+		}
+
+		const merchant = createdMerchant();
+		if (!merchant) return;
+
+		setError("");
+		setLoading(true);
+
+		try {
+			const hashedPin = await hashPin(pin());
+			const staffRecord = await createStaffMember({
+				merchantId: merchant.id,
+				name: merchant.name,
+				role: "owner",
+				pin: hashedPin,
+			});
+			await login(staffRecord.id, pin());
+			navigate("/pos", { replace: true });
+		} catch (err) {
+			console.error("[auth] onboarding PIN setup failed:", err);
+			setError("Gagal membuat PIN");
+			setPin("");
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	return (
 		<div class="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
 			<div class="w-full max-w-sm text-center">
 				<h1 class="font-bold text-3xl">Sakti POS</h1>
 				<p class="mt-1 text-muted-foreground text-sm">
-					{step() === "merchant" ? "Buat bisnis Anda" : "Buat outlet pertama"}
+					{step() === "merchant"
+						? "Buat bisnis Anda"
+						: step() === "outlet"
+							? "Buat outlet pertama"
+							: pin().length === 0
+								? "Buat PIN"
+								: "Konfirmasi PIN"}
 				</p>
 			</div>
 
@@ -184,6 +235,29 @@ export default function Onboarding() {
 						</button>
 					</div>
 				</form>
+			</Show>
+
+			<Show when={step() === "setup-pin"}>
+				<div class="flex w-full max-w-sm flex-col items-center gap-4">
+					<Show when={error()}>
+						<div class="rounded-lg bg-destructive/10 px-3 py-2 text-destructive text-sm">
+							{error()}
+						</div>
+					</Show>
+
+					<p class="text-center text-sm">
+						{pin().length === 0
+							? "Masukkan PIN 6 digit Anda"
+							: "Masukkan ulang PIN untuk konfirmasi"}
+					</p>
+
+					<PinPad
+						disabled={loading()}
+						maxLength={6}
+						onSubmit={handlePinSubmit}
+						resetTrigger={pin().length > 0 ? "confirm" : "first"}
+					/>
+				</div>
 			</Show>
 		</div>
 	);

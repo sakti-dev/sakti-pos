@@ -1,3 +1,4 @@
+import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
 import { authRoutes } from "./routes/auth";
@@ -6,44 +7,33 @@ import { outletsRoutes } from "./routes/outlets";
 import { registersRoutes } from "./routes/registers";
 import { syncRoutes } from "./routes/sync";
 
-const ALLOWED_ORIGINS = [
-	"http://localhost:1420",
-	"http://localhost:5173",
-	"http://localhost:4173",
-	"http://127.0.0.1:1420",
-	"http://127.0.0.1:5173",
-	"http://127.0.0.1:4173",
-	"tauri://localhost",
-	"https://tauri.localhost",
-];
-
-function corsHeaders(
-	request: Request,
-	set: { headers: Record<string, unknown> },
-) {
-	const origin = request.headers.get("origin") ?? "";
-	const allowed = ALLOWED_ORIGINS.includes(origin);
-
-	if (allowed) {
-		set.headers["Access-Control-Allow-Origin"] = origin;
-	}
-
-	set.headers["Access-Control-Allow-Methods"] =
-		"GET, POST, PUT, DELETE, OPTIONS";
-	set.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
-	set.headers["Access-Control-Allow-Credentials"] = "true";
-	set.headers["Access-Control-Max-Age"] = "86400";
-}
-
-const cors = new Elysia({ name: "cors" })
-	.onBeforeHandle(({ request, set }) => corsHeaders(request, set))
-	.options("/*", ({ request, set }) => {
-		corsHeaders(request, set);
-		return new Response(null, { status: 204 });
-	});
-
 export default new Elysia({ adapter: CloudflareAdapter })
-	.use(cors)
+	.use(
+		cors({
+			origin: true,
+			credentials: true,
+			methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+			allowedHeaders: ["Content-Type", "Authorization"],
+			maxAge: 86400,
+		}),
+	)
+	.onRequest(({ request }) => {
+		console.log(
+			`[${new Date().toISOString()}] ${request.method} ${request.url} origin=${request.headers.get("origin") ?? "none"}`,
+		);
+	})
+	.onAfterResponse(({ request, set }) => {
+		console.log(
+			`[${new Date().toISOString()}] ${request.method} ${new URL(request.url).pathname} -> ${set.status}`,
+		);
+	})
+	.onError(({ code, error, request }) => {
+		console.error(
+			`[${new Date().toISOString()}] ERROR ${request.method} ${new URL(request.url).pathname} code=${code}`,
+			error.message,
+			error.stack,
+		);
+	})
 	.use(authRoutes)
 	.use(merchantsRoutes)
 	.use(outletsRoutes)

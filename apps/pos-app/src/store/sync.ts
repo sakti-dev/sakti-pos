@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createSignal } from "solid-js";
+import { AuthStorage } from "~/lib/auth-storage";
 import { currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";
@@ -12,11 +13,6 @@ export { lastSyncTime, syncStatus };
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 let syncInterval: ReturnType<typeof setInterval> | null = null;
-
-function getSessionCookie(): string {
-	const match = document.cookie.match(/(?:^|;\s*)narvik_session=([^;]*)/);
-	return match?.[1] ? `narvik_session=${match[1]}` : "";
-}
 
 export function startSyncScheduler() {
 	if (syncInterval) return;
@@ -52,8 +48,8 @@ export async function syncNow(): Promise<SyncNowResult> {
 		};
 	}
 
-	const sessionCookie = getSessionCookie();
-	if (!sessionCookie) {
+	const sessionToken = await AuthStorage.getToken();
+	if (!sessionToken) {
 		throw new Error("Sesi tidak ditemukan. Silakan login ulang.");
 	}
 
@@ -62,7 +58,7 @@ export async function syncNow(): Promise<SyncNowResult> {
 		const result = await invoke<SyncNowResult>("sync_now", {
 			apiUrl: API_URL,
 			outletId,
-			sessionCookie,
+			sessionToken,
 		});
 
 		setLastSyncTime(result.pull.server_time);
@@ -78,15 +74,15 @@ export async function runStartupSync(): Promise<void> {
 	const outletId = currentOutletId();
 	if (!outletId) return;
 
-	const sessionCookie = getSessionCookie();
-	if (!sessionCookie) return;
+	const sessionToken = await AuthStorage.getToken();
+	if (!sessionToken) return;
 
 	setSyncStatus("syncing");
 	try {
 		await invoke<SyncNowResult>("sync_now", {
 			apiUrl: API_URL,
 			outletId,
-			sessionCookie,
+			sessionToken,
 		});
 		setSyncStatus("idle");
 	} catch {

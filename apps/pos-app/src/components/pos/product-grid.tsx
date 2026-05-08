@@ -1,8 +1,8 @@
 import type { Component } from "solid-js";
 import { For, Show } from "solid-js";
 import type { ProductWithCategory } from "~/db/orders";
-import { addToCart } from "~/lib/cart";
 import { formatIDR } from "~/lib/utils";
+import { addToCart } from "~/store/cart";
 
 interface ProductGridProps {
 	products: ProductWithCategory[];

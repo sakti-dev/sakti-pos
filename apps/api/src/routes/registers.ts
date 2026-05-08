@@ -5,7 +5,12 @@ import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
 
 function generatePairingCode(): string {
-	return String(Math.floor(100000 + Math.random() * 900000));
+	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+	let code = "";
+	for (let i = 0; i < 8; i++) {
+		code += chars[Math.floor(Math.random() * chars.length)];
+	}
+	return code;
 }
 
 function generateShortId(): string {
@@ -130,7 +135,11 @@ export const registersRoutes = new Elysia({ prefix: "/api" })
 		},
 		{
 			body: t.Object({
-				pairingCode: t.String({ minLength: 6, maxLength: 6 }),
+				pairingCode: t.String({
+					minLength: 8,
+					maxLength: 8,
+					pattern: "^[A-Z0-9]{8}$",
+				}),
 			}),
 		},
 	)

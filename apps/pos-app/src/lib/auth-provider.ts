@@ -1,13 +1,15 @@
 import { staff } from "@repo/database";
 import bcrypt from "bcryptjs";
 import dayjs from "dayjs";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "~/db";
+
+export type StaffRole = "cashier" | "manager" | "owner";
 
 export interface AuthUser {
 	id: string;
 	name: string;
-	role: "cashier" | "manager";
+	role: StaffRole;
 }
 
 interface AuthProvider {
@@ -69,15 +71,3 @@ export const verifyPin = (staffId: string, pin: string) =>
 export const hashPin = (pin: string) => provider.hashPin(pin);
 export const changePin = (staffId: string, newPin: string) =>
 	provider.changePin(staffId, newPin);
-
-export async function seedDefaultManager() {
-	const hashedPin = await hashPin("123456");
-	const now = dayjs().toISOString();
-	try {
-		await db.run(
-			sql`INSERT OR IGNORE INTO staff (id, name, pin, role, merchant_id, is_active, is_synced, created_at, updated_at) VALUES (${"default-manager"}, ${"Manager"}, ${hashedPin}, ${"manager"}, ${""}, ${1}, ${0}, ${now}, ${now})`,
-		);
-	} catch (err) {
-		throw new Error(`Failed to seed default manager: ${String(err)}`);
-	}
-}

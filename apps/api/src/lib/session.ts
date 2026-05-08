@@ -1,9 +1,19 @@
 import type { Session } from "narvik";
 import { narvik } from "./auth";
 
+export function getBearerToken(request: Request): string | null {
+	const authHeader = request.headers.get("authorization");
+	if (!authHeader?.startsWith("Bearer ")) return null;
+	return authHeader.slice(7);
+}
+
 export async function getSessionFromRequest(
 	request: Request,
 ): Promise<Session | null> {
+	const bearerToken = getBearerToken(request);
+	if (bearerToken) {
+		return narvik.validateSession(bearerToken);
+	}
 	const token = getCookie(request, narvik.cookieName);
 	if (!token) return null;
 	return narvik.validateSession(token);

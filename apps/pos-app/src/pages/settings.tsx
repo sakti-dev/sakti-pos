@@ -17,12 +17,12 @@ import {
 	DrawerPortal,
 	DrawerTitle,
 } from "~/components/ui/drawer";
-import { changeCurrentUserPin, currentUser, logout } from "~/lib/auth";
 import { logout as cloudLogout, getSession } from "~/lib/cloud-auth";
-import { clearOutletContext, currentOutletId } from "~/lib/outlet";
-import { syncNow, syncStatus } from "~/lib/sync";
-import { setTheme, theme } from "~/lib/theme";
 import { cn } from "~/lib/utils";
+import { changeCurrentUserPin, currentUser, logout } from "~/store/auth";
+import { clearOutletContext, currentOutletId } from "~/store/outlet";
+import { syncNow, syncStatus } from "~/store/sync";
+import { setTheme, theme } from "~/store/theme";
 
 interface DbInfo {
 	db_path: string;
@@ -133,7 +133,7 @@ export default function Settings() {
 								onClick={() => setShowDisconnectConfirm(true)}
 								type="button"
 							>
-								<span class="text-sm text-destructive">Putuskan Koneksi</span>
+								<span class="text-sm text-destructive">Lepaskan Perangkat</span>
 								<TbOutlineCloudOff class="size-5 text-destructive" />
 							</button>
 						</div>
@@ -205,7 +205,7 @@ export default function Settings() {
 								{dbInfo()?.size_formatted ?? "Memuat..."}
 							</span>
 						</div>
-						<Show when={user?.role === "manager"}>
+						<Show when={user?.role === "manager" || user?.role === "owner"}>
 							<div class="flex items-center justify-between p-4">
 								<span>Akses</span>
 								<span class="text-muted-foreground text-sm">Owner</span>
@@ -224,12 +224,12 @@ export default function Settings() {
 			</div>
 
 			<ConfirmDrawer
-				confirmLabel="Putuskan"
-				message="Data lokal akan tetap tersimpan, namun sinkronisasi akan berhenti."
+				confirmLabel="Lepaskan"
+				message="Perangkat akan dilepas dari outlet ini. Anda perlu login ulang dengan akun cloud atau memasangkan ulang perangkat."
 				onClose={() => setShowDisconnectConfirm(false)}
 				onConfirm={handleDisconnect}
 				open={showDisconnectConfirm()}
-				title="Putuskan Koneksi Cloud"
+				title="Lepaskan Perangkat"
 				variant="destructive"
 			/>
 

@@ -1,0 +1,5 @@
+{
+	"files.exclude": {
+		"apps/api/worker-configuration.d.ts": true
+	}
+}

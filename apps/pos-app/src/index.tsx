@@ -1,43 +1,37 @@
 /* @refresh reload */
-import Database from "@tauri-apps/plugin-sql";
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
-import { seedDefaultManager } from "./lib/auth-provider";
-import { loadOutletContext } from "./lib/outlet";
-import { runStartupSync } from "./lib/sync";
+import { loadOutletContext } from "./store/outlet";
+import { runStartupSync } from "./store/sync";
 import "./index.css";
 import App from "./App";
 
-const root = document.getElementById("root");
+loadOutletContext();
+
 const [booted, setBooted] = createSignal(false);
 const [bootError, setBootError] = createSignal<string | null>(null);
 
 async function bootstrap() {
-	if (!root) {
-		throw new Error("Root element not found");
-	}
-
 	try {
-		await Database.load("sqlite:sakti-pos.db");
-		await seedDefaultManager();
-		loadOutletContext();
-		const syncPromise = runStartupSync();
-		const timeout = new Promise((r) => setTimeout(r, 5000));
-		await Promise.race([syncPromise, timeout]);
-		setBooted(true);
+		await Promise.race([
+			runStartupSync(),
+			new Promise((r) => setTimeout(r, 5000)),
+		]);
 	} catch (err) {
 		setBootError(String(err));
+	} finally {
+		setBooted(true);
 	}
 }
 
 function Root() {
 	return (
-		<Show fallback={<App />} when={!booted() && !bootError()}>
+		<Show when={booted() || bootError()} fallback={<BootSplash />}>
 			<Show
-				fallback={<BootstrapError error={bootError()!} />}
 				when={!bootError()}
+				fallback={<BootstrapError error={bootError()!} />}
 			>
-				<BootSplash />
+				<App />
 			</Show>
 		</Show>
 	);
@@ -78,5 +72,6 @@ function BootstrapError(props: { error: string }) {
 	);
 }
 
+const root = document.getElementById("root");
 render(() => <Root />, root!);
 bootstrap();

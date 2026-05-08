@@ -35,12 +35,12 @@ describe("auth", () => {
 
 	describe("getLastUserId / setLastUserId", () => {
 		test("returns null when no stored value", async () => {
-			const { getLastUserId } = await import("~/lib/auth");
+			const { getLastUserId } = await import("~/store/auth");
 			expect(getLastUserId()).toBeNull();
 		});
 
 		test("returns stored staff id", async () => {
-			const { getLastUserId, setLastUserId } = await import("~/lib/auth");
+			const { getLastUserId, setLastUserId } = await import("~/store/auth");
 			setLastUserId("staff-42");
 			expect(getLastUserId()).toBe("staff-42");
 		});
@@ -49,7 +49,7 @@ describe("auth", () => {
 	describe("isAuthenticated / currentUser / currentUserRole", () => {
 		test("returns false when no user", async () => {
 			mockUser.mockReturnValue(null);
-			const { isAuthenticated } = await import("~/lib/auth");
+			const { isAuthenticated } = await import("~/store/auth");
 			expect(isAuthenticated()).toBe(false);
 		});
 
@@ -59,14 +59,14 @@ describe("auth", () => {
 				name: "Manager",
 				role: "manager",
 			});
-			const { isAuthenticated } = await import("~/lib/auth");
+			const { isAuthenticated } = await import("~/store/auth");
 			expect(isAuthenticated()).toBe(true);
 		});
 
 		test("currentUser returns the user object", async () => {
 			const u = { id: "staff-2", name: "Kasir", role: "cashier" };
 			mockUser.mockReturnValue(u);
-			const { currentUser } = await import("~/lib/auth");
+			const { currentUser } = await import("~/store/auth");
 			expect(currentUser()).toEqual(u);
 		});
 
@@ -76,13 +76,13 @@ describe("auth", () => {
 				name: "Manager",
 				role: "manager",
 			});
-			const { currentUserRole } = await import("~/lib/auth");
+			const { currentUserRole } = await import("~/store/auth");
 			expect(currentUserRole()).toBe("manager");
 		});
 
 		test("currentUserRole returns null when no user", async () => {
 			mockUser.mockReturnValue(null);
-			const { currentUserRole } = await import("~/lib/auth");
+			const { currentUserRole } = await import("~/store/auth");
 			expect(currentUserRole()).toBeNull();
 		});
 	});
@@ -92,7 +92,7 @@ describe("auth", () => {
 			const authUser = { id: "staff-5", name: "Test", role: "cashier" };
 			mockVerifyPin.mockResolvedValue(authUser);
 
-			const { login } = await import("~/lib/auth");
+			const { login } = await import("~/store/auth");
 			const result = await login("staff-5", "123456");
 
 			expect(mockVerifyPin).toHaveBeenCalledWith("staff-5", "123456");
@@ -104,7 +104,7 @@ describe("auth", () => {
 
 	describe("logout", () => {
 		test("clears the user signal", async () => {
-			const { logout } = await import("~/lib/auth");
+			const { logout } = await import("~/store/auth");
 			logout();
 			expect(mockSetUser).toHaveBeenCalledWith(null);
 		});
@@ -113,7 +113,7 @@ describe("auth", () => {
 	describe("changeCurrentUserPin", () => {
 		test("throws when not authenticated", async () => {
 			mockUser.mockReturnValue(null);
-			const { changeCurrentUserPin } = await import("~/lib/auth");
+			const { changeCurrentUserPin } = await import("~/store/auth");
 			await expect(changeCurrentUserPin("654321")).rejects.toThrow(
 				"Not authenticated",
 			);
@@ -125,7 +125,7 @@ describe("auth", () => {
 				name: "Test",
 				role: "manager",
 			});
-			const { changeCurrentUserPin } = await import("~/lib/auth");
+			const { changeCurrentUserPin } = await import("~/store/auth");
 			await changeCurrentUserPin("654321");
 			expect(mockChangePin).toHaveBeenCalledWith("staff-3", "654321");
 		});
@@ -138,7 +138,7 @@ describe("auth", () => {
 				{ id: "staff-2", name: "Kasir", role: "cashier" },
 			]);
 
-			const { getActiveStaff } = await import("~/lib/auth");
+			const { getActiveStaff } = await import("~/store/auth");
 			const staff = await getActiveStaff();
 
 			expect(staff).toEqual([
@@ -149,7 +149,7 @@ describe("auth", () => {
 
 		test("returns empty array when no active staff", async () => {
 			mockDbSelect.mockResolvedValue([]);
-			const { getActiveStaff } = await import("~/lib/auth");
+			const { getActiveStaff } = await import("~/store/auth");
 			const staff = await getActiveStaff();
 			expect(staff).toEqual([]);
 		});

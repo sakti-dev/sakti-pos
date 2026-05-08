@@ -74,18 +74,18 @@ vi.mock("~/db/orders", () => ({
 	createOrder: vi.fn(() => Promise.resolve("2026-05-04-001")),
 }));
 
-vi.mock("~/lib/auth", () => ({
+vi.mock("~/store/auth", () => ({
 	currentUser: vi.fn(() => ({ id: 1, name: "Kasir", role: "cashier" })),
 	currentUserRole: vi.fn(() => "cashier"),
 }));
 
-vi.mock("~/lib/cart", () => ({
+vi.mock("~/store/cart", () => ({
 	cartItems: vi.fn(() => []),
 	cartTotal: vi.fn(() => 0),
 	clearCart: vi.fn(),
 }));
 
-vi.mock("~/lib/responsive", () => ({
+vi.mock("~/store/responsive", () => ({
 	useIsPhone: () => () => false,
 }));
 

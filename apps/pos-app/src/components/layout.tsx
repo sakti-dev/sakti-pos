@@ -26,16 +26,16 @@ import {
 import { Toaster } from "solid-sonner";
 import { SyncStatusIndicator } from "~/components/sync-status";
 import { OfflineBanner } from "~/components/ui/offline-banner";
-import { currentUserRole, isAuthenticated } from "~/lib/auth";
-import { currentOutletId } from "~/lib/outlet";
-import { startSyncScheduler, stopSyncScheduler } from "~/lib/sync";
+import { currentUserRole, isAuthenticated } from "~/store/auth";
+import { currentOutletId, isDevicePaired } from "~/store/outlet";
+import { startSyncScheduler, stopSyncScheduler } from "~/store/sync";
 
 const navItems = [
 	{
 		href: "/",
 		icon: TbOutlineChartBar,
 		label: "Dashboard",
-		roles: ["manager"] as string[],
+		roles: ["manager", "owner"] as string[],
 	},
 	{
 		href: "/pos",
@@ -53,13 +53,13 @@ const navItems = [
 		href: "/menu",
 		icon: TbOutlinePencil,
 		label: "Menu",
-		roles: ["manager"] as string[],
+		roles: ["manager", "owner"] as string[],
 	},
 	{
 		href: "/users",
 		icon: TbOutlineUserPlus,
 		label: "Pengguna",
-		roles: ["manager"] as string[],
+		roles: ["manager", "owner"] as string[],
 	},
 	{
 		href: "/settings",
@@ -79,7 +79,11 @@ export default function Layout(props: RouteSectionProps) {
 
 	createEffect(() => {
 		if (!isPublicRoute() && !isAuthenticated()) {
-			navigate("/login");
+			if (isDevicePaired()) {
+				navigate("/login");
+			} else {
+				navigate("/cloud-login");
+			}
 		}
 	});
 

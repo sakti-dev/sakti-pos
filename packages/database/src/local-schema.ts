@@ -60,7 +60,7 @@ export const staff = sqliteTable("staff", {
 	outletId: text("outlet_id"),
 	name: text("name").notNull(),
 	pin: text("pin"),
-	role: text("role", { enum: ["cashier", "manager"] }).notNull(),
+	role: text("role", { enum: ["cashier", "manager", "owner"] }).notNull(),
 	isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 	isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
 	createdAt: text("created_at")

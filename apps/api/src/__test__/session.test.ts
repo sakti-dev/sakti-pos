@@ -34,8 +34,40 @@ vi.mock("cloudflare:workers", () => ({
 	},
 }));
 
-const { getCookie, createCookieString, createDeleteCookieString } =
-	await import("../lib/session");
+const {
+	getCookie,
+	getBearerToken,
+	createCookieString,
+	createDeleteCookieString,
+} = await import("../lib/session");
+
+describe("getBearerToken", () => {
+	test("extracts token from Authorization header", () => {
+		const request = new Request("http://localhost", {
+			headers: { authorization: "Bearer abc123" },
+		});
+		expect(getBearerToken(request)).toBe("abc123");
+	});
+
+	test("returns null when no Authorization header", () => {
+		const request = new Request("http://localhost");
+		expect(getBearerToken(request)).toBeNull();
+	});
+
+	test("returns token value from Bearer header", () => {
+		const request = new Request("http://localhost", {
+			headers: { authorization: "Bearer my-token-here" },
+		});
+		expect(getBearerToken(request)).toBe("my-token-here");
+	});
+
+	test("returns null for empty Bearer header", () => {
+		const request = new Request("http://localhost", {
+			headers: { authorization: "Bearer " },
+		});
+		expect(getBearerToken(request)).toBeNull();
+	});
+});
 
 describe("getCookie", () => {
 	test("extracts cookie value from request", () => {

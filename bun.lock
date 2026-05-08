@@ -18,6 +18,7 @@
       "name": "@repo/api",
       "version": "0.0.0",
       "dependencies": {
+        "@elysiajs/cors": "^1.4.2",
         "@libsql/client": "^0.17.3",
         "@repo/database": "*",
         "arctic": "^3.6.0",
@@ -47,6 +48,7 @@
         "@tauri-apps/api": "^2",
         "@tauri-apps/plugin-opener": "^2",
         "@tauri-apps/plugin-sql": "^2.4.0",
+        "@tauri-apps/plugin-stronghold": "^2.3.1",
         "bcryptjs": "^3.0.3",
         "chart.js": "^4.5.1",
         "class-variance-authority": "^0.7.1",
@@ -208,6 +210,8 @@
     "@csstools/css-tokenizer": ["@csstools/css-tokenizer@4.0.0", "", {}, "sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
+
+    "@elysiajs/cors": ["@elysiajs/cors@1.4.2", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-FTCcbH35brTLigF1W7BYySRZomgI/dBEMK9BgK9RP9Nez7zmpGh4koL/Yr1BFv8nYz7CfhRvcM8d/c+XnwMaVQ=="],
 
     "@emnapi/runtime": ["@emnapi/runtime@1.10.0", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA=="],
 
@@ -504,6 +508,8 @@
     "@tauri-apps/plugin-opener": ["@tauri-apps/plugin-opener@2.5.4", "", { "dependencies": { "@tauri-apps/api": "^2.11.0" } }, "sha512-1HnPkb+AmgO29HBazm4uPLKB+r7zzcTBW1d0fyYp1uP+jwtpoiNDGKMMzz58SFp49nOIrxdE3aUJtT57lfO9CQ=="],
 
     "@tauri-apps/plugin-sql": ["@tauri-apps/plugin-sql@2.4.0", "", { "dependencies": { "@tauri-apps/api": "^2.10.1" } }, "sha512-SIICc5JlnK6OrBZzOw7MmhXHPlmASpt5zLWIu10WW4kLr5cDYOXHdV2MoCgYQkgZLQfyBYgF3SQa5XCisUiQkw=="],
+
+    "@tauri-apps/plugin-stronghold": ["@tauri-apps/plugin-stronghold@2.3.1", "", { "dependencies": { "@tauri-apps/api": "^2.8.0" } }, "sha512-zFbD1Apk/VFdWaoGaoKcouRrZnzLFiNY9b1KDeBaN47sMaMHRYIa+ZDhvbzMOyH314+OHCQBXfe8I/ph59Lp9g=="],
 
     "@testing-library/dom": ["@testing-library/dom@10.4.1", "", { "dependencies": { "@babel/code-frame": "^7.10.4", "@babel/runtime": "^7.12.5", "@types/aria-query": "^5.0.1", "aria-query": "5.3.0", "dom-accessibility-api": "^0.5.9", "lz-string": "^1.5.0", "picocolors": "1.1.1", "pretty-format": "^27.0.2" } }, "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg=="],
 

@@ -1,3 +1,5 @@
+import { AuthStorage } from "./auth-storage";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 interface ApiUser {
@@ -46,12 +48,18 @@ class ApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+	const token = await AuthStorage.getToken();
+	const headers: Record<string, string> = {
+		"Content-Type": "application/json",
+	};
+	if (token) {
+		headers["Authorization"] = `Bearer ${token}`;
+	}
 	const res = await fetch(`${API_URL}${path}`, {
 		...options,
-		credentials: "include",
 		headers: {
-			"Content-Type": "application/json",
-			...options?.headers,
+			...headers,
+			...(options?.headers as Record<string, string>),
 		},
 	});
 
@@ -70,20 +78,30 @@ export async function register(
 	password: string,
 	name: string,
 ): Promise<{ user: ApiUser }> {
-	return apiFetch("/api/auth/register", {
-		body: JSON.stringify({ email, name, password }),
-		method: "POST",
-	});
+	const result = await apiFetch<{ sessionToken: string; user: ApiUser }>(
+		"/api/auth/register",
+		{
+			body: JSON.stringify({ email, name, password }),
+			method: "POST",
+		},
+	);
+	await AuthStorage.saveToken(result.sessionToken);
+	return { user: result.user };
 }
 
 export async function login(
 	email: string,
 	password: string,
 ): Promise<{ user: ApiUser }> {
-	return apiFetch("/api/auth/login", {
-		body: JSON.stringify({ email, password }),
-		method: "POST",
-	});
+	const result = await apiFetch<{ sessionToken: string; user: ApiUser }>(
+		"/api/auth/login",
+		{
+			body: JSON.stringify({ email, password }),
+			method: "POST",
+		},
+	);
+	await AuthStorage.saveToken(result.sessionToken);
+	return { user: result.user };
 }
 
 export async function getSession(): Promise<{
@@ -120,7 +138,7 @@ export async function createOutlet(
 	merchantId: string,
 	name: string,
 	address?: string,
-): Promise<Outlet> {
+): Promise<Outlet & { register?: Register }> {
 	return apiFetch(`/api/merchants/${merchantId}/outlets`, {
 		body: JSON.stringify({ address, name }),
 		method: "POST",
@@ -132,6 +150,11 @@ export async function pairRegister(pairingCode: string): Promise<PairResult> {
 		body: JSON.stringify({ pairingCode }),
 		method: "POST",
 	});
+}
+
+export async function isCloudAuthenticated(): Promise<boolean> {
+	const token = await AuthStorage.getToken();
+	return token !== null;
 }
 
 export type { ApiUser, Merchant, Outlet, PairResult, Register };

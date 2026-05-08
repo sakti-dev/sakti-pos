@@ -2,7 +2,7 @@ import { useNavigate } from "@solidjs/router";
 import { createSignal, For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { ApiError, pairRegister } from "~/lib/cloud-auth";
-import { setOutletContext } from "~/lib/outlet";
+import { setOutletContext } from "~/store/outlet";
 
 export default function DevicePair() {
 	const navigate = useNavigate();
@@ -14,8 +14,8 @@ export default function DevicePair() {
 		e.preventDefault();
 
 		const pairingCode = code().trim();
-		if (pairingCode.length !== 6) {
-			setError("Kode harus 6 digit");
+		if (pairingCode.length !== 8) {
+			setError("Kode harus 8 karakter");
 			return;
 		}
 
@@ -48,7 +48,10 @@ export default function DevicePair() {
 
 	const handleDigitInput = (e: InputEvent) => {
 		const target = e.currentTarget as HTMLInputElement;
-		const digits = target.value.replace(/\D/g, "").slice(0, 6);
+		const digits = target.value
+			.replace(/[^A-Z0-9]/gi, "")
+			.toUpperCase()
+			.slice(0, 8);
 		setCode(digits);
 		target.value = digits;
 	};
@@ -77,7 +80,7 @@ export default function DevicePair() {
 				</div>
 				<h1 class="font-bold text-3xl">Pasang Perangkat</h1>
 				<p class="mt-1 text-muted-foreground text-sm">
-					Masukkan kode 6 digit dari pengaturan kasir
+					Masukkan kode 8 karakter dari pengaturan kasir
 				</p>
 			</div>
 
@@ -89,7 +92,7 @@ export default function DevicePair() {
 				</Show>
 
 				<div class="flex justify-center gap-2">
-					<For each={Array.from({ length: 6 }, (_, i) => i)}>
+					<For each={Array.from({ length: 8 }, (_, i) => i)}>
 						{(index) => (
 							<div
 								class="flex size-12 items-center justify-center rounded-xl border-2 border-input bg-background font-mono text-2xl font-bold transition-colors"
@@ -106,17 +109,17 @@ export default function DevicePair() {
 				<input
 					autofocus
 					class="absolute h-0 w-0 opacity-0"
-					inputMode="numeric"
-					maxlength={6}
+					inputMode="text"
+					maxlength={8}
 					onInput={handleDigitInput}
-					pattern="[0-9]*"
+					pattern="[A-Z0-9]*"
 					type="text"
 					value={code()}
 				/>
 
 				<Button
 					class="w-full"
-					disabled={loading() || code().length !== 6}
+					disabled={loading() || code().length !== 8}
 					type="submit"
 				>
 					{loading() ? "Memasangkan..." : "Pasang Perangkat"}

@@ -119,7 +119,8 @@ describe("POST /api/outlets/:outletId/registers", () => {
 		const inserted = insertedValues[0] as Record<string, unknown>;
 		expect(inserted.shortId).toBeDefined();
 		expect(inserted.pairingCode).toBeDefined();
-		expect((inserted.pairingCode as string).length).toBe(6);
+		expect((inserted.pairingCode as string).length).toBe(8);
+		expect(inserted.pairingCode as string).toMatch(/^[A-Z0-9]{8}$/);
 		expect(inserted.pairingExpiresAt).toBeDefined();
 	});
 });
@@ -140,7 +141,7 @@ describe("POST /api/registers/pair", () => {
 
 		const { json, status } = await makeRequest("/api/registers/pair", {
 			method: "POST",
-			body: { pairingCode: "999999" },
+			body: { pairingCode: "AB12CD34" },
 		});
 
 		expect(status).toBe(400);
@@ -155,7 +156,7 @@ describe("POST /api/registers/pair", () => {
 					limit: vi.fn().mockResolvedValue([
 						{
 							id: "reg-1",
-							pairingCode: "123456",
+							pairingCode: "AB12CD34",
 							pairingExpiresAt: expiredTime,
 							isActive: true,
 						},
@@ -166,7 +167,7 @@ describe("POST /api/registers/pair", () => {
 
 		const { json, status } = await makeRequest("/api/registers/pair", {
 			method: "POST",
-			body: { pairingCode: "123456" },
+			body: { pairingCode: "AB12CD34" },
 		});
 
 		expect(status).toBe(400);
@@ -184,7 +185,7 @@ describe("POST /api/registers/pair", () => {
 						{
 							id: "reg-1",
 							outletId: "outlet-1",
-							pairingCode: "123456",
+							pairingCode: "AB12CD34",
 							pairingExpiresAt: futureTime,
 							isActive: true,
 						},
@@ -201,7 +202,7 @@ describe("POST /api/registers/pair", () => {
 
 		const { status } = await makeRequest("/api/registers/pair", {
 			method: "POST",
-			body: { pairingCode: "123456" },
+			body: { pairingCode: "AB12CD34" },
 		});
 
 		expect(status).toBe(200);

@@ -9,6 +9,7 @@ import {
 	DrawerPortal,
 	DrawerTitle,
 } from "~/components/ui/drawer";
+import { cn, formatIDR } from "~/lib/utils";
 import {
 	addToCart,
 	cartCount,
@@ -17,9 +18,8 @@ import {
 	clearCart,
 	removeFromCart,
 	updateQuantity,
-} from "~/lib/cart";
-import { useIsPhone } from "~/lib/responsive";
-import { cn, formatIDR } from "~/lib/utils";
+} from "~/store/cart";
+import { useIsPhone } from "~/store/responsive";
 
 interface CartPanelProps {
 	onPay: () => void;

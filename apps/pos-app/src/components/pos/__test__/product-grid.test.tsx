@@ -2,10 +2,10 @@ import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import type { ProductWithCategory } from "~/db/orders";
-import { addToCart } from "~/lib/cart";
+import { addToCart } from "~/store/cart";
 import { ProductGrid } from "../product-grid";
 
-vi.mock("~/lib/cart", () => ({
+vi.mock("~/store/cart", () => ({
 	addToCart: vi.fn(),
 }));
 

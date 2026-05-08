@@ -12,13 +12,13 @@ const mockGetActiveStaff = vi.fn(() =>
 const mockGetLastUserId = vi.fn<() => string | null>(() => null);
 const mockNavigate = vi.fn();
 
-vi.mock("~/lib/auth", () => ({
+vi.mock("~/store/auth", () => ({
 	getActiveStaff: () => mockGetActiveStaff(),
 	getLastUserId: () => mockGetLastUserId(),
 	login: () => mockLogin(),
 }));
 
-vi.mock("~/lib/responsive", () => ({
+vi.mock("~/store/responsive", () => ({
 	useIsLandscape: () => () => false,
 }));
 
@@ -63,10 +63,39 @@ describe("Login", () => {
 		expect(await screen.findByText("PIN salah")).toBeInTheDocument();
 	});
 
+	test("redirects to /cloud-login when no active staff exist", async () => {
+		mockGetActiveStaff.mockResolvedValueOnce([]);
+		mockGetLastUserId.mockReturnValue(null);
+		render(() => <Login />);
+		await vi.waitFor(() => {
+			expect(mockNavigate).toHaveBeenCalledWith("/cloud-login", {
+				replace: true,
+			});
+		});
+	});
+
 	test("does not show error initially", async () => {
 		mockGetLastUserId.mockReturnValue("staff-1");
 		render(() => <Login />);
 		await screen.findByText("Masukkan PIN");
 		expect(screen.queryByText("PIN salah")).not.toBeInTheDocument();
+	});
+
+	test("auto-selects single staff member and shows PIN pad", async () => {
+		mockGetActiveStaff.mockResolvedValueOnce([
+			{ id: "staff-1", name: "Owner", role: "owner" },
+		]);
+		mockGetLastUserId.mockReturnValue(null);
+		render(() => <Login />);
+		expect(await screen.findByText("Masukkan PIN")).toBeInTheDocument();
+	});
+
+	test("does not show cloud login link", async () => {
+		mockGetLastUserId.mockReturnValue(null);
+		render(() => <Login />);
+		await screen.findByText("Manager");
+		expect(
+			screen.queryByText("Masuk dengan akun cloud"),
+		).not.toBeInTheDocument();
 	});
 });

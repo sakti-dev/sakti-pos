@@ -3,16 +3,17 @@
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # 1. Kill any ghost processes on Tauri/Vite ports
+echo $PROJECT_ROOT
 echo "🧹 Cleaning up existing dev servers..."
 fuser -k 1420/tcp 1421/tcp 2>/dev/null
 
-# 2. Start Waydroid silently on Host (if not active)
-if ! systemctl is-active --quiet waydroid-container; then
-    echo "🤖 Starting Waydroid..."
-    sudo systemctl start waydroid-container
-    waydroid session start &
-    sleep 5
-fi
+# # 2. Start Waydroid silently on Host (if not active)
+# if ! systemctl is-active --quiet waydroid-container; then
+#     echo "🤖 Starting Waydroid..."
+#     sudo systemctl start waydroid-container
+#     waydroid session start &
+#     sleep 5
+# fi
 
 # 3. Enter the box and run everything in one session
 # Using a single 'distrobox enter' ensures the environment is consistent
@@ -30,6 +31,6 @@ distrobox enter dev -- /bin/bash -c "
 
     # Launch Tauri
     echo '🚀 Launching Tauri Dev...'
-    cd ${PROJECT_ROOT}/apps/pos-app
+    cd ${PROJECT_ROOT}
     bun tauri android dev --no-watch
 "

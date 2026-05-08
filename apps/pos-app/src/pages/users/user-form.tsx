@@ -11,14 +11,15 @@ import {
 	getStaffMember,
 	updateStaffMember,
 } from "~/db/staff";
-import { currentUser } from "~/lib/auth";
 import { hashPin } from "~/lib/auth-provider";
-import { currentMerchantId } from "~/lib/outlet";
 import { cn } from "~/lib/utils";
+import { currentUser } from "~/store/auth";
+import { currentMerchantId } from "~/store/outlet";
 
 const ROLE_OPTIONS = [
 	{ value: "cashier", label: "Kasir" },
 	{ value: "manager", label: "Manajer" },
+	{ value: "owner", label: "Pemilik" },
 ];
 
 export default function UserForm() {
@@ -69,7 +70,7 @@ export default function UserForm() {
 			if (!isActive()) {
 				return "Tidak dapat menonaktifkan akun sendiri";
 			}
-			if (newRole !== "manager") {
+			if (newRole !== "manager" && newRole !== "owner") {
 				const managerCount = await countActiveManagers();
 				if (managerCount <= 1) {
 					return "Tidak dapat mengubah peran — Anda satu-satunya manajer aktif";
@@ -108,7 +109,7 @@ export default function UserForm() {
 
 				await updateStaffMember(params.id ?? "", {
 					name: name().trim(),
-					role: role() as "manager" | "cashier",
+					role: role() as "manager" | "cashier" | "owner",
 					isActive: isActive(),
 				});
 				toast.success("Pengguna diperbarui");
@@ -117,7 +118,7 @@ export default function UserForm() {
 				await createStaffMember({
 					merchantId: currentMerchantId() ?? "",
 					name: name().trim(),
-					role: role() as "manager" | "cashier",
+					role: role() as "manager" | "cashier" | "owner",
 					pin: hashedPin,
 				});
 				toast.success("Pengguna ditambahkan");

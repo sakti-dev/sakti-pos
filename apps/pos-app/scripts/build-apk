@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../apps/pos-app"
+cd "$(dirname "$0")/.."
 
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 export NDK_HOME="${NDK_HOME:-$ANDROID_HOME/ndk/26.1.10909125}"

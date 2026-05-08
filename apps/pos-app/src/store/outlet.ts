@@ -8,7 +8,12 @@ const [currentRegisterId, setCurrentRegisterId] = createSignal<string | null>(
 	null,
 );
 
-export { currentMerchantId, currentOutletId, currentRegisterId };
+export {
+	currentMerchantId,
+	currentOutletId,
+	currentRegisterId,
+	setCurrentOutletId,
+};
 
 export const OUTLET_STORAGE_KEY = "sakti-pos:current-outlet-id";
 export const MERCHANT_STORAGE_KEY = "sakti-pos:current-merchant-id";
@@ -37,6 +42,8 @@ export function setOutletContext(
 		localStorage.setItem(REGISTER_STORAGE_KEY, registerId);
 	}
 }
+
+export const isDevicePaired = (): boolean => currentOutletId() !== null;
 
 export function clearOutletContext() {
 	setCurrentOutletId(null);

@@ -4,8 +4,8 @@ import {
 	TbOutlineLoader2,
 } from "solid-icons/tb";
 import { Show } from "solid-js";
-import { syncStatus } from "~/lib/sync";
 import { cn } from "~/lib/utils";
+import { syncStatus } from "~/store/sync";
 
 export function SyncStatusIndicator() {
 	const status = syncStatus();

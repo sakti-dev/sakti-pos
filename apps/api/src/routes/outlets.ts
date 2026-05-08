@@ -1,8 +1,12 @@
-import { outlets, userMerchants } from "@repo/database/api-schema";
+import { outlets, registers, userMerchants } from "@repo/database/api-schema";
 import { and, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
+
+function generateShortId(): string {
+	return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 
 async function verifyMerchantAccess(
 	userId: string,
@@ -49,7 +53,18 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
 				})
 				.returning();
 
-			return outlet;
+			const [register] = await db
+				.insert(registers)
+				.values({
+					outletId: outlet.id,
+					name: "Register 1",
+					shortId: generateShortId(),
+					createdAt: now,
+					updatedAt: now,
+				})
+				.returning();
+
+			return { ...outlet, register };
 		},
 		{
 			body: t.Object({

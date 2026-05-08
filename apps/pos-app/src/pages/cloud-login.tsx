@@ -11,7 +11,7 @@ import {
 	type Merchant,
 	type Outlet,
 } from "~/lib/cloud-auth";
-import { setOutletContext } from "~/lib/outlet";
+import { setOutletContext } from "~/store/outlet";
 
 type Step = "login" | "register" | "merchant-picker" | "outlet-picker";
 
@@ -80,7 +80,7 @@ export default function CloudLogin() {
 
 	const handleSelectOutlet = (outlet: Outlet) => {
 		setOutletContext(outlet.id, outlet.merchantId);
-		navigate("/device-pair", { replace: true });
+		navigate("/login", { replace: true });
 	};
 
 	const handleGoogle = () => {
@@ -231,19 +231,6 @@ export default function CloudLogin() {
 								: "Masuk"}
 					</Button>
 
-					<div class="relative">
-						<div class="absolute inset-0 flex items-center">
-							<span class="w-full border-t" />
-						</div>
-						<div class="relative flex justify-center text-xs uppercase">
-							<span class="bg-background px-2 text-muted-foreground">atau</span>
-						</div>
-					</div>
-
-					<Button class="w-full" onClick={handleGoogle} variant="outline">
-						Masuk dengan Google
-					</Button>
-
 					<div class="text-center text-sm">
 						<Show
 							fallback={
@@ -267,15 +254,26 @@ export default function CloudLogin() {
 						</Show>
 					</div>
 
-					<div class="text-center">
-						<button
-							class="text-muted-foreground text-sm hover:text-foreground"
-							onClick={() => navigate("/login", { replace: true })}
-							type="button"
-						>
-							← Kembali ke PIN login
-						</button>
+					<div class="relative">
+						<div class="absolute inset-0 flex items-center">
+							<span class="w-full border-t" />
+						</div>
+						<div class="relative flex justify-center text-xs uppercase">
+							<span class="bg-background px-2 text-muted-foreground">atau</span>
+						</div>
 					</div>
+
+					<Button class="w-full" onClick={handleGoogle} variant="outline">
+						Masuk dengan Google
+					</Button>
+
+					<Button
+						class="w-full"
+						onClick={() => navigate("/device-pair", { replace: true })}
+						variant="secondary"
+					>
+						Sambungkan Perangkat
+					</Button>
 				</form>
 			</Show>
 		</div>

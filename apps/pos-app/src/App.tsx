@@ -1,6 +1,7 @@
 import { Route, Router, useNavigate } from "@solidjs/router";
 import { createEffect, type JSX, Show } from "solid-js";
-import { currentUserRole, isAuthenticated } from "./lib/auth";
+import { currentUserRole, isAuthenticated } from "./store/auth";
+import { isDevicePaired } from "./store/outlet";
 import "./index.css";
 import Layout from "./components/layout";
 import CloudLogin from "./pages/cloud-login";
@@ -27,7 +28,7 @@ function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
 
 	createEffect(() => {
 		if (!isAuthenticated()) {
-			navigate("/login");
+			navigate(isDevicePaired() ? "/login" : "/cloud-login");
 		}
 	});
 
@@ -55,7 +56,7 @@ function App() {
 			<Route component={Onboarding} path="/onboarding" />
 			<Route
 				component={() => (
-					<RequireAuth roles={["manager"]}>
+					<RequireAuth roles={["manager", "owner"]}>
 						<Dashboard />
 					</RequireAuth>
 				)}
@@ -72,7 +73,7 @@ function App() {
 			/>
 			<Route
 				component={(props) => (
-					<RequireAuth roles={["manager"]}>
+					<RequireAuth roles={["manager", "owner"]}>
 						<MenuManagement {...props} />
 					</RequireAuth>
 				)}
@@ -96,7 +97,7 @@ function App() {
 			/>
 			<Route
 				component={(props) => (
-					<RequireAuth roles={["manager"]}>
+					<RequireAuth roles={["manager", "owner"]}>
 						<UserManagement {...props} />
 					</RequireAuth>
 				)}

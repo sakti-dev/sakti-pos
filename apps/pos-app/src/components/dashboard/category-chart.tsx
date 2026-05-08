@@ -10,7 +10,7 @@ import type { Component } from "solid-js";
 import { createSignal, onMount, Show } from "solid-js";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { CategoryRevenueRow } from "~/db/dashboard";
-import { useIsPhone } from "~/lib/responsive";
+import { useIsPhone } from "~/store/responsive";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 

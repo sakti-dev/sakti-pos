@@ -68,11 +68,11 @@ vi.mock("~/db/orders", () => ({
 	cancelOrder: (...args: unknown[]) => mockCancelOrder(...args),
 }));
 
-vi.mock("~/lib/auth", () => ({
+vi.mock("~/store/auth", () => ({
 	currentUserRole: vi.fn(() => "manager"),
 }));
 
-vi.mock("~/lib/responsive", () => ({
+vi.mock("~/store/responsive", () => ({
 	useIsPhone: () => () => false,
 }));
 
@@ -210,7 +210,7 @@ describe("OrderHistory", () => {
 	});
 
 	test("does not show cancel button for cashier role", async () => {
-		const { currentUserRole } = await import("~/lib/auth");
+		const { currentUserRole } = await import("~/store/auth");
 		vi.mocked(currentUserRole).mockReturnValue("cashier");
 		render(() => <OrderHistory />);
 		await screen.findByText("Riwayat Pesanan");

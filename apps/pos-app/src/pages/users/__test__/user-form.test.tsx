@@ -15,7 +15,7 @@ vi.mock("@solidjs/router", () => ({
 	useParams: vi.fn(() => ({})),
 }));
 
-vi.mock("~/lib/auth", () => ({
+vi.mock("~/store/auth", () => ({
 	currentUser: vi.fn(() => ({ id: "staff-1", name: "Admin", role: "manager" })),
 }));
 

@@ -18,7 +18,7 @@ import type {
 	WeeklyRow,
 } from "~/db/dashboard";
 import type { ChartGranularity } from "~/lib/period";
-import { useIsPhone } from "~/lib/responsive";
+import { useIsPhone } from "~/store/responsive";
 
 dayjs.locale("id");
 

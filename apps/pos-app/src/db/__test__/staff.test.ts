@@ -11,8 +11,10 @@ vi.mock("@repo/database", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
+	and: vi.fn((...conditions: unknown[]) => conditions),
 	count: vi.fn(() => "count_placeholder"),
 	eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
+	inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
 }));
 
 const mockFrom = vi.fn();
@@ -28,7 +30,7 @@ vi.mock("../index", () => ({
 	},
 }));
 
-vi.mock("~/lib/outlet", () => ({
+vi.mock("~/store/outlet", () => ({
 	currentMerchantId: vi.fn(() => null),
 }));
 
