@@ -6,6 +6,8 @@
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <application
+        android:allowBackup="${allowBackup}"
+        android:fullBackupContent="${allowBackup}"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.sakti_pos"

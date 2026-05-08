@@ -23,7 +23,7 @@ export const db = drizzle(
 				: { rows: rows.map((r) => r.values) };
 		} catch (err) {
 			console.error(
-				"[auth] DB query failed:",
+				"DB query failed:",
 				sql,
 				"params:",
 				JSON.stringify(params),

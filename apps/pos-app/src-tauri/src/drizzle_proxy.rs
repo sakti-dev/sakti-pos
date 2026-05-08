@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{
     query::Query,
-    sqlite::SqliteArguments,
+    sqlite::{SqliteArguments, SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Column, Row, Sqlite, SqlitePool,
 };
+use std::str::FromStr;
+use std::time::Duration;
 use tauri::{command, AppHandle, State};
 use tokio::fs;
 
@@ -14,10 +16,12 @@ pub struct AppState {
     pub db_pool: SqlitePool,
 }
 
-const MIGRATIONS: &[(&str, &str)] = &[(
-    "0000_certain_mole_man",
-    include_str!("../../drizzle/0000_certain_mole_man.sql"),
-)];
+const MIGRATIONS: &[(&str, &str)] = &[
+    (
+        "0001_medical_puppet_master",
+        include_str!("../../drizzle/0001_medical_puppet_master.sql"),
+    ),
+];
 
 #[derive(Debug, Deserialize)]
 pub struct SqlQuery {
@@ -34,8 +38,19 @@ pub struct SqlRow {
 
 pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
     let db_path = db_utils::get_app_db_path(app)?;
-    let uri = format!("sqlite:{}?mode=rwc", db_path.display());
-    let pool = SqlitePool::connect(&uri)
+
+    let options = SqliteConnectOptions::from_str(&format!("sqlite:{}", db_path.display()))
+        .map_err(|e| format!("Invalid DB URI: {}", e))?
+        .create_if_missing(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .busy_timeout(Duration::from_secs(5))
+        .pragma("foreign_keys", "ON");
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .acquire_timeout(Duration::from_secs(3))
+        .connect_with(options)
         .await
         .map_err(|e| format!("Failed to connect to DB: {}", e))?;
 
@@ -79,8 +94,8 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
             if !stmt.is_empty() {
                 if let Err(e) = sqlx::query(stmt).execute(&mut *tx).await {
                     let msg = e.to_string();
-                    if msg.contains("already exists") {
-                        eprintln!("[auth] Migration statement skipped: {}", msg);
+                    if msg.contains("already exists") || msg.contains("duplicate column") {
+                        eprintln!("Migration statement skipped: {}", msg);
                     } else {
                         return Err(format!("Migration {} failed: {}", name, e));
                     }

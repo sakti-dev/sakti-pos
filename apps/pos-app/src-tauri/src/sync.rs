@@ -1,5 +1,5 @@
 use serde_json::Value;
-use sqlx::{Column, Row, SqlitePool};
+use sqlx::{Column, Row, SqliteConnection, SqlitePool};
 use tauri::{command, State};
 
 use crate::db_utils;
@@ -87,6 +87,24 @@ async fn mark_table_synced(
     Ok(())
 }
 
+async fn mark_table_synced_tx(
+    conn: &mut SqliteConnection,
+    table: &str,
+    outlet_id: &str,
+) -> Result<(), String> {
+    let filter_col = get_table_filter_column(table);
+    let query = format!(
+        "UPDATE {} SET is_synced = 1 WHERE {} = ?1 AND is_synced = 0",
+        table, filter_col
+    );
+    sqlx::query(&query)
+        .bind(outlet_id)
+        .execute(conn)
+        .await
+        .map_err(|e| format!("Failed to mark {} as synced: {}", table, e))?;
+    Ok(())
+}
+
 async fn get_last_sync_at(
     pool: &SqlitePool,
     table: &str,
@@ -134,8 +152,47 @@ async fn set_last_sync_at(
     Ok(())
 }
 
+async fn set_last_sync_at_tx(
+    conn: &mut SqliteConnection,
+    table: &str,
+    outlet_id: &str,
+    time: &str,
+) -> Result<(), String> {
+    let existing = sqlx::query_as::<_, (String,)>(
+        "SELECT last_sync_at FROM sync_meta WHERE table_name = ?1 AND outlet_id = ?2",
+    )
+    .bind(table)
+    .bind(outlet_id)
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(|e| format!("Failed to get last sync at: {}", e))?;
+
+    if existing.is_some() {
+        let query =
+            "UPDATE sync_meta SET last_sync_at = ?3 WHERE table_name = ?1 AND outlet_id = ?2";
+        sqlx::query(query)
+            .bind(table)
+            .bind(outlet_id)
+            .bind(time)
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("Failed to update last sync at: {}", e))?;
+    } else {
+        let query =
+            "INSERT INTO sync_meta (table_name, outlet_id, last_sync_at) VALUES (?1, ?2, ?3)";
+        sqlx::query(query)
+            .bind(table)
+            .bind(outlet_id)
+            .bind(time)
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("Failed to insert last sync at: {}", e))?;
+    }
+    Ok(())
+}
+
 async fn upsert_row(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     table: &str,
     row: &Value,
 ) -> Result<(), String> {
@@ -197,7 +254,7 @@ async fn upsert_row(
         }
     }
 
-    q.execute(pool)
+    q.execute(conn)
         .await
         .map_err(|e| format!("Failed to upsert into {}: {}", table, e))?;
     Ok(())
@@ -247,9 +304,11 @@ async fn sync_push_inner(
         .await
         .map_err(|e| format!("Failed to parse push response: {}", e))?;
 
+    let mut tx = pool.begin().await.map_err(|e| format!("Failed to begin push transaction: {}", e))?;
     for table in SYNC_TABLES {
-        mark_table_synced(pool, table, outlet_id).await?;
+        mark_table_synced_tx(&mut tx, table, outlet_id).await?;
     }
+    tx.commit().await.map_err(|e| format!("Failed to commit push transaction: {}", e))?;
 
     let server_wins_count = result
         .get("serverWins")
@@ -327,10 +386,12 @@ async fn sync_pull_inner(
 
     let mut total_rows = 0;
 
+    let mut tx = pool.begin().await.map_err(|e| format!("Failed to begin pull transaction: {}", e))?;
+
     for table in SYNC_TABLES {
         if let Some(rows) = result.get(table).and_then(|v| v.as_array()) {
             for row in rows {
-                upsert_row(pool, table, row).await?;
+                upsert_row(&mut tx, table, row).await?;
                 total_rows += 1;
             }
         }
@@ -342,8 +403,10 @@ async fn sync_pull_inner(
         .unwrap_or("");
 
     for table in SYNC_TABLES {
-        set_last_sync_at(pool, table, outlet_id, server_time).await?;
+        set_last_sync_at_tx(&mut tx, table, outlet_id, server_time).await?;
     }
+
+    tx.commit().await.map_err(|e| format!("Failed to commit pull transaction: {}", e))?;
 
     Ok(PullResult {
         rows_received: total_rows,
@@ -367,6 +430,7 @@ pub async fn run_garbage_collection(
     state: State<'_, AppState>,
 ) -> Result<usize, String> {
     let pool = &state.db_pool;
+    let mut tx = pool.begin().await.map_err(|e| format!("Failed to begin GC transaction: {}", e))?;
     let mut total_purged: usize = 0;
 
     for table in SYNC_TABLES {
@@ -377,12 +441,13 @@ pub async fn run_garbage_collection(
         );
         let result = sqlx::query(&query)
             .bind(&outlet_id)
-            .execute(pool)
+            .execute(&mut *tx)
             .await
             .map_err(|e| format!("GC failed for {}: {}", table, e))?;
         total_purged += result.rows_affected() as usize;
     }
 
+    tx.commit().await.map_err(|e| format!("Failed to commit GC transaction: {}", e))?;
     Ok(total_purged)
 }
 
@@ -403,22 +468,21 @@ pub async fn sync_now(
     let pool = &state.db_pool;
     let pull = sync_pull_inner(pool, &outlet_id, &api_url, &session_token).await?;
     let push = sync_push_inner(pool, &outlet_id, &api_url, &session_token).await?;
-    let purged = {
-        let mut total_purged: usize = 0;
-        for table in SYNC_TABLES {
-            let filter_col = get_table_filter_column(table);
-            let query = format!(
-                "DELETE FROM {} WHERE {} = ?1 AND deleted_at IS NOT NULL AND is_synced = 1",
-                table, filter_col
-            );
-            let result = sqlx::query(&query)
-                .bind(&outlet_id)
-                .execute(pool)
-                .await
-                .map_err(|e| format!("GC failed for {}: {}", table, e))?;
-            total_purged += result.rows_affected() as usize;
-        }
-        total_purged
-    };
-    Ok(SyncNowResult { pull, push, purged })
+    let mut tx = pool.begin().await.map_err(|e| format!("Failed to begin GC transaction: {}", e))?;
+    let mut total_purged: usize = 0;
+    for table in SYNC_TABLES {
+        let filter_col = get_table_filter_column(table);
+        let query = format!(
+            "DELETE FROM {} WHERE {} = ?1 AND deleted_at IS NOT NULL AND is_synced = 1",
+            table, filter_col
+        );
+        let result = sqlx::query(&query)
+            .bind(&outlet_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("GC failed for {}: {}", table, e))?;
+        total_purged += result.rows_affected() as usize;
+    }
+    tx.commit().await.map_err(|e| format!("Failed to commit GC transaction: {}", e))?;
+    Ok(SyncNowResult { pull, push, purged: total_purged })
 }

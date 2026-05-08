@@ -1,5 +1,19 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import {
+	TbOutlinePackage,
+	TbOutlinePencil,
+	TbOutlineTrash,
+} from "solid-icons/tb";
+import {
+	createMemo,
+	createResource,
+	createSignal,
+	For,
+	Match,
+	Show,
+	Suspense,
+	Switch,
+} from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
@@ -76,6 +90,41 @@ export default function ProductList() {
 		}
 	};
 
+	const productCard = (product: Product) => (
+		<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+			<div class="min-w-0 flex-1">
+				<p class="truncate font-medium">{product.name}</p>
+				<p class="text-muted-foreground text-xs">{formatIDR(product.price)}</p>
+			</div>
+			<button
+				class={cn(
+					"shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
+					product.isActive
+						? "bg-success text-success-foreground"
+						: "bg-muted text-muted-foreground",
+				)}
+				onClick={() => toggleActive(product)}
+				type="button"
+			>
+				{product.isActive ? "Aktif" : "Nonaktif"}
+			</button>
+			<button
+				class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+				onClick={() => navigate(`/menu/products/${product.id}/edit`)}
+				type="button"
+			>
+				<TbOutlinePencil class="size-4" />
+			</button>
+			<button
+				class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+				onClick={() => setDeleteTarget(product)}
+				type="button"
+			>
+				<TbOutlineTrash class="size-4" />
+			</button>
+		</div>
+	);
+
 	return (
 		<>
 			<PageHeader backHref="/menu">Produk</PageHeader>
@@ -109,140 +158,71 @@ export default function ProductList() {
 					</A>
 				</div>
 
-				<Show
+				<Suspense
 					fallback={
-						<Show
-							fallback={
-								<div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-									<p>Belum ada produk</p>
-									<p class="text-sm">
-										Tap "+ Tambah" untuk membuat produk baru
-									</p>
-								</div>
-							}
-							when={products.loading}
-						>
-							<div class="space-y-2">
-								<For each={[1, 2, 3]}>
-									{() => (
-										<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
-											<div class="flex-1 space-y-2">
-												<Skeleton class="h-4 w-32" />
-												<Skeleton class="h-3 w-20" />
-											</div>
-											<Skeleton class="h-6 w-14" />
-											<Skeleton class="size-9" />
-											<Skeleton class="size-9" />
+						<div class="space-y-2">
+							<For each={[1, 2, 3]}>
+								{() => (
+									<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+										<div class="flex-1 space-y-2">
+											<Skeleton class="h-4 w-32" />
+											<Skeleton class="h-3 w-20" />
 										</div>
-									)}
-								</For>
-							</div>
-						</Show>
-					}
-					when={products()?.length > 0}
-				>
-					<Show
-						fallback={
-							<div class="space-y-2">
-								<For each={products()}>
-									{(product) => (
-										<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
-											<div class="min-w-0 flex-1">
-												<p class="truncate font-medium">{product.name}</p>
-												<p class="text-muted-foreground text-xs">
-													{formatIDR(product.price)}
-												</p>
-											</div>
-											<button
-												class={cn(
-													"shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
-													product.isActive
-														? "bg-success text-success-foreground"
-														: "bg-muted text-muted-foreground",
-												)}
-												onClick={() => toggleActive(product)}
-												type="button"
-											>
-												{product.isActive ? "Aktif" : "Nonaktif"}
-											</button>
-											<button
-												class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-												onClick={() =>
-													navigate(`/menu/products/${product.id}/edit`)
-												}
-												type="button"
-											>
-												✏️
-											</button>
-											<button
-												class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-												onClick={() => setDeleteTarget(product)}
-												type="button"
-											>
-												🗑️
-											</button>
-										</div>
-									)}
-								</For>
-							</div>
-						}
-						when={isGrouped()}
-					>
-						<div class="space-y-4">
-							<For each={groupedProducts()}>
-								{(group) => (
-									<div>
-										<h2 class="sticky top-14 z-30 bg-background pb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-											{group.category.name}
-										</h2>
-										<div class="space-y-2">
-											<For each={group.products}>
-												{(product) => (
-													<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
-														<div class="min-w-0 flex-1">
-															<p class="truncate font-medium">{product.name}</p>
-															<p class="text-muted-foreground text-xs">
-																{formatIDR(product.price)}
-															</p>
-														</div>
-														<button
-															class={cn(
-																"shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
-																product.isActive
-																	? "bg-success text-success-foreground"
-																	: "bg-muted text-muted-foreground",
-															)}
-															onClick={() => toggleActive(product)}
-															type="button"
-														>
-															{product.isActive ? "Aktif" : "Nonaktif"}
-														</button>
-														<button
-															class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-															onClick={() =>
-																navigate(`/menu/products/${product.id}/edit`)
-															}
-															type="button"
-														>
-															✏️
-														</button>
-														<button
-															class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-															onClick={() => setDeleteTarget(product)}
-															type="button"
-														>
-															🗑️
-														</button>
-													</div>
-												)}
-											</For>
-										</div>
+										<Skeleton class="h-6 w-14" />
+										<Skeleton class="size-9" />
+										<Skeleton class="size-9" />
 									</div>
 								)}
 							</For>
 						</div>
-					</Show>
-				</Show>
+					}
+				>
+					<Switch
+						fallback={
+							<div class="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
+								<div class="flex size-16 items-center justify-center rounded-2xl bg-muted">
+									<TbOutlinePackage class="size-8 text-muted-foreground/60" />
+								</div>
+								<div class="text-center">
+									<p class="font-medium text-foreground">Belum ada produk</p>
+									<p class="text-sm">
+										Tap "+ Tambah" untuk membuat produk baru
+									</p>
+								</div>
+							</div>
+						}
+					>
+						<Match when={products()?.length}>
+							<Show
+								fallback={
+									<div class="space-y-2">
+										<For each={products()!}>
+											{(product) => productCard(product)}
+										</For>
+									</div>
+								}
+								when={isGrouped()}
+							>
+								<div class="space-y-4">
+									<For each={groupedProducts()}>
+										{(group) => (
+											<div>
+												<h2 class="sticky top-14 z-30 bg-background pb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+													{group.category.name}
+												</h2>
+												<div class="space-y-2">
+													<For each={group.products}>
+														{(product) => productCard(product)}
+													</For>
+												</div>
+											</div>
+										)}
+									</For>
+								</div>
+							</Show>
+						</Match>
+					</Switch>
+				</Suspense>
 			</div>
 
 			<ConfirmDrawer

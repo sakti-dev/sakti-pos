@@ -108,7 +108,22 @@ import CategoryList from "../category-list";
 
 describe("CategoryList", () => {
 	afterEach(() => {
-		vi.clearAllMocks();
+		vi.restoreAllMocks();
+	});
+
+	test("shows skeleton during loading via Suspense", async () => {
+		const { getCategories } = await import("~/db/menu");
+		let resolve!: (value: Category[]) => void;
+		vi.mocked(getCategories).mockImplementationOnce(
+			() =>
+				new Promise((r) => {
+					resolve = r;
+				}),
+		);
+		render(() => <CategoryList />);
+		expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
+		resolve(mockCategories);
+		await screen.findByText("Minuman");
 	});
 
 	test("renders categories with active/inactive status", async () => {
@@ -132,6 +147,9 @@ describe("CategoryList", () => {
 		render(() => <CategoryList />);
 		await screen.findByText("Belum ada kategori");
 		expect(screen.getByText("Belum ada kategori")).toBeInTheDocument();
+		expect(
+			screen.getByText(/Tap "\+ Tambah" untuk membuat kategori baru/),
+		).toBeInTheDocument();
 	});
 
 	test("shows '+ Tambah' link", async () => {

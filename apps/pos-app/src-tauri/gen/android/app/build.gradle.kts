@@ -18,6 +18,7 @@ android {
     namespace = "com.sakti_dev.sakti_pos"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
+        manifestPlaceholders["allowBackup"] = "true"
         applicationId = "com.sakti_dev.sakti_pos"
         minSdk = 24
         targetSdk = 36
@@ -27,6 +28,7 @@ android {
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
+            manifestPlaceholders["allowBackup"] = "false"
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false

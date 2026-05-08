@@ -1,35 +1,28 @@
 #!/usr/bin/env bash
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PACKAGE="com.sakti_dev.sakti_pos"
 
-# 1. Kill any ghost processes on Tauri/Vite ports
-echo $PROJECT_ROOT
+echo "1) Build & run (keep data)"
+echo "2) Build & run (clear data + uninstall first)"
+echo ""
+read -p "Choose [1/2]: " CHOICE
+
+if [[ "$CHOICE" == "2" ]]; then
+    echo "🗑️ Clearing app data and uninstalling..."
+    adb shell pm clear "$PACKAGE" 2>/dev/null || true
+    adb uninstall "$PACKAGE" 2>/dev/null || true
+fi
+
 echo "🧹 Cleaning up existing dev servers..."
 fuser -k 1420/tcp 1421/tcp 2>/dev/null
 
-# # 2. Start Waydroid silently on Host (if not active)
-# if ! systemctl is-active --quiet waydroid-container; then
-#     echo "🤖 Starting Waydroid..."
-#     sudo systemctl start waydroid-container
-#     waydroid session start &
-#     sleep 5
-# fi
-
-# 3. Enter the box and run everything in one session
-# Using a single 'distrobox enter' ensures the environment is consistent
 distrobox enter dev -- /bin/bash -c "
-    # Setup Environment
     export ANDROID_HOME=\"\$HOME/Android/Sdk\"
     export NDK_HOME=\"\$ANDROID_HOME/ndk/26.1.10909125\"
     export JAVA_HOME=\"\$HOME/android-studio/jbr\"
     export PATH=\"\$PATH:\$ANDROID_HOME/platform-tools:\$ANDROID_HOME/cmdline-tools/latest/bin\"
 
-    # Connect to Waydroid
-    # Using 192.168.100.2 as it is the default Waydroid bridge IP
-    # echo '🔗 Connecting ADB to Waydroid...'
-    # adb connect 192.168.240.112:5555
-
-    # Launch Tauri
     echo '🚀 Launching Tauri Dev...'
     cd ${PROJECT_ROOT}
     bun tauri android dev --no-watch

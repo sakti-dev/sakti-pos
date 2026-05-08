@@ -1,5 +1,18 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createResource, createSignal, For, Show } from "solid-js";
+import {
+	TbOutlineCategory,
+	TbOutlinePencil,
+	TbOutlineTrash,
+} from "solid-icons/tb";
+import {
+	createResource,
+	createSignal,
+	For,
+	Match,
+	Show,
+	Suspense,
+	Switch,
+} from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
@@ -75,89 +88,102 @@ export default function CategoryList() {
 				</Show>
 
 				<div class="mb-4 flex items-center justify-between">
-					<p class="text-muted-foreground text-sm">
-						{categories()?.length ?? 0} kategori
-					</p>
+					<Suspense fallback={<Skeleton class="h-4 w-20" />}>
+						<p class="text-muted-foreground text-sm">
+							{categories()?.length ?? 0} kategori
+						</p>
+					</Suspense>
 					<A href="/menu/categories/add">
 						<Button size="sm">+ Tambah</Button>
 					</A>
 				</div>
 
-				<Show
+				<Suspense
 					fallback={
-						<Show
-							fallback={
-								<div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-									<p>Belum ada kategori</p>
+						<div class="space-y-2">
+							<For each={[1, 2, 3]}>
+								{() => (
+									<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+										<Skeleton class="h-4 flex-1" />
+										<Skeleton class="h-6 w-14" />
+										<Skeleton class="size-9" />
+										<Skeleton class="size-9" />
+									</div>
+								)}
+							</For>
+						</div>
+					}
+				>
+					<Switch
+						fallback={
+							<div class="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
+								<div class="flex size-16 items-center justify-center rounded-2xl bg-muted">
+									<TbOutlineCategory class="size-8 text-muted-foreground/60" />
+								</div>
+								<div class="text-center">
+									<p class="font-medium text-foreground">Belum ada kategori</p>
 									<p class="text-sm">
 										Tap "+ Tambah" untuk membuat kategori baru
 									</p>
 								</div>
-							}
-							when={categories.loading}
-						>
+							</div>
+						}
+					>
+						<Match when={categories()?.length}>
 							<div class="space-y-2">
-								<For each={[1, 2, 3]}>
-									{() => (
+								<For each={categories()!}>
+									{(cat) => (
 										<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
-											<Skeleton class="h-4 flex-1" />
-											<Skeleton class="h-6 w-14" />
-											<Skeleton class="size-9" />
-											<Skeleton class="size-9" />
+											<div class="min-w-0 flex-1">
+												<p class="truncate font-medium">{cat.name}</p>
+												<Show
+													fallback={
+														<span class="text-destructive text-xs">
+															Nonaktif
+														</span>
+													}
+													when={cat.isActive}
+												>
+													<span class="text-muted-foreground text-xs">
+														Aktif
+													</span>
+												</Show>
+											</div>
+											<button
+												class={cn(
+													"shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
+													cat.isActive
+														? "bg-success text-success-foreground"
+														: "bg-muted text-muted-foreground",
+												)}
+												onClick={() => toggleActive(cat)}
+												type="button"
+											>
+												{cat.isActive ? "Aktif" : "Nonaktif"}
+											</button>
+											<button
+												class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+												onClick={() =>
+													navigate(`/menu/categories/${cat.id}/edit`)
+												}
+												type="button"
+											>
+												<TbOutlinePencil class="size-4" />
+											</button>
+											<button
+												class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+												onClick={() => openDeleteSheet(cat)}
+												type="button"
+											>
+												<TbOutlineTrash class="size-4" />
+											</button>
 										</div>
 									)}
 								</For>
 							</div>
-						</Show>
-					}
-					when={categories()?.length > 0}
-				>
-					<div class="space-y-2">
-						<For each={categories()}>
-							{(cat) => (
-								<div class="flex items-center gap-2 rounded-xl border bg-card p-3">
-									<div class="min-w-0 flex-1">
-										<p class="truncate font-medium">{cat.name}</p>
-										<Show
-											fallback={
-												<span class="text-destructive text-xs">Nonaktif</span>
-											}
-											when={cat.isActive}
-										>
-											<span class="text-muted-foreground text-xs">Aktif</span>
-										</Show>
-									</div>
-									<button
-										class={cn(
-											"shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
-											cat.isActive
-												? "bg-success text-success-foreground"
-												: "bg-muted text-muted-foreground",
-										)}
-										onClick={() => toggleActive(cat)}
-										type="button"
-									>
-										{cat.isActive ? "Aktif" : "Nonaktif"}
-									</button>
-									<button
-										class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-										onClick={() => navigate(`/menu/categories/${cat.id}/edit`)}
-										type="button"
-									>
-										✏️
-									</button>
-									<button
-										class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-										onClick={() => openDeleteSheet(cat)}
-										type="button"
-									>
-										🗑️
-									</button>
-								</div>
-							)}
-						</For>
-					</div>
-				</Show>
+						</Match>
+					</Switch>
+				</Suspense>
 			</div>
 
 			<ConfirmDrawer
