@@ -9,17 +9,29 @@ interface SqlRow {
 
 export const db = drizzle(
 	async (sql, params, method) => {
-		const rows = await invoke<SqlRow[]>("run_sql", {
-			query: { sql, params },
-		});
+		try {
+			const rows = await invoke<SqlRow[]>("run_sql", {
+				query: { sql, params, method },
+			});
 
-		if (rows.length === 0 && method === "get") {
-			return {} as { rows: unknown[] };
+			if (rows.length === 0 && method === "get") {
+				return {} as { rows: unknown[] };
+			}
+
+			return method === "get"
+				? { rows: rows[0]?.values ?? [] }
+				: { rows: rows.map((r) => r.values) };
+		} catch (err) {
+			console.error(
+				"[auth] DB query failed:",
+				sql,
+				"params:",
+				JSON.stringify(params),
+				"error:",
+				err,
+			);
+			throw err;
 		}
-
-		return method === "get"
-			? { rows: rows[0].values }
-			: { rows: rows.map((r) => r.values) };
 	},
 	{ schema },
 );

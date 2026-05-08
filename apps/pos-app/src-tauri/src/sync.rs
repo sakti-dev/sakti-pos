@@ -1,9 +1,9 @@
-use base64::engine::general_purpose;
-use base64::Engine;
 use serde_json::Value;
-use sqlx::{Column, Row, SqlitePool, TypeInfo};
-use std::path::PathBuf;
-use tauri::{command, AppHandle, Manager};
+use sqlx::{Column, Row, SqlitePool};
+use tauri::{command, State};
+
+use crate::db_utils;
+use crate::drizzle_proxy::AppState;
 
 const SYNC_TABLES: &[&str] = &[
     "categories",
@@ -17,32 +17,17 @@ const SYNC_TABLES: &[&str] = &[
     "registers",
 ];
 
-fn build_client(session_cookie: &str) -> Result<reqwest::Client, String> {
+fn build_client(session_token: &str) -> Result<reqwest::Client, String> {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert(
-        reqwest::header::COOKIE,
-        reqwest::header::HeaderValue::from_str(session_cookie)
-            .map_err(|e| format!("Invalid cookie: {}", e))?,
+        reqwest::header::AUTHORIZATION,
+        reqwest::header::HeaderValue::from_str(&format!("Bearer {}", session_token))
+            .map_err(|e| format!("Invalid token: {}", e))?,
     );
     reqwest::Client::builder()
         .default_headers(headers)
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))
-}
-
-fn get_app_db_path(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_config_dir()
-        .map(|p| p.join("sakti-pos.db"))
-        .map_err(|_| "Could not resolve app config directory".to_string())
-}
-
-async fn get_pool(app: &AppHandle) -> Result<SqlitePool, String> {
-    let db_path = get_app_db_path(app)?;
-    let uri = format!("sqlite:{}?mode=rwc", db_path.display());
-    SqlitePool::connect(&uri)
-        .await
-        .map_err(|e| format!("Failed to connect to DB: {}", e))
 }
 
 fn get_table_filter_column(table: &str) -> &'static str {
@@ -74,7 +59,7 @@ async fn read_unsynced_rows(
         for (idx, col) in row.columns().iter().enumerate() {
             let name = col.name().to_string();
             let val = match row.try_get_raw(idx) {
-                Ok(_) => sqlx_value_to_json(row, idx),
+                Ok(_) => db_utils::sqlx_value_to_json(row, idx),
                 Err(_) => Value::Null,
             };
             obj.insert(name, val);
@@ -82,48 +67,6 @@ async fn read_unsynced_rows(
         result.push(Value::Object(obj));
     }
     Ok(result)
-}
-
-fn sqlx_value_to_json(row: &sqlx::sqlite::SqliteRow, index: usize) -> Value {
-    let column = row.column(index);
-    let type_name = column.type_info().name();
-
-    match type_name {
-        "INTEGER" => {
-            if let Ok(v) = row.try_get::<i64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<f64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<String, _>(index) {
-                Value::String(v)
-            } else {
-                Value::Null
-            }
-        }
-        "REAL" => row
-            .try_get::<f64, _>(index)
-            .map(Value::from)
-            .unwrap_or(Value::Null),
-        "TEXT" => row
-            .try_get::<String, _>(index)
-            .map(Value::String)
-            .unwrap_or(Value::Null),
-        "BLOB" => row
-            .try_get::<Vec<u8>, _>(index)
-            .map(|bytes| Value::String(general_purpose::STANDARD.encode(&bytes)))
-            .unwrap_or(Value::Null),
-        _ => {
-            if let Ok(v) = row.try_get::<i64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<f64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<String, _>(index) {
-                Value::String(v)
-            } else {
-                Value::Null
-            }
-        }
-    }
 }
 
 async fn mark_table_synced(
@@ -271,9 +214,9 @@ async fn sync_push_inner(
     pool: &SqlitePool,
     outlet_id: &str,
     api_url: &str,
-    session_cookie: &str,
+    session_token: &str,
 ) -> Result<PushResult, String> {
-    let client = build_client(session_cookie)?;
+    let client = build_client(session_token)?;
 
     let mut tables_json = serde_json::Map::new();
     for table in SYNC_TABLES {
@@ -329,13 +272,12 @@ async fn sync_push_inner(
 
 #[command]
 pub async fn sync_push(
-    app: AppHandle,
     outlet_id: String,
     api_url: String,
-    session_cookie: String,
+    session_token: String,
+    state: State<'_, AppState>,
 ) -> Result<PushResult, String> {
-    let pool = get_pool(&app).await?;
-    sync_push_inner(&pool, &outlet_id, &api_url, &session_cookie).await
+    sync_push_inner(&state.db_pool, &outlet_id, &api_url, &session_token).await
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -348,9 +290,9 @@ async fn sync_pull_inner(
     pool: &SqlitePool,
     outlet_id: &str,
     api_url: &str,
-    session_cookie: &str,
+    session_token: &str,
 ) -> Result<PullResult, String> {
-    let client = build_client(session_cookie)?;
+    let client = build_client(session_token)?;
 
     let since = get_last_sync_at(pool, "orders", outlet_id)
         .await
@@ -411,21 +353,20 @@ async fn sync_pull_inner(
 
 #[command]
 pub async fn sync_pull(
-    app: AppHandle,
     outlet_id: String,
     api_url: String,
-    session_cookie: String,
+    session_token: String,
+    state: State<'_, AppState>,
 ) -> Result<PullResult, String> {
-    let pool = get_pool(&app).await?;
-    sync_pull_inner(&pool, &outlet_id, &api_url, &session_cookie).await
+    sync_pull_inner(&state.db_pool, &outlet_id, &api_url, &session_token).await
 }
 
 #[command]
 pub async fn run_garbage_collection(
-    app: AppHandle,
     outlet_id: String,
+    state: State<'_, AppState>,
 ) -> Result<usize, String> {
-    let pool = get_pool(&app).await?;
+    let pool = &state.db_pool;
     let mut total_purged: usize = 0;
 
     for table in SYNC_TABLES {
@@ -436,7 +377,7 @@ pub async fn run_garbage_collection(
         );
         let result = sqlx::query(&query)
             .bind(&outlet_id)
-            .execute(&pool)
+            .execute(pool)
             .await
             .map_err(|e| format!("GC failed for {}: {}", table, e))?;
         total_purged += result.rows_affected() as usize;
@@ -454,14 +395,30 @@ pub struct SyncNowResult {
 
 #[command]
 pub async fn sync_now(
-    app: AppHandle,
     outlet_id: String,
     api_url: String,
-    session_cookie: String,
+    session_token: String,
+    state: State<'_, AppState>,
 ) -> Result<SyncNowResult, String> {
-    let pool = get_pool(&app).await?;
-    let pull = sync_pull_inner(&pool, &outlet_id, &api_url, &session_cookie).await?;
-    let push = sync_push_inner(&pool, &outlet_id, &api_url, &session_cookie).await?;
-    let purged = run_garbage_collection(app, outlet_id).await?;
+    let pool = &state.db_pool;
+    let pull = sync_pull_inner(pool, &outlet_id, &api_url, &session_token).await?;
+    let push = sync_push_inner(pool, &outlet_id, &api_url, &session_token).await?;
+    let purged = {
+        let mut total_purged: usize = 0;
+        for table in SYNC_TABLES {
+            let filter_col = get_table_filter_column(table);
+            let query = format!(
+                "DELETE FROM {} WHERE {} = ?1 AND deleted_at IS NOT NULL AND is_synced = 1",
+                table, filter_col
+            );
+            let result = sqlx::query(&query)
+                .bind(&outlet_id)
+                .execute(pool)
+                .await
+                .map_err(|e| format!("GC failed for {}: {}", table, e))?;
+            total_purged += result.rows_affected() as usize;
+        }
+        total_purged
+    };
     Ok(SyncNowResult { pull, push, purged })
 }

@@ -1,19 +1,29 @@
-use base64::engine::general_purpose;
-use base64::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{
     query::Query,
-    sqlite::{SqliteArguments, SqliteRow},
-    Column, Row, Sqlite, SqlitePool, TypeInfo,
+    sqlite::SqliteArguments,
+    Column, Row, Sqlite, SqlitePool,
 };
-use std::path::PathBuf;
-use tauri::{command, AppHandle, Manager};
+use tauri::{command, AppHandle, State};
+use tokio::fs;
+
+use crate::db_utils;
+
+pub struct AppState {
+    pub db_pool: SqlitePool,
+}
+
+const MIGRATIONS: &[(&str, &str)] = &[(
+    "0000_certain_mole_man",
+    include_str!("../../drizzle/0000_certain_mole_man.sql"),
+)];
 
 #[derive(Debug, Deserialize)]
 pub struct SqlQuery {
     pub sql: String,
     pub params: Vec<serde_json::Value>,
+    pub method: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -22,22 +32,105 @@ pub struct SqlRow {
     pub values: Vec<serde_json::Value>,
 }
 
-#[command]
-pub async fn run_sql(app: AppHandle, query: SqlQuery) -> Result<Vec<SqlRow>, String> {
-    let db_path = get_app_db_path(&app)?;
+pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
+    let db_path = db_utils::get_app_db_path(app)?;
     let uri = format!("sqlite:{}?mode=rwc", db_path.display());
-
     let pool = SqlitePool::connect(&uri)
         .await
         .map_err(|e| format!("Failed to connect to DB: {}", e))?;
+
+    run_migrations(&pool).await?;
+    Ok(pool)
+}
+
+async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS __drizzle_migrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hash TEXT NOT NULL UNIQUE,
+            created_at INTEGER NOT NULL
+        )",
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to create migration tracking table: {}", e))?;
+
+    for (name, sql) in MIGRATIONS {
+        let applied: bool = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM __drizzle_migrations WHERE hash = $1",
+        )
+        .bind(name)
+        .fetch_one(pool)
+        .await
+        .map(|c| c > 0)
+        .unwrap_or(false);
+
+        if applied {
+            continue;
+        }
+
+        let mut tx = pool
+            .begin()
+            .await
+            .map_err(|e| format!("Failed to begin migration transaction: {}", e))?;
+
+        for statement in sql.split("--> statement-breakpoint") {
+            let stmt = statement.trim();
+            if !stmt.is_empty() {
+                if let Err(e) = sqlx::query(stmt).execute(&mut *tx).await {
+                    let msg = e.to_string();
+                    if msg.contains("already exists") {
+                        eprintln!("[auth] Migration statement skipped: {}", msg);
+                    } else {
+                        return Err(format!("Migration {} failed: {}", name, e));
+                    }
+                }
+            }
+        }
+
+        sqlx::query("INSERT INTO __drizzle_migrations (hash, created_at) VALUES ($1, $2)")
+            .bind(name)
+            .bind(chrono_now_ms())
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("Failed to record migration {}: {}", name, e))?;
+
+        tx.commit()
+            .await
+            .map_err(|e| format!("Failed to commit migration {}: {}", name, e))?;
+    }
+
+    Ok(())
+}
+
+fn chrono_now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64
+}
+
+#[command]
+pub async fn run_sql(
+    query: SqlQuery,
+    state: State<'_, AppState>,
+) -> Result<Vec<SqlRow>, String> {
+    let pool = &state.db_pool;
 
     let mut q = sqlx::query(&query.sql);
     for param in &query.params {
         q = bind_value(q, param);
     }
 
+    if query.method == "run" {
+        q.execute(pool)
+            .await
+            .map_err(|e| format!("Query failed: {}", e))?;
+        return Ok(vec![]);
+    }
+
     let rows = q
-        .fetch_all(&pool)
+        .fetch_all(pool)
         .await
         .map_err(|e| format!("Query failed: {}", e))?;
 
@@ -52,7 +145,7 @@ pub async fn run_sql(app: AppHandle, query: SqlQuery) -> Result<Vec<SqlRow>, Str
 
             let values = (0..row.len())
                 .map(|i| match row.try_get_raw(i) {
-                    Ok(_) => sqlx_value_to_json(row, i),
+                    Ok(_) => db_utils::sqlx_value_to_json(row, i),
                     Err(_) => Value::Null,
                 })
                 .collect::<Vec<_>>();
@@ -78,15 +171,10 @@ pub struct BatchResult {
 
 #[command]
 pub async fn run_sql_batch(
-    app: AppHandle,
     statements: Vec<SqlStatement>,
+    state: State<'_, AppState>,
 ) -> Result<BatchResult, String> {
-    let db_path = get_app_db_path(&app)?;
-    let uri = format!("sqlite:{}?mode=rwc", db_path.display());
-
-    let pool = SqlitePool::connect(&uri)
-        .await
-        .map_err(|e| format!("Failed to connect to DB: {}", e))?;
+    let pool = &state.db_pool;
 
     let mut tx = pool
         .begin()
@@ -140,8 +228,9 @@ pub struct DbInfo {
 
 #[command]
 pub async fn get_db_info(app: AppHandle) -> Result<DbInfo, String> {
-    let db_path = get_app_db_path(&app)?;
-    let metadata = std::fs::metadata(&db_path)
+    let db_path = db_utils::get_app_db_path(&app)?;
+    let metadata = fs::metadata(&db_path)
+        .await
         .map_err(|e| format!("Failed to get DB file info: {}", e))?;
     let size = metadata.len();
     let size_formatted = format_file_size(size);
@@ -150,13 +239,6 @@ pub async fn get_db_info(app: AppHandle) -> Result<DbInfo, String> {
         size_bytes: size,
         size_formatted,
     })
-}
-
-fn get_app_db_path(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_config_dir()
-        .map(|p| p.join("sakti-pos.db"))
-        .map_err(|_| "Could not resolve app config directory".to_string())
 }
 
 fn bind_value<'q>(
@@ -177,47 +259,5 @@ fn bind_value<'q>(
         }
         Value::String(s) => query.bind(s),
         _ => query,
-    }
-}
-
-fn sqlx_value_to_json(row: &SqliteRow, index: usize) -> Value {
-    let column = row.column(index);
-    let type_name = column.type_info().name();
-
-    match type_name {
-        "INTEGER" => {
-            if let Ok(v) = row.try_get::<i64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<f64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<String, _>(index) {
-                Value::String(v)
-            } else {
-                Value::Null
-            }
-        }
-        "REAL" => row
-            .try_get::<f64, _>(index)
-            .map(Value::from)
-            .unwrap_or(Value::Null),
-        "TEXT" => row
-            .try_get::<String, _>(index)
-            .map(Value::String)
-            .unwrap_or(Value::Null),
-        "BLOB" => row
-            .try_get::<Vec<u8>, _>(index)
-            .map(|bytes| Value::String(general_purpose::STANDARD.encode(&bytes)))
-            .unwrap_or(Value::Null),
-        _ => {
-            if let Ok(v) = row.try_get::<i64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<f64, _>(index) {
-                Value::from(v)
-            } else if let Ok(v) = row.try_get::<String, _>(index) {
-                Value::String(v)
-            } else {
-                Value::Null
-            }
-        }
     }
 }
