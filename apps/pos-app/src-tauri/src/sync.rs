@@ -141,6 +141,14 @@ async fn get_last_sync_at(
     Ok(row.map(|r| r.0))
 }
 
+fn choose_pull_since(timestamps: Vec<Option<String>>) -> String {
+    timestamps
+        .into_iter()
+        .flatten()
+        .min()
+        .unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_string())
+}
+
 async fn set_last_sync_at_tx(
     conn: &mut SqliteConnection,
     table: &str,
@@ -553,18 +561,15 @@ async fn sync_pull_inner(
 ) -> Result<PullResult, String> {
     let client = build_client(session_token)?;
 
-    let mut earliest_since = "1970-01-01T00:00:00.000Z".to_string();
+    let mut timestamps = Vec::new();
     for table in SYNC_TABLES {
-        if let Some(ts) = get_last_sync_at(pool, table, outlet_id)
-            .await
-            .unwrap_or(None)
-        {
-            if ts < earliest_since {
-                earliest_since = ts;
-            }
-        }
+        timestamps.push(
+            get_last_sync_at(pool, table, outlet_id)
+                .await
+                .unwrap_or(None),
+        );
     }
-    let since = earliest_since;
+    let since = choose_pull_since(timestamps);
     println!(
         "[SYNC-DEBUG] pull: outlet_id={}, since={}",
         outlet_id, since
@@ -801,4 +806,28 @@ pub async fn sync_now(
         push,
         purged: total_purged,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chooses_oldest_existing_last_sync_timestamp() {
+        let timestamps = vec![
+            Some("2026-05-09T11:10:00.000Z".to_string()),
+            Some("2026-05-09T11:05:00.000Z".to_string()),
+            Some("2026-05-09T11:08:00.000Z".to_string()),
+        ];
+
+        assert_eq!(choose_pull_since(timestamps), "2026-05-09T11:05:00.000Z");
+    }
+
+    #[test]
+    fn falls_back_to_epoch_when_no_table_has_synced() {
+        assert_eq!(
+            choose_pull_since(vec![None, None]),
+            "1970-01-01T00:00:00.000Z"
+        );
+    }
 }
