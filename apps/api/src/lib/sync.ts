@@ -1,10 +1,12 @@
 import {
 	categories,
+	merchants,
 	orderItems,
 	orders,
 	outletProducts,
 	outlets,
 	products,
+	registers,
 	staff,
 	userMerchants,
 } from "@repo/database/api-schema";
@@ -12,6 +14,9 @@ import { and, eq, gt } from "drizzle-orm";
 import { db } from "../db";
 
 const ALL_SYNC_TABLE_NAMES = [
+	"merchants",
+	"outlets",
+	"registers",
 	"categories",
 	"products",
 	"outlet_products",
@@ -48,6 +53,13 @@ export async function verifyOutletAccess(
 
 type TransactionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+function stripLocalOnlyColumns(
+	row: Record<string, unknown>,
+): Record<string, unknown> {
+	const { is_synced: _, ...clean } = row;
+	return clean;
+}
+
 export async function handlePush(
 	outletId: string,
 	merchantId: string,
@@ -61,10 +73,20 @@ export async function handlePush(
 
 			const wins: string[] = [];
 
-			for (const row of rows as Record<string, unknown>[]) {
+			for (const rawRow of rows as Record<string, unknown>[]) {
+				const row = stripLocalOnlyColumns(rawRow);
 				let serverWin: string | null = null;
 
 				switch (tableName) {
+					case "merchants":
+						serverWin = await upsertMerchantRow(tx, merchants, row, merchantId);
+						break;
+					case "outlets":
+						serverWin = await upsertOutletRow(tx, outlets, row, outletId);
+						break;
+					case "registers":
+						serverWin = await upsertOutletRow(tx, registers, row, outletId);
+						break;
 					case "categories":
 						serverWin = await upsertMerchantRow(
 							tx,
@@ -109,7 +131,7 @@ export async function handlePush(
 
 async function upsertMerchantRow(
 	tx: TransactionTx,
-	table: typeof categories | typeof products,
+	table: typeof categories | typeof products | typeof merchants,
 	row: Record<string, unknown>,
 	merchantId: string,
 ): Promise<string | null> {
@@ -141,7 +163,11 @@ async function upsertMerchantRow(
 
 async function upsertOutletRow(
 	tx: TransactionTx,
-	table: typeof outletProducts | typeof orders,
+	table:
+		| typeof outletProducts
+		| typeof orders
+		| typeof outlets
+		| typeof registers,
 	row: Record<string, unknown>,
 	outletId: string,
 ): Promise<string | null> {
@@ -243,6 +269,39 @@ export async function handlePull(
 
 	for (const tableName of tables) {
 		switch (tableName) {
+			case "merchants": {
+				result.merchants = await db
+					.select()
+					.from(merchants)
+					.where(
+						and(eq(merchants.id, merchantId), gt(merchants.updatedAt, since)),
+					);
+				break;
+			}
+			case "outlets": {
+				result.outlets = await db
+					.select()
+					.from(outlets)
+					.where(
+						and(
+							eq(outlets.merchantId, merchantId),
+							gt(outlets.updatedAt, since),
+						),
+					);
+				break;
+			}
+			case "registers": {
+				result.registers = await db
+					.select()
+					.from(registers)
+					.where(
+						and(
+							eq(registers.outletId, outletId),
+							gt(registers.updatedAt, since),
+						),
+					);
+				break;
+			}
 			case "categories": {
 				result.categories = await db
 					.select()

@@ -24,21 +24,23 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
-        .plugin(Builder::new(|password| {
-            let config = Config {
-                lanes: 4,
-                mem_cost: 10_000,
-                time_cost: 2,
-                variant: Variant::Argon2id,
-                version: Version::Version13,
-                ..Default::default()
-            };
-            let salt = b"sakti-pos-secure-salt-2026";
-            let key = hash_raw(password.as_bytes(), salt, &config)
-                .expect("failed to hash password");
-            key.to_vec()
-        })
-        .build())
+        .plugin(
+            Builder::new(|password| {
+                let config = Config {
+                    lanes: 4,
+                    mem_cost: 10_000,
+                    time_cost: 2,
+                    variant: Variant::Argon2id,
+                    version: Version::Version13,
+                    ..Default::default()
+                };
+                let salt = b"sakti-pos-secure-salt-2026";
+                let key =
+                    hash_raw(password.as_bytes(), salt, &config).expect("failed to hash password");
+                key.to_vec()
+            })
+            .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             drizzle_proxy::run_sql,
             drizzle_proxy::run_sql_batch,

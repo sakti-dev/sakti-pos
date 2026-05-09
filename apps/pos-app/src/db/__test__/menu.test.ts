@@ -73,7 +73,7 @@ describe("menu db", () => {
 		});
 
 		const { getCategory } = await import("../menu");
-		const result = await getCategory(1);
+		const result = await getCategory("category-1");
 
 		expect(result).toEqual(fakeCategory);
 	});
@@ -85,7 +85,7 @@ describe("menu db", () => {
 		});
 
 		const { getCategory } = await import("../menu");
-		const result = await getCategory(999);
+		const result = await getCategory("missing-category");
 
 		expect(result).toBeUndefined();
 	});
@@ -112,7 +112,7 @@ describe("menu db", () => {
 		mockUpdate.mockReturnValue({ set: mockSet });
 
 		const { deleteCategory } = await import("../menu");
-		await deleteCategory(1);
+		await deleteCategory("category-1");
 
 		expect(mockUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({ id: "id" }),
@@ -134,7 +134,7 @@ describe("menu db", () => {
 		});
 
 		const { getProductCountByCategory } = await import("../menu");
-		const result = await getProductCountByCategory(1);
+		const result = await getProductCountByCategory("category-1");
 
 		expect(result).toBe(1);
 	});
@@ -148,7 +148,7 @@ describe("menu db", () => {
 		});
 
 		const { getProductCountByCategory } = await import("../menu");
-		const result = await getProductCountByCategory(99);
+		const result = await getProductCountByCategory("missing-category");
 
 		expect(result).toBe(0);
 	});
@@ -173,7 +173,7 @@ describe("menu db", () => {
 		});
 
 		const { getProducts } = await import("../menu");
-		const result = await getProducts(1);
+		const result = await getProducts("category-1");
 
 		expect(result).toEqual(fakeProducts);
 	});
@@ -204,7 +204,7 @@ describe("menu db", () => {
 		mockUpdate.mockReturnValue({ set: mockSet });
 
 		const { deleteProduct } = await import("../menu");
-		await deleteProduct(1);
+		await deleteProduct("product-1");
 
 		expect(mockUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({ id: "id", categoryId: "category_id" }),

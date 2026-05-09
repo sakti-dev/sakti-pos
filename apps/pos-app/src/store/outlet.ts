@@ -23,6 +23,11 @@ export function loadOutletContext() {
 	const outletId = localStorage.getItem(OUTLET_STORAGE_KEY);
 	const merchantId = localStorage.getItem(MERCHANT_STORAGE_KEY);
 	const registerId = localStorage.getItem(REGISTER_STORAGE_KEY);
+	console.log("[SYNC-DEBUG] loadOutletContext", {
+		outletId,
+		merchantId,
+		registerId,
+	});
 	if (outletId) setCurrentOutletId(outletId);
 	if (merchantId) setCurrentMerchantId(merchantId);
 	if (registerId) setCurrentRegisterId(registerId);

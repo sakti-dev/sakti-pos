@@ -1,12 +1,14 @@
 import { useNavigate } from "@solidjs/router";
 import { createSignal, For, onMount, Show } from "solid-js";
 import PinPad from "~/components/ui/pinpad";
+import { isCloudAuthenticated } from "~/lib/cloud-auth";
 import {
 	type AuthUser,
 	getActiveStaff,
 	getLastUserId,
 	login,
 } from "~/store/auth";
+import { currentMerchantId, currentOutletId } from "~/store/outlet";
 import { useIsLandscape } from "~/store/responsive";
 
 const MAX_PIN_ATTEMPTS = 5;
@@ -26,6 +28,19 @@ export default function Login() {
 		try {
 			const activeStaff = await getActiveStaff();
 			if (activeStaff.length === 0) {
+				const merchantId = currentMerchantId();
+				const outletId = currentOutletId();
+				const hasCloudSession = await isCloudAuthenticated();
+				if (merchantId && outletId && hasCloudSession) {
+					navigate(
+						`/onboarding?merchantId=${merchantId}&outletId=${outletId}`,
+						{
+							replace: true,
+						},
+					);
+					return;
+				}
+
 				navigate("/cloud-login", { replace: true });
 				return;
 			}
@@ -48,13 +63,14 @@ export default function Login() {
 	});
 
 	const handlePinSubmit = async (pin: string) => {
-		if (!selectedUser() || pinDisabled()) {
+		const user = selectedUser();
+		if (!user || pinDisabled()) {
 			return;
 		}
 		setError("");
 		setLoading(true);
 		try {
-			const authUser = await login(selectedUser()!.id, pin);
+			const authUser = await login(user.id, pin);
 			const target = authUser.role === "cashier" ? "/pos" : "/";
 			navigate(target, { replace: true });
 		} catch (err) {

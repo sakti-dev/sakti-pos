@@ -11,6 +11,7 @@ vi.mock("../auth-storage", () => ({
 describe("isCloudAuthenticated", () => {
 	afterEach(() => {
 		vi.resetModules();
+		vi.unstubAllGlobals();
 	});
 
 	test("returns false when no token stored", async () => {
@@ -25,5 +26,39 @@ describe("isCloudAuthenticated", () => {
 		);
 		const { isCloudAuthenticated } = await import("../cloud-auth");
 		expect(await isCloudAuthenticated()).toBe(true);
+	});
+
+	test("getCurrentCloudStaff posts to staff me endpoint", async () => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve({
+				ok: true,
+				status: 200,
+				text: () =>
+					Promise.resolve(
+						JSON.stringify({
+							claimed: false,
+							staff: {
+								hasPin: true,
+								id: "staff-1",
+								isActive: true,
+								merchantId: "merchant-1",
+								name: "Owner",
+								outletId: "outlet-1",
+								role: "owner",
+							},
+						}),
+					),
+			}),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		const { getCurrentCloudStaff } = await import("../cloud-auth");
+		const result = await getCurrentCloudStaff("merchant-1");
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.stringContaining("/api/merchants/merchant-1/staff/me"),
+			expect.objectContaining({ method: "POST" }),
+		);
+		expect(result.staff?.id).toBe("staff-1");
 	});
 });

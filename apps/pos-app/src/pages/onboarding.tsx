@@ -1,32 +1,62 @@
-import { useNavigate } from "@solidjs/router";
+import { useNavigate, useSearchParams } from "@solidjs/router";
 import { createSignal, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import PinPad from "~/components/ui/pinpad";
-import { createStaffMember } from "~/db/staff";
-import { hashPin } from "~/lib/auth-provider";
+import { getOwnerStaff } from "~/db/staff";
 import {
 	ApiError,
 	createMerchant,
 	createOutlet,
+	createStaff as createStaffApi,
+	getCurrentCloudStaff,
 	type Merchant,
 } from "~/lib/cloud-auth";
 import { login } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
+import { syncNow } from "~/store/sync";
 
 type Step = "merchant" | "outlet" | "setup-pin";
 
+export function resolveInitialStep(
+	merchantIdFromQuery: string | null,
+	outletIdFromQuery: string | null,
+): Step {
+	if (merchantIdFromQuery && outletIdFromQuery) {
+		return "setup-pin";
+	}
+	if (merchantIdFromQuery) {
+		return "outlet";
+	}
+	return "merchant";
+}
+
 export default function Onboarding() {
 	const navigate = useNavigate();
-	const [step, setStep] = createSignal<Step>("merchant");
+	const [searchParams] = useSearchParams();
+	const rawMerchantId = searchParams.merchantId;
+	const merchantIdFromQuery =
+		typeof rawMerchantId === "string" ? rawMerchantId : null;
+	const rawOutletId = searchParams.outletId;
+	const outletIdFromQuery =
+		typeof rawOutletId === "string" ? rawOutletId : null;
+
+	const [step, setStep] = createSignal<Step>(
+		resolveInitialStep(merchantIdFromQuery, outletIdFromQuery),
+	);
 	const [merchantName, setMerchantName] = createSignal("");
 	const [outletName, setOutletName] = createSignal("");
 	const [outletAddress, setOutletAddress] = createSignal("");
 	const [loading, setLoading] = createSignal(false);
 	const [error, setError] = createSignal("");
 	const [createdMerchant, setCreatedMerchant] = createSignal<Merchant | null>(
-		null,
+		merchantIdFromQuery
+			? { id: merchantIdFromQuery, name: "", createdAt: "", updatedAt: "" }
+			: null,
 	);
 	const [pin, setPin] = createSignal("");
+	const [createdOutletId, setCreatedOutletId] = createSignal<string | null>(
+		outletIdFromQuery,
+	);
 
 	const handleCreateMerchant = async (e: Event) => {
 		e.preventDefault();
@@ -65,7 +95,14 @@ export default function Onboarding() {
 				outletAddress().trim() || undefined,
 			);
 			setOutletContext(result.id, result.merchantId, result.register?.id);
-			setStep("setup-pin");
+			setCreatedOutletId(result.id);
+
+			const existingOwner = await getOwnerStaff(merchant.id);
+			if (existingOwner) {
+				navigate("/login", { replace: true });
+			} else {
+				setStep("setup-pin");
+			}
 		} catch (err) {
 			if (err instanceof ApiError) {
 				setError(err.message);
@@ -96,18 +133,33 @@ export default function Onboarding() {
 		setLoading(true);
 
 		try {
-			const hashedPin = await hashPin(pin());
-			const staffRecord = await createStaffMember({
+			await createStaffApi({
 				merchantId: merchant.id,
-				name: merchant.name,
+				outletId: createdOutletId() ?? undefined,
+				name: merchant.name || "Owner",
+				pin: pin(),
 				role: "owner",
-				pin: hashedPin,
 			});
-			await login(staffRecord.id, pin());
-			navigate("/pos", { replace: true });
+			const cloudStaff = await getCurrentCloudStaff(merchant.id);
+			if (!cloudStaff.staff) {
+				setError("Gagal menghubungkan akun cloud dengan staff");
+				setPin("");
+				return;
+			}
+			await syncNow();
+			const activeStaff = await getOwnerStaff(merchant.id);
+			if (activeStaff) {
+				await login(activeStaff.id, pin());
+				navigate("/pos", { replace: true });
+			} else {
+				setError("Gagal memuat staff setelah sync");
+			}
 		} catch (err) {
-			console.error("[auth] onboarding PIN setup failed:", err);
-			setError("Gagal membuat PIN");
+			if (err instanceof ApiError) {
+				setError(err.message);
+			} else {
+				setError("Gagal membuat PIN");
+			}
 			setPin("");
 		} finally {
 			setLoading(false);

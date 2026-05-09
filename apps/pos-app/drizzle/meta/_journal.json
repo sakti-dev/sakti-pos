@@ -15,6 +15,27 @@
 			"when": 1778238921360,
 			"tag": "0001_medical_puppet_master",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "6",
+			"when": 1778310792100,
+			"tag": "0002_peaceful_rhino",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "6",
+			"when": 1778311989926,
+			"tag": "0003_stiff_colonel_america",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "6",
+			"when": 1778323320753,
+			"tag": "0004_happy_psylocke",
+			"breakpoints": true
 		}
 	]
 }

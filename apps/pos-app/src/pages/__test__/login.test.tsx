@@ -10,12 +10,25 @@ const mockGetActiveStaff = vi.fn(() =>
 	]),
 );
 const mockGetLastUserId = vi.fn<() => string | null>(() => null);
+const mockIsCloudAuthenticated = vi.fn(() => Promise.resolve(false));
 const mockNavigate = vi.fn();
 
 vi.mock("~/store/auth", () => ({
 	getActiveStaff: () => mockGetActiveStaff(),
 	getLastUserId: () => mockGetLastUserId(),
 	login: () => mockLogin(),
+}));
+
+vi.mock("~/lib/cloud-auth", () => ({
+	isCloudAuthenticated: () => mockIsCloudAuthenticated(),
+}));
+
+const mockCurrentMerchantId = vi.fn<() => string | null>(() => null);
+const mockCurrentOutletId = vi.fn<() => string | null>(() => null);
+
+vi.mock("~/store/outlet", () => ({
+	currentMerchantId: () => mockCurrentMerchantId(),
+	currentOutletId: () => mockCurrentOutletId(),
 }));
 
 vi.mock("~/store/responsive", () => ({
@@ -34,6 +47,9 @@ const user = userEvent.setup();
 describe("Login", () => {
 	afterEach(() => {
 		vi.clearAllMocks();
+		mockCurrentMerchantId.mockReturnValue(null);
+		mockCurrentOutletId.mockReturnValue(null);
+		mockIsCloudAuthenticated.mockResolvedValue(false);
 	});
 
 	test("renders staff list after loading", async () => {
@@ -71,6 +87,37 @@ describe("Login", () => {
 			expect(mockNavigate).toHaveBeenCalledWith("/cloud-login", {
 				replace: true,
 			});
+		});
+	});
+
+	test("redirects to cloud login when paired outlet has no active staff and no cloud session", async () => {
+		mockCurrentMerchantId.mockReturnValue("m1");
+		mockCurrentOutletId.mockReturnValue("o1");
+		mockGetActiveStaff.mockResolvedValueOnce([]);
+		mockGetLastUserId.mockReturnValue(null);
+		mockIsCloudAuthenticated.mockResolvedValueOnce(false);
+		render(() => <Login />);
+		await vi.waitFor(() => {
+			expect(mockNavigate).toHaveBeenCalledWith("/cloud-login", {
+				replace: true,
+			});
+		});
+	});
+
+	test("redirects to setup PIN when paired outlet has no active staff and cloud session exists", async () => {
+		mockCurrentMerchantId.mockReturnValue("m1");
+		mockCurrentOutletId.mockReturnValue("o1");
+		mockGetActiveStaff.mockResolvedValueOnce([]);
+		mockGetLastUserId.mockReturnValue(null);
+		mockIsCloudAuthenticated.mockResolvedValueOnce(true);
+		render(() => <Login />);
+		await vi.waitFor(() => {
+			expect(mockNavigate).toHaveBeenCalledWith(
+				"/onboarding?merchantId=m1&outletId=o1",
+				{
+					replace: true,
+				},
+			);
 		});
 	});
 

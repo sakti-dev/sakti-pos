@@ -5,6 +5,7 @@ import { authRoutes } from "./routes/auth";
 import { merchantsRoutes } from "./routes/merchants";
 import { outletsRoutes } from "./routes/outlets";
 import { registersRoutes } from "./routes/registers";
+import { staffRoutes } from "./routes/staff";
 import { syncRoutes } from "./routes/sync";
 
 export default new Elysia({ adapter: CloudflareAdapter })
@@ -28,16 +29,19 @@ export default new Elysia({ adapter: CloudflareAdapter })
 		);
 	})
 	.onError(({ code, error, request }) => {
+		const message = error instanceof Error ? error.message : String(error);
+		const stack = error instanceof Error ? error.stack : undefined;
 		console.error(
 			`[${new Date().toISOString()}] ERROR ${request.method} ${new URL(request.url).pathname} code=${code}`,
-			error.message,
-			error.stack,
+			message,
+			stack,
 		);
 	})
 	.use(authRoutes)
 	.use(merchantsRoutes)
 	.use(outletsRoutes)
 	.use(registersRoutes)
+	.use(staffRoutes)
 	.use(syncRoutes)
 	.get("/", () => "Sakti POS API v1")
 	.compile();

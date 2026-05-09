@@ -27,8 +27,11 @@ function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
 	const navigate = useNavigate();
 
 	createEffect(() => {
-		if (!isAuthenticated()) {
-			navigate(isDevicePaired() ? "/login" : "/cloud-login");
+		const authed = isAuthenticated();
+		const paired = isDevicePaired();
+		console.log("[SYNC-DEBUG] RequireAuth guard", { authed, paired });
+		if (!authed) {
+			navigate(paired ? "/login" : "/cloud-login");
 		}
 	});
 

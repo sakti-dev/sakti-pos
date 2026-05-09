@@ -8,6 +8,7 @@
 		"check-types": "turbo run check-types",
 		"prepare": "husky",
 		"api:dev": "bun run dev --filter=@repo/api",
+		"api:db:studio": "bun run db:studio --filter=@repo/api",
 		"app:dev": "bash apps/pos-app/scripts/dev",
 		"app:build-apk": "bash apps/pos-app/scripts/build-apk",
 		"app:resize": "bash apps/pos-app/scripts/resize",

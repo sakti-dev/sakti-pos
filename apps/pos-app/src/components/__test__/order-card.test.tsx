@@ -11,18 +11,18 @@ const mockOrder: OrderRow = {
 	amountPaid: 30_000,
 	changeAmount: 10_000,
 	createdAt: "2026-05-04T10:30:00.000Z",
-	id: 1,
+	id: "order-1",
 	orderNumber: "2026-05-04-001",
 	paymentMethod: "cash",
+	staffId: "staff-1",
+	staffName: "Kasir 1",
 	status: "completed",
 	total: 20_000,
-	userId: 1,
-	userName: "Kasir 1",
 };
 
 const mockItems: OrderItemRow[] = [
 	{
-		id: 1,
+		id: "item-1",
 		productName: "Nasi Goreng",
 		quantity: 2,
 		subtotal: 20_000,

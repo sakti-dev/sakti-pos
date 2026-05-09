@@ -78,8 +78,17 @@ export default function Layout(props: RouteSectionProps) {
 		);
 
 	createEffect(() => {
-		if (!isPublicRoute() && !isAuthenticated()) {
-			if (isDevicePaired()) {
+		const authed = isAuthenticated();
+		const paired = isDevicePaired();
+		const publicRoute = isPublicRoute();
+		console.log("[SYNC-DEBUG] Layout guard", {
+			pathname: location.pathname,
+			authed,
+			paired,
+			publicRoute,
+		});
+		if (!publicRoute && !authed) {
+			if (paired) {
 				navigate("/login");
 			} else {
 				navigate("/cloud-login");

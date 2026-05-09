@@ -4,8 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"db:dev": "mkdir -p .turso && turso dev --port 8080 --db-file ./.turso/local.db",
-		"dev": "bun run db:dev & sleep 2 && wrangler dev; kill %1 2>/dev/null",
+		"dev": "bash scripts/dev",
 		"deploy": "wrangler deploy",
 		"cf-typegen": "wrangler types",
 		"lint": "ultracite check",

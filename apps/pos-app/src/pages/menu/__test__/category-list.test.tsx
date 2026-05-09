@@ -6,26 +6,24 @@ import type { Category } from "~/db/menu";
 
 const mockCategories: Category[] = [
 	{
-		id: 1,
+		id: "category-1",
+		merchantId: "merchant-1",
 		name: "Minuman",
 		sortOrder: 0,
 		isActive: true,
 		createdAt: "",
 		updatedAt: "",
-		shopId: null,
-		cloudId: null,
 		deletedAt: null,
 		isSynced: false,
 	},
 	{
-		id: 2,
+		id: "category-2",
+		merchantId: "merchant-1",
 		name: "Makanan",
 		sortOrder: 1,
 		isActive: false,
 		createdAt: "",
 		updatedAt: "",
-		shopId: null,
-		cloudId: null,
 		deletedAt: null,
 		isSynced: false,
 	},
@@ -34,7 +32,7 @@ const mockCategories: Category[] = [
 const mockNavigate = vi.fn();
 const mockDeleteCategory = vi.fn();
 const mockUpdateCategory = vi.fn();
-const mockGetProductCountByCategory = vi.fn((_id?: number) =>
+const mockGetProductCountByCategory = vi.fn((_id?: string) =>
 	Promise.resolve(0),
 );
 
@@ -51,7 +49,7 @@ vi.mock("~/db/menu", () => ({
 	getCategories: vi.fn(() => Promise.resolve(mockCategories)),
 	deleteCategory: (...args: unknown[]) => mockDeleteCategory(...args),
 	updateCategory: (...args: unknown[]) => mockUpdateCategory(...args),
-	getProductCountByCategory: (id: number) => mockGetProductCountByCategory(id),
+	getProductCountByCategory: (id: string) => mockGetProductCountByCategory(id),
 }));
 
 vi.mock("~/components/ui/page-header", () => ({

@@ -3,17 +3,41 @@ import { createSignal, For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import {
 	ApiError,
+	type CurrentCloudStaff,
 	login as cloudLogin,
 	register as cloudRegister,
+	getCurrentCloudStaff,
 	getGoogleOAuthUrl,
 	getMerchants,
 	getOutlets,
-	type Merchant,
 	type Outlet,
+	type SessionMerchant,
 } from "~/lib/cloud-auth";
+import { getActiveStaff, loginWithCloudStaff } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
+import { syncNow } from "~/store/sync";
 
 type Step = "login" | "register" | "merchant-picker" | "outlet-picker";
+
+const routeForRole = (role: string) => (role === "cashier" ? "/pos" : "/");
+
+function describeError(error: unknown): string {
+	if (error instanceof Error) {
+		return `${error.name}: ${error.message}`;
+	}
+	if (typeof error === "string") {
+		return error;
+	}
+	try {
+		return JSON.stringify(error);
+	} catch {
+		return String(error);
+	}
+}
+
+function debugLog(event: string, data: Record<string, unknown>) {
+	console.info(`[CLOUD-LOGIN] ${event} ${JSON.stringify(data)}`);
+}
 
 export default function CloudLogin() {
 	const navigate = useNavigate();
@@ -23,7 +47,7 @@ export default function CloudLogin() {
 	const [name, setName] = createSignal("");
 	const [loading, setLoading] = createSignal(false);
 	const [error, setError] = createSignal("");
-	const [merchants, setMerchants] = createSignal<Merchant[]>([]);
+	const [merchants, setMerchants] = createSignal<SessionMerchant[]>([]);
 	const [outlets, setOutlets] = createSignal<Outlet[]>([]);
 
 	const handleSubmit = async (e: Event) => {
@@ -60,16 +84,18 @@ export default function CloudLogin() {
 		}
 	};
 
-	const handleSelectMerchant = async (merchant: Merchant) => {
+	const handleSelectMerchant = async (merchant: SessionMerchant) => {
 		setLoading(true);
 		setError("");
 		try {
-			const merchantOutlets = await getOutlets(merchant.id);
+			const merchantOutlets = await getOutlets(merchant.merchantId);
 			if (merchantOutlets.length > 0) {
 				setOutlets(merchantOutlets);
 				setStep("outlet-picker");
 			} else {
-				navigate("/onboarding", { replace: true });
+				navigate(`/onboarding?merchantId=${merchant.merchantId}`, {
+					replace: true,
+				});
 			}
 		} catch {
 			setError("Gagal memuat outlet");
@@ -78,8 +104,101 @@ export default function CloudLogin() {
 		}
 	};
 
-	const handleSelectOutlet = (outlet: Outlet) => {
+	const handleSelectOutlet = async (outlet: Outlet) => {
+		setLoading(true);
+		setError("");
+		debugLog("outlet selected", {
+			merchantId: outlet.merchantId,
+			outletId: outlet.id,
+			outletName: outlet.name,
+		});
 		setOutletContext(outlet.id, outlet.merchantId);
+		let currentCloudStaff: CurrentCloudStaff;
+		try {
+			debugLog("current cloud staff request", {
+				merchantId: outlet.merchantId,
+			});
+			currentCloudStaff = await getCurrentCloudStaff(outlet.merchantId);
+			debugLog("current cloud staff result", {
+				claimed: currentCloudStaff.claimed,
+				reason: currentCloudStaff.reason,
+				staffId: currentCloudStaff.staff?.id,
+				staffRole: currentCloudStaff.staff?.role,
+			});
+		} catch (err) {
+			const message = describeError(err);
+			console.error(
+				`[CLOUD-LOGIN] current cloud staff failed ${JSON.stringify({
+					error: message,
+					merchantId: outlet.merchantId,
+					outletId: outlet.id,
+				})}`,
+			);
+			setError(`Gagal memeriksa staff cloud: ${message}`);
+			setLoading(false);
+			return;
+		}
+
+		try {
+			debugLog("sync request", {
+				merchantId: outlet.merchantId,
+				outletId: outlet.id,
+			});
+			await syncNow();
+			debugLog("sync result", {
+				merchantId: outlet.merchantId,
+				outletId: outlet.id,
+			});
+		} catch (err) {
+			const message = describeError(err);
+			console.error(
+				`[CLOUD-LOGIN] sync failed ${JSON.stringify({
+					error: message,
+					merchantId: outlet.merchantId,
+					outletId: outlet.id,
+				})}`,
+			);
+			setError(`Gagal menyinkronkan data: ${message}`);
+			return;
+		} finally {
+			setLoading(false);
+		}
+
+		if (currentCloudStaff.staff) {
+			try {
+				const authUser = await loginWithCloudStaff(currentCloudStaff.staff.id);
+				navigate(routeForRole(authUser.role), { replace: true });
+			} catch (err) {
+				console.error(
+					`[CLOUD-LOGIN] local cloud staff login failed ${JSON.stringify({
+						error: describeError(err),
+						staffId: currentCloudStaff.staff.id,
+					})}`,
+				);
+				setError("Data pengguna belum tersinkron. Coba sinkronkan lagi.");
+			}
+			return;
+		}
+
+		if (
+			currentCloudStaff.reason === "ambiguous-owner" ||
+			currentCloudStaff.reason === "not-allowed"
+		) {
+			navigate("/login", { replace: true });
+			return;
+		}
+
+		const activeStaff = await getActiveStaff();
+		if (activeStaff.length === 0) {
+			navigate(
+				`/onboarding?merchantId=${outlet.merchantId}&outletId=${outlet.id}`,
+				{
+					replace: true,
+				},
+			);
+			return;
+		}
+
 		navigate("/login", { replace: true });
 	};
 
@@ -102,6 +221,17 @@ export default function CloudLogin() {
 				</p>
 			</div>
 
+			<Show
+				when={
+					error() &&
+					(step() === "merchant-picker" || step() === "outlet-picker")
+				}
+			>
+				<div class="w-full max-w-sm rounded-lg bg-destructive/10 px-3 py-2 text-destructive text-sm">
+					{error()}
+				</div>
+			</Show>
+
 			<Show when={step() === "merchant-picker"}>
 				<div class="flex w-full max-w-sm flex-col items-center gap-3">
 					<div class="grid w-full gap-2">
@@ -109,7 +239,6 @@ export default function CloudLogin() {
 							{(merchant) => (
 								<Button
 									class="justify-start"
-									variant="outline"
 									onClick={() => handleSelectMerchant(merchant)}
 									disabled={loading()}
 								>
@@ -118,13 +247,6 @@ export default function CloudLogin() {
 							)}
 						</For>
 					</div>
-					<Button
-						class="w-full"
-						onClick={() => navigate("/onboarding", { replace: true })}
-						variant="secondary"
-					>
-						+ Buat bisnis baru
-					</Button>
 				</div>
 			</Show>
 

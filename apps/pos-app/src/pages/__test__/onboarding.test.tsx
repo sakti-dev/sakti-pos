@@ -6,8 +6,33 @@ const mockNavigate = vi.fn();
 const mockCreateMerchant = vi.fn();
 const mockCreateOutlet = vi.fn();
 const mockSetOutletContext = vi.fn();
-const mockCreateStaffMember = vi.fn();
-const mockHashPin = vi.fn((_pin: string) => Promise.resolve("hashed-pin"));
+const mockCreateStaffApi = vi.fn();
+const mockGetCurrentCloudStaff = vi.fn((_merchantId: string) =>
+	Promise.resolve({
+		claimed: true,
+		staff: {
+			hasPin: true,
+			id: "staff-1",
+			isActive: true,
+			merchantId: "merchant-1",
+			name: "Test Biz",
+			outletId: "outlet-1",
+			role: "owner" as const,
+		},
+	}),
+);
+const mockSyncNow = vi.fn(() =>
+	Promise.resolve({
+		pull: { rows_received: 1, server_time: "2026-01-01T00:00:00Z" },
+		push: {
+			server_time: "2026-01-01T00:00:00Z",
+			server_wins_count: 0,
+			tables_synced: [],
+		},
+		purged: 0,
+	}),
+);
+const mockGetOwnerStaff = vi.fn();
 const mockLogin = vi.fn((_staffId: string, _pin: string) =>
 	Promise.resolve({ id: "staff-1", name: "Test Biz", role: "owner" }),
 );
@@ -15,6 +40,7 @@ const mockLogin = vi.fn((_staffId: string, _pin: string) =>
 vi.mock("@solidjs/router", () => ({
 	useNavigate: () => mockNavigate,
 	useParams: () => ({}),
+	useSearchParams: () => [{ get: () => null }, () => {}],
 }));
 
 vi.mock("~/lib/cloud-auth", () => ({
@@ -28,6 +54,9 @@ vi.mock("~/lib/cloud-auth", () => ({
 	createMerchant: (name: string) => mockCreateMerchant(name),
 	createOutlet: (merchantId: string, name: string, address?: string) =>
 		mockCreateOutlet(merchantId, name, address),
+	createStaff: (data: unknown) => mockCreateStaffApi(data),
+	getCurrentCloudStaff: (merchantId: string) =>
+		mockGetCurrentCloudStaff(merchantId),
 }));
 
 vi.mock("~/store/outlet", () => ({
@@ -39,17 +68,12 @@ vi.mock("~/store/outlet", () => ({
 	currentMerchantId: () => "merchant-1",
 }));
 
-vi.mock("~/db/staff", () => ({
-	createStaffMember: (data: {
-		merchantId: string;
-		name: string;
-		role: string;
-		pin: string;
-	}) => mockCreateStaffMember(data),
+vi.mock("~/store/sync", () => ({
+	syncNow: () => mockSyncNow(),
 }));
 
-vi.mock("~/lib/auth-provider", () => ({
-	hashPin: (pin: string) => mockHashPin(pin),
+vi.mock("~/db/staff", () => ({
+	getOwnerStaff: () => mockGetOwnerStaff(),
 }));
 
 vi.mock("~/store/auth", () => ({
@@ -74,12 +98,15 @@ describe("Onboarding", () => {
 		mockCreateMerchant.mockResolvedValue({
 			id: "merchant-1",
 			name: "Test Biz",
+			createdAt: "",
+			updatedAt: "",
 		});
 		mockCreateOutlet.mockResolvedValue({
 			id: "outlet-1",
 			merchantId: "merchant-1",
 			register: { id: "register-1" },
 		});
+		mockGetOwnerStaff.mockResolvedValue(undefined);
 		render(() => <Onboarding />);
 		await user.type(
 			screen.getByPlaceholderText("Contoh: PT Sakti Jaya"),
@@ -99,17 +126,20 @@ describe("Onboarding", () => {
 		mockCreateMerchant.mockResolvedValue({
 			id: "merchant-1",
 			name: "Test Biz",
+			createdAt: "",
+			updatedAt: "",
 		});
 		mockCreateOutlet.mockResolvedValue({
 			id: "outlet-1",
 			merchantId: "merchant-1",
 			register: { id: "register-1" },
 		});
-		mockCreateStaffMember.mockResolvedValue({
+		mockGetOwnerStaff.mockResolvedValueOnce(undefined).mockResolvedValueOnce({
 			id: "staff-1",
 			name: "Test Biz",
 			role: "owner",
 		});
+		mockCreateStaffApi.mockResolvedValue({ id: "staff-1" });
 		mockLogin.mockResolvedValue({
 			id: "staff-1",
 			name: "Test Biz",
@@ -141,13 +171,22 @@ describe("Onboarding", () => {
 		await user.click(screen.getByText("OK"));
 
 		await vi.waitFor(() => {
-			expect(mockCreateStaffMember).toHaveBeenCalledWith(
+			expect(mockCreateStaffApi).toHaveBeenCalledWith(
 				expect.objectContaining({
 					merchantId: "merchant-1",
 					role: "owner",
-					pin: "hashed-pin",
+					pin: "123456",
 				}),
 			);
+		});
+		await vi.waitFor(() => {
+			expect(mockGetCurrentCloudStaff).toHaveBeenCalledWith("merchant-1");
+		});
+		expect(mockGetCurrentCloudStaff.mock.invocationCallOrder[0]).toBeLessThan(
+			mockSyncNow.mock.invocationCallOrder[0],
+		);
+		await vi.waitFor(() => {
+			expect(mockSyncNow).toHaveBeenCalled();
 		});
 		await vi.waitFor(() => {
 			expect(mockNavigate).toHaveBeenCalledWith("/pos", { replace: true });

@@ -88,10 +88,11 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
 				return { error: "Forbidden" };
 			}
 
-			return db
+			const results = await db
 				.select()
 				.from(outlets)
 				.where(eq(outlets.merchantId, merchantId));
+			return results;
 		},
 	)
 	.patch(

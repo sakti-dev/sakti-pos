@@ -2,6 +2,24 @@ import { AuthStorage } from "./auth-storage";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
+function describeError(error: unknown): string {
+	if (error instanceof Error) {
+		return `${error.name}: ${error.message}`;
+	}
+	if (typeof error === "string") {
+		return error;
+	}
+	try {
+		return JSON.stringify(error);
+	} catch {
+		return String(error);
+	}
+}
+
+function debugLog(event: string, data: Record<string, unknown>) {
+	console.info(`[CLOUD-AUTH] ${event} ${JSON.stringify(data)}`);
+}
+
 interface ApiUser {
 	email: string;
 	id: string;
@@ -13,6 +31,12 @@ interface Merchant {
 	name: string;
 	createdAt: string;
 	updatedAt: string;
+}
+
+interface SessionMerchant {
+	merchantId: string;
+	name: string;
+	role: string;
 }
 
 interface Outlet {
@@ -37,6 +61,20 @@ interface PairResult {
 	register: Register;
 }
 
+interface CurrentCloudStaff {
+	claimed: boolean;
+	reason?: "no-staff" | "ambiguous-owner" | "not-allowed";
+	staff: {
+		hasPin: boolean;
+		id: string;
+		isActive: boolean;
+		merchantId: string;
+		name: string;
+		outletId: string | null;
+		role: "cashier" | "manager" | "owner";
+	} | null;
+}
+
 class ApiError extends Error {
 	status: number;
 
@@ -53,17 +91,42 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 		"Content-Type": "application/json",
 	};
 	if (token) {
-		headers["Authorization"] = `Bearer ${token}`;
+		headers.Authorization = `Bearer ${token}`;
 	}
-	const res = await fetch(`${API_URL}${path}`, {
-		...options,
-		headers: {
-			...headers,
-			...(options?.headers as Record<string, string>),
-		},
-	});
+	const method = options?.method ?? "GET";
+	debugLog("request", { hasToken: !!token, method, path });
+	let res: Response;
+	try {
+		res = await fetch(`${API_URL}${path}`, {
+			...options,
+			headers: {
+				...headers,
+				...(options?.headers as Record<string, string>),
+			},
+		});
+	} catch (error) {
+		debugLog("network-error", {
+			error: describeError(error),
+			method,
+			path,
+		});
+		throw error;
+	}
 
-	const body = (await res.json()) as Record<string, unknown>;
+	const text = await res.text();
+	let body: Record<string, unknown>;
+	try {
+		body = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+	} catch {
+		body = { error: text || `Non-JSON response (${res.status})` };
+	}
+	debugLog("response", {
+		body: res.ok ? undefined : body,
+		method,
+		ok: res.ok,
+		path,
+		status: res.status,
+	});
 
 	if (!res.ok) {
 		const message = (body.error as string) ?? `Request failed (${res.status})`;
@@ -105,7 +168,7 @@ export async function login(
 }
 
 export async function getSession(): Promise<{
-	merchants: Merchant[];
+	merchants: SessionMerchant[];
 	user: ApiUser | null;
 }> {
 	return apiFetch("/api/auth/session");
@@ -119,7 +182,7 @@ export function getGoogleOAuthUrl(): string {
 	return `${API_URL}/api/auth/google`;
 }
 
-export async function getMerchants(): Promise<Merchant[]> {
+export async function getMerchants(): Promise<SessionMerchant[]> {
 	return apiFetch("/api/merchants");
 }
 
@@ -145,6 +208,35 @@ export async function createOutlet(
 	});
 }
 
+export async function createStaff(params: {
+	merchantId: string;
+	outletId?: string;
+	name: string;
+	pin: string;
+	role?: "cashier" | "manager" | "owner";
+}): Promise<Record<string, unknown>> {
+	const body: Record<string, unknown> = {
+		name: params.name,
+		pin: params.pin,
+		role: params.role ?? "cashier",
+	};
+	if (params.outletId) {
+		body.outletId = params.outletId;
+	}
+	return apiFetch(`/api/merchants/${params.merchantId}/staff`, {
+		body: JSON.stringify(body),
+		method: "POST",
+	});
+}
+
+export async function getCurrentCloudStaff(
+	merchantId: string,
+): Promise<CurrentCloudStaff> {
+	return apiFetch(`/api/merchants/${merchantId}/staff/me`, {
+		method: "POST",
+	});
+}
+
 export async function pairRegister(pairingCode: string): Promise<PairResult> {
 	return apiFetch("/api/registers/pair", {
 		body: JSON.stringify({ pairingCode }),
@@ -157,5 +249,13 @@ export async function isCloudAuthenticated(): Promise<boolean> {
 	return token !== null;
 }
 
-export type { ApiUser, Merchant, Outlet, PairResult, Register };
+export type {
+	ApiUser,
+	CurrentCloudStaff,
+	Merchant,
+	Outlet,
+	PairResult,
+	Register,
+	SessionMerchant,
+};
 export { ApiError };

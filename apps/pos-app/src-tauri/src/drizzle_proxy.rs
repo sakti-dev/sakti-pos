@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{
     query::Query,
-    sqlite::{SqliteArguments, SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
+    sqlite::{
+        SqliteArguments, SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions,
+        SqliteSynchronous,
+    },
     Column, Row, Sqlite, SqlitePool,
 };
 use std::str::FromStr;
@@ -20,6 +23,18 @@ const MIGRATIONS: &[(&str, &str)] = &[
     (
         "0001_medical_puppet_master",
         include_str!("../../drizzle/0001_medical_puppet_master.sql"),
+    ),
+    (
+        "0002_peaceful_rhino",
+        include_str!("../../drizzle/0002_peaceful_rhino.sql"),
+    ),
+    (
+        "0003_stiff_colonel_america",
+        include_str!("../../drizzle/0003_stiff_colonel_america.sql"),
+    ),
+    (
+        "0004_happy_psylocke",
+        include_str!("../../drizzle/0004_happy_psylocke.sql"),
     ),
 ];
 
@@ -126,10 +141,7 @@ fn chrono_now_ms() -> i64 {
 }
 
 #[command]
-pub async fn run_sql(
-    query: SqlQuery,
-    state: State<'_, AppState>,
-) -> Result<Vec<SqlRow>, String> {
+pub async fn run_sql(query: SqlQuery, state: State<'_, AppState>) -> Result<Vec<SqlRow>, String> {
     let pool = &state.db_pool;
 
     let mut q = sqlx::query(&query.sql);

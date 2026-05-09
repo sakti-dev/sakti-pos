@@ -2,7 +2,9 @@ import { describe, expect, test, vi } from "vitest";
 
 vi.mock("@repo/database", () => ({
 	staff: {
+		cloudUserId: "cloud_user_id",
 		id: "id",
+		isActive: "is_active",
 		merchantId: "merchant_id",
 		name: "name",
 		role: "role",
@@ -35,8 +37,12 @@ vi.mock("~/store/outlet", () => ({
 }));
 
 function mockFromQuery(data: unknown[]) {
+	const limitFn = vi.fn().mockResolvedValue(data);
+	const whereResult = Object.assign(Promise.resolve(data), {
+		limit: limitFn,
+	});
 	return {
-		where: vi.fn().mockResolvedValue(data),
+		where: vi.fn().mockReturnValue(whereResult),
 		orderBy: vi.fn().mockResolvedValue(data),
 	};
 }
@@ -134,5 +140,39 @@ describe("staff db", () => {
 		const result = await countActiveManagers();
 
 		expect(result).toBe(0);
+	});
+
+	test("getOwnerStaff returns owner staff for a merchant", async () => {
+		const owner = { id: "owner-1", name: "Owner", role: "owner" };
+		mockFrom.mockReturnValue(mockFromQuery([owner]));
+
+		const { getOwnerStaff } = await import("../staff");
+		const result = await getOwnerStaff("merchant-1");
+
+		expect(result).toEqual(owner);
+	});
+
+	test("getOwnerStaff returns undefined when no owner exists", async () => {
+		mockFrom.mockReturnValue(mockFromQuery([]));
+
+		const { getOwnerStaff } = await import("../staff");
+		const result = await getOwnerStaff("merchant-1");
+
+		expect(result).toBeUndefined();
+	});
+
+	test("getStaffByCloudUserId returns matching active staff", async () => {
+		const owner = {
+			id: "owner-1",
+			name: "Owner",
+			role: "owner",
+			cloudUserId: "cloud-user-1",
+		};
+		mockFrom.mockReturnValue(mockFromQuery([owner]));
+
+		const { getStaffByCloudUserId } = await import("../staff");
+		const result = await getStaffByCloudUserId("merchant-1", "cloud-user-1");
+
+		expect(result).toEqual(owner);
 	});
 });

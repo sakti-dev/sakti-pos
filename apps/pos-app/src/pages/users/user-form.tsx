@@ -7,11 +7,10 @@ import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
 import {
 	countActiveManagers,
-	createStaffMember,
 	getStaffMember,
 	updateStaffMember,
 } from "~/db/staff";
-import { hashPin } from "~/lib/auth-provider";
+import { createStaff as createStaffApi } from "~/lib/cloud-auth";
 import { cn } from "~/lib/utils";
 import { currentUser } from "~/store/auth";
 import { currentMerchantId } from "~/store/outlet";
@@ -114,12 +113,11 @@ export default function UserForm() {
 				});
 				toast.success("Pengguna diperbarui");
 			} else {
-				const hashedPin = await hashPin(pin());
-				await createStaffMember({
+				await createStaffApi({
 					merchantId: currentMerchantId() ?? "",
 					name: name().trim(),
+					pin: pin(),
 					role: role() as "manager" | "cashier" | "owner",
-					pin: hashedPin,
 				});
 				toast.success("Pengguna ditambahkan");
 			}

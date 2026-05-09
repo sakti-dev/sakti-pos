@@ -14,6 +14,24 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 
+function describeError(error: unknown): string {
+	if (error instanceof Error) {
+		return `${error.name}: ${error.message}`;
+	}
+	if (typeof error === "string") {
+		return error;
+	}
+	try {
+		return JSON.stringify(error);
+	} catch {
+		return String(error);
+	}
+}
+
+function debugLog(event: string, data: Record<string, unknown>) {
+	console.info(`[SYNC-DEBUG] ${event} ${JSON.stringify(data)}`);
+}
+
 export function startSyncScheduler() {
 	if (syncInterval) return;
 
@@ -55,18 +73,38 @@ export async function syncNow(): Promise<SyncNowResult> {
 
 	setSyncStatus("syncing");
 	try {
+		debugLog("syncNow invoke", {
+			apiUrl: API_URL,
+			hasSessionToken: !!sessionToken,
+			outletId,
+		});
 		const result = await invoke<SyncNowResult>("sync_now", {
 			apiUrl: API_URL,
 			outletId,
 			sessionToken,
 		});
-
+		debugLog("syncNow result", {
+			pullRows: result.pull.rows_received,
+			pullServerTime: result.pull.server_time,
+			purged: result.purged,
+			pushServerTime: result.push.server_time,
+			serverWins: result.push.server_wins_count,
+			tablesSynced: result.push.tables_synced,
+		});
 		setLastSyncTime(result.pull.server_time);
 		setSyncStatus("idle");
 		return result;
-	} catch {
+	} catch (err) {
+		const message = describeError(err);
+		console.error(
+			`[SYNC-DEBUG] syncNow failed ${JSON.stringify({
+				apiUrl: API_URL,
+				error: message,
+				outletId,
+			})}`,
+		);
 		setSyncStatus("offline");
-		throw new Error("Gagal menyinkronkan");
+		throw new Error(`Gagal menyinkronkan: ${message}`);
 	}
 }
 

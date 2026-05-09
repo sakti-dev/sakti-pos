@@ -92,11 +92,16 @@ describe("createOrder", () => {
 			amountPaid: 20_000,
 			changeAmount: 0,
 			items: [
-				{ price: 10_000, product_id: 1, product_name: "Nasi Goreng", qty: 2 },
+				{
+					price: 10_000,
+					product_id: "product-1",
+					product_name: "Nasi Goreng",
+					qty: 2,
+				},
 			],
 			paymentMethod: "cash",
+			staffId: "staff-1",
 			total: 20_000,
-			userId: 1,
 		});
 
 		expect(orderNumber).toMatch(ORDER_NUMBER_PATTERN);

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TURSO_PORT=8080
+DB_FILE=".turso/local.db"
+
+cleanup() {
+	echo "Shutting down..."
+	kill "$TURSO_PID" 2>/dev/null
+	kill "$WRANGLER_PID" 2>/dev/null
+	kill "$STUDIO_PID" 2>/dev/null
+	wait 2>/dev/null
+}
+trap cleanup EXIT INT TERM
+
+mkdir -p .turso
+
+turso dev --port "$TURSO_PORT" --db-file "./$DB_FILE" &
+TURSO_PID=$!
+
+for i in $(seq 1 30); do
+	if command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 "$TURSO_PORT" 2>/dev/null; then
+		break
+	fi
+	if command -v curl >/dev/null 2>&1 && curl -sf "http://127.0.0.1:$TURSO_PORT" >/dev/null 2>&1; then
+		break
+	fi
+	sleep 0.5
+done
+
+echo "Turso ready, pushing schema..."
+bunx drizzle-kit push
+
+echo "Starting wrangler..."
+npx wrangler dev &
+WRANGLER_PID=$!
+
+echo "Starting drizzle-kit studio..."
+bunx drizzle-kit studio &
+STUDIO_PID=$!
+
+wait

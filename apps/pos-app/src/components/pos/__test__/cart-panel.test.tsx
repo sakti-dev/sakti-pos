@@ -49,32 +49,30 @@ import { CartPanel } from "~/components/pos/cart-panel";
 const user = userEvent.setup();
 
 const PRODUCT_A: Product = {
-	id: 1,
+	id: "product-1",
 	name: "Nasi Goreng",
 	price: 15_000,
-	categoryId: 1,
+	categoryId: "category-1",
+	merchantId: "merchant-1",
 	isActive: true,
 	createdAt: "2026-01-01",
 	updatedAt: "2026-01-01",
 	sortOrder: 0,
 	imageUrl: null,
-	shopId: null,
-	cloudId: null,
 	deletedAt: null,
 	isSynced: false,
 };
 const PRODUCT_B: Product = {
-	id: 2,
+	id: "product-2",
 	name: "Es Teh",
 	price: 5000,
-	categoryId: 1,
+	categoryId: "category-1",
+	merchantId: "merchant-1",
 	isActive: true,
 	createdAt: "2026-01-01",
 	updatedAt: "2026-01-01",
 	sortOrder: 1,
 	imageUrl: null,
-	shopId: null,
-	cloudId: null,
 	deletedAt: null,
 	isSynced: false,
 };
@@ -122,7 +120,10 @@ describe("CartDrawer (portrait mode)", () => {
 					b.textContent === "Kosongkan" && b.className.includes("border-input"),
 			);
 		expect(btn).toBeTruthy();
-		await user.click(btn!);
+		if (!btn) {
+			throw new Error("Expected Kosongkan button to exist");
+		}
+		await user.click(btn);
 		expect(screen.getByTestId("confirm-drawer")).toBeInTheDocument();
 	});
 });

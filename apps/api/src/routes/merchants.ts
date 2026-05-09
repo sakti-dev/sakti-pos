@@ -46,7 +46,7 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
 			return { error: "Unauthorized" };
 		}
 
-		return db
+		const results = await db
 			.select({
 				merchantId: userMerchants.merchantId,
 				name: merchants.name,
@@ -55,4 +55,5 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
 			.from(userMerchants)
 			.innerJoin(merchants, eq(userMerchants.merchantId, merchants.id))
 			.where(eq(userMerchants.userId, session.userId));
+		return results;
 	});

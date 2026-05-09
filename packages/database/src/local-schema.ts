@@ -6,6 +6,7 @@ export const merchants = sqliteTable("merchants", {
 		.primaryKey()
 		.$defaultFn(() => uuidv7()),
 	name: text("name").notNull(),
+	deletedAt: text("deleted_at"),
 	isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
 	createdAt: text("created_at")
 		.notNull()
@@ -23,6 +24,7 @@ export const outlets = sqliteTable("outlets", {
 	name: text("name").notNull(),
 	address: text("address"),
 	isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+	deletedAt: text("deleted_at"),
 	isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
 	createdAt: text("created_at")
 		.notNull()
@@ -43,6 +45,7 @@ export const registers = sqliteTable("registers", {
 	pairingExpiresAt: text("pairing_expires_at"),
 	isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 	lastSeenAt: text("last_seen_at"),
+	deletedAt: text("deleted_at"),
 	isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
 	createdAt: text("created_at")
 		.notNull()
@@ -57,11 +60,13 @@ export const staff = sqliteTable("staff", {
 		.primaryKey()
 		.$defaultFn(() => uuidv7()),
 	merchantId: text("merchant_id").notNull(),
+	cloudUserId: text("cloud_user_id"),
 	outletId: text("outlet_id"),
 	name: text("name").notNull(),
 	pin: text("pin"),
 	role: text("role", { enum: ["cashier", "manager", "owner"] }).notNull(),
 	isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+	deletedAt: text("deleted_at"),
 	isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
 	createdAt: text("created_at")
 		.notNull()
@@ -127,6 +132,7 @@ export const outletProducts = sqliteTable("outlet_products", {
 		.notNull()
 		.default(true),
 	sortOrder: integer("sort_order"),
+	deletedAt: text("deleted_at"),
 	isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
 	createdAt: text("created_at")
 		.notNull()
@@ -171,6 +177,9 @@ export const orderItems = sqliteTable("order_items", {
 	unitPrice: integer("unit_price").notNull(),
 	originalPrice: integer("original_price"),
 	subtotal: integer("subtotal").notNull(),
+	updatedAt: text("updated_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
 	deletedAt: text("deleted_at"),
 	isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
 	createdAt: text("created_at")

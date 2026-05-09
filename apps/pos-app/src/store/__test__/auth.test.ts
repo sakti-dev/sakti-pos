@@ -102,6 +102,44 @@ describe("auth", () => {
 		});
 	});
 
+	describe("cloud staff login", () => {
+		test("loginWithCloudStaff sets active user without verifying PIN", async () => {
+			mockDbSelect.mockResolvedValue([
+				{ id: "staff-owner", name: "Owner", role: "owner", isActive: true },
+			]);
+
+			const { loginWithCloudStaff } = await import("~/store/auth");
+			const result = await loginWithCloudStaff("staff-owner");
+
+			expect(mockVerifyPin).not.toHaveBeenCalled();
+			expect(mockSetUser).toHaveBeenCalledWith({
+				id: "staff-owner",
+				name: "Owner",
+				role: "owner",
+			});
+			expect(result).toEqual({
+				id: "staff-owner",
+				name: "Owner",
+				role: "owner",
+			});
+			expect(localStorage.getItem("sakti-pos:last-staff-id")).toBe(
+				"staff-owner",
+			);
+		});
+
+		test("loginWithCloudStaff rejects inactive staff", async () => {
+			mockDbSelect.mockResolvedValue([
+				{ id: "staff-owner", name: "Owner", role: "owner", isActive: false },
+			]);
+
+			const { loginWithCloudStaff } = await import("~/store/auth");
+
+			await expect(loginWithCloudStaff("staff-owner")).rejects.toThrow(
+				"Staff is deactivated",
+			);
+		});
+	});
+
 	describe("logout", () => {
 		test("clears the user signal", async () => {
 			const { logout } = await import("~/store/auth");

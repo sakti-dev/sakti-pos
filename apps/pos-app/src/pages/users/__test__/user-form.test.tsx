@@ -6,7 +6,7 @@ import { Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const mockNavigate = vi.fn();
-const mockCreateStaffMember = vi.fn();
+const mockCreateStaffApi = vi.fn();
 const mockUpdateStaffMember = vi.fn();
 const mockCountActiveManagers = vi.fn(() => Promise.resolve(2));
 
@@ -19,8 +19,8 @@ vi.mock("~/store/auth", () => ({
 	currentUser: vi.fn(() => ({ id: "staff-1", name: "Admin", role: "manager" })),
 }));
 
-vi.mock("~/lib/auth-provider", () => ({
-	hashPin: vi.fn((pin: string) => Promise.resolve(`$2b$${pin}`)),
+vi.mock("~/lib/cloud-auth", () => ({
+	createStaff: (...args: unknown[]) => mockCreateStaffApi(...args),
 }));
 
 vi.mock("~/db/staff", () => ({
@@ -38,7 +38,7 @@ vi.mock("~/db/staff", () => ({
 			isSynced: false,
 		}),
 	),
-	createStaffMember: (...args: unknown[]) => mockCreateStaffMember(...args),
+	createStaffApi: (...args: unknown[]) => mockCreateStaffApi(...args),
 	updateStaffMember: (...args: unknown[]) => mockUpdateStaffMember(...args),
 	countActiveManagers: () => mockCountActiveManagers(),
 }));

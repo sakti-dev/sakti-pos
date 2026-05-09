@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import { describe, expect, test, vi } from "vitest";
 
 vi.mock("~/db", () => ({
@@ -11,7 +10,7 @@ vi.mock("~/db", () => ({
 						id: 1,
 						isActive: true,
 						name: "Owner",
-						pin: "$2a$10$hashedpin",
+						pin: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef:abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01",
 						role: "owner",
 					},
 				]),
@@ -25,20 +24,39 @@ vi.mock("~/db", () => ({
 	},
 }));
 
-describe("auth-provider", () => {
-	test("hashPin returns a bcrypt hash", async () => {
-		const { hashPin } = await import("../auth-provider");
-		const hash = await hashPin("123456");
-		expect(hash).not.toBe("123456");
-		expect(hash.startsWith("$2")).toBe(true);
-	});
+async function createPbkdf2Hash(pin: string): Promise<string> {
+	const salt = crypto.getRandomValues(new Uint8Array(16));
+	const encoder = new TextEncoder();
+	const key = await crypto.subtle.importKey(
+		"raw",
+		encoder.encode(pin),
+		{ name: "PBKDF2" },
+		false,
+		["deriveBits"],
+	);
+	const bits = await crypto.subtle.deriveBits(
+		{ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+		key,
+		256,
+	);
+	const saltHex = Array.from(salt)
+		.map((b) => b.toString(16).padStart(2, "0"))
+		.join("");
+	const hashHex = Array.from(new Uint8Array(bits))
+		.map((b) => b.toString(16).padStart(2, "0"))
+		.join("");
+	return `${saltHex}:${hashHex}`;
+}
 
-	test("verifyPin succeeds with correct pin", async () => {
+describe("auth-provider", () => {
+	test("verifyPin succeeds with correct PBKDF2 pin", async () => {
 		const pin = "123456";
-		const hash = await bcrypt.hash(pin, 10);
+		const hash = await createPbkdf2Hash(pin);
+
 		const { verifyPin } = await import("../auth-provider");
 
-		vi.mocked(vi.mocked(await import("~/db")).db.select).mockReturnValue({
+		const dbModule = await import("~/db");
+		vi.mocked(dbModule.db.select).mockReturnValue({
 			from: vi.fn(() => ({
 				where: vi.fn(() => [
 					{
@@ -52,8 +70,69 @@ describe("auth-provider", () => {
 			})),
 		} as never);
 
-		const user = await verifyPin(1, pin);
+		const user = await verifyPin("1", pin);
 		expect(user.name).toBe("Owner");
 		expect(user.role).toBe("owner");
+	});
+
+	test("verifyPin rejects wrong pin", async () => {
+		const pin = "123456";
+		const hash = await createPbkdf2Hash(pin);
+
+		const { verifyPin } = await import("../auth-provider");
+
+		const dbModule = await import("~/db");
+		vi.mocked(dbModule.db.select).mockReturnValue({
+			from: vi.fn(() => ({
+				where: vi.fn(() => [
+					{
+						id: 1,
+						isActive: true,
+						name: "Owner",
+						pin: hash,
+						role: "owner",
+					},
+				]),
+			})),
+		} as never);
+
+		await expect(verifyPin("1", "654321")).rejects.toThrow("Invalid PIN");
+	});
+
+	test("verifyPin rejects inactive staff", async () => {
+		const pin = "123456";
+		const hash = await createPbkdf2Hash(pin);
+
+		const { verifyPin } = await import("../auth-provider");
+
+		const dbModule = await import("~/db");
+		vi.mocked(dbModule.db.select).mockReturnValue({
+			from: vi.fn(() => ({
+				where: vi.fn(() => [
+					{
+						id: 2,
+						isActive: false,
+						name: "Ex",
+						pin: hash,
+						role: "cashier",
+					},
+				]),
+			})),
+		} as never);
+
+		await expect(verifyPin("2", pin)).rejects.toThrow("Staff is deactivated");
+	});
+
+	test("verifyPin rejects missing staff", async () => {
+		const { verifyPin } = await import("../auth-provider");
+
+		const dbModule = await import("~/db");
+		vi.mocked(dbModule.db.select).mockReturnValue({
+			from: vi.fn(() => ({
+				where: vi.fn(() => []),
+			})),
+		} as never);
+
+		await expect(verifyPin("999", "123456")).rejects.toThrow("Staff not found");
 	});
 });

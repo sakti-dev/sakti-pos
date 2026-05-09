@@ -34,6 +34,65 @@ export const login = async (
 	return authUser;
 };
 
+export const loginWithCloudStaff = async (
+	staffId: string,
+): Promise<AuthUser> => {
+	console.info(
+		`[AUTH] loginWithCloudStaff request ${JSON.stringify({ staffId })}`,
+	);
+	const rows = await db
+		.select({
+			id: staff.id,
+			isActive: staff.isActive,
+			name: staff.name,
+			role: staff.role,
+		})
+		.from(staff)
+		.where(eq(staff.id, staffId));
+
+	const row = rows[0];
+	console.info(
+		`[AUTH] loginWithCloudStaff result ${JSON.stringify({
+			found: !!row,
+			isActive: row?.isActive,
+			role: row?.role,
+			staffId,
+		})}`,
+	);
+	if (!row) {
+		const localStaff = await db
+			.select({
+				id: staff.id,
+				isActive: staff.isActive,
+				merchantId: staff.merchantId,
+				name: staff.name,
+				role: staff.role,
+			})
+			.from(staff)
+			.limit(10);
+		console.info(
+			`[AUTH] loginWithCloudStaff local staff sample ${JSON.stringify({
+				count: localStaff.length,
+				rows: localStaff,
+				staffId,
+			})}`,
+		);
+		throw new Error("Staff not found");
+	}
+	if (!row.isActive) {
+		throw new Error("Staff is deactivated");
+	}
+
+	const authUser = {
+		id: row.id,
+		name: row.name,
+		role: row.role as AuthUser["role"],
+	};
+	setUser(authUser);
+	setLastUserId(authUser.id);
+	return authUser;
+};
+
 export const logout = () => {
 	setUser(null);
 };
