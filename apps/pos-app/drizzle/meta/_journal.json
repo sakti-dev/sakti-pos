@@ -36,6 +36,13 @@
 			"when": 1778323320753,
 			"tag": "0004_happy_psylocke",
 			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "6",
+			"when": 1778327892821,
+			"tag": "0005_lush_dark_beast",
+			"breakpoints": true
 		}
 	]
 }

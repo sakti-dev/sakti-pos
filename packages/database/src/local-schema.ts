@@ -82,6 +82,33 @@ export const syncMeta = sqliteTable("sync_meta", {
 	lastSyncAt: text("last_sync_at").notNull(),
 });
 
+export const syncOutbox = sqliteTable("sync_outbox", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => uuidv7()),
+	tableName: text("table_name").notNull(),
+	rowId: text("row_id").notNull(),
+	operation: text("operation", {
+		enum: ["insert", "update", "delete"],
+	}).notNull(),
+	scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
+	scopeId: text("scope_id").notNull(),
+	changedAt: text("changed_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	syncedAt: text("synced_at"),
+});
+
+export const syncCursors = sqliteTable("sync_cursors", {
+	scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
+	scopeId: text("scope_id").notNull(),
+	lastServerEventId: integer("last_server_event_id").notNull().default(0),
+	lastServerWatermark: text("last_server_watermark"),
+	updatedAt: text("updated_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+});
+
 export const categories = sqliteTable("categories", {
 	id: text("id")
 		.primaryKey()

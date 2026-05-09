@@ -36,6 +36,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0004_happy_psylocke",
         include_str!("../../drizzle/0004_happy_psylocke.sql"),
     ),
+    (
+        "0005_lush_dark_beast",
+        include_str!("../../drizzle/0005_lush_dark_beast.sql"),
+    ),
 ];
 
 #[derive(Debug, Deserialize)]
