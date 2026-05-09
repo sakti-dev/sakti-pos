@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
+const mockGetSyncStatus = vi.fn();
 let mockOutletId: string | null = "outlet-1";
 let mockToken: string | null = "test-session-token";
 
@@ -16,6 +17,10 @@ vi.mock("~/lib/auth-storage", () => ({
 	AuthStorage: {
 		getToken: () => Promise.resolve(mockToken),
 	},
+}));
+
+vi.mock("~/lib/sync-api", () => ({
+	getSyncStatus: (...args: unknown[]) => mockGetSyncStatus(...args),
 }));
 
 vi.mock("~/store/sync", async () => {
@@ -40,6 +45,13 @@ describe("syncNow", () => {
 		vi.clearAllMocks();
 		mockOutletId = "outlet-1";
 		mockToken = "test-session-token";
+		mockGetSyncStatus.mockResolvedValue({
+			changedTables: [],
+			hasChanges: false,
+			latestEventId: 10,
+			needsFullResync: false,
+			oldestAvailableEventId: 1,
+		});
 	});
 
 	test("returns empty result when no outletId", async () => {
@@ -47,6 +59,7 @@ describe("syncNow", () => {
 
 		const result = await syncNow();
 		expect(result).toEqual({
+			mode: "skipped",
 			pull: { rows_received: 0, server_time: "" },
 			push: { tables_synced: [], server_wins_count: 0, server_time: "" },
 			purged: 0,
@@ -63,8 +76,29 @@ describe("syncNow", () => {
 		expect(mockInvoke).not.toHaveBeenCalled();
 	});
 
-	test("calls invoke with correct params including sessionToken", async () => {
+	test("skips native transfer when local and server have no changes", async () => {
+		mockInvoke.mockResolvedValueOnce({
+			last_server_event_id: 10,
+			local_dirty_count: 0,
+		});
+
+		const result = await syncNow();
+
+		expect(mockInvoke).toHaveBeenCalledTimes(1);
+		expect(mockInvoke).toHaveBeenCalledWith("get_sync_local_state", {
+			outletId: "outlet-1",
+		});
+		expect(mockGetSyncStatus).toHaveBeenCalledWith({
+			lastServerEventId: 10,
+			outletId: "outlet-1",
+		});
+		expect(result.mode).toBe("skipped");
+		expect(result.pull.rows_received).toBe(0);
+	});
+
+	test("runs push only when local has changes and server has none", async () => {
 		const syncResult = {
+			mode: "push_only",
 			pull: { rows_received: 5, server_time: "2025-01-01T00:00:00.000Z" },
 			push: {
 				tables_synced: ["categories", "products"],
@@ -73,11 +107,16 @@ describe("syncNow", () => {
 			},
 			purged: 1,
 		};
-		mockInvoke.mockResolvedValue(syncResult);
+		mockInvoke
+			.mockResolvedValueOnce({
+				last_server_event_id: 10,
+				local_dirty_count: 2,
+			})
+			.mockResolvedValueOnce(syncResult);
 
 		const result = await syncNow();
 
-		expect(mockInvoke).toHaveBeenCalledWith("sync_now", {
+		expect(mockInvoke).toHaveBeenLastCalledWith("sync_push_outbox", {
 			outletId: "outlet-1",
 			apiUrl: expect.any(String),
 			sessionToken: "test-session-token",
@@ -87,11 +126,83 @@ describe("syncNow", () => {
 		expect(lastSyncTime()).toBe("2025-01-01T00:00:00.000Z");
 	});
 
+	test("runs pull only when server has changes and local has none", async () => {
+		const syncResult = {
+			mode: "pull_only",
+			pull: { rows_received: 3, server_time: "2025-01-01T00:00:00.000Z" },
+			push: {
+				tables_synced: [],
+				server_wins_count: 0,
+				server_time: "",
+			},
+			purged: 0,
+		};
+		mockInvoke
+			.mockResolvedValueOnce({
+				last_server_event_id: 10,
+				local_dirty_count: 0,
+			})
+			.mockResolvedValueOnce(syncResult);
+		mockGetSyncStatus.mockResolvedValue({
+			changedTables: ["products"],
+			hasChanges: true,
+			latestEventId: 11,
+			needsFullResync: false,
+			oldestAvailableEventId: 1,
+		});
+
+		const result = await syncNow();
+
+		expect(mockInvoke).toHaveBeenLastCalledWith("sync_pull_events", {
+			apiUrl: expect.any(String),
+			latestEventId: 11,
+			outletId: "outlet-1",
+			sessionToken: "test-session-token",
+		});
+		expect(result.mode).toBe("pull_only");
+	});
+
+	test("runs full sync when both sides have changes", async () => {
+		const syncResult = {
+			mode: "full",
+			pull: { rows_received: 5, server_time: "2025-01-01T00:00:00.000Z" },
+			push: {
+				tables_synced: ["categories", "products"],
+				server_wins_count: 0,
+				server_time: "2025-01-01T00:00:00.000Z",
+			},
+			purged: 1,
+		};
+		mockInvoke
+			.mockResolvedValueOnce({
+				last_server_event_id: 10,
+				local_dirty_count: 2,
+			})
+			.mockResolvedValueOnce(syncResult);
+		mockGetSyncStatus.mockResolvedValue({
+			changedTables: ["products"],
+			hasChanges: true,
+			latestEventId: 11,
+			needsFullResync: false,
+			oldestAvailableEventId: 1,
+		});
+
+		const result = await syncNow();
+
+		expect(mockInvoke).toHaveBeenLastCalledWith("sync_now", {
+			apiUrl: expect.any(String),
+			outletId: "outlet-1",
+			sessionToken: "test-session-token",
+		});
+		expect(result.mode).toBe("full");
+	});
+
 	test("returns empty result when no outletId", async () => {
 		mockOutletId = null;
 
 		const result = await syncNow();
 		expect(result).toEqual({
+			mode: "skipped",
 			pull: { rows_received: 0, server_time: "" },
 			push: { tables_synced: [], server_wins_count: 0, server_time: "" },
 			purged: 0,
@@ -108,8 +219,9 @@ describe("syncNow", () => {
 		expect(mockInvoke).not.toHaveBeenCalled();
 	});
 
-	test("calls invoke with correct params including sessionToken", async () => {
+	test("runs full sync when server cursor requires full resync", async () => {
 		const syncResult = {
+			mode: "full",
 			pull: { rows_received: 5, server_time: "2025-01-01T00:00:00.000Z" },
 			push: {
 				tables_synced: ["categories", "products"],
@@ -118,11 +230,23 @@ describe("syncNow", () => {
 			},
 			purged: 1,
 		};
-		mockInvoke.mockResolvedValue(syncResult);
+		mockInvoke
+			.mockResolvedValueOnce({
+				last_server_event_id: 10,
+				local_dirty_count: 0,
+			})
+			.mockResolvedValueOnce(syncResult);
+		mockGetSyncStatus.mockResolvedValue({
+			changedTables: ["products"],
+			hasChanges: true,
+			latestEventId: 50,
+			needsFullResync: true,
+			oldestAvailableEventId: 50,
+		});
 
 		const result = await syncNow();
 
-		const call = mockInvoke.mock.calls[0];
+		const call = mockInvoke.mock.calls[1];
 		expect(call[0]).toBe("sync_now");
 		expect(call[1].outletId).toBe("outlet-1");
 		expect(call[1].sessionToken).toBe("test-session-token");
