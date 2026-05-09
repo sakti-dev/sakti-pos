@@ -49,6 +49,18 @@ export const userSessions = sqliteTable("user_sessions", {
 	expiresAt: integer("expires_at").notNull(),
 });
 
+export const syncEvents = sqliteTable("sync_events", {
+	id: integer("id").primaryKey({ autoIncrement: true }),
+	scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
+	scopeId: text("scope_id").notNull(),
+	tableName: text("table_name").notNull(),
+	rowId: text("row_id").notNull(),
+	operation: text("operation", {
+		enum: ["insert", "update", "delete"],
+	}).notNull(),
+	changedAt: text("changed_at").notNull(),
+});
+
 export const outlets = sqliteTable("outlets", {
 	id: text("id")
 		.primaryKey()

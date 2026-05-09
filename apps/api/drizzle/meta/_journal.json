@@ -22,6 +22,13 @@
 			"when": 1778323316235,
 			"tag": "0002_dazzling_timeslip",
 			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "6",
+			"when": 1778327928934,
+			"tag": "0003_magical_paper_doll",
+			"breakpoints": true
 		}
 	]
 }
