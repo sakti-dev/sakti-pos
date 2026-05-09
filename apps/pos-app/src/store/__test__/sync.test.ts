@@ -247,10 +247,11 @@ describe("syncNow", () => {
 		const result = await syncNow();
 
 		const call = mockInvoke.mock.calls[1];
-		expect(call[0]).toBe("sync_now");
+		expect(call[0]).toBe("sync_full_resync");
 		expect(call[1].outletId).toBe("outlet-1");
 		expect(call[1].sessionToken).toBe("test-session-token");
 		expect(call[1].apiUrl).toContain("://");
+		expect(call[1].latestEventId).toBe(50);
 		expect(result).toEqual(syncResult);
 		expect(syncStatus()).toBe("idle");
 		expect(lastSyncTime()).toBe("2025-01-01T00:00:00.000Z");

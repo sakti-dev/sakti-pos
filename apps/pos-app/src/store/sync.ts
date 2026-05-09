@@ -81,7 +81,11 @@ function withMode(
 }
 
 async function invokeSyncTransfer(
-	command: "sync_now" | "sync_pull_events" | "sync_push_outbox",
+	command:
+		| "sync_full_resync"
+		| "sync_now"
+		| "sync_pull_events"
+		| "sync_push_outbox",
 	params: Record<string, unknown>,
 	mode: SyncMode,
 ): Promise<SyncNowResult> {
@@ -136,10 +140,13 @@ export async function syncNow(): Promise<SyncNowResult> {
 			!serverStatus.needsFullResync
 		) {
 			result = emptySyncResult("skipped");
-		} else if (
-			serverStatus.needsFullResync ||
-			(hasLocalChanges && hasServerChanges)
-		) {
+		} else if (serverStatus.needsFullResync) {
+			result = await invokeSyncTransfer(
+				"sync_full_resync",
+				{ ...baseParams, latestEventId: serverStatus.latestEventId },
+				"full",
+			);
+		} else if (hasLocalChanges && hasServerChanges) {
 			result = await invokeSyncTransfer("sync_now", baseParams, "full");
 		} else if (hasLocalChanges) {
 			result = await invokeSyncTransfer(

@@ -1064,9 +1064,20 @@ pub async fn sync_full_resync(
     outlet_id: String,
     api_url: String,
     session_token: String,
+    latest_event_id: i64,
     state: State<'_, AppState>,
 ) -> Result<SyncNowResult, String> {
-    sync_now(outlet_id, api_url, session_token, state).await
+    let result = sync_now(outlet_id.clone(), api_url, session_token, state.clone()).await?;
+    let mut tx = state
+        .db_pool
+        .begin()
+        .await
+        .map_err(|e| format!("Failed to begin full resync cursor transaction: {}", e))?;
+    set_last_server_event_id_tx(&mut tx, &outlet_id, latest_event_id).await?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("Failed to commit full resync cursor transaction: {}", e))?;
+    Ok(result)
 }
 
 #[command]
