@@ -40,8 +40,13 @@ vi.mock("cloudflare:workers", () => ({
 	},
 }));
 
-const { handlePush, handlePull, handleSyncStatus, verifyOutletAccess } =
-	await import("../lib/sync");
+const {
+	handlePush,
+	handlePull,
+	handleEventPull,
+	handleSyncStatus,
+	verifyOutletAccess,
+} = await import("../lib/sync");
 
 describe("verifyOutletAccess", () => {
 	afterEach(() => {
@@ -515,5 +520,89 @@ describe("handleSyncStatus", () => {
 		expect(result.needsFullResync).toBe(true);
 		expect(result.hasChanges).toBe(true);
 		expect(result.changedTables).toEqual(["products", "orders"]);
+	});
+});
+
+describe("handleEventPull", () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	function mockSelectQueue(rowsByCall: unknown[][]) {
+		let callIndex = 0;
+		mockSelect.mockImplementation(() => ({
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockImplementation(async () => {
+					const rows = rowsByCall[callIndex] ?? [];
+					callIndex += 1;
+					return rows;
+				}),
+			}),
+		}));
+	}
+
+	test("coalesces repeated row events into one latest snapshot", async () => {
+		mockSelectQueue([
+			[
+				{ id: 11, rowId: "prod-1", tableName: "products" },
+				{ id: 12, rowId: "prod-1", tableName: "products" },
+			],
+			[{ id: "prod-1", name: "Kopi", merchantId: "merchant-1" }],
+		]);
+
+		const result = await handleEventPull({
+			afterEventId: 10,
+			merchantId: "merchant-1",
+			outletId: "outlet-1",
+		});
+
+		expect(result.needsFullResync).toBe(false);
+		expect(result.latestEventId).toBe(12);
+		expect(result.products).toEqual([
+			{ id: "prod-1", name: "Kopi", merchantId: "merchant-1" },
+		]);
+	});
+
+	test("returns retained soft-deleted row snapshots", async () => {
+		mockSelectQueue([
+			[{ id: 21, rowId: "staff-1", tableName: "staff" }],
+			[
+				{
+					deletedAt: "2026-05-09T12:00:00.000Z",
+					id: "staff-1",
+					merchantId: "merchant-1",
+				},
+			],
+		]);
+
+		const result = await handleEventPull({
+			afterEventId: 20,
+			merchantId: "merchant-1",
+			outletId: "outlet-1",
+		});
+
+		expect(result.latestEventId).toBe(21);
+		expect(result.staff).toEqual([
+			{
+				deletedAt: "2026-05-09T12:00:00.000Z",
+				id: "staff-1",
+				merchantId: "merchant-1",
+			},
+		]);
+	});
+
+	test("requires full resync when cursor is older than retained event history", async () => {
+		mockSelectQueue([[{ id: 50, rowId: "prod-1", tableName: "products" }]]);
+
+		const result = await handleEventPull({
+			afterEventId: 10,
+			merchantId: "merchant-1",
+			outletId: "outlet-1",
+		});
+
+		expect(result).toEqual({
+			latestEventId: 50,
+			needsFullResync: true,
+		});
 	});
 });

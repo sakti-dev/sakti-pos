@@ -11,7 +11,7 @@ import {
 	syncEvents,
 	userMerchants,
 } from "@repo/database/api-schema";
-import { and, eq, gt, or } from "drizzle-orm";
+import { and, eq, gt, inArray, or } from "drizzle-orm";
 import { db } from "../db";
 import type { SyncEventOperation, SyncEventScopeType } from "./sync-events";
 
@@ -452,6 +452,167 @@ export async function handlePull(
 	return { ...result, serverTime: new Date().toISOString() };
 }
 
+export interface EventPullInput {
+	afterEventId: number;
+	merchantId: string;
+	outletId: string;
+}
+
+export async function handleEventPull(input: EventPullInput) {
+	const events = await db
+		.select({
+			id: syncEvents.id,
+			rowId: syncEvents.rowId,
+			tableName: syncEvents.tableName,
+		})
+		.from(syncEvents)
+		.where(getScopedEventsFilter(input.merchantId, input.outletId));
+
+	const eventIds = events.map((event) => event.id);
+	const latestEventId =
+		eventIds.length > 0 ? Math.max(...eventIds) : input.afterEventId;
+	const oldestAvailableEventId =
+		eventIds.length > 0 ? Math.min(...eventIds) : null;
+	const needsFullResync =
+		oldestAvailableEventId !== null &&
+		input.afterEventId > 0 &&
+		input.afterEventId + 1 < oldestAvailableEventId;
+
+	if (needsFullResync) {
+		return { latestEventId, needsFullResync: true };
+	}
+
+	const changedRowsByTable = new Map<string, Set<string>>();
+	for (const event of events) {
+		if (event.id <= input.afterEventId) continue;
+
+		const rowIds = changedRowsByTable.get(event.tableName) ?? new Set<string>();
+		rowIds.add(event.rowId);
+		changedRowsByTable.set(event.tableName, rowIds);
+	}
+
+	const result: Record<string, unknown> = {
+		latestEventId,
+		needsFullResync: false,
+	};
+
+	for (const [tableName, rowIds] of changedRowsByTable) {
+		const rows = await selectSnapshotsForEvents({
+			merchantId: input.merchantId,
+			outletId: input.outletId,
+			rowIds: Array.from(rowIds),
+			tableName,
+		});
+		if (rows) result[tableName] = rows;
+	}
+
+	return result;
+}
+
+async function selectSnapshotsForEvents(input: {
+	merchantId: string;
+	outletId: string;
+	rowIds: string[];
+	tableName: string;
+}): Promise<unknown[] | null> {
+	if (input.rowIds.length === 0) return [];
+
+	switch (input.tableName) {
+		case "merchants":
+			return db
+				.select()
+				.from(merchants)
+				.where(
+					and(
+						eq(merchants.id, input.merchantId),
+						inArray(merchants.id, input.rowIds),
+					),
+				);
+		case "outlets":
+			return db
+				.select()
+				.from(outlets)
+				.where(
+					and(
+						eq(outlets.merchantId, input.merchantId),
+						inArray(outlets.id, input.rowIds),
+					),
+				);
+		case "registers":
+			return db
+				.select()
+				.from(registers)
+				.where(
+					and(
+						eq(registers.outletId, input.outletId),
+						inArray(registers.id, input.rowIds),
+					),
+				);
+		case "categories":
+			return db
+				.select()
+				.from(categories)
+				.where(
+					and(
+						eq(categories.merchantId, input.merchantId),
+						inArray(categories.id, input.rowIds),
+					),
+				);
+		case "products":
+			return db
+				.select()
+				.from(products)
+				.where(
+					and(
+						eq(products.merchantId, input.merchantId),
+						inArray(products.id, input.rowIds),
+					),
+				);
+		case "outlet_products":
+			return db
+				.select()
+				.from(outletProducts)
+				.where(
+					and(
+						eq(outletProducts.outletId, input.outletId),
+						inArray(outletProducts.id, input.rowIds),
+					),
+				);
+		case "staff":
+			return db
+				.select()
+				.from(staff)
+				.where(
+					and(
+						eq(staff.merchantId, input.merchantId),
+						inArray(staff.id, input.rowIds),
+					),
+				);
+		case "orders":
+			return db
+				.select()
+				.from(orders)
+				.where(
+					and(
+						eq(orders.outletId, input.outletId),
+						inArray(orders.id, input.rowIds),
+					),
+				);
+		case "order_items":
+			return db
+				.select()
+				.from(orderItems)
+				.where(
+					and(
+						eq(orderItems.outletId, input.outletId),
+						inArray(orderItems.id, input.rowIds),
+					),
+				);
+		default:
+			return null;
+	}
+}
+
 export interface SyncStatusInput {
 	lastServerEventId: number;
 	merchantId: string;
@@ -462,18 +623,7 @@ export async function handleSyncStatus(input: SyncStatusInput) {
 	const events = await db
 		.select({ id: syncEvents.id, tableName: syncEvents.tableName })
 		.from(syncEvents)
-		.where(
-			or(
-				and(
-					eq(syncEvents.scopeType, "merchant"),
-					eq(syncEvents.scopeId, input.merchantId),
-				),
-				and(
-					eq(syncEvents.scopeType, "outlet"),
-					eq(syncEvents.scopeId, input.outletId),
-				),
-			),
-		);
+		.where(getScopedEventsFilter(input.merchantId, input.outletId));
 
 	const eventIds = events.map((event) => event.id);
 	const latestEventId =
@@ -495,9 +645,19 @@ export async function handleSyncStatus(input: SyncStatusInput) {
 		needsFullResync:
 			oldestAvailableEventId !== null &&
 			input.lastServerEventId > 0 &&
-			input.lastServerEventId < oldestAvailableEventId,
+			input.lastServerEventId + 1 < oldestAvailableEventId,
 		oldestAvailableEventId,
 	};
+}
+
+function getScopedEventsFilter(merchantId: string, outletId: string) {
+	return or(
+		and(
+			eq(syncEvents.scopeType, "merchant"),
+			eq(syncEvents.scopeId, merchantId),
+		),
+		and(eq(syncEvents.scopeType, "outlet"), eq(syncEvents.scopeId, outletId)),
+	);
 }
 
 export { ALL_SYNC_TABLE_NAMES };
