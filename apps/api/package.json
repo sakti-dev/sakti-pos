@@ -12,7 +12,8 @@
 		"test": "bun test",
 		"db:push": "drizzle-kit push",
 		"db:studio": "drizzle-kit studio",
-		"sync:cleanup": "bun src/scripts/sync-cleanup.ts"
+		"sync:cleanup": "bun src/scripts/sync-cleanup.ts",
+		"sync:simulate-product": "bun src/scripts/sync-simulate-product.ts"
 	},
 	"dependencies": {
 		"@elysiajs/cors": "^1.4.2",

@@ -77,6 +77,18 @@ full       -> sync_now or sync_full_resync
 
 `sync_full_resync` is used when the server says `needsFullResync = true`; it runs the full sync and then updates the local server event cursor to the API `latestEventId`.
 
+Fresh app installs are a special baseline case. After cloud login and outlet selection, local storage may know the selected outlet while local SQLite still has no `outlets` row. In that state, `get_sync_local_state` returns `needs_baseline_sync = true` because it cannot resolve `merchant_id` locally yet. The POS app must run `sync_full_resync` instead of trying to count or push merchant-scoped local rows.
+
+Validated flow from Android logs:
+
+```text
+reinstall/login/select outlet
+-> local_state merchant_id=None, needs_baseline_sync=true
+-> sync_full_resync/full pull
+-> merchants/outlets/registers/staff upserted
+-> cloud staff login succeeds
+```
+
 ## API Status And Event Pull
 
 `GET /api/sync/status` returns:
@@ -94,6 +106,21 @@ lastServerEventId + 1 < oldestAvailableEventId
 ```
 
 `GET /api/sync/pull-events` returns current snapshots for rows referenced by events after the client cursor. Repeated events for the same row are coalesced into one row snapshot.
+
+Validated incremental flow:
+
+```text
+server sync_events latestEventId=3
+local last_server_event_id=0
+-> status hasServerChanges=true
+-> sync_pull_events afterEventId=0
+-> categories/products/outlet_products pulled
+-> local cursor becomes 3
+-> next sync status hasServerChanges=false
+-> mode=skipped
+```
+
+The cursor check is important. A successful pull must persist `sync_cursors.last_server_event_id`; the next no-op sync should log `last_server_event_id=<latestEventId>` and choose `mode="skipped"`.
 
 ## Retention And Cleanup
 
@@ -135,11 +162,45 @@ bun run db:push
 
 After local SQLite schema changes, rebuild/reinstall the Android app.
 
+### Manual Smart Sync Simulation
+
+For local development, the API includes a repeatable simulator that assumes the dev database has exactly one merchant and one outlet:
+
+```bash
+cd apps/api
+bun run sync:simulate-product
+```
+
+Each run creates:
+
+- one random `SYNC TEST Category ...`
+- one random `SYNC TEST Product ...`
+- one `outlet_products` row for the single outlet
+- matching `sync_events` rows for `categories`, `products`, and `outlet_products`
+
+Use it to test incremental pull without a second device:
+
+1. Open the POS app and stay on Settings.
+2. Start logcat with the filter below.
+3. Run `bun run sync:simulate-product`.
+4. Tap `Sinkron Sekarang`.
+5. Expect `mode="pull_only"` and `pullRows=3`.
+6. Tap `Sinkron Sekarang` again without rerunning the script.
+7. Expect `mode="skipped"` and `last_server_event_id` equal to the previous `latestEventId`.
+
 Useful Android logcat filter:
 
 ```bash
 adb logcat -c && adb logcat -s "Tauri/Console:*" "RustStdoutStderr:*" | grep -E "\[SYNC-DEBUG\]|\[CLOUD-AUTH\]|\[CLOUD-LOGIN\]|\[AUTH\]|FAILED|Failed|Error"
 ```
+
+## Regression Tests
+
+Tests that protect this design:
+
+- `apps/api/src/__test__/sync.test.ts`: API status and event-pull behavior, including a simulated product change from another device.
+- `apps/api/src/__test__/sync-simulator.test.ts`: simulator creates category/product/outlet product rows and matching scoped sync events, and refuses unsafe multi-merchant/multi-outlet databases.
+- `apps/pos-app/src/store/__test__/sync.test.ts`: POS decision matrix, baseline full sync after reinstall, event pull, and pull-once-then-skip cursor behavior.
 
 ## Known Caveats
 

@@ -1,21 +1,14 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+
+const PBKDF2_HASH_FOR_123456 =
+	"000102030405060708090a0b0c0d0e0f:3e3d2422f00f2cc1d1bad045819bfb8360117d59c588035c4294f3403ac097a5";
+
+const mockSelect = vi.hoisted(() => vi.fn());
 
 vi.mock("~/db", () => ({
 	db: {
 		run: vi.fn(),
-		select: vi.fn(() => ({
-			from: vi.fn(() => ({
-				where: vi.fn(() => [
-					{
-						id: 1,
-						isActive: true,
-						name: "Owner",
-						pin: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef:abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01abcdef01",
-						role: "owner",
-					},
-				]),
-			})),
-		})),
+		select: mockSelect,
 		update: vi.fn(() => ({
 			set: vi.fn(() => ({
 				where: vi.fn(),
@@ -24,114 +17,75 @@ vi.mock("~/db", () => ({
 	},
 }));
 
-async function createPbkdf2Hash(pin: string): Promise<string> {
-	const salt = crypto.getRandomValues(new Uint8Array(16));
-	const encoder = new TextEncoder();
-	const key = await crypto.subtle.importKey(
-		"raw",
-		encoder.encode(pin),
-		{ name: "PBKDF2" },
-		false,
-		["deriveBits"],
-	);
-	const bits = await crypto.subtle.deriveBits(
-		{ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-		key,
-		256,
-	);
-	const saltHex = Array.from(salt)
-		.map((b) => b.toString(16).padStart(2, "0"))
-		.join("");
-	const hashHex = Array.from(new Uint8Array(bits))
-		.map((b) => b.toString(16).padStart(2, "0"))
-		.join("");
-	return `${saltHex}:${hashHex}`;
+function mockStaffRows(rows: unknown[]) {
+	mockSelect.mockReturnValue({
+		from: vi.fn(() => ({
+			where: vi.fn(() => rows),
+		})),
+	});
 }
 
 describe("auth-provider", () => {
-	test("verifyPin succeeds with correct PBKDF2 pin", async () => {
-		const pin = "123456";
-		const hash = await createPbkdf2Hash(pin);
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
 
+	test("verifyPin succeeds with correct PBKDF2 pin", async () => {
 		const { verifyPin } = await import("../auth-provider");
 
-		const dbModule = await import("~/db");
-		vi.mocked(dbModule.db.select).mockReturnValue({
-			from: vi.fn(() => ({
-				where: vi.fn(() => [
-					{
-						id: 1,
-						isActive: true,
-						name: "Owner",
-						pin: hash,
-						role: "owner",
-					},
-				]),
-			})),
-		} as never);
+		mockStaffRows([
+			{
+				id: 1,
+				isActive: true,
+				name: "Owner",
+				pin: PBKDF2_HASH_FOR_123456,
+				role: "owner",
+			},
+		]);
 
-		const user = await verifyPin("1", pin);
+		const user = await verifyPin("1", "123456");
 		expect(user.name).toBe("Owner");
 		expect(user.role).toBe("owner");
 	});
 
 	test("verifyPin rejects wrong pin", async () => {
-		const pin = "123456";
-		const hash = await createPbkdf2Hash(pin);
-
 		const { verifyPin } = await import("../auth-provider");
 
-		const dbModule = await import("~/db");
-		vi.mocked(dbModule.db.select).mockReturnValue({
-			from: vi.fn(() => ({
-				where: vi.fn(() => [
-					{
-						id: 1,
-						isActive: true,
-						name: "Owner",
-						pin: hash,
-						role: "owner",
-					},
-				]),
-			})),
-		} as never);
+		mockStaffRows([
+			{
+				id: 1,
+				isActive: true,
+				name: "Owner",
+				pin: PBKDF2_HASH_FOR_123456,
+				role: "owner",
+			},
+		]);
 
 		await expect(verifyPin("1", "654321")).rejects.toThrow("Invalid PIN");
 	});
 
 	test("verifyPin rejects inactive staff", async () => {
-		const pin = "123456";
-		const hash = await createPbkdf2Hash(pin);
-
 		const { verifyPin } = await import("../auth-provider");
 
-		const dbModule = await import("~/db");
-		vi.mocked(dbModule.db.select).mockReturnValue({
-			from: vi.fn(() => ({
-				where: vi.fn(() => [
-					{
-						id: 2,
-						isActive: false,
-						name: "Ex",
-						pin: hash,
-						role: "cashier",
-					},
-				]),
-			})),
-		} as never);
+		mockStaffRows([
+			{
+				id: 2,
+				isActive: false,
+				name: "Ex",
+				pin: PBKDF2_HASH_FOR_123456,
+				role: "cashier",
+			},
+		]);
 
-		await expect(verifyPin("2", pin)).rejects.toThrow("Staff is deactivated");
+		await expect(verifyPin("2", "123456")).rejects.toThrow(
+			"Staff is deactivated",
+		);
 	});
 
 	test("verifyPin rejects missing staff", async () => {
 		const { verifyPin } = await import("../auth-provider");
 
-		const dbModule = await import("~/db");
-		vi.mocked(dbModule.db.select).mockReturnValue({
-			from: vi.fn(() => ({
-				where: vi.fn(() => []),
-			})),
-		} as never);
+		mockStaffRows([]);
 
 		await expect(verifyPin("999", "123456")).rejects.toThrow("Staff not found");
 	});

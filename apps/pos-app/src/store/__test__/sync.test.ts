@@ -162,6 +162,61 @@ describe("syncNow", () => {
 		expect(result.mode).toBe("pull_only");
 	});
 
+	test("pulls server event changes once then skips after the cursor catches up", async () => {
+		mockInvoke
+			.mockResolvedValueOnce({
+				last_server_event_id: 0,
+				local_dirty_count: 0,
+			})
+			.mockResolvedValueOnce({
+				mode: "pull_only",
+				pull: { rows_received: 3, server_time: "" },
+				purged: 0,
+				push: {
+					server_time: "",
+					server_wins_count: 0,
+					tables_synced: [],
+				},
+			})
+			.mockResolvedValueOnce({
+				last_server_event_id: 3,
+				local_dirty_count: 0,
+			});
+		mockGetSyncStatus
+			.mockResolvedValueOnce({
+				changedTables: ["categories", "products", "outlet_products"],
+				hasChanges: true,
+				latestEventId: 3,
+				needsFullResync: false,
+				oldestAvailableEventId: 1,
+			})
+			.mockResolvedValueOnce({
+				changedTables: [],
+				hasChanges: false,
+				latestEventId: 3,
+				needsFullResync: false,
+				oldestAvailableEventId: 1,
+			});
+
+		const pullResult = await syncNow();
+		const skippedResult = await syncNow();
+
+		expect(mockInvoke).toHaveBeenNthCalledWith(2, "sync_pull_events", {
+			apiUrl: expect.any(String),
+			latestEventId: 3,
+			outletId: "outlet-1",
+			sessionToken: "test-session-token",
+		});
+		expect(mockInvoke).toHaveBeenCalledTimes(3);
+		expect(pullResult.mode).toBe("pull_only");
+		expect(pullResult.pull.rows_received).toBe(3);
+		expect(skippedResult.mode).toBe("skipped");
+		expect(mockGetSyncStatus).toHaveBeenNthCalledWith(2, {
+			lastServerEventId: 3,
+			outletId: "outlet-1",
+		});
+	});
+
 	test("runs full sync when both sides have changes", async () => {
 		const syncResult = {
 			mode: "full",
