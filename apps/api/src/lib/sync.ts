@@ -11,7 +11,7 @@ import {
 	syncEvents,
 	userMerchants,
 } from "@repo/database/api-schema";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, or } from "drizzle-orm";
 import { db } from "../db";
 import type { SyncEventOperation, SyncEventScopeType } from "./sync-events";
 
@@ -450,6 +450,54 @@ export async function handlePull(
 	}
 
 	return { ...result, serverTime: new Date().toISOString() };
+}
+
+export interface SyncStatusInput {
+	lastServerEventId: number;
+	merchantId: string;
+	outletId: string;
+}
+
+export async function handleSyncStatus(input: SyncStatusInput) {
+	const events = await db
+		.select({ id: syncEvents.id, tableName: syncEvents.tableName })
+		.from(syncEvents)
+		.where(
+			or(
+				and(
+					eq(syncEvents.scopeType, "merchant"),
+					eq(syncEvents.scopeId, input.merchantId),
+				),
+				and(
+					eq(syncEvents.scopeType, "outlet"),
+					eq(syncEvents.scopeId, input.outletId),
+				),
+			),
+		);
+
+	const eventIds = events.map((event) => event.id);
+	const latestEventId =
+		eventIds.length > 0 ? Math.max(...eventIds) : input.lastServerEventId;
+	const oldestAvailableEventId =
+		eventIds.length > 0 ? Math.min(...eventIds) : null;
+	const changedTables = Array.from(
+		new Set(
+			events
+				.filter((event) => event.id > input.lastServerEventId)
+				.map((event) => event.tableName),
+		),
+	);
+
+	return {
+		changedTables,
+		hasChanges: latestEventId > input.lastServerEventId,
+		latestEventId,
+		needsFullResync:
+			oldestAvailableEventId !== null &&
+			input.lastServerEventId > 0 &&
+			input.lastServerEventId < oldestAvailableEventId,
+		oldestAvailableEventId,
+	};
 }
 
 export { ALL_SYNC_TABLE_NAMES };

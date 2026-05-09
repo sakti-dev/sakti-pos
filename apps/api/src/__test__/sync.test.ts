@@ -40,9 +40,8 @@ vi.mock("cloudflare:workers", () => ({
 	},
 }));
 
-const { handlePush, handlePull, verifyOutletAccess } = await import(
-	"../lib/sync"
-);
+const { handlePush, handlePull, handleSyncStatus, verifyOutletAccess } =
+	await import("../lib/sync");
 
 describe("verifyOutletAccess", () => {
 	afterEach(() => {
@@ -464,5 +463,57 @@ describe("handlePull", () => {
 		);
 
 		expect(mockSelect).toHaveBeenCalled();
+	});
+});
+
+describe("handleSyncStatus", () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	test("returns no changes when cursor equals latest event", async () => {
+		mockSelect.mockReturnValue({
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockResolvedValue([
+					{ id: 1, tableName: "merchants" },
+					{ id: 10, tableName: "products" },
+				]),
+			}),
+		});
+
+		const result = await handleSyncStatus({
+			lastServerEventId: 10,
+			merchantId: "merchant-1",
+			outletId: "outlet-1",
+		});
+
+		expect(result).toEqual({
+			changedTables: [],
+			hasChanges: false,
+			latestEventId: 10,
+			needsFullResync: false,
+			oldestAvailableEventId: 1,
+		});
+	});
+
+	test("requires full resync when cursor is older than retained history", async () => {
+		mockSelect.mockReturnValue({
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockResolvedValue([
+					{ id: 50, tableName: "products" },
+					{ id: 100, tableName: "orders" },
+				]),
+			}),
+		});
+
+		const result = await handleSyncStatus({
+			lastServerEventId: 5,
+			merchantId: "merchant-1",
+			outletId: "outlet-1",
+		});
+
+		expect(result.needsFullResync).toBe(true);
+		expect(result.hasChanges).toBe(true);
+		expect(result.changedTables).toEqual(["products", "orders"]);
 	});
 });
