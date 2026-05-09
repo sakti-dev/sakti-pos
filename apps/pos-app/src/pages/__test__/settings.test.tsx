@@ -120,7 +120,7 @@ vi.mock("solid-sonner", () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-import Settings from "../settings";
+import Settings, { formatSyncSuccessMessage } from "../settings";
 
 const user = userEvent.setup();
 
@@ -181,5 +181,61 @@ describe("Settings", () => {
 		render(() => <Settings />);
 		await screen.findByText("Pengaturan");
 		expect(screen.getByText("0.1.0")).toBeInTheDocument();
+	});
+});
+
+describe("formatSyncSuccessMessage", () => {
+	test("shows data already current for skipped sync", () => {
+		expect(
+			formatSyncSuccessMessage({
+				mode: "skipped",
+				pull: { rows_received: 0, server_time: "" },
+				purged: 0,
+				push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+			}),
+		).toBe("Data sudah terbaru");
+	});
+
+	test("shows received rows for pull only sync", () => {
+		expect(
+			formatSyncSuccessMessage({
+				mode: "pull_only",
+				pull: { rows_received: 4, server_time: "2026-05-09T12:00:00.000Z" },
+				purged: 0,
+				push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+			}),
+		).toBe("Sinkronisasi berhasil (4 diterima)");
+	});
+
+	test("shows sent table count for push only sync", () => {
+		expect(
+			formatSyncSuccessMessage({
+				mode: "push_only",
+				pull: { rows_received: 0, server_time: "" },
+				purged: 0,
+				push: {
+					server_time: "2026-05-09T12:00:00.000Z",
+					server_wins_count: 0,
+					tables_synced: ["products", "categories"],
+				},
+			}),
+		).toBe("Sinkronisasi berhasil (2 tabel dikirim)");
+	});
+
+	test("shows received sent and purged counts for full sync", () => {
+		expect(
+			formatSyncSuccessMessage({
+				mode: "full",
+				pull: { rows_received: 4, server_time: "2026-05-09T12:00:00.000Z" },
+				purged: 1,
+				push: {
+					server_time: "2026-05-09T12:00:00.000Z",
+					server_wins_count: 0,
+					tables_synced: ["products", "categories"],
+				},
+			}),
+		).toBe(
+			"Sinkronisasi berhasil (4 diterima, 2 tabel dikirim, 1 dibersihkan)",
+		);
 	});
 });

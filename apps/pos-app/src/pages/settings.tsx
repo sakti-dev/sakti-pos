@@ -21,12 +21,29 @@ import { logout as cloudLogout, getSession } from "~/lib/cloud-auth";
 import { cn } from "~/lib/utils";
 import { changeCurrentUserPin, currentUser, logout } from "~/store/auth";
 import { clearOutletContext, currentOutletId } from "~/store/outlet";
-import { syncNow, syncStatus } from "~/store/sync";
+import { type SyncNowResult, syncNow, syncStatus } from "~/store/sync";
 import { setTheme, theme } from "~/store/theme";
 
 interface DbInfo {
 	db_path: string;
 	size_formatted: string;
+}
+
+export function formatSyncSuccessMessage(result: SyncNowResult): string {
+	if (result.mode === "skipped") {
+		return "Data sudah terbaru";
+	}
+
+	if (result.mode === "pull_only") {
+		return `Sinkronisasi berhasil (${result.pull.rows_received} diterima)`;
+	}
+
+	const sentTables = result.push.tables_synced.length;
+	if (result.mode === "push_only") {
+		return `Sinkronisasi berhasil (${sentTables} tabel dikirim)`;
+	}
+
+	return `Sinkronisasi berhasil (${result.pull.rows_received} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
 }
 
 export default function Settings() {
@@ -60,9 +77,7 @@ export default function Settings() {
 	const handleSyncNow = async () => {
 		try {
 			const result = await syncNow();
-			toast.success(
-				`Sinkronisasi berhasil (${result.pull.rows_received} diterima, ${result.purged} dibersihkan)`,
-			);
+			toast.success(formatSyncSuccessMessage(result));
 		} catch {
 			toast.error("Gagal menyinkronkan — periksa koneksi internet");
 		}
