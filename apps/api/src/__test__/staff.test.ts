@@ -156,6 +156,8 @@ describe("POST /api/merchants/:merchantId/staff/me", () => {
 		mockUpdate.mockReturnValue({
 			set: updateValues,
 		});
+		const syncEventValues = vi.fn().mockResolvedValue(undefined);
+		mockInsert.mockReturnValue({ values: syncEventValues });
 
 		const { json, status } = await makeRequest(
 			"/api/merchants/merchant-1/staff/me",
@@ -173,6 +175,15 @@ describe("POST /api/merchants/:merchantId/staff/me", () => {
 		expect(
 			((json as Record<string, unknown>).staff as Record<string, unknown>).id,
 		).toBe("staff-1");
+		expect(syncEventValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				operation: "update",
+				rowId: "staff-1",
+				scopeId: "merchant-1",
+				scopeType: "merchant",
+				tableName: "staff",
+			}),
+		);
 	});
 
 	test("does not claim ambiguous owner staff rows", async () => {

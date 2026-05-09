@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
+import { recordSyncEvent } from "../lib/sync-events";
 
 function generateShortId(): string {
 	return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -63,6 +64,23 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
 					updatedAt: now,
 				})
 				.returning();
+
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "insert",
+				rowId: outlet.id,
+				scopeId: merchantId,
+				scopeType: "merchant",
+				tableName: "outlets",
+			});
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "insert",
+				rowId: register.id,
+				scopeId: outlet.id,
+				scopeType: "outlet",
+				tableName: "registers",
+			});
 
 			return { ...outlet, register };
 		},
@@ -129,6 +147,15 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
 				.set({ ...body, updatedAt: new Date().toISOString() })
 				.where(eq(outlets.id, id))
 				.returning();
+
+			await recordSyncEvent({
+				changedAt: updated.updatedAt,
+				operation: "update",
+				rowId: updated.id,
+				scopeId: updated.merchantId,
+				scopeType: "merchant",
+				tableName: "outlets",
+			});
 
 			return updated;
 		},

@@ -174,11 +174,35 @@ describe("POST /api/merchants/:merchantId/outlets", () => {
 
 		expect(status).toBe(200);
 		expect((json as Record<string, unknown>).name).toBe("Test Outlet");
-		expect(mockInsert).toHaveBeenCalledTimes(2);
+		expect(mockInsert).toHaveBeenCalledTimes(4);
 		expect(
 			((json as Record<string, unknown>).register as Record<string, unknown>)
 				.name,
 		).toBe("Register 1");
+		const outletEventValues = (
+			mockInsert.mock.results[2]?.value as { values: ReturnType<typeof vi.fn> }
+		).values;
+		const registerEventValues = (
+			mockInsert.mock.results[3]?.value as { values: ReturnType<typeof vi.fn> }
+		).values;
+		expect(outletEventValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				operation: "insert",
+				rowId: "outlet-1",
+				scopeId: "merchant-1",
+				scopeType: "merchant",
+				tableName: "outlets",
+			}),
+		);
+		expect(registerEventValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				operation: "insert",
+				rowId: "register-1",
+				scopeId: "outlet-1",
+				scopeType: "outlet",
+				tableName: "registers",
+			}),
+		);
 	});
 });
 

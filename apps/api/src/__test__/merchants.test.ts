@@ -88,10 +88,8 @@ describe("POST /api/merchants", () => {
 			userId: "user-1",
 		});
 
-		let insertCallCount = 0;
 		mockInsert.mockImplementation(() => ({
 			values: vi.fn().mockImplementation((vals: unknown) => {
-				insertCallCount++;
 				return {
 					returning: vi.fn().mockResolvedValue([vals]),
 				};
@@ -106,7 +104,19 @@ describe("POST /api/merchants", () => {
 
 		expect(status).toBe(200);
 		expect((json as Record<string, unknown>).name).toBe("Test Merchant");
-		expect(insertCallCount).toBe(2);
+		expect(mockInsert).toHaveBeenCalledTimes(3);
+		const syncEventValues = (
+			mockInsert.mock.results[2]?.value as { values: ReturnType<typeof vi.fn> }
+		).values;
+		expect(syncEventValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				operation: "insert",
+				rowId: (json as Record<string, unknown>).id,
+				scopeId: (json as Record<string, unknown>).id,
+				scopeType: "merchant",
+				tableName: "merchants",
+			}),
+		);
 	});
 });
 

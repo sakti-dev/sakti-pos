@@ -103,8 +103,9 @@ describe("POST /api/outlets/:outletId/registers", () => {
 		mockInsert.mockImplementation(() => ({
 			values: vi.fn().mockImplementation((vals: unknown) => {
 				insertedValues.push(vals);
+				const row = { id: "register-1", ...(vals as Record<string, unknown>) };
 				return {
-					returning: vi.fn().mockResolvedValue([vals]),
+					returning: vi.fn().mockResolvedValue([row]),
 				};
 			}),
 		}));
@@ -122,6 +123,15 @@ describe("POST /api/outlets/:outletId/registers", () => {
 		expect((inserted.pairingCode as string).length).toBe(8);
 		expect(inserted.pairingCode as string).toMatch(/^[A-Z0-9]{8}$/);
 		expect(inserted.pairingExpiresAt).toBeDefined();
+		expect(insertedValues[1]).toEqual(
+			expect.objectContaining({
+				operation: "insert",
+				rowId: "register-1",
+				scopeId: "outlet-1",
+				scopeType: "outlet",
+				tableName: "registers",
+			}),
+		);
 	});
 });
 
@@ -199,6 +209,8 @@ describe("POST /api/registers/pair", () => {
 				where: vi.fn().mockResolvedValue(undefined),
 			}),
 		});
+		const syncEventValues = vi.fn().mockResolvedValue(undefined);
+		mockInsert.mockReturnValue({ values: syncEventValues });
 
 		const { status } = await makeRequest("/api/registers/pair", {
 			method: "POST",
@@ -207,6 +219,15 @@ describe("POST /api/registers/pair", () => {
 
 		expect(status).toBe(200);
 		expect(mockUpdate).toHaveBeenCalled();
+		expect(syncEventValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				operation: "update",
+				rowId: "reg-1",
+				scopeId: "outlet-1",
+				scopeType: "outlet",
+				tableName: "registers",
+			}),
+		);
 	});
 });
 

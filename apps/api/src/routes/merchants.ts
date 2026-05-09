@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
+import { recordSyncEvent } from "../lib/sync-events";
 
 export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
 	.post(
@@ -29,6 +30,15 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
 				merchantId: merchant.id,
 				role: "owner",
 				joinedAt: now,
+			});
+
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "insert",
+				rowId: merchant.id,
+				scopeId: merchant.id,
+				scopeType: "merchant",
+				tableName: "merchants",
 			});
 
 			return merchant;

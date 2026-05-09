@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
+import { recordSyncEvent } from "../lib/sync-events";
 
 function generatePairingCode(): string {
 	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -78,6 +79,15 @@ export const registersRoutes = new Elysia({ prefix: "/api" })
 				})
 				.returning();
 
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "insert",
+				rowId: register.id,
+				scopeId: outletId,
+				scopeType: "outlet",
+				tableName: "registers",
+			});
+
 			return register;
 		},
 		{
@@ -108,15 +118,25 @@ export const registersRoutes = new Elysia({ prefix: "/api" })
 				return { error: "Pairing code expired" };
 			}
 
+			const now = new Date().toISOString();
 			await db
 				.update(registers)
 				.set({
 					pairingCode: null,
 					pairingExpiresAt: null,
-					lastSeenAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
+					lastSeenAt: now,
+					updatedAt: now,
 				})
 				.where(eq(registers.id, register.id));
+
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "update",
+				rowId: register.id,
+				scopeId: register.outletId,
+				scopeType: "outlet",
+				tableName: "registers",
+			});
 
 			const [outlet] = await db
 				.select()
@@ -191,10 +211,20 @@ export const registersRoutes = new Elysia({ prefix: "/api" })
 			return { error: "Forbidden" };
 		}
 
+		const now = new Date().toISOString();
 		await db
 			.update(registers)
-			.set({ isActive: false, updatedAt: new Date().toISOString() })
+			.set({ isActive: false, updatedAt: now })
 			.where(eq(registers.id, id));
+
+		await recordSyncEvent({
+			changedAt: now,
+			operation: "update",
+			rowId: id,
+			scopeId: register.outletId,
+			scopeType: "outlet",
+			tableName: "registers",
+		});
 
 		return { success: true };
 	});

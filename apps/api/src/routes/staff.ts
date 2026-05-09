@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { getSessionFromRequest } from "../lib/session";
+import { recordSyncEvent } from "../lib/sync-events";
 
 const PBKDF2_ITERATIONS = 100000;
 const PBKDF2_HASH_LENGTH = 256;
@@ -169,13 +170,23 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
 			}
 
 			const owner = ownerRows[0];
+			const now = new Date().toISOString();
 			await db
 				.update(staff)
 				.set({
 					cloudUserId: session.userId,
-					updatedAt: new Date().toISOString(),
+					updatedAt: now,
 				})
 				.where(eq(staff.id, owner.id));
+
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "update",
+				rowId: owner.id,
+				scopeId: merchantId,
+				scopeType: "merchant",
+				tableName: "staff",
+			});
 
 			return {
 				claimed: true,
@@ -213,6 +224,15 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
 					updatedAt: now,
 				})
 				.returning();
+
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "insert",
+				rowId: created.id,
+				scopeId: merchantId,
+				scopeType: "merchant",
+				tableName: "staff",
+			});
 
 			return created;
 		},
@@ -291,11 +311,21 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
 			}
 
 			const pinHash = await hashPin(body.pin);
+			const now = new Date().toISOString();
 			const [updated] = await db
 				.update(staff)
-				.set({ pin: pinHash, updatedAt: new Date().toISOString() })
+				.set({ pin: pinHash, updatedAt: now })
 				.where(eq(staff.id, id))
 				.returning();
+
+			await recordSyncEvent({
+				changedAt: now,
+				operation: "update",
+				rowId: id,
+				scopeId: existing.merchantId,
+				scopeType: "merchant",
+				tableName: "staff",
+			});
 
 			return updated;
 		},
@@ -332,14 +362,24 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
 			return { error: "Forbidden" };
 		}
 
+		const now = new Date().toISOString();
 		await db
 			.update(staff)
 			.set({
 				isActive: false,
-				deletedAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
+				deletedAt: now,
+				updatedAt: now,
 			})
 			.where(eq(staff.id, id));
+
+		await recordSyncEvent({
+			changedAt: now,
+			operation: "delete",
+			rowId: id,
+			scopeId: existing.merchantId,
+			scopeType: "merchant",
+			tableName: "staff",
+		});
 
 		return { success: true };
 	});
