@@ -59,6 +59,7 @@ vi.mock("drizzle-orm/sqlite-proxy", () => ({
 }));
 
 const mockDbSelect = vi.fn();
+const mockRecordLocalChange = vi.fn();
 vi.mock("../index", () => ({
 	db: {
 		select: mockDbSelect,
@@ -68,6 +69,16 @@ vi.mock("../index", () => ({
 			})),
 		})),
 	},
+}));
+
+vi.mock("../sync-outbox", () => ({
+	recordLocalChange: (...args: unknown[]) => mockRecordLocalChange(...args),
+}));
+
+vi.mock("~/store/outlet", () => ({
+	currentMerchantId: vi.fn(() => "merchant-1"),
+	currentOutletId: vi.fn(() => "outlet-1"),
+	currentRegisterId: vi.fn(() => "register-1"),
 }));
 
 const ORDER_NUMBER_PATTERN = /^\d{4}-\d{2}-\d{2}-001$/;
@@ -111,6 +122,20 @@ describe("createOrder", () => {
 					sql: expect.stringContaining("INSERT INTO orders"),
 				}),
 			]),
+		});
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "insert",
+			rowId: expect.any(String),
+			scopeId: "outlet-1",
+			scopeType: "outlet",
+			tableName: "orders",
+		});
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "insert",
+			rowId: expect.any(String),
+			scopeId: "outlet-1",
+			scopeType: "outlet",
+			tableName: "order_items",
 		});
 	});
 });

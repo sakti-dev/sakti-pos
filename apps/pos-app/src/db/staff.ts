@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
 import { currentMerchantId } from "~/store/outlet";
 import { db } from "./index";
+import { recordLocalChange } from "./sync-outbox";
 
 export type StaffMember = typeof staff.$inferSelect;
 export type NewStaffMember = typeof staff.$inferInsert;
@@ -48,6 +49,13 @@ export async function createStaffMember(
 	data: NewStaffMember,
 ): Promise<StaffMember> {
 	const [row] = await db.insert(staff).values(data).returning();
+	await recordLocalChange({
+		operation: "insert",
+		rowId: row.id,
+		scopeId: row.merchantId,
+		scopeType: "merchant",
+		tableName: "staff",
+	});
 	return row;
 }
 
@@ -57,9 +65,16 @@ export async function updateStaffMember(
 ): Promise<StaffMember> {
 	const [row] = await db
 		.update(staff)
-		.set({ ...data, updatedAt: dayjs().toISOString() })
+		.set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
 		.where(eq(staff.id, id))
 		.returning();
+	await recordLocalChange({
+		operation: "update",
+		rowId: row.id,
+		scopeId: row.merchantId,
+		scopeType: "merchant",
+		tableName: "staff",
+	});
 	return row;
 }
 

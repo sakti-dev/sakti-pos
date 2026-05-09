@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@repo/database", () => ({
 	staff: {
@@ -23,6 +23,7 @@ const mockFrom = vi.fn();
 const mockSelect = vi.fn(() => ({ from: mockFrom }));
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
+const mockRecordLocalChange = vi.fn();
 
 vi.mock("../index", () => ({
 	db: {
@@ -30,6 +31,10 @@ vi.mock("../index", () => ({
 		insert: mockInsert,
 		update: mockUpdate,
 	},
+}));
+
+vi.mock("../sync-outbox", () => ({
+	recordLocalChange: (...args: unknown[]) => mockRecordLocalChange(...args),
 }));
 
 vi.mock("~/store/outlet", () => ({
@@ -48,6 +53,10 @@ function mockFromQuery(data: unknown[]) {
 }
 
 describe("staff db", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
 	test("getStaff returns ordered staff", async () => {
 		const fakeStaff = [
 			{ id: "staff-1", name: "Alice" },
@@ -85,7 +94,12 @@ describe("staff db", () => {
 	});
 
 	test("createStaffMember inserts and returns the new staff", async () => {
-		const newStaffMember = { id: "staff-3", name: "Charlie", role: "cashier" };
+		const newStaffMember = {
+			id: "staff-3",
+			merchantId: "merchant-1",
+			name: "Charlie",
+			role: "cashier",
+		};
 		const mockReturning = vi.fn().mockResolvedValue([newStaffMember]);
 		const mockValues = vi.fn(() => ({ returning: mockReturning }));
 		mockInsert.mockReturnValue({ values: mockValues });
@@ -101,11 +115,19 @@ describe("staff db", () => {
 			name: "Charlie",
 			role: "cashier",
 		});
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "insert",
+			rowId: "staff-3",
+			scopeId: "merchant-1",
+			scopeType: "merchant",
+			tableName: "staff",
+		});
 	});
 
 	test("updateStaffMember updates and returns the staff", async () => {
 		const updatedStaffMember = {
 			id: "staff-1",
+			merchantId: "merchant-1",
 			name: "Alice Updated",
 			role: "manager",
 		};
@@ -122,6 +144,13 @@ describe("staff db", () => {
 		expect(result).toEqual(updatedStaffMember);
 		expect(mockSet).toHaveBeenCalled();
 		expect(mockWhere).toHaveBeenCalled();
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "update",
+			rowId: "staff-1",
+			scopeId: "merchant-1",
+			scopeType: "merchant",
+			tableName: "staff",
+		});
 	});
 
 	test("countActiveManagers returns count from query", async () => {

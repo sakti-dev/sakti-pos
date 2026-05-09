@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@repo/database", () => ({
 	categories: {
@@ -29,6 +29,7 @@ const mockFrom = vi.fn();
 const mockSelect = vi.fn(() => ({ from: mockFrom }));
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
+const mockRecordLocalChange = vi.fn();
 
 vi.mock("../index", () => ({
 	db: {
@@ -36,6 +37,10 @@ vi.mock("../index", () => ({
 		insert: mockInsert,
 		update: mockUpdate,
 	},
+}));
+
+vi.mock("../sync-outbox", () => ({
+	recordLocalChange: (...args: unknown[]) => mockRecordLocalChange(...args),
 }));
 
 function mockFromOrderBy(data: unknown[]) {
@@ -48,6 +53,10 @@ function mockFromOrderBy(data: unknown[]) {
 }
 
 describe("menu db", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
 	test("getCategories returns ordered categories", async () => {
 		const fakeCategories = [
 			{ id: 1, name: "Food" },
@@ -91,7 +100,7 @@ describe("menu db", () => {
 	});
 
 	test("createCategory inserts and returns the new category", async () => {
-		const newCategory = { id: 1, name: "Dessert" };
+		const newCategory = { id: "category-1", merchantId: "", name: "Dessert" };
 		const mockReturning = vi.fn().mockResolvedValue([newCategory]);
 		const mockValues = vi.fn(() => ({ returning: mockReturning }));
 		mockInsert.mockReturnValue({ values: mockValues });
@@ -103,6 +112,13 @@ describe("menu db", () => {
 		expect(mockValues).toHaveBeenCalledWith({
 			name: "Dessert",
 			merchantId: "",
+		});
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "insert",
+			rowId: "category-1",
+			scopeId: "",
+			scopeType: "merchant",
+			tableName: "categories",
 		});
 	});
 
@@ -123,6 +139,13 @@ describe("menu db", () => {
 				isSynced: false,
 			}),
 		);
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "delete",
+			rowId: "category-1",
+			scopeId: "",
+			scopeType: "merchant",
+			tableName: "categories",
+		});
 	});
 
 	test("getProductCountByCategory returns count of products", async () => {
@@ -179,7 +202,12 @@ describe("menu db", () => {
 	});
 
 	test("createProduct inserts and returns the new product", async () => {
-		const newProduct = { id: 1, name: "Nasi Goreng", price: 15_000 };
+		const newProduct = {
+			id: "product-1",
+			merchantId: "",
+			name: "Nasi Goreng",
+			price: 15_000,
+		};
 		const mockReturning = vi.fn().mockResolvedValue([newProduct]);
 		const mockValues = vi.fn(() => ({ returning: mockReturning }));
 		mockInsert.mockReturnValue({ values: mockValues });
@@ -195,6 +223,13 @@ describe("menu db", () => {
 			name: "Nasi Goreng",
 			price: 15_000,
 			merchantId: "",
+		});
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "insert",
+			rowId: "product-1",
+			scopeId: "",
+			scopeType: "merchant",
+			tableName: "products",
 		});
 	});
 
@@ -215,5 +250,12 @@ describe("menu db", () => {
 				isSynced: false,
 			}),
 		);
+		expect(mockRecordLocalChange).toHaveBeenCalledWith({
+			operation: "delete",
+			rowId: "product-1",
+			scopeId: "",
+			scopeType: "merchant",
+			tableName: "products",
+		});
 	});
 });

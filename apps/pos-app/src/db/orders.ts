@@ -25,6 +25,7 @@ import {
 } from "~/store/outlet";
 import { db } from "./index";
 import type { Product } from "./menu";
+import { recordLocalChange } from "./sync-outbox";
 
 interface SqlStatement {
 	params: unknown[];
@@ -56,10 +57,12 @@ export async function createOrder(data: {
 	const now = dayjs().toISOString();
 	const outletId = currentOutletId();
 	const registerId = currentRegisterId();
+	const orderId = crypto.randomUUID();
 
 	const insertOrder: SqlStatement = {
-		sql: `INSERT INTO orders (order_number, staff_id, register_id, outlet_id, total, payment_method, amount_paid, change_amount, status, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0)`,
+		sql: `INSERT INTO orders (id, order_number, staff_id, register_id, outlet_id, total, payment_method, amount_paid, change_amount, status, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0)`,
 		params: [
+			orderId,
 			orderNumber,
 			data.staffId,
 			registerId ?? null,
@@ -73,23 +76,51 @@ export async function createOrder(data: {
 		],
 	};
 
-	const itemStatements: SqlStatement[] = data.items.map((item) => ({
-		sql: "INSERT INTO order_items (order_id, outlet_id, product_id, product_name, quantity, unit_price, original_price, subtotal, created_at, is_synced) VALUES (LAST_INSERT_ROWID(), ?, ?, ?, ?, ?, ?, ?, 0)",
-		params: [
-			outletId ?? null,
-			item.product_id,
-			item.product_name,
-			item.qty,
-			item.price,
-			item.originalPrice ?? null,
-			item.qty * item.price,
-			now,
-		],
+	const orderItemsWithIds = data.items.map((item) => ({
+		id: crypto.randomUUID(),
+		item,
 	}));
+
+	const itemStatements: SqlStatement[] = orderItemsWithIds.map(
+		({ id, item }) => ({
+			sql: "INSERT INTO order_items (id, order_id, outlet_id, product_id, product_name, quantity, unit_price, original_price, subtotal, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
+			params: [
+				id,
+				orderId,
+				outletId ?? null,
+				item.product_id,
+				item.product_name,
+				item.qty,
+				item.price,
+				item.originalPrice ?? null,
+				item.qty * item.price,
+				now,
+				now,
+			],
+		}),
+	);
 
 	await invoke<BatchResult>("run_sql_batch", {
 		statements: [insertOrder, ...itemStatements],
 	});
+
+	const scopeId = outletId ?? "";
+	await recordLocalChange({
+		operation: "insert",
+		rowId: orderId,
+		scopeId,
+		scopeType: "outlet",
+		tableName: "orders",
+	});
+	for (const { id } of orderItemsWithIds) {
+		await recordLocalChange({
+			operation: "insert",
+			rowId: id,
+			scopeId,
+			scopeType: "outlet",
+			tableName: "order_items",
+		});
+	}
 
 	return orderNumber;
 }
@@ -252,6 +283,13 @@ export async function cancelOrder(orderId: string): Promise<void> {
 			isSynced: false,
 		})
 		.where(eq(orders.id, orderId));
+	await recordLocalChange({
+		operation: "update",
+		rowId: orderId,
+		scopeId: currentOutletId() ?? "",
+		scopeType: "outlet",
+		tableName: "orders",
+	});
 }
 
 export interface DailySummary {

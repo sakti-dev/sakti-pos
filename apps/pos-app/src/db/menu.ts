@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { and, eq, isNull } from "drizzle-orm";
 import { currentMerchantId, currentOutletId } from "~/store/outlet";
 import { db } from "./index";
+import { recordLocalChange } from "./sync-outbox";
 
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
@@ -40,6 +41,13 @@ export async function createCategory(data: NewCategory): Promise<Category> {
 		.insert(categories)
 		.values({ ...data, merchantId })
 		.returning();
+	await recordLocalChange({
+		operation: "insert",
+		rowId: row.id,
+		scopeId: row.merchantId,
+		scopeType: "merchant",
+		tableName: "categories",
+	});
 	return row;
 }
 
@@ -52,6 +60,13 @@ export async function updateCategory(
 		.set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
 		.where(eq(categories.id, id))
 		.returning();
+	await recordLocalChange({
+		operation: "update",
+		rowId: row.id,
+		scopeId: row.merchantId,
+		scopeType: "merchant",
+		tableName: "categories",
+	});
 	return row;
 }
 
@@ -61,6 +76,13 @@ export async function deleteCategory(id: string): Promise<void> {
 		.update(categories)
 		.set({ deletedAt: now, updatedAt: now, isSynced: false })
 		.where(eq(categories.id, id));
+	await recordLocalChange({
+		operation: "delete",
+		rowId: id,
+		scopeId: currentMerchantId() ?? "",
+		scopeType: "merchant",
+		tableName: "categories",
+	});
 }
 
 export async function getProductCountByCategory(
@@ -116,6 +138,13 @@ export async function createProduct(data: NewProduct): Promise<Product> {
 		.insert(products)
 		.values({ ...data, merchantId })
 		.returning();
+	await recordLocalChange({
+		operation: "insert",
+		rowId: row.id,
+		scopeId: row.merchantId,
+		scopeType: "merchant",
+		tableName: "products",
+	});
 	return row;
 }
 
@@ -128,6 +157,13 @@ export async function updateProduct(
 		.set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
 		.where(eq(products.id, id))
 		.returning();
+	await recordLocalChange({
+		operation: "update",
+		rowId: row.id,
+		scopeId: row.merchantId,
+		scopeType: "merchant",
+		tableName: "products",
+	});
 	return row;
 }
 
@@ -137,6 +173,13 @@ export async function deleteProduct(id: string): Promise<void> {
 		.update(products)
 		.set({ deletedAt: now, updatedAt: now, isSynced: false })
 		.where(eq(products.id, id));
+	await recordLocalChange({
+		operation: "delete",
+		rowId: id,
+		scopeId: currentMerchantId() ?? "",
+		scopeType: "merchant",
+		tableName: "products",
+	});
 }
 
 export async function getOutletProducts(): Promise<OutletProduct[]> {
