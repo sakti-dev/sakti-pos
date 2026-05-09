@@ -11,7 +11,8 @@
 		"check-types": "tsc --noEmit",
 		"test": "bun test",
 		"db:push": "drizzle-kit push",
-		"db:studio": "drizzle-kit studio"
+		"db:studio": "drizzle-kit studio",
+		"sync:cleanup": "bun src/scripts/sync-cleanup.ts"
 	},
 	"dependencies": {
 		"@elysiajs/cors": "^1.4.2",
