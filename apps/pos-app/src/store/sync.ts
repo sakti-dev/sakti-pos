@@ -182,6 +182,12 @@ export async function syncNow(): Promise<SyncNowResult> {
 }
 
 export async function runStartupSync(): Promise<void> {
+	const outletId = currentOutletId();
+	if (!outletId) return;
+
+	const sessionToken = await AuthStorage.getToken();
+	if (!sessionToken) return;
+
 	setSyncStatus("syncing");
 	try {
 		await syncNow();

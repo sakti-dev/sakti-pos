@@ -47,6 +47,11 @@ pub fn run() {
             drizzle_proxy::get_db_info,
             sync::sync_push,
             sync::sync_pull,
+            sync::get_sync_local_state,
+            sync::sync_push_outbox,
+            sync::sync_pull_events,
+            sync::sync_full_resync,
+            sync::purge_synced_outbox,
             sync::run_garbage_collection,
             sync::sync_now
         ])

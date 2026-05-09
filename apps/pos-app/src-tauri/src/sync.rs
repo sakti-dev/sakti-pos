@@ -141,12 +141,175 @@ async fn get_last_sync_at(
     Ok(row.map(|r| r.0))
 }
 
+async fn resolve_merchant_id(pool: &SqlitePool, outlet_id: &str) -> Result<Option<String>, String> {
+    let query = "SELECT merchant_id FROM outlets WHERE id = ?1";
+    sqlx::query_scalar::<_, String>(query)
+        .bind(outlet_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| format!("Failed to resolve merchant_id: {}", e))
+}
+
 fn choose_pull_since(timestamps: Vec<Option<String>>) -> String {
     timestamps
         .into_iter()
         .flatten()
         .min()
         .unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_string())
+}
+
+async fn get_last_server_event_id(pool: &SqlitePool, outlet_id: &str) -> Result<i64, String> {
+    let query = "SELECT last_server_event_id FROM sync_cursors WHERE scope_type = 'outlet' AND scope_id = ?1 ORDER BY updated_at DESC LIMIT 1";
+    let value = sqlx::query_scalar::<_, i64>(query)
+        .bind(outlet_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| format!("Failed to get sync cursor: {}", e))?;
+    Ok(value.unwrap_or(0))
+}
+
+async fn set_last_server_event_id_tx(
+    conn: &mut SqliteConnection,
+    outlet_id: &str,
+    last_server_event_id: i64,
+) -> Result<(), String> {
+    let now = current_time_millis_string();
+    let existing = sqlx::query_scalar::<_, i64>(
+        "SELECT last_server_event_id FROM sync_cursors WHERE scope_type = 'outlet' AND scope_id = ?1 LIMIT 1",
+    )
+    .bind(outlet_id)
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(|e| format!("Failed to read sync cursor: {}", e))?;
+
+    if existing.is_some() {
+        sqlx::query(
+            "UPDATE sync_cursors SET last_server_event_id = ?2, updated_at = ?3 WHERE scope_type = 'outlet' AND scope_id = ?1",
+        )
+        .bind(outlet_id)
+        .bind(last_server_event_id)
+        .bind(&now)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| format!("Failed to update sync cursor: {}", e))?;
+    } else {
+        sqlx::query(
+            "INSERT INTO sync_cursors (scope_type, scope_id, last_server_event_id, updated_at) VALUES ('outlet', ?1, ?2, ?3)",
+        )
+        .bind(outlet_id)
+        .bind(last_server_event_id)
+        .bind(&now)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| format!("Failed to insert sync cursor: {}", e))?;
+    }
+    Ok(())
+}
+
+fn current_time_millis_string() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis().to_string())
+        .unwrap_or_else(|_| "0".to_string())
+}
+
+async fn count_pending_outbox(
+    pool: &SqlitePool,
+    outlet_id: &str,
+    merchant_id: &Option<String>,
+) -> Result<i64, String> {
+    let Some(merchant_id) = merchant_id else {
+        let query = "SELECT COUNT(*) FROM sync_outbox WHERE synced_at IS NULL AND scope_type = 'outlet' AND scope_id = ?1";
+        return sqlx::query_scalar::<_, i64>(query)
+            .bind(outlet_id)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| format!("Failed to count sync outbox: {}", e));
+    };
+
+    let query = "SELECT COUNT(*) FROM sync_outbox WHERE synced_at IS NULL AND ((scope_type = 'outlet' AND scope_id = ?1) OR (scope_type = 'merchant' AND scope_id = ?2))";
+    sqlx::query_scalar::<_, i64>(query)
+        .bind(outlet_id)
+        .bind(merchant_id)
+        .fetch_one(pool)
+        .await
+        .map_err(|e| format!("Failed to count sync outbox: {}", e))
+}
+
+async fn count_legacy_unsynced_rows(
+    pool: &SqlitePool,
+    outlet_id: &str,
+    merchant_id: &Option<String>,
+) -> Result<i64, String> {
+    let mut total = 0;
+    for table in SYNC_TABLES {
+        let filter_value = get_filter_value(table, outlet_id, merchant_id)?;
+        let filter_col = get_table_filter_column(table);
+        let query = format!(
+            "SELECT COUNT(*) FROM {} WHERE {} = ?1 AND is_synced = 0",
+            table, filter_col
+        );
+        let count = sqlx::query_scalar::<_, i64>(&query)
+            .bind(filter_value)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| format!("Failed to count unsynced rows for {}: {}", table, e))?;
+        total += count;
+    }
+    Ok(total)
+}
+
+async fn mark_outbox_synced_tx(
+    conn: &mut SqliteConnection,
+    outlet_id: &str,
+    merchant_id: &Option<String>,
+    synced_at: &str,
+) -> Result<u64, String> {
+    let result = if let Some(merchant_id) = merchant_id {
+        sqlx::query(
+            "UPDATE sync_outbox SET synced_at = ?3 WHERE synced_at IS NULL AND ((scope_type = 'outlet' AND scope_id = ?1) OR (scope_type = 'merchant' AND scope_id = ?2))",
+        )
+        .bind(outlet_id)
+        .bind(merchant_id)
+        .bind(synced_at)
+        .execute(&mut *conn)
+        .await
+    } else {
+        sqlx::query(
+            "UPDATE sync_outbox SET synced_at = ?2 WHERE synced_at IS NULL AND scope_type = 'outlet' AND scope_id = ?1",
+        )
+        .bind(outlet_id)
+        .bind(synced_at)
+        .execute(&mut *conn)
+        .await
+    }
+    .map_err(|e| format!("Failed to mark sync outbox rows synced: {}", e))?;
+
+    Ok(result.rows_affected())
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct LocalSyncState {
+    local_dirty_count: i64,
+    last_server_event_id: i64,
+}
+
+fn build_pull_events_url(api_url: &str, outlet_id: &str, after_event_id: i64) -> String {
+    format!(
+        "{}/api/sync/pull-events?outletId={}&afterEventId={}",
+        api_url,
+        urlencoding::encode(outlet_id),
+        after_event_id
+    )
+}
+
+fn cursor_gap_requires_full_resync(
+    after_event_id: i64,
+    oldest_available_event_id: Option<i64>,
+) -> bool {
+    oldest_available_event_id
+        .map(|oldest| after_event_id > 0 && after_event_id + 1 < oldest)
+        .unwrap_or(false)
 }
 
 async fn set_last_sync_at_tx(
@@ -538,6 +701,34 @@ async fn sync_push_inner(
 }
 
 #[command]
+pub async fn get_sync_local_state(
+    outlet_id: String,
+    state: State<'_, AppState>,
+) -> Result<LocalSyncState, String> {
+    let pool = &state.db_pool;
+    let merchant_id = resolve_merchant_id(pool, &outlet_id).await?;
+    let outbox_dirty_count = count_pending_outbox(pool, &outlet_id, &merchant_id).await?;
+    let legacy_dirty_count = count_legacy_unsynced_rows(pool, &outlet_id, &merchant_id).await?;
+    let local_dirty_count = outbox_dirty_count.max(legacy_dirty_count);
+    let last_server_event_id = get_last_server_event_id(pool, &outlet_id).await?;
+
+    println!(
+        "[SYNC-DEBUG] local_state: outlet_id={}, merchant_id={:?}, outbox_dirty_count={}, legacy_dirty_count={}, dirty_count={}, last_server_event_id={}",
+        outlet_id,
+        merchant_id,
+        outbox_dirty_count,
+        legacy_dirty_count,
+        local_dirty_count,
+        last_server_event_id
+    );
+
+    Ok(LocalSyncState {
+        local_dirty_count,
+        last_server_event_id,
+    })
+}
+
+#[command]
 pub async fn sync_push(
     outlet_id: String,
     api_url: String,
@@ -724,6 +915,180 @@ pub struct SyncNowResult {
     purged: usize,
 }
 
+fn empty_pull_result() -> PullResult {
+    PullResult {
+        rows_received: 0,
+        server_time: String::new(),
+    }
+}
+
+fn empty_push_result() -> PushResult {
+    PushResult {
+        tables_synced: Vec::new(),
+        server_wins_count: 0,
+        server_time: String::new(),
+    }
+}
+
+#[command]
+pub async fn sync_push_outbox(
+    outlet_id: String,
+    api_url: String,
+    session_token: String,
+    state: State<'_, AppState>,
+) -> Result<SyncNowResult, String> {
+    println!(
+        "[SYNC-DEBUG] sync_push_outbox: outlet_id={}, api_url={}",
+        outlet_id, api_url
+    );
+    let pool = &state.db_pool;
+    let merchant_id = resolve_merchant_id(pool, &outlet_id).await?;
+    let push = sync_push_inner(pool, &outlet_id, &api_url, &session_token).await?;
+    let synced_at = if push.server_time.is_empty() {
+        current_time_millis_string()
+    } else {
+        push.server_time.clone()
+    };
+
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|e| format!("Failed to begin outbox transaction: {}", e))?;
+    let marked = mark_outbox_synced_tx(&mut tx, &outlet_id, &merchant_id, &synced_at).await?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("Failed to commit outbox transaction: {}", e))?;
+    println!(
+        "[SYNC-DEBUG] sync_push_outbox: marked_outbox_synced={}",
+        marked
+    );
+
+    Ok(SyncNowResult {
+        pull: empty_pull_result(),
+        push,
+        purged: 0,
+    })
+}
+
+#[command]
+pub async fn sync_pull_events(
+    outlet_id: String,
+    api_url: String,
+    session_token: String,
+    latest_event_id: i64,
+    state: State<'_, AppState>,
+) -> Result<SyncNowResult, String> {
+    println!(
+        "[SYNC-DEBUG] sync_pull_events: outlet_id={}, api_url={}, latest_event_id={}",
+        outlet_id, api_url, latest_event_id
+    );
+    let pool = &state.db_pool;
+    let client = build_client(&session_token)?;
+    let after_event_id = get_last_server_event_id(pool, &outlet_id).await?;
+    let url = build_pull_events_url(&api_url, &outlet_id, after_event_id);
+    println!("[SYNC-DEBUG] sync_pull_events: GET {}", url);
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Sync event pull failed: {}", e))?;
+    let status = response.status();
+    if !status.is_success() {
+        let text = response.text().await.unwrap_or_default();
+        println!(
+            "[SYNC-DEBUG] sync_pull_events FAILED: status={}, body={}",
+            status, text
+        );
+        return Err(format!("Sync event pull failed ({}): {}", status, text));
+    }
+
+    let result: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse event pull response: {}", e))?;
+    let needs_full_resync = result
+        .get("needsFullResync")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+    if needs_full_resync {
+        return Err("Event cursor expired; full resync required".to_string());
+    }
+
+    let response_latest_event_id = result
+        .get("latestEventId")
+        .and_then(|value| value.as_i64())
+        .unwrap_or(latest_event_id);
+
+    let mut total_rows = 0;
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|e| format!("Failed to begin event pull transaction: {}", e))?;
+    for table in SYNC_TABLES {
+        if let Some(rows) = result.get(table).and_then(|value| value.as_array()) {
+            println!(
+                "[SYNC-DEBUG] sync_pull_events: table={}, rows_from_server={}",
+                table,
+                rows.len()
+            );
+            for row in rows {
+                println!(
+                    "[SYNC-DEBUG] sync_pull_events row: table={}, row={}",
+                    table,
+                    debug_row_summary(row)
+                );
+                upsert_row(&mut tx, table, row).await?;
+                total_rows += 1;
+            }
+        }
+    }
+
+    set_last_server_event_id_tx(&mut tx, &outlet_id, response_latest_event_id).await?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("Failed to commit event pull transaction: {}", e))?;
+
+    Ok(SyncNowResult {
+        pull: PullResult {
+            rows_received: total_rows,
+            server_time: String::new(),
+        },
+        push: empty_push_result(),
+        purged: 0,
+    })
+}
+
+#[command]
+pub async fn sync_full_resync(
+    outlet_id: String,
+    api_url: String,
+    session_token: String,
+    state: State<'_, AppState>,
+) -> Result<SyncNowResult, String> {
+    sync_now(outlet_id, api_url, session_token, state).await
+}
+
+#[command]
+pub async fn purge_synced_outbox(
+    older_than: String,
+    state: State<'_, AppState>,
+) -> Result<u64, String> {
+    let result =
+        sqlx::query("DELETE FROM sync_outbox WHERE synced_at IS NOT NULL AND synced_at < ?1")
+            .bind(&older_than)
+            .execute(&state.db_pool)
+            .await
+            .map_err(|e| format!("Failed to purge synced outbox: {}", e))?;
+
+    println!(
+        "[SYNC-DEBUG] purge_synced_outbox: older_than={}, rows_purged={}",
+        older_than,
+        result.rows_affected()
+    );
+    Ok(result.rows_affected())
+}
+
 #[command]
 pub async fn sync_now(
     outlet_id: String,
@@ -829,5 +1194,21 @@ mod tests {
             choose_pull_since(vec![None, None]),
             "1970-01-01T00:00:00.000Z"
         );
+    }
+
+    #[test]
+    fn builds_event_pull_url_with_encoded_outlet_cursor() {
+        assert_eq!(
+            build_pull_events_url("http://localhost:3001", "outlet 1", 42),
+            "http://localhost:3001/api/sync/pull-events?outletId=outlet%201&afterEventId=42"
+        );
+    }
+
+    #[test]
+    fn detects_cursor_gap_only_when_next_event_is_missing() {
+        assert!(!cursor_gap_requires_full_resync(10, Some(11)));
+        assert!(cursor_gap_requires_full_resync(10, Some(12)));
+        assert!(!cursor_gap_requires_full_resync(0, Some(50)));
+        assert!(!cursor_gap_requires_full_resync(10, None));
     }
 }
