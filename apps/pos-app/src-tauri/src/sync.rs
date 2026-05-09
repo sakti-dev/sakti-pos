@@ -304,6 +304,7 @@ fn build_pull_events_url(api_url: &str, outlet_id: &str, after_event_id: i64) ->
     )
 }
 
+#[cfg(test)]
 fn cursor_gap_requires_full_resync(
     after_event_id: i64,
     oldest_available_event_id: Option<i64>,
