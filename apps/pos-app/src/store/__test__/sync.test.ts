@@ -257,6 +257,36 @@ describe("syncNow", () => {
 		expect(lastSyncTime()).toBe("2025-01-01T00:00:00.000Z");
 	});
 
+	test("runs full sync when local outlet scope is missing after reinstall", async () => {
+		const syncResult = {
+			mode: "full",
+			pull: { rows_received: 5, server_time: "2025-01-01T00:00:00.000Z" },
+			push: {
+				tables_synced: [],
+				server_wins_count: 0,
+				server_time: "",
+			},
+			purged: 0,
+		};
+		mockInvoke
+			.mockResolvedValueOnce({
+				last_server_event_id: 0,
+				local_dirty_count: 0,
+				needs_baseline_sync: true,
+			})
+			.mockResolvedValueOnce(syncResult);
+
+		const result = await syncNow();
+
+		expect(mockInvoke).toHaveBeenLastCalledWith("sync_full_resync", {
+			apiUrl: expect.any(String),
+			latestEventId: 10,
+			outletId: "outlet-1",
+			sessionToken: "test-session-token",
+		});
+		expect(result.mode).toBe("full");
+	});
+
 	test("sets offline and throws on invoke failure", async () => {
 		mockInvoke.mockRejectedValue(new Error("Network error"));
 

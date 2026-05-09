@@ -292,6 +292,7 @@ async fn mark_outbox_synced_tx(
 pub struct LocalSyncState {
     local_dirty_count: i64,
     last_server_event_id: i64,
+    needs_baseline_sync: bool,
 }
 
 fn build_pull_events_url(api_url: &str, outlet_id: &str, after_event_id: i64) -> String {
@@ -707,15 +708,21 @@ pub async fn get_sync_local_state(
 ) -> Result<LocalSyncState, String> {
     let pool = &state.db_pool;
     let merchant_id = resolve_merchant_id(pool, &outlet_id).await?;
+    let needs_baseline_sync = merchant_id.is_none();
     let outbox_dirty_count = count_pending_outbox(pool, &outlet_id, &merchant_id).await?;
-    let legacy_dirty_count = count_legacy_unsynced_rows(pool, &outlet_id, &merchant_id).await?;
+    let legacy_dirty_count = if needs_baseline_sync {
+        0
+    } else {
+        count_legacy_unsynced_rows(pool, &outlet_id, &merchant_id).await?
+    };
     let local_dirty_count = outbox_dirty_count.max(legacy_dirty_count);
     let last_server_event_id = get_last_server_event_id(pool, &outlet_id).await?;
 
     println!(
-        "[SYNC-DEBUG] local_state: outlet_id={}, merchant_id={:?}, outbox_dirty_count={}, legacy_dirty_count={}, dirty_count={}, last_server_event_id={}",
+        "[SYNC-DEBUG] local_state: outlet_id={}, merchant_id={:?}, needs_baseline_sync={}, outbox_dirty_count={}, legacy_dirty_count={}, dirty_count={}, last_server_event_id={}",
         outlet_id,
         merchant_id,
+        needs_baseline_sync,
         outbox_dirty_count,
         legacy_dirty_count,
         local_dirty_count,
@@ -725,6 +732,7 @@ pub async fn get_sync_local_state(
     Ok(LocalSyncState {
         local_dirty_count,
         last_server_event_id,
+        needs_baseline_sync,
     })
 }
 

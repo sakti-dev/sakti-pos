@@ -62,6 +62,7 @@ export interface SyncNowResult {
 interface LocalSyncState {
 	last_server_event_id: number;
 	local_dirty_count: number;
+	needs_baseline_sync?: boolean;
 }
 
 function emptySyncResult(mode: SyncMode): SyncNowResult {
@@ -129,23 +130,24 @@ export async function syncNow(): Promise<SyncNowResult> {
 			hasServerChanges,
 			latestEventId: serverStatus.latestEventId,
 			localDirtyCount: localState.local_dirty_count,
+			needsBaselineSync: localState.needs_baseline_sync ?? false,
 			needsFullResync: serverStatus.needsFullResync,
 			outletId,
 		});
 
 		let result: SyncNowResult;
-		if (
-			!hasLocalChanges &&
-			!hasServerChanges &&
-			!serverStatus.needsFullResync
-		) {
-			result = emptySyncResult("skipped");
-		} else if (serverStatus.needsFullResync) {
+		if (localState.needs_baseline_sync || serverStatus.needsFullResync) {
 			result = await invokeSyncTransfer(
 				"sync_full_resync",
 				{ ...baseParams, latestEventId: serverStatus.latestEventId },
 				"full",
 			);
+		} else if (
+			!hasLocalChanges &&
+			!hasServerChanges &&
+			!serverStatus.needsFullResync
+		) {
+			result = emptySyncResult("skipped");
 		} else if (hasLocalChanges && hasServerChanges) {
 			result = await invokeSyncTransfer("sync_now", baseParams, "full");
 		} else if (hasLocalChanges) {
