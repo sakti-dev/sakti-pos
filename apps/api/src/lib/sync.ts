@@ -8,10 +8,12 @@ import {
 	products,
 	registers,
 	staff,
+	syncEvents,
 	userMerchants,
 } from "@repo/database/api-schema";
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "../db";
+import type { SyncEventOperation, SyncEventScopeType } from "./sync-events";
 
 const ALL_SYNC_TABLE_NAMES = [
 	"merchants",
@@ -52,6 +54,10 @@ export async function verifyOutletAccess(
 }
 
 type TransactionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+interface UpsertResult {
+	acceptedOperation: SyncEventOperation | null;
+	serverWin: string | null;
+}
 
 function stripLocalOnlyColumns(
 	row: Record<string, unknown>,
@@ -75,20 +81,25 @@ export async function handlePush(
 
 			for (const rawRow of rows as Record<string, unknown>[]) {
 				const row = stripLocalOnlyColumns(rawRow);
-				let serverWin: string | null = null;
+				let upsertResult: UpsertResult | null = null;
 
 				switch (tableName) {
 					case "merchants":
-						serverWin = await upsertMerchantRow(tx, merchants, row, merchantId);
+						upsertResult = await upsertMerchantRow(
+							tx,
+							merchants,
+							row,
+							merchantId,
+						);
 						break;
 					case "outlets":
-						serverWin = await upsertOutletRow(tx, outlets, row, outletId);
+						upsertResult = await upsertOutletRow(tx, outlets, row, outletId);
 						break;
 					case "registers":
-						serverWin = await upsertOutletRow(tx, registers, row, outletId);
+						upsertResult = await upsertOutletRow(tx, registers, row, outletId);
 						break;
 					case "categories":
-						serverWin = await upsertMerchantRow(
+						upsertResult = await upsertMerchantRow(
 							tx,
 							categories,
 							row,
@@ -96,10 +107,15 @@ export async function handlePush(
 						);
 						break;
 					case "products":
-						serverWin = await upsertMerchantRow(tx, products, row, merchantId);
+						upsertResult = await upsertMerchantRow(
+							tx,
+							products,
+							row,
+							merchantId,
+						);
 						break;
 					case "outlet_products":
-						serverWin = await upsertOutletRow(
+						upsertResult = await upsertOutletRow(
 							tx,
 							outletProducts,
 							row,
@@ -107,17 +123,30 @@ export async function handlePush(
 						);
 						break;
 					case "staff":
-						serverWin = await upsertStaffRow(tx, row, merchantId);
+						upsertResult = await upsertStaffRow(tx, row, merchantId);
 						break;
 					case "orders":
-						serverWin = await upsertOutletRow(tx, orders, row, outletId);
+						upsertResult = await upsertOutletRow(tx, orders, row, outletId);
 						break;
 					case "order_items":
-						serverWin = await upsertOrderItem(tx, row, outletId);
+						upsertResult = await upsertOrderItem(tx, row, outletId);
 						break;
 				}
 
-				if (serverWin) wins.push(serverWin);
+				if (upsertResult?.serverWin) wins.push(upsertResult.serverWin);
+				if (upsertResult?.acceptedOperation) {
+					const scope = getSyncEventScope(tableName, merchantId, outletId);
+					await tx.insert(syncEvents).values({
+						changedAt: String(
+							row.updatedAt ?? row.createdAt ?? new Date().toISOString(),
+						),
+						operation: upsertResult.acceptedOperation,
+						rowId: row.id as string,
+						scopeId: scope.scopeId,
+						scopeType: scope.scopeType,
+						tableName,
+					});
+				}
 			}
 
 			if (wins.length > 0) {
@@ -134,7 +163,7 @@ async function upsertMerchantRow(
 	table: typeof categories | typeof products | typeof merchants,
 	row: Record<string, unknown>,
 	merchantId: string,
-): Promise<string | null> {
+): Promise<UpsertResult> {
 	const existing = await tx
 		.select()
 		.from(table)
@@ -152,13 +181,19 @@ async function upsertMerchantRow(
 				.update(table)
 				.set(row)
 				.where(eq(table.id, row.id as string));
-			return null;
+			return {
+				acceptedOperation: getAcceptedOperation(row, "update"),
+				serverWin: null,
+			};
 		}
-		return row.id as string;
+		return { acceptedOperation: null, serverWin: row.id as string };
 	}
 
 	await tx.insert(table).values({ ...row, merchantId } as never);
-	return null;
+	return {
+		acceptedOperation: getAcceptedOperation(row, "insert"),
+		serverWin: null,
+	};
 }
 
 async function upsertOutletRow(
@@ -170,7 +205,7 @@ async function upsertOutletRow(
 		| typeof registers,
 	row: Record<string, unknown>,
 	outletId: string,
-): Promise<string | null> {
+): Promise<UpsertResult> {
 	const existing = await tx
 		.select()
 		.from(table)
@@ -188,20 +223,26 @@ async function upsertOutletRow(
 				.update(table)
 				.set(row)
 				.where(eq(table.id, row.id as string));
-			return null;
+			return {
+				acceptedOperation: getAcceptedOperation(row, "update"),
+				serverWin: null,
+			};
 		}
-		return row.id as string;
+		return { acceptedOperation: null, serverWin: row.id as string };
 	}
 
 	await tx.insert(table).values({ ...row, outletId } as never);
-	return null;
+	return {
+		acceptedOperation: getAcceptedOperation(row, "insert"),
+		serverWin: null,
+	};
 }
 
 async function upsertStaffRow(
 	tx: TransactionTx,
 	row: Record<string, unknown>,
 	merchantId: string,
-): Promise<string | null> {
+): Promise<UpsertResult> {
 	const existing = await tx
 		.select()
 		.from(staff)
@@ -219,20 +260,26 @@ async function upsertStaffRow(
 				.update(staff)
 				.set(row)
 				.where(eq(staff.id, row.id as string));
-			return null;
+			return {
+				acceptedOperation: getAcceptedOperation(row, "update"),
+				serverWin: null,
+			};
 		}
-		return row.id as string;
+		return { acceptedOperation: null, serverWin: row.id as string };
 	}
 
 	await tx.insert(staff).values({ ...row, merchantId } as never);
-	return null;
+	return {
+		acceptedOperation: getAcceptedOperation(row, "insert"),
+		serverWin: null,
+	};
 }
 
 async function upsertOrderItem(
 	tx: TransactionTx,
 	row: Record<string, unknown>,
 	outletId: string,
-): Promise<string | null> {
+): Promise<UpsertResult> {
 	const existing = await tx
 		.select()
 		.from(orderItems)
@@ -250,13 +297,42 @@ async function upsertOrderItem(
 				.update(orderItems)
 				.set(row)
 				.where(eq(orderItems.id, row.id as string));
-			return null;
+			return {
+				acceptedOperation: getAcceptedOperation(row, "update"),
+				serverWin: null,
+			};
 		}
-		return row.id as string;
+		return { acceptedOperation: null, serverWin: row.id as string };
 	}
 
 	await tx.insert(orderItems).values({ ...row, outletId } as never);
-	return null;
+	return {
+		acceptedOperation: getAcceptedOperation(row, "insert"),
+		serverWin: null,
+	};
+}
+
+function getAcceptedOperation(
+	row: Record<string, unknown>,
+	defaultOperation: "insert" | "update",
+): SyncEventOperation {
+	return row.deletedAt ? "delete" : defaultOperation;
+}
+
+function getSyncEventScope(
+	tableName: string,
+	merchantId: string,
+	outletId: string,
+): { scopeId: string; scopeType: SyncEventScopeType } {
+	switch (tableName) {
+		case "registers":
+		case "outlet_products":
+		case "orders":
+		case "order_items":
+			return { scopeId: outletId, scopeType: "outlet" };
+		default:
+			return { scopeId: merchantId, scopeType: "merchant" };
+	}
 }
 
 export async function handlePull(

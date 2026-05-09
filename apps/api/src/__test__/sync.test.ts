@@ -82,6 +82,7 @@ describe("handlePush", () => {
 	});
 
 	test("returns empty serverWins when inserting new rows", async () => {
+		const values = vi.fn().mockResolvedValue(undefined);
 		mockTransaction.mockImplementation(
 			async (fn: (tx: unknown) => Promise<void>) => {
 				const tx = {
@@ -93,7 +94,7 @@ describe("handlePush", () => {
 						}),
 					}),
 					insert: vi.fn().mockReturnValue({
-						values: vi.fn().mockResolvedValue(undefined),
+						values,
 					}),
 					update: vi.fn().mockReturnValue({
 						set: vi.fn().mockReturnValue({
@@ -120,6 +121,15 @@ describe("handlePush", () => {
 
 		expect(result.serverWins).toEqual([]);
 		expect(result.serverTime).toBeDefined();
+		expect(values).toHaveBeenCalledWith(
+			expect.objectContaining({
+				operation: "insert",
+				rowId: "cat-1",
+				scopeId: "merchant-1",
+				scopeType: "merchant",
+				tableName: "categories",
+			}),
+		);
 	});
 
 	test("server wins when client updatedAt is older", async () => {
