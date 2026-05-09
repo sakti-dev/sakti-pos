@@ -49,3 +49,4 @@ docs/external/
 .opencode
 graphify-out
 .graphifyignore
+logs
