@@ -606,3 +606,66 @@ describe("handleEventPull", () => {
 		});
 	});
 });
+
+describe("smart sync simulation", () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	function mockSelectQueue(rowsByCall: unknown[][]) {
+		let callIndex = 0;
+		mockSelect.mockImplementation(() => ({
+			from: vi.fn().mockReturnValue({
+				where: vi.fn().mockImplementation(async () => {
+					const rows = rowsByCall[callIndex] ?? [];
+					callIndex += 1;
+					return rows;
+				}),
+			}),
+		}));
+	}
+
+	test("detects and pulls a product change made by another device", async () => {
+		const simulatedProductEvent = {
+			id: 1,
+			rowId: "prod-1",
+			tableName: "products",
+		};
+		const changedProduct = {
+			id: "prod-1",
+			merchantId: "merchant-1",
+			name: "Kopi Susu",
+			updatedAt: "2026-05-09T12:00:00.000Z",
+		};
+
+		mockSelectQueue([
+			[simulatedProductEvent],
+			[simulatedProductEvent],
+			[changedProduct],
+		]);
+
+		const status = await handleSyncStatus({
+			lastServerEventId: 0,
+			merchantId: "merchant-1",
+			outletId: "outlet-1",
+		});
+
+		expect(status).toEqual({
+			changedTables: ["products"],
+			hasChanges: true,
+			latestEventId: 1,
+			needsFullResync: false,
+			oldestAvailableEventId: 1,
+		});
+
+		const pull = await handleEventPull({
+			afterEventId: 0,
+			merchantId: "merchant-1",
+			outletId: "outlet-1",
+		});
+
+		expect(pull.needsFullResync).toBe(false);
+		expect(pull.latestEventId).toBe(1);
+		expect(pull.products).toEqual([changedProduct]);
+	});
+});
