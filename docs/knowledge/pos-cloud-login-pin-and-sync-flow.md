@@ -55,7 +55,7 @@ sakti-pos:current-register-id, if known
 ```
 
 8. App calls `POST /api/merchants/:merchantId/staff/me`.
-9. App runs native `sync_now` for the selected outlet.
+9. App runs `syncNow()`, which now performs smart sync preflight and chooses skip, push-only, pull-only, or full sync.
 10. App logs in locally with the synced staff id using `loginWithCloudStaff(staffId)`.
 11. Route by role:
 
@@ -200,7 +200,7 @@ bun run tauri android dev
 
 - `apps/pos-app/src/pages/cloud-login.tsx`: cloud login and outlet selection flow.
 - `apps/pos-app/src/store/auth.ts`: local auth and `loginWithCloudStaff`.
-- `apps/pos-app/src/store/sync.ts`: JS wrapper for native `sync_now`.
+- `apps/pos-app/src/store/sync.ts`: smart sync decision flow and JS wrapper for native sync commands.
 - `apps/pos-app/src-tauri/src/sync.rs`: native pull/push/GC sync implementation.
 - `apps/api/src/routes/staff.ts`: `/api/merchants/:merchantId/staff/me`.
 - `apps/api/src/lib/sync.ts`: API pull/push handlers.
