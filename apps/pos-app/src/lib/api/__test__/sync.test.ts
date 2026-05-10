@@ -2,12 +2,11 @@ import { SyncStatusRequest, SyncStatusResponse } from "@repo/protobuf/sync";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { getSyncStatus } from "../sync";
 
-const mockGetToken = vi.fn();
 const originalFetch = globalThis.fetch;
 
 vi.mock("~/lib/auth/storage", () => ({
   AuthStorage: {
-    getToken: mockGetToken,
+    getToken: vi.fn(),
   },
 }));
 
@@ -18,7 +17,10 @@ describe("getSyncStatus", () => {
   });
 
   test("posts protobuf status request and decodes protobuf response", async () => {
-    mockGetToken.mockResolvedValue("test-token");
+    const { AuthStorage } = await import("~/lib/auth/storage");
+    (AuthStorage.getToken as ReturnType<typeof vi.fn>).mockResolvedValue(
+      "test-token"
+    );
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const request = input as unknown as Request;
       expect(request.method).toBe("POST");
@@ -67,7 +69,8 @@ describe("getSyncStatus", () => {
   });
 
   test("maps absent oldest event to null", async () => {
-    mockGetToken.mockResolvedValue(null);
+    const { AuthStorage } = await import("~/lib/auth/storage");
+    (AuthStorage.getToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
       const request = input as unknown as Request;
       expect(request.headers.get("authorization")).toBeNull();
