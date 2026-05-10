@@ -4,24 +4,24 @@ import { currentUserRole, isAuthenticated } from "./store/auth";
 import { isDevicePaired } from "./store/outlet";
 import "./index.css";
 import Layout from "./components/layout";
-import CloudLogin from "./pages/cloud-login";
-import Dashboard from "./pages/dashboard";
-import DevicePair from "./pages/device-pair";
-import Login from "./pages/login";
+import Dashboard from "./pages/dashboard/dashboard";
+import POS from "./pages/pos/pos-shell";
 import CategoryForm from "./pages/menu/category-form";
 import CategoryList from "./pages/menu/category-list";
 import MenuHome from "./pages/menu/menu-home";
 import ProductForm from "./pages/menu/product-form";
 import ProductList from "./pages/menu/product-list";
-import MenuManagement from "./pages/menu-management";
 import Onboarding from "./pages/onboarding";
 import OrderHistory from "./pages/order-history";
-import POS from "./pages/pos";
-import Settings from "./pages/settings";
+import Settings from "./pages/settings/settings";
 import ResetPin from "./pages/users/reset-pin";
 import UserForm from "./pages/users/user-form";
 import UserList from "./pages/users/user-list";
 import UserManagement from "./pages/users/user-management";
+import CloudLogin from "./pages/login/cloud-login";
+import CloudRegister from "./pages/login/cloud-register";
+import LocalAuth from "./pages/login/local-auth";
+import DevicePair from "./pages/login/device-pair";
 
 function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
 	const navigate = useNavigate();
@@ -55,6 +55,7 @@ function App() {
 	return (
 		<Router root={Layout}>
 			<Route component={CloudLogin} path="/cloud-login" />
+			<Route component={CloudRegister} path="/cloud-register" />
 			<Route component={DevicePair} path="/device-pair" />
 			<Route component={Onboarding} path="/onboarding" />
 			<Route
@@ -65,7 +66,7 @@ function App() {
 				)}
 				path="/"
 			/>
-			<Route component={Login} path="/login" />
+			<Route component={LocalAuth} path="/login" />
 			<Route
 				component={() => (
 					<RequireAuth>
@@ -77,7 +78,7 @@ function App() {
 			<Route
 				component={(props) => (
 					<RequireAuth roles={["manager", "owner"]}>
-						<MenuManagement {...props} />
+						{props.children}
 					</RequireAuth>
 				)}
 				path="/menu"

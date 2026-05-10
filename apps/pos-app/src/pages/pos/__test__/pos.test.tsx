@@ -236,7 +236,7 @@ vi.mock("solid-sonner", () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-import POS from "../pos";
+import POS from "../pos-shell";
 
 const user = userEvent.setup();
 

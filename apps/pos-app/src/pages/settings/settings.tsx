@@ -1,11 +1,9 @@
-import { useNavigate } from "@solidjs/router";
-import { invoke } from "@tauri-apps/api/core";
 import {
 	TbOutlineChevronRight,
 	TbOutlineCloud,
 	TbOutlineCloudOff,
 } from "solid-icons/tb";
-import { createResource, createSignal, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
@@ -18,82 +16,26 @@ import {
 	DrawerPortal,
 	DrawerTitle,
 } from "~/components/ui/drawer";
-import { logout as cloudLogout, getSession } from "~/lib/cloud-auth";
 import { cn } from "~/lib/utils";
-import { changeCurrentUserPin, currentUser, logout } from "~/store/auth";
-import { clearOutletContext, currentOutletId } from "~/store/outlet";
-import { type SyncNowResult, syncNow, syncStatus } from "~/store/sync";
-import { setTheme, theme } from "~/store/theme";
-
-interface DbInfo {
-	db_path: string;
-	size_formatted: string;
-}
-
-export function formatSyncSuccessMessage(result: SyncNowResult): string {
-	if (result.mode === "skipped") {
-		return "Data sudah terbaru";
-	}
-
-	if (result.mode === "pull_only") {
-		return `Sinkronisasi berhasil (${result.pull.rows_received} diterima)`;
-	}
-
-	const sentTables = result.push.tables_synced.length;
-	if (result.mode === "push_only") {
-		return `Sinkronisasi berhasil (${sentTables} tabel dikirim)`;
-	}
-
-	return `Sinkronisasi berhasil (${result.pull.rows_received} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
-}
+import { changeCurrentUserPin } from "~/store/auth";
+import { useSettings } from "./use-settings";
+export { formatSyncSuccessMessage } from "./use-settings";
 
 export default function Settings() {
-	const navigate = useNavigate();
-	const user = currentUser();
-	const [showLogoutConfirm, setShowLogoutConfirm] = createSignal(false);
-	const [showPinDrawer, setShowPinDrawer] = createSignal(false);
-	const [showDisconnectConfirm, setShowDisconnectConfirm] = createSignal(false);
-	const [dbInfo] = createResource(() => invoke<DbInfo>("get_db_info"));
-	const [cloudSession, { refetch: refetchCloudSession }] = createResource(() =>
-		getSession().catch(() => null),
-	);
-
-	const handleLogout = () => {
-		logout();
-		navigate("/login", { replace: true });
-	};
-
-	const handleDisconnect = async () => {
-		try {
-			await cloudLogout();
-		} catch {
-			// Session may already be expired
-		}
-		clearOutletContext();
-		toast.success("Akun cloud terputus");
-		setShowDisconnectConfirm(false);
-		refetchCloudSession();
-	};
-
-	const handleSyncNow = async () => {
-		try {
-			const result = await syncNow();
-			toast.success(formatSyncSuccessMessage(result));
-		} catch {
-			toast.error("Gagal menyinkronkan — periksa koneksi internet");
-		}
-	};
+	const settings = useSettings();
 
 	return (
 		<AppShell title="Pengaturan">
 			<div class="space-y-4 p-4">
 				<div class="flex items-center gap-3 rounded-xl border bg-card p-4">
 					<div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-lg text-primary-foreground">
-						{user?.name.charAt(0).toUpperCase() ?? "?"}
+						{settings.activeUserLabel()}
 					</div>
 					<div class="min-w-0 flex-1">
-						<p class="truncate font-semibold text-lg">{user?.name}</p>
-						<p class="text-muted-foreground text-sm capitalize">{user?.role}</p>
+						<p class="truncate font-semibold text-lg">{settings.user?.name}</p>
+						<p class="text-muted-foreground text-sm capitalize">
+							{settings.user?.role}
+						</p>
 					</div>
 				</div>
 
@@ -102,7 +44,7 @@ export default function Settings() {
 					<div class="rounded-xl border bg-card">
 						<button
 							class="flex w-full items-center justify-between p-4 active:bg-accent"
-							onClick={() => setShowPinDrawer(true)}
+							onClick={() => settings.setShowPinDrawer(true)}
 							type="button"
 						>
 							<span>Ubah PIN</span>
@@ -111,7 +53,7 @@ export default function Settings() {
 					</div>
 				</section>
 
-				<Show when={cloudSession()?.user}>
+				<Show when={settings.cloudSession()?.user}>
 					<section class="space-y-2">
 						<h2 class="font-medium text-muted-foreground text-sm">Cloud</h2>
 						<div class="rounded-xl border bg-card">
@@ -119,26 +61,26 @@ export default function Settings() {
 								<TbOutlineCloud class="size-5 text-primary shrink-0" />
 								<div class="min-w-0 flex-1">
 									<p class="truncate text-sm font-medium">
-										{cloudSession()?.user?.email}
+										{settings.cloudSession()?.user?.email}
 									</p>
-									<Show when={currentOutletId()}>
+									<Show when={settings.currentOutletId()}>
 										<p class="text-muted-foreground text-xs">
 											Toko aktif terhubung
 										</p>
 									</Show>
 								</div>
 							</div>
-							<Show when={currentOutletId()}>
+							<Show when={settings.currentOutletId()}>
 								<div class="flex items-center justify-between border-b p-4">
 									<span class="text-sm">Sinkronisasi</span>
 									<Button
 										class="h-8 text-xs"
-										disabled={syncStatus() === "syncing"}
-										onClick={handleSyncNow}
+										disabled={settings.syncStatus() === "syncing"}
+										onClick={settings.handleSyncNow}
 										size="sm"
 										variant="outline"
 									>
-										{syncStatus() === "syncing"
+										{settings.syncStatus() === "syncing"
 											? "Menyinkronkan..."
 											: "Sinkron Sekarang"}
 									</Button>
@@ -146,7 +88,7 @@ export default function Settings() {
 							</Show>
 							<button
 								class="flex w-full items-center justify-between p-4 active:bg-accent"
-								onClick={() => setShowDisconnectConfirm(true)}
+								onClick={() => settings.setShowDisconnectConfirm(true)}
 								type="button"
 							>
 								<span class="text-sm text-destructive">Lepaskan Perangkat</span>
@@ -156,13 +98,13 @@ export default function Settings() {
 					</section>
 				</Show>
 
-				<Show when={!cloudSession()?.user}>
+				<Show when={!settings.cloudSession()?.user}>
 					<section class="space-y-2">
 						<h2 class="font-medium text-muted-foreground text-sm">Cloud</h2>
 						<div class="rounded-xl border bg-card">
 							<button
 								class="flex w-full items-center justify-between p-4 active:bg-accent"
-								onClick={() => navigate("/cloud-login")}
+								onClick={settings.handleConnectCloud}
 								type="button"
 							>
 								<span class="text-sm">Hubungkan akun cloud</span>
@@ -183,9 +125,10 @@ export default function Settings() {
 								<button
 									class={cn(
 										"px-3 py-1 text-sm",
-										theme() === "light" && "bg-primary text-primary-foreground",
+										settings.theme() === "light" &&
+											"bg-primary text-primary-foreground",
 									)}
-									onClick={() => setTheme("light")}
+									onClick={() => settings.setTheme("light")}
 									type="button"
 								>
 									Terang
@@ -193,10 +136,10 @@ export default function Settings() {
 								<button
 									class={cn(
 										"border-x px-3 py-1 text-sm",
-										theme() === "system" &&
+										settings.theme() === "system" &&
 											"bg-primary text-primary-foreground",
 									)}
-									onClick={() => setTheme("system")}
+									onClick={() => settings.setTheme("system")}
 									type="button"
 								>
 									Sistem
@@ -204,9 +147,10 @@ export default function Settings() {
 								<button
 									class={cn(
 										"px-3 py-1 text-sm",
-										theme() === "dark" && "bg-primary text-primary-foreground",
+										settings.theme() === "dark" &&
+											"bg-primary text-primary-foreground",
 									)}
-									onClick={() => setTheme("dark")}
+									onClick={() => settings.setTheme("dark")}
 									type="button"
 								>
 									Gelap
@@ -220,10 +164,15 @@ export default function Settings() {
 						<div class="flex items-center justify-between border-b p-4">
 							<span>Ukuran Data</span>
 							<span class="text-muted-foreground text-sm">
-								{dbInfo()?.size_formatted ?? "Memuat..."}
+								{settings.dbInfo()?.size_formatted ?? "Memuat..."}
 							</span>
 						</div>
-						<Show when={user?.role === "manager" || user?.role === "owner"}>
+						<Show
+							when={
+								settings.user?.role === "manager" ||
+								settings.user?.role === "owner"
+							}
+						>
 							<div class="flex items-center justify-between p-4">
 								<span>Akses</span>
 								<span class="text-muted-foreground text-sm">Owner</span>
@@ -234,7 +183,7 @@ export default function Settings() {
 
 				<Button
 					class="w-full"
-					onClick={() => setShowLogoutConfirm(true)}
+					onClick={() => settings.setShowLogoutConfirm(true)}
 					variant="outline"
 				>
 					Keluar
@@ -244,9 +193,9 @@ export default function Settings() {
 			<ConfirmDrawer
 				confirmLabel="Lepaskan"
 				message="Perangkat akan dilepas dari outlet ini. Anda perlu login ulang dengan akun cloud atau memasangkan ulang perangkat."
-				onClose={() => setShowDisconnectConfirm(false)}
-				onConfirm={handleDisconnect}
-				open={showDisconnectConfirm()}
+				onClose={() => settings.setShowDisconnectConfirm(false)}
+				onConfirm={settings.handleDisconnect}
+				open={settings.showDisconnectConfirm()}
 				title="Lepaskan Perangkat"
 				variant="destructive"
 			/>
@@ -254,15 +203,15 @@ export default function Settings() {
 			<ConfirmDrawer
 				confirmLabel="Keluar"
 				message="Anda akan keluar dari aplikasi."
-				onClose={() => setShowLogoutConfirm(false)}
-				onConfirm={handleLogout}
-				open={showLogoutConfirm()}
+				onClose={() => settings.setShowLogoutConfirm(false)}
+				onConfirm={settings.handleLogout}
+				open={settings.showLogoutConfirm()}
 				title="Keluar"
 				variant="destructive"
 			/>
 
-			<Show when={showPinDrawer()}>
-				<ChangePinDrawer onClose={() => setShowPinDrawer(false)} />
+			<Show when={settings.showPinDrawer()}>
+				<ChangePinDrawer onClose={() => settings.setShowPinDrawer(false)} />
 			</Show>
 		</AppShell>
 	);

@@ -73,7 +73,13 @@ export default function Layout(props: RouteSectionProps) {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const isPublicRoute = () =>
-		["/login", "/cloud-login", "/onboarding", "/device-pair"].includes(
+		[
+			"/login",
+			"/cloud-login",
+			"/cloud-register",
+			"/onboarding",
+			"/device-pair",
+		].includes(
 			location.pathname,
 		);
 
