@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-const mockGetToken = vi.hoisted(() => vi.fn());
+const mockGetToken = vi.fn();
+const originalFetch = globalThis.fetch;
 
 vi.mock("~/lib/auth/storage", () => ({
   AuthStorage: {
@@ -11,7 +12,7 @@ vi.mock("~/lib/auth/storage", () => ({
 describe("api client", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    vi.unstubAllGlobals();
+    globalThis.fetch = originalFetch;
   });
 
   test("adds the bearer token when available", async () => {
@@ -24,7 +25,7 @@ describe("api client", () => {
         })
       )
     );
-    vi.stubGlobal("fetch", fetchMock);
+    globalThis.fetch = fetchMock as typeof fetch;
 
     const { api } = await import("../http");
 
@@ -48,7 +49,7 @@ describe("api client", () => {
         })
       )
     );
-    vi.stubGlobal("fetch", fetchMock);
+    globalThis.fetch = fetchMock as typeof fetch;
 
     const { api } = await import("../http");
 

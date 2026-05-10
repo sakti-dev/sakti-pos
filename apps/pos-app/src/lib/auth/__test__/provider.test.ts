@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const PBKDF2_HASH_FOR_123456 =
   "000102030405060708090a0b0c0d0e0f:3e3d2422f00f2cc1d1bad045819bfb8360117d59c588035c4294f3403ac097a5";
 
-const mockSelect = vi.hoisted(() => vi.fn());
+const mockSelect = vi.fn();
 
 vi.mock("~/db", () => ({
   db: {

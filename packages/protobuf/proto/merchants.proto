@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package sakti.merchants.v1;
+
+import "auth.proto";
+import "common.proto";
+
+message MerchantListResponse {
+  repeated sakti.auth.v1.SessionMerchant merchants = 1;
+}
+
+message MerchantCreateRequest {
+  string name = 1;
+}
+
+message MerchantCreateResponse {
+  sakti.common.v1.Merchant merchant = 1;
+}

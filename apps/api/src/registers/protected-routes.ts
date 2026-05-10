@@ -1,15 +1,26 @@
 import { outlets, registers, userMerchants } from "@repo/database/api-schema";
+import { DeleteResponse } from "@repo/protobuf/common";
+import {
+  RegisterCreateRequest,
+  RegisterCreateResponse,
+  RegisterDeleteRequest,
+  RegisterListRequest,
+  RegisterListResponse,
+} from "@repo/protobuf/registers";
 import { and, eq } from "drizzle-orm";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { recordSyncEvent } from "../lib/sync-events";
+import { tsProtoPlugin } from "../lib/ts-proto-plugin";
+import { BadRequestError, requireNonEmptyString } from "../lib/validation";
+import { encodeRegister } from "../protobuf/domain";
 
 function generatePairingCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
-  for (let i = 0; i < 8; i++) {
+  for (let index = 0; index < 8; index += 1) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
@@ -47,11 +58,29 @@ async function verifyOutletOwnership(
   return !!membership;
 }
 
-export const protectedRegisterRoutes = new Elysia({ prefix: "/api" })
+export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
+  .use(tsProtoPlugin)
   .use(authenticated)
   .post(
-    "/outlets/:outletId/registers",
-    async ({ body, params: { outletId }, session }) => {
+    "/create",
+    async ({ body, session, set }) => {
+      const request = body as RegisterCreateRequest;
+      let outletId: string;
+      let name: string;
+      try {
+        outletId = requireNonEmptyString(request.outletId, "outletId");
+        name = requireNonEmptyString(request.name, "name", {
+          minLength: 1,
+          maxLength: 100,
+        });
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          set.status = error.status;
+          return { error: error.message };
+        }
+        throw error;
+      }
+
       throwIfFalse(
         await verifyOutletOwnership(session.userId, outletId),
         new ForbiddenRequestError()
@@ -67,7 +96,7 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api" })
         .insert(registers)
         .values({
           outletId,
-          name: body.name,
+          name,
           shortId: generateShortId(),
           pairingCode,
           pairingExpiresAt,
@@ -85,59 +114,83 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api" })
         tableName: "registers",
       });
 
-      return register;
+      return {
+        register: encodeRegister(register),
+      };
     },
     {
-      body: t.Object({
-        name: t.String({ minLength: 1, maxLength: 100 }),
-      }),
+      proto: {
+        req: RegisterCreateRequest,
+        res: RegisterCreateResponse,
+      },
     }
   )
-  .get(
-    "/outlets/:outletId/registers",
-    async ({ params: { outletId }, session }) => {
+  .post(
+    "/list",
+    async ({ body, session }) => {
+      const request = body as RegisterListRequest;
       throwIfFalse(
-        await verifyOutletOwnership(session.userId, outletId),
+        await verifyOutletOwnership(session.userId, request.outletId),
         new ForbiddenRequestError()
       );
 
-      return db
+      const results = await db
         .select()
         .from(registers)
-        .where(eq(registers.outletId, outletId));
+        .where(eq(registers.outletId, request.outletId));
+
+      return {
+        registers: results.map(encodeRegister),
+      };
+    },
+    {
+      proto: {
+        req: RegisterListRequest,
+        res: RegisterListResponse,
+      },
     }
   )
-  .delete("/registers/:id", async ({ params: { id }, session, set }) => {
-    const [register] = await db
-      .select()
-      .from(registers)
-      .where(eq(registers.id, id))
-      .limit(1);
+  .post(
+    "/delete",
+    async ({ body, session, set }) => {
+      const request = body as RegisterDeleteRequest;
+      const [register] = await db
+        .select()
+        .from(registers)
+        .where(eq(registers.id, request.id))
+        .limit(1);
 
-    if (!register) {
-      set.status = 404;
-      return { error: "Register not found" };
+      if (!register) {
+        set.status = 404;
+        return { error: "Register not found" };
+      }
+
+      throwIfFalse(
+        await verifyOutletOwnership(session.userId, register.outletId),
+        new ForbiddenRequestError()
+      );
+
+      const now = new Date().toISOString();
+      await db
+        .update(registers)
+        .set({ isActive: false, updatedAt: now })
+        .where(eq(registers.id, request.id));
+
+      await recordSyncEvent({
+        changedAt: now,
+        operation: "update",
+        rowId: request.id,
+        scopeId: register.outletId,
+        scopeType: "outlet",
+        tableName: "registers",
+      });
+
+      return { success: true };
+    },
+    {
+      proto: {
+        req: RegisterDeleteRequest,
+        res: DeleteResponse,
+      },
     }
-
-    throwIfFalse(
-      await verifyOutletOwnership(session.userId, register.outletId),
-      new ForbiddenRequestError()
-    );
-
-    const now = new Date().toISOString();
-    await db
-      .update(registers)
-      .set({ isActive: false, updatedAt: now })
-      .where(eq(registers.id, id));
-
-    await recordSyncEvent({
-      changedAt: now,
-      operation: "update",
-      rowId: id,
-      scopeId: register.outletId,
-      scopeType: "outlet",
-      tableName: "registers",
-    });
-
-    return { success: true };
-  });
+  );

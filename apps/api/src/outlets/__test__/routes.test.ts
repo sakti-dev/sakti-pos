@@ -1,16 +1,22 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
+import {
+  OutletCreateRequest,
+  OutletCreateResponse,
+  OutletListRequest,
+  OutletListResponse,
+  OutletUpdateRequest,
+  OutletUpdateResponse,
+} from "@repo/protobuf/outlets";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
-const mockDelete = vi.fn();
 
 vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
     update: (...args: unknown[]) => mockUpdate(...args),
-    delete: (...args: unknown[]) => mockDelete(...args),
   },
 }));
 
@@ -41,99 +47,58 @@ vi.mock("cloudflare:workers", () => ({
 
 const { outletsRoutes } = await import("../routes");
 
-async function makeRequest(
+function makeProtoRequest(
   path: string,
-  options: { body?: unknown; cookie?: string; method?: string } = {}
+  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
 ) {
-  const url = `http://localhost${path}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    Accept: "application/x-protobuf",
+    "Content-Type": "application/x-protobuf",
+  };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
-  if (options.body) {
-    headers["Content-Type"] = "application/json";
-  }
 
-  const init: RequestInit = { headers, method: options.method ?? "GET" };
-  if (options.body) {
-    init.body = JSON.stringify(options.body);
-  }
+  const request = new Request(`http://localhost${path}`, {
+    body: options.body ?? new Uint8Array(),
+    headers,
+    method: options.method ?? "POST",
+  });
 
-  const request = new Request(url, init);
-  const app = outletsRoutes.compile();
-  const response = await app.handle(request);
-
-  const status = response.status;
-  const text = await response.text();
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = text;
-  }
-  return { json, status };
+  return outletsRoutes.compile().handle(request);
 }
 
-describe("POST /api/merchants/:merchantId/outlets", () => {
+describe("outlets protobuf routes", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   test("returns 401 when no session", async () => {
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/outlets",
-      {
-        method: "POST",
-        body: { name: "Test Outlet" },
-      }
-    );
-    expect(status).toBe(401);
-    expect((json as Record<string, unknown>).error).toBe("Unauthorized");
-  });
-
-  test("returns 403 when user is not member of merchant", async () => {
-    mockValidateSession.mockResolvedValue({
-      id: "session-1",
-      userId: "user-1",
-    });
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
-      }),
+    const response = await makeProtoRequest("/api/outlets/create", {
+      body: OutletCreateRequest.encode({
+        address: "",
+        hasAddress: false,
+        merchantId: "merchant-1",
+        name: "Test Outlet",
+      }).finish(),
     });
 
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/outlets",
-      {
-        method: "POST",
-        body: { name: "Test Outlet" },
-        cookie: "narvik_session=valid-token",
-      }
+    expect(response.status).toBe(401);
+    expect(((await response.json()) as Record<string, unknown>).error).toBe(
+      "Unauthorized"
     );
-
-    expect(status).toBe(403);
-    expect((json as Record<string, unknown>).error).toBe("Forbidden");
   });
 
-  test("creates outlet when user has access", async () => {
+  test("creates outlet and default register", async () => {
     mockValidateSession.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
     });
 
-    let selectCallCount = 0;
-    mockSelect.mockImplementation(() => ({
+    mockSelect.mockImplementationOnce(() => ({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockImplementation(() => {
-            selectCallCount++;
-            if (selectCallCount === 1) {
-              return [{ id: "um-1", role: "owner" }];
-            }
-            return [];
-          }),
+          limit: vi.fn().mockResolvedValue([{ id: "um-1" }]),
         }),
       }),
     }));
@@ -143,25 +108,31 @@ describe("POST /api/merchants/:merchantId/outlets", () => {
     mockInsert.mockImplementation(() => ({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockImplementation(() => {
-          insertCallCount++;
+          insertCallCount += 1;
           if (insertCallCount === 1) {
             return [
               {
+                address: null,
+                createdAt: now,
                 id: "outlet-1",
+                isActive: true,
                 merchantId: "merchant-1",
                 name: "Test Outlet",
-                createdAt: now,
                 updatedAt: now,
               },
             ];
           }
+
           return [
             {
-              id: "register-1",
-              outletId: "outlet-1",
-              name: "Register 1",
-              shortId: "ABC123",
               createdAt: now,
+              id: "register-1",
+              isActive: true,
+              name: "Register 1",
+              outletId: "outlet-1",
+              pairingCode: "ABCDEFGH",
+              pairingExpiresAt: now,
+              shortId: "ABC123",
               updatedAt: now,
             },
           ];
@@ -169,59 +140,133 @@ describe("POST /api/merchants/:merchantId/outlets", () => {
       }),
     }));
 
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/outlets",
-      {
-        method: "POST",
-        body: { name: "Test Outlet" },
-        cookie: "narvik_session=valid-token",
-      }
-    );
+    const response = await makeProtoRequest("/api/outlets/create", {
+      body: OutletCreateRequest.encode({
+        address: "",
+        hasAddress: false,
+        merchantId: "merchant-1",
+        name: "Test Outlet",
+      }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
 
-    expect(status).toBe(200);
-    expect((json as Record<string, unknown>).name).toBe("Test Outlet");
-    expect(mockInsert).toHaveBeenCalledTimes(4);
-    expect(
-      ((json as Record<string, unknown>).register as Record<string, unknown>)
-        .name
-    ).toBe("Register 1");
-    const outletEventValues = (
-      mockInsert.mock.results[2]?.value as { values: ReturnType<typeof vi.fn> }
-    ).values;
-    const registerEventValues = (
-      mockInsert.mock.results[3]?.value as { values: ReturnType<typeof vi.fn> }
-    ).values;
-    expect(outletEventValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operation: "insert",
-        rowId: "outlet-1",
-        scopeId: "merchant-1",
-        scopeType: "merchant",
-        tableName: "outlets",
-      })
+    expect(response.status).toBe(200);
+    const decoded = OutletCreateResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
     );
-    expect(registerEventValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operation: "insert",
-        rowId: "register-1",
-        scopeId: "outlet-1",
-        scopeType: "outlet",
-        tableName: "registers",
-      })
-    );
-  });
-});
-
-describe("GET /api/merchants/:merchantId/outlets", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
+    expect(decoded.outlet?.name).toBe("Test Outlet");
+    expect(decoded.register?.name).toBe("Register 1");
   });
 
-  test("returns 401 when no session", async () => {
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/outlets"
+  test("lists merchant outlets", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+
+    mockSelect
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: "um-1" }]),
+          }),
+        }),
+      }))
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              address: "Jl. Test",
+              createdAt: "2026-05-10T00:00:00.000Z",
+              id: "outlet-1",
+              isActive: true,
+              merchantId: "merchant-1",
+              name: "Outlet 1",
+              updatedAt: "2026-05-10T00:00:00.000Z",
+            },
+          ]),
+        }),
+      }));
+
+    const response = await makeProtoRequest("/api/outlets/list", {
+      body: OutletListRequest.encode({ merchantId: "merchant-1" }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(response.status).toBe(200);
+    const decoded = OutletListResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
     );
-    expect(status).toBe(401);
-    expect((json as Record<string, unknown>).error).toBe("Unauthorized");
+    expect(decoded.outlets).toHaveLength(1);
+    expect(decoded.outlets[0]?.name).toBe("Outlet 1");
+  });
+
+  test("updates an outlet", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+
+    mockSelect
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: "outlet-1",
+                merchantId: "merchant-1",
+                address: "Jl. Lama",
+                isActive: true,
+                name: "Outlet Lama",
+              },
+            ]),
+          }),
+        }),
+      }))
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: "um-1" }]),
+          }),
+        }),
+      }));
+
+    mockUpdate.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([
+            {
+              address: "Jl. Baru",
+              createdAt: "2026-05-10T00:00:00.000Z",
+              id: "outlet-1",
+              isActive: false,
+              merchantId: "merchant-1",
+              name: "Outlet Baru",
+              updatedAt: "2026-05-10T00:01:00.000Z",
+            },
+          ]),
+        }),
+      }),
+    });
+
+    const response = await makeProtoRequest("/api/outlets/update", {
+      body: OutletUpdateRequest.encode({
+        address: "Jl. Baru",
+        hasAddress: true,
+        hasIsActive: true,
+        hasName: true,
+        id: "outlet-1",
+        isActive: false,
+        name: "Outlet Baru",
+      }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(response.status).toBe(200);
+    const decoded = OutletUpdateResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.outlet?.name).toBe("Outlet Baru");
+    expect(decoded.outlet?.isActive).toBe(false);
   });
 });

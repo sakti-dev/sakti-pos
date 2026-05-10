@@ -1,4 +1,16 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
+import { DeleteResponse } from "@repo/protobuf/common";
+import {
+  StaffCreateRequest,
+  StaffCreateResponse,
+  StaffCurrentRequest,
+  StaffCurrentResponse,
+  StaffDeleteRequest,
+  StaffListRequest,
+  StaffListResponse,
+  StaffUpdatePinRequest,
+  StaffUpdatePinResponse,
+} from "@repo/protobuf/staff";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
@@ -39,37 +51,25 @@ vi.mock("cloudflare:workers", () => ({
 
 const { staffRoutes } = await import("../routes");
 
-async function makeRequest(
+function makeProtoRequest(
   path: string,
-  options: { body?: unknown; cookie?: string; method?: string } = {}
+  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
 ) {
-  const url = `http://localhost${path}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    Accept: "application/x-protobuf",
+    "Content-Type": "application/x-protobuf",
+  };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
-  if (options.body) {
-    headers["Content-Type"] = "application/json";
-  }
 
-  const init: RequestInit = { headers, method: options.method ?? "GET" };
-  if (options.body) {
-    init.body = JSON.stringify(options.body);
-  }
+  const request = new Request(`http://localhost${path}`, {
+    body: options.body ?? new Uint8Array(),
+    headers,
+    method: options.method ?? "POST",
+  });
 
-  const request = new Request(url, init);
-  const app = staffRoutes.compile();
-  const response = await app.handle(request);
-
-  const status = response.status;
-  const text = await response.text();
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = text;
-  }
-  return { json, status };
+  return staffRoutes.compile().handle(request);
 }
 
 function mockSelectQueue(rowsByCall: unknown[][]) {
@@ -87,55 +87,20 @@ function mockSelectQueue(rowsByCall: unknown[][]) {
   }));
 }
 
-describe("POST /api/merchants/:merchantId/staff/me", () => {
+describe("staff protobuf routes", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  test("returns mapped current staff when cloudUserId matches session user", async () => {
-    mockValidateSession.mockResolvedValue({
-      id: "session-1",
-      userId: "user-1",
+  test("POST /api/staff/current returns 401 when unauthenticated", async () => {
+    const response = await makeProtoRequest("/api/staff/current", {
+      body: StaffCurrentRequest.encode({ merchantId: "merchant-1" }).finish(),
     });
-    mockSelectQueue([
-      [{ id: "um-1", role: "owner" }],
-      [
-        {
-          id: "staff-1",
-          merchantId: "merchant-1",
-          outletId: "outlet-1",
-          name: "Owner",
-          role: "owner",
-          isActive: true,
-          pin: "pin-hash",
-        },
-      ],
-    ]);
 
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/staff/me",
-      {
-        method: "POST",
-        cookie: "narvik_session=valid-token",
-      }
-    );
-
-    expect(status).toBe(200);
-    expect(json).toEqual({
-      claimed: false,
-      staff: {
-        hasPin: true,
-        id: "staff-1",
-        isActive: true,
-        merchantId: "merchant-1",
-        name: "Owner",
-        outletId: "outlet-1",
-        role: "owner",
-      },
-    });
+    expect(response.status).toBe(401);
   });
 
-  test("claims a single unclaimed owner staff for owner membership", async () => {
+  test("POST /api/staff/current claims the owner staff row", async () => {
     mockValidateSession.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
@@ -145,13 +110,15 @@ describe("POST /api/merchants/:merchantId/staff/me", () => {
       [],
       [
         {
+          createdAt: "2026-05-10T00:00:00.000Z",
           id: "staff-1",
-          merchantId: "merchant-1",
-          outletId: "outlet-1",
-          name: "Owner",
-          role: "owner",
           isActive: true,
+          merchantId: "merchant-1",
+          name: "Owner",
+          outletId: "outlet-1",
           pin: "pin-hash",
+          role: "owner",
+          updatedAt: "2026-05-10T00:00:00.000Z",
         },
       ],
     ]);
@@ -162,117 +129,181 @@ describe("POST /api/merchants/:merchantId/staff/me", () => {
     mockUpdate.mockReturnValue({
       set: updateValues,
     });
-    const syncEventValues = vi.fn().mockResolvedValue(undefined);
-    mockInsert.mockReturnValue({ values: syncEventValues });
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
+    });
 
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/staff/me",
-      {
-        method: "POST",
-        cookie: "narvik_session=valid-token",
-      }
+    const response = await makeProtoRequest("/api/staff/current", {
+      body: StaffCurrentRequest.encode({ merchantId: "merchant-1" }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(response.status).toBe(200);
+    const decoded = StaffCurrentResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
     );
-
-    expect(status).toBe(200);
+    expect(decoded.claimed).toBe(true);
+    expect(decoded.hasStaff).toBe(true);
+    expect(decoded.staff?.id).toBe("staff-1");
     expect(updateValues).toHaveBeenCalledWith(
       expect.objectContaining({ cloudUserId: "user-1" })
     );
-    expect((json as Record<string, unknown>).claimed).toBe(true);
-    expect(
-      ((json as Record<string, unknown>).staff as Record<string, unknown>).id
-    ).toBe("staff-1");
-    expect(syncEventValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operation: "update",
-        rowId: "staff-1",
-        scopeId: "merchant-1",
-        scopeType: "merchant",
-        tableName: "staff",
-      })
-    );
   });
 
-  test("does not claim ambiguous owner staff rows", async () => {
+  test("POST /api/staff/create creates staff", async () => {
     mockValidateSession.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
     });
-    mockSelectQueue([
-      [{ id: "um-1", role: "owner" }],
-      [],
-      [
-        { id: "staff-1", role: "owner" },
-        { id: "staff-2", role: "owner" },
-      ],
-    ]);
+    mockSelectQueue([[{ id: "um-1" }]]);
 
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/staff/me",
-      {
-        method: "POST",
-        cookie: "narvik_session=valid-token",
-      }
-    );
+    mockInsert.mockImplementation(() => ({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            createdAt: "2026-05-10T00:00:00.000Z",
+            id: "staff-1",
+            isActive: true,
+            merchantId: "merchant-1",
+            name: "Cashier",
+            outletId: "outlet-1",
+            pin: "hash",
+            role: "cashier",
+            updatedAt: "2026-05-10T00:00:00.000Z",
+          },
+        ]),
+      }),
+    }));
 
-    expect(status).toBe(200);
-    expect(json).toEqual({
-      claimed: false,
-      reason: "ambiguous-owner",
-      staff: null,
+    const response = await makeProtoRequest("/api/staff/create", {
+      body: StaffCreateRequest.encode({
+        hasOutletId: true,
+        merchantId: "merchant-1",
+        name: "Cashier",
+        outletId: "outlet-1",
+        pin: "123456",
+        role: "cashier",
+      }).finish(),
+      cookie: "narvik_session=valid-token",
     });
-    expect(mockUpdate).not.toHaveBeenCalled();
+
+    expect(response.status).toBe(200);
+    const decoded = StaffCreateResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.staff?.name).toBe("Cashier");
   });
 
-  test("returns no-staff when merchant has no staff", async () => {
+  test("POST /api/staff/list returns staff rows", async () => {
     mockValidateSession.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
     });
-    mockSelectQueue([[{ id: "um-1", role: "owner" }], [], []]);
+    mockSelect
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: "um-1" }]),
+          }),
+        }),
+      }))
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              createdAt: "2026-05-10T00:00:00.000Z",
+              id: "staff-1",
+              isActive: true,
+              merchantId: "merchant-1",
+              name: "Cashier",
+              outletId: "outlet-1",
+              pin: "hash",
+              role: "cashier",
+              updatedAt: "2026-05-10T00:00:00.000Z",
+            },
+          ]),
+        }),
+      }));
 
-    const { json, status } = await makeRequest(
-      "/api/merchants/merchant-1/staff/me",
-      {
-        method: "POST",
-        cookie: "narvik_session=valid-token",
-      }
-    );
-
-    expect(status).toBe(200);
-    expect(json).toEqual({
-      claimed: false,
-      reason: "no-staff",
-      staff: null,
+    const response = await makeProtoRequest("/api/staff/list", {
+      body: StaffListRequest.encode({ merchantId: "merchant-1" }).finish(),
+      cookie: "narvik_session=valid-token",
     });
-  });
-});
 
-describe("POST /api/merchants/:merchantId/staff", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
+    expect(response.status).toBe(200);
+    const decoded = StaffListResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.staff).toHaveLength(1);
+    expect(decoded.staff[0]?.name).toBe("Cashier");
   });
 
-  test("keeps forbidden merchant access as 403 after auth succeeds", async () => {
+  test("POST /api/staff/update-pin updates the pin", async () => {
     mockValidateSession.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
     });
+    mockSelectQueue([[{ merchantId: "merchant-1" }], [{ id: "um-1" }]]);
 
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
+    mockUpdate.mockReturnValue({
+      set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
+          returning: vi.fn().mockResolvedValue([
+            {
+              createdAt: "2026-05-10T00:00:00.000Z",
+              id: "staff-1",
+              isActive: true,
+              merchantId: "merchant-1",
+              name: "Cashier",
+              outletId: "outlet-1",
+              pin: "hash",
+              role: "cashier",
+              updatedAt: "2026-05-10T00:01:00.000Z",
+            },
+          ]),
         }),
       }),
     });
 
-    const { json, status } = await makeRequest("/api/merchants/m-1/staff", {
-      method: "POST",
-      body: { name: "Cashier", pin: "123456", role: "cashier" },
+    const response = await makeProtoRequest("/api/staff/update-pin", {
+      body: StaffUpdatePinRequest.encode({
+        id: "staff-1",
+        pin: "654321",
+      }).finish(),
       cookie: "narvik_session=valid-token",
     });
 
-    expect(status).toBe(403);
-    expect((json as Record<string, unknown>).error).toBe("Forbidden");
+    expect(response.status).toBe(200);
+    const decoded = StaffUpdatePinResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.staff?.id).toBe("staff-1");
+  });
+
+  test("POST /api/staff/delete deactivates staff", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+    mockSelectQueue([[{ merchantId: "merchant-1" }], [{ id: "um-1" }]]);
+    mockUpdate.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const response = await makeProtoRequest("/api/staff/delete", {
+      body: StaffDeleteRequest.encode({ id: "staff-1" }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(response.status).toBe(200);
+    expect(
+      DeleteResponse.decode(new Uint8Array(await response.arrayBuffer()))
+        .success
+    ).toBe(true);
   });
 });

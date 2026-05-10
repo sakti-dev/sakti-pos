@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package sakti.registers.v1;
+
+import "common.proto";
+
+message RegisterPairRequest {
+  string pairing_code = 1;
+}
+
+message RegisterPairResponse {
+  sakti.common.v1.Register register = 1;
+  sakti.common.v1.Outlet outlet = 2;
+  bool has_outlet = 3;
+}
+
+message RegisterCreateRequest {
+  string outlet_id = 1;
+  string name = 2;
+}
+
+message RegisterCreateResponse {
+  sakti.common.v1.Register register = 1;
+}
+
+message RegisterListRequest {
+  string outlet_id = 1;
+}
+
+message RegisterListResponse {
+  repeated sakti.common.v1.Register registers = 1;
+}
+
+message RegisterDeleteRequest {
+  string id = 1;
+}

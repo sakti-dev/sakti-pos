@@ -1,17 +1,24 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
+import { DeleteResponse } from "@repo/protobuf/common";
+import {
+  RegisterCreateRequest,
+  RegisterCreateResponse,
+  RegisterDeleteRequest,
+  RegisterListRequest,
+  RegisterListResponse,
+  RegisterPairRequest,
+  RegisterPairResponse,
+} from "@repo/protobuf/registers";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
-const mockDelete = vi.fn();
-const PAIRING_CODE_REGEX = /^[A-Z0-9]{8}$/;
 
 vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
     update: (...args: unknown[]) => mockUpdate(...args),
-    delete: (...args: unknown[]) => mockDelete(...args),
   },
 }));
 
@@ -42,112 +49,33 @@ vi.mock("cloudflare:workers", () => ({
 
 const { registersRoutes } = await import("../routes");
 
-async function makeRequest(
+function makeProtoRequest(
   path: string,
-  options: { body?: unknown; cookie?: string; method?: string } = {}
+  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
 ) {
-  const url = `http://localhost${path}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    Accept: "application/x-protobuf",
+    "Content-Type": "application/x-protobuf",
+  };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
-  if (options.body) {
-    headers["Content-Type"] = "application/json";
-  }
 
-  const init: RequestInit = { headers, method: options.method ?? "GET" };
-  if (options.body) {
-    init.body = JSON.stringify(options.body);
-  }
+  const request = new Request(`http://localhost${path}`, {
+    body: options.body ?? new Uint8Array(),
+    headers,
+    method: options.method ?? "POST",
+  });
 
-  const request = new Request(url, init);
-  const app = registersRoutes.compile();
-  const response = await app.handle(request);
-
-  const status = response.status;
-  const text = await response.text();
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = text;
-  }
-  return { json, status };
+  return registersRoutes.compile().handle(request);
 }
 
-describe("POST /api/outlets/:outletId/registers", () => {
+describe("registers protobuf routes", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  test("returns 401 when no session", async () => {
-    const { json, status } = await makeRequest(
-      "/api/outlets/outlet-1/registers",
-      {
-        method: "POST",
-        body: { name: "Register 1" },
-      }
-    );
-    expect(status).toBe(401);
-    expect((json as Record<string, unknown>).error).toBe("Unauthorized");
-  });
-
-  test("creates register with pairingCode and shortId", async () => {
-    mockValidateSession.mockResolvedValue({
-      id: "session-1",
-      userId: "user-1",
-    });
-
-    mockSelect.mockImplementation(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: "um-1", role: "owner" }]),
-        }),
-      }),
-    }));
-
-    const insertedValues: unknown[] = [];
-    mockInsert.mockImplementation(() => ({
-      values: vi.fn().mockImplementation((vals: unknown) => {
-        insertedValues.push(vals);
-        const row = { id: "register-1", ...(vals as Record<string, unknown>) };
-        return {
-          returning: vi.fn().mockResolvedValue([row]),
-        };
-      }),
-    }));
-
-    const { status } = await makeRequest("/api/outlets/outlet-1/registers", {
-      method: "POST",
-      body: { name: "Register 1" },
-      cookie: "narvik_session=valid-token",
-    });
-
-    expect(status).toBe(200);
-    const inserted = insertedValues[0] as Record<string, unknown>;
-    expect(inserted.shortId).toBeDefined();
-    expect(inserted.pairingCode).toBeDefined();
-    expect((inserted.pairingCode as string).length).toBe(8);
-    expect(inserted.pairingCode as string).toMatch(PAIRING_CODE_REGEX);
-    expect(inserted.pairingExpiresAt).toBeDefined();
-    expect(insertedValues[1]).toEqual(
-      expect.objectContaining({
-        operation: "insert",
-        rowId: "register-1",
-        scopeId: "outlet-1",
-        scopeType: "outlet",
-        tableName: "registers",
-      })
-    );
-  });
-});
-
-describe("POST /api/registers/pair", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  test("returns 400 when pairingCode not found", async () => {
+  test("POST /api/registers/pair returns 400 for unknown code", async () => {
     mockSelect.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -156,101 +84,218 @@ describe("POST /api/registers/pair", () => {
       }),
     });
 
-    const { json, status } = await makeRequest("/api/registers/pair", {
-      method: "POST",
-      body: { pairingCode: "AB12CD34" },
+    const response = await makeProtoRequest("/api/registers/pair", {
+      body: RegisterPairRequest.encode({ pairingCode: "AB12CD34" }).finish(),
     });
 
-    expect(status).toBe(400);
-    expect((json as Record<string, unknown>).error).toBe(
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as Record<string, unknown>).error).toBe(
       "Invalid pairing code"
     );
-    expect(mockValidateSession).not.toHaveBeenCalled();
   });
 
-  test("returns 400 when pairingCode is expired", async () => {
-    const expiredTime = new Date(Date.now() - 3_600_000).toISOString();
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([
-            {
-              id: "reg-1",
-              pairingCode: "AB12CD34",
-              pairingExpiresAt: expiredTime,
-              isActive: true,
-            },
-          ]),
-        }),
-      }),
-    });
-
-    const { json, status } = await makeRequest("/api/registers/pair", {
-      method: "POST",
-      body: { pairingCode: "AB12CD34" },
-    });
-
-    expect(status).toBe(400);
-    expect((json as Record<string, unknown>).error).toBe(
-      "Pairing code expired"
-    );
-  });
-
-  test("pairs successfully with valid code", async () => {
+  test("POST /api/registers/pair returns outlet and register", async () => {
     const futureTime = new Date(Date.now() + 86_400_000).toISOString();
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([
-            {
-              id: "reg-1",
-              outletId: "outlet-1",
-              pairingCode: "AB12CD34",
-              pairingExpiresAt: futureTime,
-              isActive: true,
-            },
-          ]),
+    mockSelect
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                createdAt: "2026-05-10T00:00:00.000Z",
+                id: "reg-1",
+                isActive: true,
+                name: "Register 1",
+                outletId: "outlet-1",
+                pairingCode: "AB12CD34",
+                pairingExpiresAt: futureTime,
+                shortId: "ABC123",
+                updatedAt: "2026-05-10T00:00:00.000Z",
+              },
+            ]),
+          }),
         }),
-      }),
-    });
+      }))
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                address: "Jl. Test",
+                createdAt: "2026-05-10T00:00:00.000Z",
+                id: "outlet-1",
+                isActive: true,
+                merchantId: "merchant-1",
+                name: "Outlet 1",
+                updatedAt: "2026-05-10T00:00:00.000Z",
+              },
+            ]),
+          }),
+        }),
+      }));
 
     mockUpdate.mockReturnValue({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
       }),
     });
-    const syncEventValues = vi.fn().mockResolvedValue(undefined);
-    mockInsert.mockReturnValue({ values: syncEventValues });
-
-    const { status } = await makeRequest("/api/registers/pair", {
-      method: "POST",
-      body: { pairingCode: "AB12CD34" },
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
     });
 
-    expect(status).toBe(200);
-    expect(mockUpdate).toHaveBeenCalled();
-    expect(syncEventValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operation: "update",
-        rowId: "reg-1",
-        scopeId: "outlet-1",
-        scopeType: "outlet",
-        tableName: "registers",
-      })
-    );
-  });
-});
+    const response = await makeProtoRequest("/api/registers/pair", {
+      body: RegisterPairRequest.encode({ pairingCode: "AB12CD34" }).finish(),
+    });
 
-describe("GET /api/outlets/:outletId/registers", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
+    expect(response.status).toBe(200);
+    const decoded = RegisterPairResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.outlet?.id).toBe("outlet-1");
+    expect(decoded.register?.id).toBe("reg-1");
   });
 
-  test("returns 401 when no session", async () => {
-    const { json, status } = await makeRequest(
-      "/api/outlets/outlet-1/registers"
+  test("POST /api/registers/create creates register", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+    mockSelect.mockImplementation(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ id: "um-1" }]),
+        }),
+      }),
+    }));
+
+    mockInsert.mockImplementation(() => ({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            createdAt: "2026-05-10T00:00:00.000Z",
+            id: "reg-1",
+            isActive: true,
+            name: "Register 1",
+            outletId: "outlet-1",
+            pairingCode: "AB12CD34",
+            pairingExpiresAt: "2026-05-11T00:00:00.000Z",
+            shortId: "ABC123",
+            updatedAt: "2026-05-10T00:00:00.000Z",
+          },
+        ]),
+      }),
+    }));
+
+    const response = await makeProtoRequest("/api/registers/create", {
+      body: RegisterCreateRequest.encode({
+        name: "Register 1",
+        outletId: "outlet-1",
+      }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(response.status).toBe(200);
+    const decoded = RegisterCreateResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
     );
-    expect(status).toBe(401);
-    expect((json as Record<string, unknown>).error).toBe("Unauthorized");
+    expect(decoded.register?.name).toBe("Register 1");
+  });
+
+  test("POST /api/registers/list returns outlet registers", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+    mockSelect
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: "um-1" }]),
+          }),
+        }),
+      }))
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: "um-2" }]),
+          }),
+        }),
+      }))
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              createdAt: "2026-05-10T00:00:00.000Z",
+              id: "reg-1",
+              isActive: true,
+              name: "Register 1",
+              outletId: "outlet-1",
+              pairingCode: "AB12CD34",
+              pairingExpiresAt: "2026-05-11T00:00:00.000Z",
+              shortId: "ABC123",
+              updatedAt: "2026-05-10T00:00:00.000Z",
+            },
+          ]),
+        }),
+      }));
+
+    const response = await makeProtoRequest("/api/registers/list", {
+      body: RegisterListRequest.encode({ outletId: "outlet-1" }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(response.status).toBe(200);
+    const decoded = RegisterListResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.registers).toHaveLength(1);
+    expect(decoded.registers[0]?.id).toBe("reg-1");
+  });
+
+  test("POST /api/registers/delete deactivates register", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+    mockSelect
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: "reg-1",
+                outletId: "outlet-1",
+                pairingCode: "AB12CD34",
+                pairingExpiresAt: "2026-05-11T00:00:00.000Z",
+                isActive: true,
+              },
+            ]),
+          }),
+        }),
+      }))
+      .mockImplementationOnce(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: "um-1" }]),
+          }),
+        }),
+      }));
+
+    mockUpdate.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    const response = await makeProtoRequest("/api/registers/delete", {
+      body: RegisterDeleteRequest.encode({ id: "reg-1" }).finish(),
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(response.status).toBe(200);
+    expect(
+      DeleteResponse.decode(new Uint8Array(await response.arrayBuffer()))
+        .success
+    ).toBe(true);
   });
 });

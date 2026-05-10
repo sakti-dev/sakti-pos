@@ -1,5 +1,11 @@
+import { AuthLoginRequest, AuthRegisterRequest } from "@repo/protobuf/auth";
 import { HTTPError } from "ky";
-import { API_URL, api, getApiErrorMessage } from "~/lib/http";
+import { authApi } from "~/lib/api/auth";
+import { merchantsApi } from "~/lib/api/merchants";
+import { outletsApi } from "~/lib/api/outlets";
+import { registersApi } from "~/lib/api/registers";
+import { staffApi } from "~/lib/api/staff";
+import { API_URL, getApiErrorMessage } from "~/lib/http";
 import { createLogger } from "~/lib/logger";
 import { AuthStorage } from "./storage";
 
@@ -106,14 +112,13 @@ export async function register(
 ): Promise<{ user: ApiUser }> {
   await logRequest("POST", "api/auth/register");
   const result = await withError(
-    api
-      .post("api/auth/register", {
-        json: { email, name, password },
-      })
-      .json<{ sessionToken: string; user: ApiUser }>(),
+    authApi.register(AuthRegisterRequest.create({ email, name, password })),
     "POST",
     "api/auth/register"
   );
+  if (!result.user) {
+    throw new Error("Register response returned no user");
+  }
   await AuthStorage.saveToken(result.sessionToken);
   return { user: result.user };
 }
@@ -124,30 +129,31 @@ export async function login(
 ): Promise<{ user: ApiUser }> {
   await logRequest("POST", "api/auth/login");
   const result = await withError(
-    api
-      .post("api/auth/login", {
-        json: { email, password },
-      })
-      .json<{ sessionToken: string; user: ApiUser }>(),
+    authApi.login(AuthLoginRequest.create({ email, password })),
     "POST",
     "api/auth/login"
   );
+  if (!result.user) {
+    throw new Error("Login response returned no user");
+  }
   await AuthStorage.saveToken(result.sessionToken);
   return { user: result.user };
 }
 
-export function getSession(): Promise<{
+export async function getSession(): Promise<{
   merchants: SessionMerchant[];
   user: ApiUser | null;
 }> {
-  return api.get("api/auth/session").json<{
-    merchants: SessionMerchant[];
-    user: ApiUser | null;
-  }>();
+  const result = await authApi.session();
+  return {
+    merchants: result.merchants,
+    user: result.hasUser && result.user ? result.user : null,
+  };
 }
 
 export async function logout(): Promise<void> {
-  await api.post("api/auth/logout");
+  await authApi.logout();
+  await AuthStorage.clearToken();
 }
 
 export function getGoogleOAuthUrl(): string {
@@ -155,15 +161,31 @@ export function getGoogleOAuthUrl(): string {
 }
 
 export function getMerchants(): Promise<SessionMerchant[]> {
-  return api.get("api/merchants").json<SessionMerchant[]>();
+  return merchantsApi.list().then((result) => result.merchants);
 }
 
-export function createMerchant(name: string): Promise<Merchant> {
-  return api.post("api/merchants", { json: { name } }).json<Merchant>();
+export async function createMerchant(name: string): Promise<Merchant> {
+  const result = await merchantsApi.create({ name });
+  if (!result.merchant) {
+    throw new Error("Merchant creation returned no merchant");
+  }
+  return result.merchant;
 }
 
 export function getOutlets(merchantId: string): Promise<Outlet[]> {
-  return api.get(`api/merchants/${merchantId}/outlets`).json<Outlet[]>();
+  return withError(
+    outletsApi.list({ merchantId }),
+    "POST",
+    "api/outlets/list"
+  ).then((result) =>
+    result.outlets.map((outlet) => ({
+      address: outlet.hasAddress ? outlet.address : null,
+      id: outlet.id,
+      isActive: outlet.isActive,
+      merchantId: outlet.merchantId,
+      name: outlet.name,
+    }))
+  );
 }
 
 export function createOutlet(
@@ -171,11 +193,41 @@ export function createOutlet(
   name: string,
   address?: string
 ): Promise<Outlet & { register?: Register }> {
-  return api
-    .post(`api/merchants/${merchantId}/outlets`, {
-      json: { address, name },
-    })
-    .json<Outlet & { register?: Register }>();
+  return withError(
+    outletsApi.create({
+      address: address ?? "",
+      hasAddress: address !== undefined,
+      merchantId,
+      name,
+    }),
+    "POST",
+    "api/outlets/create"
+  ).then((result) => {
+    if (!result.outlet) {
+      throw new Error("Outlet creation returned no outlet");
+    }
+
+    return {
+      address: result.outlet.hasAddress ? result.outlet.address : null,
+      id: result.outlet.id,
+      isActive: result.outlet.isActive,
+      merchantId: result.outlet.merchantId,
+      name: result.outlet.name,
+      register:
+        result.hasRegister && result.register
+          ? {
+              id: result.register.id,
+              isActive: result.register.isActive,
+              name: result.register.name,
+              outletId: result.register.outletId,
+              pairingCode: result.register.hasPairingCode
+                ? result.register.pairingCode
+                : null,
+              shortId: result.register.shortId,
+            }
+          : undefined,
+    };
+  });
 }
 
 export function createStaff(params: {
@@ -185,31 +237,92 @@ export function createStaff(params: {
   pin: string;
   role?: "cashier" | "manager" | "owner";
 }): Promise<Record<string, unknown>> {
-  const body: Record<string, unknown> = {
-    name: params.name,
-    pin: params.pin,
-    role: params.role ?? "cashier",
-  };
-  if (params.outletId) {
-    body.outletId = params.outletId;
-  }
-  return api
-    .post(`api/merchants/${params.merchantId}/staff`, { json: body })
-    .json<Record<string, unknown>>();
+  return withError(
+    staffApi.create({
+      hasOutletId: params.outletId !== undefined,
+      merchantId: params.merchantId,
+      name: params.name,
+      outletId: params.outletId ?? "",
+      pin: params.pin,
+      role: params.role ?? "cashier",
+    }),
+    "POST",
+    "api/staff/create"
+  ).then((result) => ({
+    staff: result.staff
+      ? {
+          createdAt: result.staff.createdAt,
+          hasPin: result.staff.hasPin,
+          id: result.staff.id,
+          isActive: result.staff.isActive,
+          merchantId: result.staff.merchantId,
+          name: result.staff.name,
+          outletId: result.staff.hasOutletId ? result.staff.outletId : null,
+          role: result.staff.role,
+          updatedAt: result.staff.updatedAt,
+        }
+      : null,
+  }));
 }
 
 export function getCurrentCloudStaff(
   merchantId: string
 ): Promise<CurrentCloudStaff> {
-  return api
-    .post(`api/merchants/${merchantId}/staff/me`)
-    .json<CurrentCloudStaff>();
+  return withError(
+    staffApi.current({ merchantId }),
+    "POST",
+    "api/staff/current"
+  ).then((result) => ({
+    claimed: result.claimed,
+    reason:
+      result.reason === ""
+        ? undefined
+        : (result.reason as CurrentCloudStaff["reason"]),
+    staff:
+      result.hasStaff && result.staff
+        ? {
+            hasPin: result.staff.hasPin,
+            id: result.staff.id,
+            isActive: result.staff.isActive,
+            merchantId: result.staff.merchantId,
+            name: result.staff.name,
+            outletId: result.staff.hasOutletId ? result.staff.outletId : null,
+            role: result.staff.role as "cashier" | "manager" | "owner",
+          }
+        : null,
+  }));
 }
 
 export function pairRegister(pairingCode: string): Promise<PairResult> {
-  return api
-    .post("api/registers/pair", { json: { pairingCode } })
-    .json<PairResult>();
+  return withError(
+    registersApi.pair({ pairingCode }),
+    "POST",
+    "api/registers/pair"
+  ).then((result) => {
+    if (!(result.outlet && result.register)) {
+      throw new Error("Register pairing returned incomplete data");
+    }
+
+    return {
+      outlet: {
+        address: result.outlet.hasAddress ? result.outlet.address : null,
+        id: result.outlet.id,
+        isActive: result.outlet.isActive,
+        merchantId: result.outlet.merchantId,
+        name: result.outlet.name,
+      },
+      register: {
+        id: result.register.id,
+        isActive: result.register.isActive,
+        name: result.register.name,
+        outletId: result.register.outletId,
+        pairingCode: result.register.hasPairingCode
+          ? result.register.pairingCode
+          : null,
+        shortId: result.register.shortId,
+      },
+    };
+  });
 }
 
 export async function isCloudAuthenticated(): Promise<boolean> {

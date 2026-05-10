@@ -1,4 +1,12 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
+import {
+  AuthLoginRequest,
+  AuthRegisterRequest,
+  AuthResponse,
+  AuthSessionResponse,
+  LogoutResponse,
+} from "@repo/protobuf/auth";
+import { type ApiUser, Empty } from "@repo/protobuf/common";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
@@ -48,47 +56,29 @@ vi.mock("cloudflare:workers", () => ({
 
 const { authRoutes } = await import("../routes");
 
-async function makeRequest(
+function makeProtoRequest(
   path: string,
   options: {
-    body?: unknown;
+    body?: Uint8Array;
     cookie?: string;
     method?: string;
-    query?: Record<string, string>;
   } = {}
 ) {
-  let url = `http://localhost${path}`;
-  if (options.query) {
-    const params = new URLSearchParams(options.query);
-    url = `${url}?${params.toString()}`;
-  }
-
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-protobuf",
+    Accept: "application/x-protobuf",
+  };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
-  if (options.body) {
-    headers["Content-Type"] = "application/json";
-  }
 
-  const init: RequestInit = { headers, method: options.method ?? "GET" };
-  if (options.body) {
-    init.body = JSON.stringify(options.body);
-  }
-
-  const request = new Request(url, init);
+  const request = new Request(`http://localhost${path}`, {
+    body: options.body ?? Empty.encode({}).finish(),
+    headers,
+    method: options.method ?? "POST",
+  });
   const app = authRoutes.compile();
-  const response = await app.handle(request);
-
-  const status = response.status;
-  const text = await response.text();
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = text;
-  }
-  return { json, status };
+  return app.handle(request);
 }
 
 describe("POST /api/auth/register", () => {
@@ -124,16 +114,21 @@ describe("POST /api/auth/register", () => {
       }),
     });
 
-    const { status } = await makeRequest("/api/auth/register", {
-      method: "POST",
-      body: {
+    const response = await makeProtoRequest("/api/auth/register", {
+      body: AuthRegisterRequest.encode({
         email: "test@example.com",
-        password: "password123",
         name: "Test User",
-      },
+        password: "password123",
+      }).finish(),
+      method: "POST",
     });
 
-    expect(status).toBe(200);
+    expect(response.status).toBe(200);
+    const decoded = AuthResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.sessionToken).toBe("session-token-123");
+    expect((decoded.user as ApiUser).email).toBe("test@example.com");
     expect(insertedValues[0]).not.toHaveProperty("role");
     expect(insertedValues[0]).not.toHaveProperty("shopId");
   });
@@ -147,28 +142,35 @@ describe("POST /api/auth/register", () => {
       }),
     });
 
-    const { json, status } = await makeRequest("/api/auth/register", {
-      method: "POST",
-      body: {
+    const response = await makeProtoRequest("/api/auth/register", {
+      body: AuthRegisterRequest.encode({
         email: "test@example.com",
-        password: "password123",
         name: "Test User",
-      },
+        password: "password123",
+      }).finish(),
+      method: "POST",
     });
 
-    expect(status).toBe(409);
-    expect((json as Record<string, unknown>).error).toBe(
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as Record<string, unknown>).error).toBe(
       "Email already registered"
     );
   });
 
   test("validates password minimum length", async () => {
-    const { status } = await makeRequest("/api/auth/register", {
+    const response = await makeProtoRequest("/api/auth/register", {
+      body: AuthRegisterRequest.encode({
+        email: "test@example.com",
+        name: "Test User",
+        password: "short",
+      }).finish(),
       method: "POST",
-      body: { email: "test@example.com", password: "short", name: "Test User" },
     });
 
-    expect(status).toBe(422);
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as Record<string, unknown>).error).toBe(
+      "password is required"
+    );
   });
 });
 
@@ -186,27 +188,38 @@ describe("POST /api/auth/login", () => {
       }),
     });
 
-    const { json, status } = await makeRequest("/api/auth/login", {
+    const response = await makeProtoRequest("/api/auth/login", {
+      body: AuthLoginRequest.encode({
+        email: "nonexistent@example.com",
+        password: "password123",
+      }).finish(),
       method: "POST",
-      body: { email: "nonexistent@example.com", password: "password123" },
     });
 
-    expect(status).toBe(401);
-    expect((json as Record<string, unknown>).error).toBe(
+    expect(response.status).toBe(401);
+    expect(((await response.json()) as Record<string, unknown>).error).toBe(
       "Invalid email or password"
     );
   });
 });
 
-describe("GET /api/auth/session", () => {
+describe("POST /api/auth/session", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  test("returns null user when no session cookie", async () => {
-    const { json, status } = await makeRequest("/api/auth/session");
-    expect(status).toBe(200);
-    expect((json as Record<string, unknown>).user).toBeNull();
+  test("returns empty session when no session cookie", async () => {
+    const response = await makeProtoRequest("/api/auth/session", {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    const decoded = AuthSessionResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.hasUser).toBe(false);
+    expect(decoded.user).toBeUndefined();
+    expect(decoded.merchants).toEqual([]);
   });
 
   test("returns user with merchants when session is valid", async () => {
@@ -218,6 +231,15 @@ describe("GET /api/auth/session", () => {
     let selectCallCount = 0;
     mockSelect.mockImplementation(() => ({
       from: vi.fn().mockReturnValue({
+        innerJoin: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue([
+            {
+              merchantId: "merchant-1",
+              name: "Warung",
+              role: "owner",
+            },
+          ]),
+        }),
         where: vi.fn().mockReturnValue({
           limit: vi.fn().mockImplementation(() => {
             selectCallCount++;
@@ -236,14 +258,18 @@ describe("GET /api/auth/session", () => {
       }),
     }));
 
-    const { json, status } = await makeRequest("/api/auth/session", {
+    const response = await makeProtoRequest("/api/auth/session", {
       cookie: "narvik_session=valid-token",
+      method: "POST",
     });
 
-    expect(status).toBe(200);
-    const result = json as Record<string, unknown>;
-    expect(result.user).toBeDefined();
-    expect(result.merchants).toBeDefined();
+    expect(response.status).toBe(200);
+    const decoded = AuthSessionResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.hasUser).toBe(true);
+    expect((decoded.user as ApiUser).email).toBe("test@test.com");
+    expect(decoded.merchants).toBeDefined();
   });
 });
 
@@ -253,10 +279,14 @@ describe("POST /api/auth/logout", () => {
   });
 
   test("returns success even without session", async () => {
-    const { json, status } = await makeRequest("/api/auth/logout", {
+    const response = await makeProtoRequest("/api/auth/logout", {
       method: "POST",
     });
-    expect(status).toBe(200);
-    expect((json as Record<string, unknown>).success).toBe(true);
+
+    expect(response.status).toBe(200);
+    const decoded = LogoutResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.success).toBe(true);
   });
 });

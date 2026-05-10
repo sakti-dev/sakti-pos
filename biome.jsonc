@@ -9,6 +9,7 @@
       "apps/pos-app/tailwind.config.js",
       "apps/pos-app/postcss.config.js",
       "packages/database/src/**",
+      "!!packages/protobuf/src",
       "*.json",
       "*.jsonc",
       "!!**/tauri-drizzle-proxy",

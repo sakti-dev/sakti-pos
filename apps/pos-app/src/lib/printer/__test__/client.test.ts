@@ -9,7 +9,7 @@ import {
   testPrint,
 } from "../client";
 
-const mockLogger = vi.hoisted(() => {
+const mockLogger = (() => {
   const info = vi.fn();
   const error = vi.fn();
   const warn = vi.fn();
@@ -25,7 +25,21 @@ const mockLogger = vi.hoisted(() => {
     infoCalls: info,
     warnCalls: warn,
   };
-});
+})();
+
+const localStorageMock = {
+  clear: vi.fn(() => {
+    localStorageMock.store = {};
+  }),
+  getItem: vi.fn((key: string) => localStorageMock.store[key] ?? null),
+  removeItem: vi.fn((key: string) => {
+    delete localStorageMock.store[key];
+  }),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageMock.store[key] = value;
+  }),
+  store: {} as Record<string, string>,
+};
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -35,6 +49,8 @@ vi.mock("~/lib/logger", () => ({
   createLogger: vi.fn(() => mockLogger),
   logger: mockLogger,
 }));
+
+const mockedInvoke = invoke as unknown as ReturnType<typeof vi.fn>;
 
 const receipt: ReceiptData = {
   business: { name: "SAKTI KOPI" },
@@ -51,13 +67,15 @@ const receipt: ReceiptData = {
 describe("printer service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    localStorageMock.clear();
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
   });
 
   test("lists paired printers through Tauri command", async () => {
-    vi.mocked(invoke).mockResolvedValue([
-      { address: "00:11", name: "Printer58" },
-    ]);
+    mockedInvoke.mockResolvedValue([{ address: "00:11", name: "Printer58" }]);
 
     const printers = await listPairedPrinters();
 
@@ -67,7 +85,7 @@ describe("printer service", () => {
   });
 
   test("prints receipt through native command", async () => {
-    vi.mocked(invoke).mockResolvedValue(undefined);
+    mockedInvoke.mockResolvedValue(undefined);
 
     await printReceipt("00:11", receipt);
 
@@ -89,7 +107,7 @@ describe("printer service", () => {
   });
 
   test("testPrint invokes test command with address", async () => {
-    vi.mocked(invoke).mockResolvedValue(undefined);
+    mockedInvoke.mockResolvedValue(undefined);
 
     await testPrint("00:11");
 

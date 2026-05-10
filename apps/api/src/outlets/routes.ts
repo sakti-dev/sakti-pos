@@ -1,10 +1,21 @@
 import { outlets, registers, userMerchants } from "@repo/database/api-schema";
+import {
+  OutletCreateRequest,
+  OutletCreateResponse,
+  OutletListRequest,
+  OutletListResponse,
+  OutletUpdateRequest,
+  OutletUpdateResponse,
+} from "@repo/protobuf/outlets";
 import { and, eq } from "drizzle-orm";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { recordSyncEvent } from "../lib/sync-events";
+import { tsProtoPlugin } from "../lib/ts-proto-plugin";
+import { BadRequestError, requireNonEmptyString } from "../lib/validation";
+import { encodeOutlet, encodeRegister } from "../protobuf/domain";
 
 function generateShortId(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -27,11 +38,29 @@ async function verifyMerchantAccess(
   return !!row;
 }
 
-export const outletsRoutes = new Elysia({ prefix: "/api" })
+export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
+  .use(tsProtoPlugin)
   .use(authenticated)
   .post(
-    "/merchants/:merchantId/outlets",
-    async ({ body, params: { merchantId }, session }) => {
+    "/create",
+    async ({ body, session, set }) => {
+      const request = body as OutletCreateRequest;
+      let merchantId: string;
+      let name: string;
+      try {
+        merchantId = requireNonEmptyString(request.merchantId, "merchantId");
+        name = requireNonEmptyString(request.name, "name", {
+          minLength: 1,
+          maxLength: 100,
+        });
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          set.status = error.status;
+          return { error: error.message };
+        }
+        throw error;
+      }
+
       throwIfFalse(
         await verifyMerchantAccess(session.userId, merchantId),
         new ForbiddenRequestError()
@@ -42,8 +71,8 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
         .insert(outlets)
         .values({
           merchantId,
-          name: body.name,
-          address: body.address ?? null,
+          name,
+          address: request.hasAddress ? request.address : null,
           createdAt: now,
           updatedAt: now,
         })
@@ -77,37 +106,52 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
         tableName: "registers",
       });
 
-      return { ...outlet, register };
+      return {
+        hasRegister: true,
+        outlet: encodeOutlet(outlet),
+        register: encodeRegister(register),
+      };
     },
     {
-      body: t.Object({
-        name: t.String({ minLength: 1, maxLength: 100 }),
-        address: t.Optional(t.String()),
-      }),
+      proto: {
+        req: OutletCreateRequest,
+        res: OutletCreateResponse,
+      },
     }
   )
-  .get(
-    "/merchants/:merchantId/outlets",
-    async ({ params: { merchantId }, session }) => {
+  .post(
+    "/list",
+    async ({ body, session }) => {
+      const request = body as OutletListRequest;
       throwIfFalse(
-        await verifyMerchantAccess(session.userId, merchantId),
+        await verifyMerchantAccess(session.userId, request.merchantId),
         new ForbiddenRequestError()
       );
 
       const results = await db
         .select()
         .from(outlets)
-        .where(eq(outlets.merchantId, merchantId));
-      return results;
+        .where(eq(outlets.merchantId, request.merchantId));
+
+      return {
+        outlets: results.map(encodeOutlet),
+      };
+    },
+    {
+      proto: {
+        req: OutletListRequest,
+        res: OutletListResponse,
+      },
     }
   )
-  .patch(
-    "/outlets/:id",
-    async ({ body, params: { id }, session, set }) => {
+  .post(
+    "/update",
+    async ({ body, session, set }) => {
+      const request = body as OutletUpdateRequest;
       const [outlet] = await db
         .select()
         .from(outlets)
-        .where(eq(outlets.id, id))
+        .where(eq(outlets.id, request.id))
         .limit(1);
 
       if (!outlet) {
@@ -120,14 +164,20 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
         new ForbiddenRequestError()
       );
 
+      const now = new Date().toISOString();
       const [updated] = await db
         .update(outlets)
-        .set({ ...body, updatedAt: new Date().toISOString() })
-        .where(eq(outlets.id, id))
+        .set({
+          address: request.hasAddress ? request.address : outlet.address,
+          isActive: request.hasIsActive ? request.isActive : outlet.isActive,
+          name: request.hasName ? request.name : outlet.name,
+          updatedAt: now,
+        })
+        .where(eq(outlets.id, request.id))
         .returning();
 
       await recordSyncEvent({
-        changedAt: updated.updatedAt,
+        changedAt: now,
         operation: "update",
         rowId: updated.id,
         scopeId: updated.merchantId,
@@ -135,13 +185,14 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
         tableName: "outlets",
       });
 
-      return updated;
+      return {
+        outlet: encodeOutlet(updated),
+      };
     },
     {
-      body: t.Object({
-        name: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
-        address: t.Optional(t.String()),
-        isActive: t.Optional(t.Boolean()),
-      }),
+      proto: {
+        req: OutletUpdateRequest,
+        res: OutletUpdateResponse,
+      },
     }
   );

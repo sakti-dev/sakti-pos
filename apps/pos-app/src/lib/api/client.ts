@@ -22,6 +22,34 @@ export interface ProtoMessage<T> {
   encode(message: T, writer?: unknown): { finish(): Uint8Array };
 }
 
+export class ProtoApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ProtoApiError";
+    this.status = status;
+  }
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  const text = await response.text().catch(() => "");
+  if (!text) {
+    return `Request failed (${response.status})`;
+  }
+
+  try {
+    const body = JSON.parse(text) as { error?: unknown };
+    if (typeof body.error === "string" && body.error.length > 0) {
+      return body.error;
+    }
+  } catch {
+    // Fall through to the raw text body.
+  }
+
+  return text;
+}
+
 export async function protoFetch<Req, Res>(
   endpoint: string,
   schemas: { req: ProtoMessage<Req>; res: ProtoMessage<Res> },
@@ -40,7 +68,7 @@ export async function protoFetch<Req, Res>(
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed (${response.status})`);
+    throw new ProtoApiError(await readErrorMessage(response), response.status);
   }
 
   return schemas.res.decode(new Uint8Array(await response.arrayBuffer()));

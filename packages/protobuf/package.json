@@ -4,10 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./common": "./src/common.ts",
+    "./auth": "./src/auth.ts",
+    "./merchants": "./src/merchants.ts",
+    "./outlets": "./src/outlets.ts",
+    "./registers": "./src/registers.ts",
+    "./staff": "./src/staff.ts",
     "./sync": "./src/proto/sync.ts"
   },
   "scripts": {
-    "generate": "grpc_tools_node_protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=src --ts_proto_opt=esModuleInterop=true,forceLong=number,outputServices=false,useExactTypes=false proto/sync.proto",
+    "generate": "grpc_tools_node_protoc --proto_path=proto --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=src --ts_proto_opt=esModuleInterop=true,forceLong=number,outputServices=false,useExactTypes=false proto/common.proto proto/auth.proto proto/merchants.proto proto/outlets.proto proto/registers.proto proto/staff.proto proto/sync.proto",
     "lint": "ultracite check",
     "typecheck": "tsc --noEmit"
   },

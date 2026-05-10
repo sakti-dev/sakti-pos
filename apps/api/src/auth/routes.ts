@@ -1,7 +1,15 @@
-import { userMerchants, users } from "@repo/database/api-schema";
+import { merchants, userMerchants, users } from "@repo/database/api-schema";
+import {
+  AuthLoginRequest,
+  AuthRegisterRequest,
+  AuthResponse,
+  AuthSessionResponse,
+  LogoutResponse,
+} from "@repo/protobuf/auth";
+import { Empty } from "@repo/protobuf/common";
 import type { OAuth2Tokens } from "arctic";
 import { eq } from "drizzle-orm";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { db } from "../db";
 import { narvik } from "../lib/auth";
 import { generateCodeVerifier, generateState, google } from "../lib/oauth";
@@ -13,6 +21,13 @@ import {
   getCookie,
   getSessionFromRequest,
 } from "../lib/session";
+import { tsProtoPlugin } from "../lib/ts-proto-plugin";
+import {
+  BadRequestError,
+  requireEmail,
+  requireNonEmptyString,
+} from "../lib/validation";
+import { encodeApiUser, encodeSessionMerchant } from "../protobuf/domain";
 
 const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_HASH_LENGTH = 256;
@@ -98,27 +113,49 @@ function setCookies(
 }
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
+  .use(tsProtoPlugin)
   .post(
     "/register",
     async ({ body, set }) => {
+      const request = body as AuthRegisterRequest;
+      let email: string;
+      let password: string;
+      let name: string;
+      try {
+        email = requireEmail(request.email);
+        password = requireNonEmptyString(request.password, "password", {
+          minLength: 8,
+        });
+        name = requireNonEmptyString(request.name, "name", {
+          minLength: 1,
+          maxLength: 100,
+        });
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          set.status = error.status;
+          return { error: error.message };
+        }
+        throw error;
+      }
+
       const existing = await db
         .select()
         .from(users)
-        .where(eq(users.email, body.email))
+        .where(eq(users.email, email))
         .limit(1);
       if (existing.length > 0) {
         set.status = 409;
         return { error: "Email already registered" };
       }
 
-      const passwordHash = await hashPassword(body.password);
+      const passwordHash = await hashPassword(password);
 
       const now = new Date().toISOString();
       const [user] = await db
         .insert(users)
         .values({
-          email: body.email,
-          name: body.name,
+          email,
+          name,
           passwordHash,
           createdAt: now,
           updatedAt: now,
@@ -130,33 +167,46 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
       return {
         sessionToken: token,
-        user: { id: user.id, email: user.email, name: user.name },
+        user: encodeApiUser(user),
       };
     },
     {
-      body: t.Object({
-        email: t.String({ format: "email" }),
-        password: t.String({ minLength: 8 }),
-        name: t.String({ minLength: 1, maxLength: 100 }),
-      }),
+      proto: {
+        req: AuthRegisterRequest,
+        res: AuthResponse,
+      },
     }
   )
   .post(
     "/login",
     async ({ body, set }) => {
+      const request = body as AuthLoginRequest;
+      let email: string;
+      let password: string;
+      try {
+        email = requireEmail(request.email);
+        password = requireNonEmptyString(request.password, "password");
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          set.status = error.status;
+          return { error: error.message };
+        }
+        throw error;
+      }
+
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.email, body.email))
+        .where(eq(users.email, email))
         .limit(1);
 
       if (!user?.passwordHash) {
-        await verifyPassword(`${DUMMY_SALT}:${DUMMY_HASH}`, body.password);
+        await verifyPassword(`${DUMMY_SALT}:${DUMMY_HASH}`, password);
         set.status = 401;
         return { error: "Invalid email or password" };
       }
 
-      const valid = await verifyPassword(user.passwordHash, body.password);
+      const valid = await verifyPassword(user.passwordHash, password);
       if (!valid) {
         set.status = 401;
         return { error: "Invalid email or password" };
@@ -167,50 +217,74 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
       return {
         sessionToken: token,
-        user: { id: user.id, email: user.email, name: user.name },
+        user: encodeApiUser(user),
       };
     },
     {
-      body: t.Object({
-        email: t.String({ format: "email" }),
-        password: t.String(),
-      }),
+      proto: {
+        req: AuthLoginRequest,
+        res: AuthResponse,
+      },
     }
   )
-  .post("/logout", async ({ request, set }) => {
-    const session = await getSessionFromRequest(request);
-    if (session) {
-      await narvik.invalidateSession(session.id);
+  .post(
+    "/logout",
+    async ({ request, set }) => {
+      const session = await getSessionFromRequest(request);
+      if (session) {
+        await narvik.invalidateSession(session.id);
+      }
+      setCookies(set, [createBlankCookie()]);
+      return { success: true };
+    },
+    {
+      proto: {
+        req: Empty,
+        res: LogoutResponse,
+      },
     }
-    setCookies(set, [createBlankCookie()]);
-    return { success: true };
-  })
-  .get("/session", async ({ request }) => {
-    const session = await getSessionFromRequest(request);
-    if (!session) {
-      return { user: null, merchants: [] };
+  )
+  .post(
+    "/session",
+    async ({ request }) => {
+      const session = await getSessionFromRequest(request);
+      if (!session) {
+        return { hasUser: false, merchants: [] };
+      }
+
+      const [user] = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          name: users.name,
+        })
+        .from(users)
+        .where(eq(users.id, session.userId))
+        .limit(1);
+
+      const merchantRows = await db
+        .select({
+          merchantId: userMerchants.merchantId,
+          name: merchants.name,
+          role: userMerchants.role,
+        })
+        .from(userMerchants)
+        .innerJoin(merchants, eq(merchants.id, userMerchants.merchantId))
+        .where(eq(userMerchants.userId, session.userId));
+
+      return {
+        hasUser: user != null,
+        merchants: merchantRows.map(encodeSessionMerchant),
+        user: user ? encodeApiUser(user) : undefined,
+      };
+    },
+    {
+      proto: {
+        req: Empty,
+        res: AuthSessionResponse,
+      },
     }
-
-    const [user] = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-      })
-      .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1);
-
-    const merchants = await db
-      .select({
-        id: userMerchants.merchantId,
-        role: userMerchants.role,
-      })
-      .from(userMerchants)
-      .where(eq(userMerchants.userId, session.userId));
-
-    return { user: user ?? null, merchants };
-  })
+  )
   .get("/google", ({ set }) => {
     const state = generateState();
     const codeVerifier = generateCodeVerifier();
@@ -235,86 +309,74 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     set.redirect = url.toString();
     return "";
   })
-  .get(
-    "/google/callback",
-    async ({ query, request, set }) => {
-      const stateCookie = getCookie(request, GOOGLE_STATE_COOKIE);
-      const codeVerifierCookie = getCookie(
-        request,
-        GOOGLE_CODE_VERIFIER_COOKIE
-      );
+  .get("/google/callback", async ({ request, set }) => {
+    const url = new URL(request.url);
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const stateCookie = getCookie(request, GOOGLE_STATE_COOKIE);
+    const codeVerifierCookie = getCookie(request, GOOGLE_CODE_VERIFIER_COOKIE);
 
-      if (
-        !(query.code && query.state && stateCookie && codeVerifierCookie) ||
-        query.state !== stateCookie
-      ) {
-        set.status = 400;
-        return { error: "Invalid OAuth state" };
-      }
-
-      let tokens: OAuth2Tokens;
-      try {
-        tokens = await google.validateAuthorizationCode(
-          query.code,
-          codeVerifierCookie
-        );
-      } catch {
-        set.status = 400;
-        return { error: "Failed to validate authorization code" };
-      }
-
-      const idToken = tokens.idToken();
-      if (!idToken) {
-        set.status = 400;
-        return { error: "No ID token returned" };
-      }
-
-      const payload = idToken.split(".")[1];
-      const claims = JSON.parse(atob(payload));
-      const googleEmail = claims.email as string;
-      const googleName = (claims.name as string) ?? googleEmail.split("@")[0];
-
-      const existing = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, googleEmail))
-        .limit(1);
-
-      let userId: string;
-      if (existing.length > 0) {
-        userId = existing[0].id;
-      } else {
-        const now = new Date().toISOString();
-        const [newUser] = await db
-          .insert(users)
-          .values({
-            email: googleEmail,
-            name: googleName,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .returning();
-        userId = newUser.id;
-      }
-
-      const { token } = await narvik.createSession(userId);
-      setCookies(set, [
-        createSessionCookie(token),
-        createDeleteCookieString(GOOGLE_STATE_COOKIE),
-        createDeleteCookieString(GOOGLE_CODE_VERIFIER_COOKIE),
-      ]);
-
-      return new Response(
-        `<!DOCTYPE html><html><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:system-ui;margin:0"><div style="text-align:center"><h2>Login berhasil</h2><p>Anda bisa menutup halaman ini dan kembali ke aplikasi.</p></div></body></html>`,
-        {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-        }
-      );
-    },
-    {
-      query: t.Object({
-        code: t.String(),
-        state: t.String(),
-      }),
+    if (
+      !(code && state && stateCookie && codeVerifierCookie) ||
+      state !== stateCookie
+    ) {
+      set.status = 400;
+      return { error: "Invalid OAuth state" };
     }
-  );
+
+    let tokens: OAuth2Tokens;
+    try {
+      tokens = await google.validateAuthorizationCode(code, codeVerifierCookie);
+    } catch {
+      set.status = 400;
+      return { error: "Failed to validate authorization code" };
+    }
+
+    const idToken = tokens.idToken();
+    if (!idToken) {
+      set.status = 400;
+      return { error: "No ID token returned" };
+    }
+
+    const payload = idToken.split(".")[1];
+    const claims = JSON.parse(atob(payload));
+    const googleEmail = claims.email as string;
+    const googleName = (claims.name as string) ?? googleEmail.split("@")[0];
+
+    const existing = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, googleEmail))
+      .limit(1);
+
+    let userId: string;
+    if (existing.length > 0) {
+      userId = existing[0].id;
+    } else {
+      const now = new Date().toISOString();
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email: googleEmail,
+          name: googleName,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      userId = newUser.id;
+    }
+
+    const { token } = await narvik.createSession(userId);
+    setCookies(set, [
+      createSessionCookie(token),
+      createDeleteCookieString(GOOGLE_STATE_COOKIE),
+      createDeleteCookieString(GOOGLE_CODE_VERIFIER_COOKIE),
+    ]);
+
+    return new Response(
+      `<!DOCTYPE html><html><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:system-ui;margin:0"><div style="text-align:center"><h2>Login berhasil</h2><p>Anda bisa menutup halaman ini dan kembali ke aplikasi.</p></div></body></html>`,
+      {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      }
+    );
+  });

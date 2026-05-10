@@ -1,3 +1,7 @@
+import {
+  StaffCurrentRequest,
+  StaffCurrentResponse,
+} from "@repo/protobuf/staff";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("../storage", () => ({
@@ -8,10 +12,12 @@ vi.mock("../storage", () => ({
   },
 }));
 
+const originalFetch = globalThis.fetch;
+
 describe("isCloudAuthenticated", () => {
   afterEach(() => {
-    vi.resetModules();
-    vi.unstubAllGlobals();
+    globalThis.fetch = originalFetch;
+    vi.clearAllMocks();
   });
 
   test("returns false when no token stored", async () => {
@@ -29,38 +35,47 @@ describe("isCloudAuthenticated", () => {
   });
 
   test("getCurrentCloudStaff posts to staff me endpoint", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        status: 200,
-        text: () =>
-          Promise.resolve(
-            JSON.stringify({
-              claimed: false,
-              staff: {
-                hasPin: true,
-                id: "staff-1",
-                isActive: true,
-                merchantId: "merchant-1",
-                name: "Owner",
-                outletId: "outlet-1",
-                role: "owner",
-              },
-            })
-          ),
-      })
-    );
-    vi.stubGlobal("fetch", fetchMock);
+    let capturedRequest: Request | null = null;
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      capturedRequest = (input as unknown as Request).clone();
+      return Promise.resolve(
+        new Response(
+          StaffCurrentResponse.encode({
+            claimed: false,
+            hasStaff: true,
+            reason: "",
+            staff: {
+              createdAt: "2026-05-10T00:00:00.000Z",
+              hasOutletId: true,
+              hasPin: true,
+              id: "staff-1",
+              isActive: true,
+              merchantId: "merchant-1",
+              name: "Owner",
+              outletId: "outlet-1",
+              role: "owner",
+              updatedAt: "2026-05-10T00:00:00.000Z",
+            },
+          }).finish(),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/x-protobuf" },
+          }
+        )
+      );
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
 
     const { getCurrentCloudStaff } = await import("../cloud");
     const result = await getCurrentCloudStaff("merchant-1");
 
-    const [request] = fetchMock.mock.calls[0] as unknown as [
-      Request,
-      RequestInit?,
-    ];
-    expect(request.url).toContain("/api/merchants/merchant-1/staff/me");
+    const request = capturedRequest as unknown as Request;
+    expect(request.url).toContain("/api/staff/current");
     expect(request.method).toBe("POST");
+    expect(request.headers.get("content-type")).toBe("application/x-protobuf");
+    expect(
+      StaffCurrentRequest.decode(new Uint8Array(await request.arrayBuffer()))
+    ).toEqual({ merchantId: "merchant-1" });
     expect(result.staff?.id).toBe("staff-1");
   });
 });

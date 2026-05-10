@@ -2,15 +2,17 @@ import { SyncStatusRequest, SyncStatusResponse } from "@repo/protobuf/sync";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { protoFetch } from "../client";
 
+const originalFetch = globalThis.fetch;
+
 describe("protoFetch", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    vi.unstubAllGlobals();
+    globalThis.fetch = originalFetch;
   });
 
   test("posts protobuf request and decodes protobuf response", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const request = input as Request;
+      const request = input as unknown as Request;
       expect(request.method).toBe("POST");
       expect(request.headers.get("content-type")).toBe(
         "application/x-protobuf"
@@ -41,7 +43,7 @@ describe("protoFetch", () => {
         status: 200,
       });
     });
-    vi.stubGlobal("fetch", fetchMock);
+    globalThis.fetch = fetchMock as typeof fetch;
 
     const result = await protoFetch(
       "api/sync/status",

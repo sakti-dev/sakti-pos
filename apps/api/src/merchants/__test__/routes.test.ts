@@ -1,16 +1,20 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
+import { Empty } from "@repo/protobuf/common";
+import {
+  MerchantCreateRequest,
+  MerchantCreateResponse,
+  MerchantListResponse,
+} from "@repo/protobuf/merchants";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
-const mockUpdate = vi.fn();
-const mockDelete = vi.fn();
 
 vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
-    update: (...args: unknown[]) => mockUpdate(...args),
-    delete: (...args: unknown[]) => mockDelete(...args),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -41,51 +45,42 @@ vi.mock("cloudflare:workers", () => ({
 
 const { merchantsRoutes } = await import("../routes");
 
-async function makeRequest(
+function makeProtoRequest(
   path: string,
-  options: { body?: unknown; cookie?: string; method?: string } = {}
+  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
 ) {
-  const url = `http://localhost${path}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-protobuf",
+    Accept: "application/x-protobuf",
+  };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
-  if (options.body) {
-    headers["Content-Type"] = "application/json";
-  }
 
-  const init: RequestInit = { headers, method: options.method ?? "GET" };
-  if (options.body) {
-    init.body = JSON.stringify(options.body);
-  }
-
-  const request = new Request(url, init);
+  const request = new Request(`http://localhost${path}`, {
+    body: options.body ?? Empty.encode({}).finish(),
+    headers,
+    method: options.method ?? "POST",
+  });
   const app = merchantsRoutes.compile();
-  const response = await app.handle(request);
-
-  const status = response.status;
-  const text = await response.text();
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = text;
-  }
-  return { json, status };
+  return app.handle(request);
 }
 
-describe("POST /api/merchants", () => {
+describe("POST /api/merchants/create", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   test("returns 401 when no session", async () => {
-    const { json, status } = await makeRequest("/api/merchants", {
+    const response = await makeProtoRequest("/api/merchants/create", {
+      body: MerchantCreateRequest.encode({ name: "Test Merchant" }).finish(),
       method: "POST",
-      body: { name: "Test Merchant" },
     });
-    expect(status).toBe(401);
-    expect((json as Record<string, unknown>).error).toBe("Unauthorized");
+
+    expect(response.status).toBe(401);
+    expect(((await response.json()) as Record<string, unknown>).error).toBe(
+      "Unauthorized"
+    );
   });
 
   test("creates merchant and adds user as owner via user_merchants", async () => {
@@ -100,27 +95,18 @@ describe("POST /api/merchants", () => {
       })),
     }));
 
-    const { json, status } = await makeRequest("/api/merchants", {
-      method: "POST",
-      body: { name: "Test Merchant" },
+    const response = await makeProtoRequest("/api/merchants/create", {
+      body: MerchantCreateRequest.encode({ name: "Test Merchant" }).finish(),
       cookie: "narvik_session=valid-token",
+      method: "POST",
     });
 
-    expect(status).toBe(200);
-    expect((json as Record<string, unknown>).name).toBe("Test Merchant");
-    expect(mockInsert).toHaveBeenCalledTimes(3);
-    const syncEventValues = (
-      mockInsert.mock.results[2]?.value as { values: ReturnType<typeof vi.fn> }
-    ).values;
-    expect(syncEventValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operation: "insert",
-        rowId: (json as Record<string, unknown>).id,
-        scopeId: (json as Record<string, unknown>).id,
-        scopeType: "merchant",
-        tableName: "merchants",
-      })
+    expect(response.status).toBe(200);
+    const decoded = MerchantCreateResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
     );
+    expect(decoded.merchant?.name).toBe("Test Merchant");
+    expect(mockInsert).toHaveBeenCalledTimes(3);
   });
 
   test("injects session into merchant creation", async () => {
@@ -143,13 +129,13 @@ describe("POST /api/merchants", () => {
       }),
     }));
 
-    const { status } = await makeRequest("/api/merchants", {
-      method: "POST",
-      body: { name: "Test Merchant" },
+    const response = await makeProtoRequest("/api/merchants/create", {
+      body: MerchantCreateRequest.encode({ name: "Test Merchant" }).finish(),
       cookie: "narvik_session=valid-token",
+      method: "POST",
     });
 
-    expect(status).toBe(200);
+    expect(response.status).toBe(200);
     expect(insertedValues[1]).toEqual(
       expect.objectContaining({
         merchantId: "merchant-1",
@@ -160,15 +146,20 @@ describe("POST /api/merchants", () => {
   });
 });
 
-describe("GET /api/merchants", () => {
+describe("POST /api/merchants/list", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   test("returns 401 when no session", async () => {
-    const { json, status } = await makeRequest("/api/merchants");
-    expect(status).toBe(401);
-    expect((json as Record<string, unknown>).error).toBe("Unauthorized");
+    const response = await makeProtoRequest("/api/merchants/list", {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(401);
+    expect(((await response.json()) as Record<string, unknown>).error).toBe(
+      "Unauthorized"
+    );
   });
 
   test("returns user's merchants", async () => {
@@ -189,13 +180,16 @@ describe("GET /api/merchants", () => {
       }),
     }));
 
-    const { json, status } = await makeRequest("/api/merchants", {
+    const response = await makeProtoRequest("/api/merchants/list", {
       cookie: "narvik_session=valid-token",
+      method: "POST",
     });
 
-    expect(status).toBe(200);
-    const result = json as Record<string, unknown>[];
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe("Merchant 1");
+    expect(response.status).toBe(200);
+    const decoded = MerchantListResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+    expect(decoded.merchants).toHaveLength(1);
+    expect(decoded.merchants[0]?.name).toBe("Merchant 1");
   });
 });

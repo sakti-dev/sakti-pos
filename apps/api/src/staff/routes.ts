@@ -1,10 +1,29 @@
 import { staff, userMerchants } from "@repo/database/api-schema";
+import { DeleteResponse } from "@repo/protobuf/common";
+import {
+  StaffCreateRequest,
+  StaffCreateResponse,
+  StaffCurrentRequest,
+  StaffCurrentResponse,
+  StaffDeleteRequest,
+  StaffListRequest,
+  StaffListResponse,
+  StaffUpdatePinRequest,
+  StaffUpdatePinResponse,
+} from "@repo/protobuf/staff";
 import { and, eq, isNull } from "drizzle-orm";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { recordSyncEvent } from "../lib/sync-events";
+import { tsProtoPlugin } from "../lib/ts-proto-plugin";
+import {
+  BadRequestError,
+  requireNonEmptyString,
+  requirePin,
+} from "../lib/validation";
+import { encodeStaff } from "../protobuf/domain";
 
 const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_HASH_LENGTH = 256;
@@ -32,10 +51,10 @@ async function hashPin(pin: string): Promise<string> {
   );
   const hashArray = Array.from(new Uint8Array(keyMaterial));
   const saltHex = Array.from(salt)
-    .map((b) => b.toString(16).padStart(2, "0"))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
   const hashHex = hashArray
-    .map((b) => b.toString(16).padStart(2, "0"))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
   return `${saltHex}:${hashHex}`;
 }
@@ -71,51 +90,67 @@ async function getMerchantMembership(userId: string, merchantId: string) {
   return row ?? null;
 }
 
-function serializeCurrentStaff(row: {
-  id: string;
-  isActive: boolean;
-  merchantId: string;
-  name: string;
-  outletId: string | null;
-  pin: string | null;
-  role: "cashier" | "manager" | "owner";
-}) {
+function encodeCurrentStaffResponse(input: {
+  claimed: boolean;
+  reason?: string;
+  staff?: Parameters<typeof encodeStaff>[0] | null;
+}): StaffCurrentResponse {
   return {
-    hasPin: !!row.pin,
-    id: row.id,
-    isActive: row.isActive,
-    merchantId: row.merchantId,
-    name: row.name,
-    outletId: row.outletId,
-    role: row.role,
+    claimed: input.claimed,
+    hasStaff: input.staff != null,
+    reason: input.reason ?? "",
+    staff: input.staff ? encodeStaff(input.staff) : undefined,
   };
 }
 
-export const staffRoutes = new Elysia({ prefix: "/api" })
+function requireRole(
+  value: string | undefined
+): "cashier" | "manager" | "owner" {
+  if (value === undefined || value === "") {
+    return "cashier";
+  }
+  if (value === "cashier" || value === "manager" || value === "owner") {
+    return value;
+  }
+  throw new BadRequestError("role is invalid");
+}
+
+export const staffRoutes = new Elysia({ prefix: "/api/staff" })
+  .use(tsProtoPlugin)
   .use(authenticated)
   .post(
-    "/merchants/:merchantId/staff/me",
-    async ({ params: { merchantId }, session }) => {
+    "/current",
+    async ({ body, session }) => {
+      const request = body as StaffCurrentRequest;
       const membership = await getMerchantMembership(
         session.userId,
-        merchantId
+        request.merchantId
       );
-      throwIfFalse(!!membership, new ForbiddenRequestError());
+
+      if (!membership) {
+        return encodeCurrentStaffResponse({
+          claimed: false,
+          reason: "not-allowed",
+          staff: null,
+        });
+      }
 
       const [mappedStaff] = await db
         .select({
+          createdAt: staff.createdAt,
           id: staff.id,
           merchantId: staff.merchantId,
           outletId: staff.outletId,
           name: staff.name,
           role: staff.role,
           isActive: staff.isActive,
+          updatedAt: staff.updatedAt,
           pin: staff.pin,
         })
         .from(staff)
         .where(
           and(
-            eq(staff.merchantId, merchantId),
+            eq(staff.merchantId, request.merchantId),
             eq(staff.cloudUserId, session.userId),
             eq(staff.isActive, true)
           )
@@ -123,30 +158,36 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
         .limit(1);
 
       if (mappedStaff) {
-        return {
+        return encodeCurrentStaffResponse({
           claimed: false,
-          staff: serializeCurrentStaff(mappedStaff),
-        };
+          staff: mappedStaff,
+        });
       }
 
       if (membership.role !== "owner") {
-        return { claimed: false, reason: "not-allowed", staff: null };
+        return encodeCurrentStaffResponse({
+          claimed: false,
+          reason: "not-allowed",
+          staff: null,
+        });
       }
 
       const ownerRows = await db
         .select({
+          createdAt: staff.createdAt,
           id: staff.id,
           merchantId: staff.merchantId,
           outletId: staff.outletId,
           name: staff.name,
           role: staff.role,
           isActive: staff.isActive,
+          updatedAt: staff.updatedAt,
           pin: staff.pin,
         })
         .from(staff)
         .where(
           and(
-            eq(staff.merchantId, merchantId),
+            eq(staff.merchantId, request.merchantId),
             eq(staff.role, "owner"),
             eq(staff.isActive, true),
             isNull(staff.cloudUserId)
@@ -155,11 +196,19 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
         .limit(2);
 
       if (ownerRows.length === 0) {
-        return { claimed: false, reason: "no-staff", staff: null };
+        return encodeCurrentStaffResponse({
+          claimed: false,
+          reason: "no-staff",
+          staff: null,
+        });
       }
 
       if (ownerRows.length > 1) {
-        return { claimed: false, reason: "ambiguous-owner", staff: null };
+        return encodeCurrentStaffResponse({
+          claimed: false,
+          reason: "ambiguous-owner",
+          staff: null,
+        });
       }
 
       const owner = ownerRows[0];
@@ -176,36 +225,61 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
         changedAt: now,
         operation: "update",
         rowId: owner.id,
-        scopeId: merchantId,
+        scopeId: request.merchantId,
         scopeType: "merchant",
         tableName: "staff",
       });
 
-      return {
+      return encodeCurrentStaffResponse({
         claimed: true,
-        staff: serializeCurrentStaff(owner),
-      };
+        staff: owner,
+      });
+    },
+    {
+      proto: {
+        req: StaffCurrentRequest,
+        res: StaffCurrentResponse,
+      },
     }
   )
   .post(
-    "/merchants/:merchantId/staff",
-    async ({ body, params: { merchantId }, session }) => {
+    "/create",
+    async ({ body, session, set }) => {
+      const request = body as StaffCreateRequest;
+      let merchantId: string;
+      let name: string;
+      let pin: string;
+      try {
+        merchantId = requireNonEmptyString(request.merchantId, "merchantId");
+        name = requireNonEmptyString(request.name, "name", {
+          minLength: 1,
+          maxLength: 100,
+        });
+        pin = requirePin(request.pin);
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          set.status = error.status;
+          return { error: error.message };
+        }
+        throw error;
+      }
+
       throwIfFalse(
         await verifyMerchantAccess(session.userId, merchantId),
         new ForbiddenRequestError()
       );
 
-      const pinHash = await hashPin(body.pin);
+      const pinHash = await hashPin(pin);
       const now = new Date().toISOString();
 
       const [created] = await db
         .insert(staff)
         .values({
           merchantId,
-          outletId: body.outletId ?? null,
-          name: body.name,
+          outletId: request.hasOutletId ? request.outletId : null,
+          name,
           pin: pinHash,
-          role: body.role ?? "cashier",
+          role: requireRole(request.role),
           createdAt: now,
           updatedAt: now,
         })
@@ -220,53 +294,79 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
         tableName: "staff",
       });
 
-      return created;
+      return {
+        staff: encodeStaff({
+          ...created,
+          pin: created.pin ?? null,
+        }),
+      };
     },
     {
-      body: t.Object({
-        name: t.String({ minLength: 1, maxLength: 100 }),
-        pin: t.String({ minLength: 4, maxLength: 6 }),
-        role: t.Optional(
-          t.Union([
-            t.Literal("cashier"),
-            t.Literal("manager"),
-            t.Literal("owner"),
-          ])
-        ),
-        outletId: t.Optional(t.String()),
-      }),
+      proto: {
+        req: StaffCreateRequest,
+        res: StaffCreateResponse,
+      },
     }
   )
-  .get(
-    "/merchants/:merchantId/staff",
-    async ({ params: { merchantId }, session }) => {
+  .post(
+    "/list",
+    async ({ body, session }) => {
+      const request = body as StaffListRequest;
       throwIfFalse(
-        await verifyMerchantAccess(session.userId, merchantId),
+        await verifyMerchantAccess(session.userId, request.merchantId),
         new ForbiddenRequestError()
       );
 
-      return db
+      const results = await db
         .select({
+          createdAt: staff.createdAt,
           id: staff.id,
           merchantId: staff.merchantId,
           outletId: staff.outletId,
           name: staff.name,
           role: staff.role,
           isActive: staff.isActive,
-          createdAt: staff.createdAt,
           updatedAt: staff.updatedAt,
+          pin: staff.pin,
         })
         .from(staff)
-        .where(eq(staff.merchantId, merchantId));
+        .where(eq(staff.merchantId, request.merchantId));
+
+      return {
+        staff: results.map((row) =>
+          encodeStaff({
+            ...row,
+            pin: row.pin ?? null,
+          })
+        ),
+      };
+    },
+    {
+      proto: {
+        req: StaffListRequest,
+        res: StaffListResponse,
+      },
     }
   )
-  .patch(
-    "/staff/:id/pin",
-    async ({ body, params: { id }, session, set }) => {
+  .post(
+    "/update-pin",
+    async ({ body, session, set }) => {
+      const request = body as StaffUpdatePinRequest;
+      let pin: string;
+      try {
+        pin = requirePin(request.pin);
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          set.status = error.status;
+          return { error: error.message };
+        }
+        throw error;
+      }
+
       const [existing] = await db
         .select({ merchantId: staff.merchantId })
         .from(staff)
-        .where(eq(staff.id, id))
+        .where(eq(staff.id, request.id))
         .limit(1);
 
       if (!existing) {
@@ -279,66 +379,84 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
         new ForbiddenRequestError()
       );
 
-      const pinHash = await hashPin(body.pin);
+      const pinHash = await hashPin(pin);
       const now = new Date().toISOString();
       const [updated] = await db
         .update(staff)
         .set({ pin: pinHash, updatedAt: now })
-        .where(eq(staff.id, id))
+        .where(eq(staff.id, request.id))
         .returning();
 
       await recordSyncEvent({
         changedAt: now,
         operation: "update",
-        rowId: id,
+        rowId: request.id,
         scopeId: existing.merchantId,
         scopeType: "merchant",
         tableName: "staff",
       });
 
-      return updated;
+      return {
+        staff: encodeStaff({
+          ...updated,
+          pin: updated.pin ?? null,
+        }),
+      };
     },
     {
-      body: t.Object({
-        pin: t.String({ minLength: 4, maxLength: 6 }),
-      }),
+      proto: {
+        req: StaffUpdatePinRequest,
+        res: StaffUpdatePinResponse,
+      },
     }
   )
-  .delete("/staff/:id", async ({ params: { id }, session, set }) => {
-    const [existing] = await db
-      .select({ merchantId: staff.merchantId })
-      .from(staff)
-      .where(eq(staff.id, id))
-      .limit(1);
+  .post(
+    "/delete",
+    async ({ body, session, set }) => {
+      const request = body as StaffDeleteRequest;
+      const [existing] = await db
+        .select({ merchantId: staff.merchantId })
+        .from(staff)
+        .where(eq(staff.id, request.id))
+        .limit(1);
 
-    if (!existing) {
-      set.status = 404;
-      return { error: "Staff not found" };
+      if (!existing) {
+        set.status = 404;
+        return { error: "Staff not found" };
+      }
+
+      throwIfFalse(
+        await verifyMerchantAccess(session.userId, existing.merchantId),
+        new ForbiddenRequestError()
+      );
+
+      const now = new Date().toISOString();
+      await db
+        .update(staff)
+        .set({
+          isActive: false,
+          deletedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(staff.id, request.id));
+
+      await recordSyncEvent({
+        changedAt: now,
+        operation: "delete",
+        rowId: request.id,
+        scopeId: existing.merchantId,
+        scopeType: "merchant",
+        tableName: "staff",
+      });
+
+      return {
+        success: true,
+      };
+    },
+    {
+      proto: {
+        req: StaffDeleteRequest,
+        res: DeleteResponse,
+      },
     }
-
-    throwIfFalse(
-      await verifyMerchantAccess(session.userId, existing.merchantId),
-      new ForbiddenRequestError()
-    );
-
-    const now = new Date().toISOString();
-    await db
-      .update(staff)
-      .set({
-        isActive: false,
-        deletedAt: now,
-        updatedAt: now,
-      })
-      .where(eq(staff.id, id));
-
-    await recordSyncEvent({
-      changedAt: now,
-      operation: "delete",
-      rowId: id,
-      scopeId: existing.merchantId,
-      scopeType: "merchant",
-      tableName: "staff",
-    });
-
-    return { success: true };
-  });
+  );
