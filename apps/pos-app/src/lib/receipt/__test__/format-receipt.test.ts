@@ -7,6 +7,7 @@ const receipt: ReceiptData = {
     address: "Jl. Merdeka No. 123",
     name: "SAKTI KOPI",
     phone: "021-1234567",
+    timezone: "Asia/Jakarta",
   },
   items: [
     {
@@ -38,6 +39,7 @@ describe("formatReceiptForAndroid", () => {
     expect(text).toContain("[C]<b><font size='big'>SAKTI KOPI</font></b>");
     expect(text).toContain("[L]No:");
     expect(text).toContain("[L]Kasir:");
+    expect(text).toContain("[L]Tgl:");
     expect(text).toContain("[L]Kopi Susu Gula Aren");
     expect(text).toContain("[R]36.000");
   });

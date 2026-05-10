@@ -26,10 +26,11 @@ message Outlet {
   string merchant_id = 2;
   string name = 3;
   string address = 4;
-  bool has_address = 5;
-  bool is_active = 6;
-  string created_at = 7;
-  string updated_at = 8;
+  string timezone = 5;
+  bool has_address = 6;
+  bool is_active = 7;
+  string created_at = 8;
+  string updated_at = 9;
 }
 
 message Register {

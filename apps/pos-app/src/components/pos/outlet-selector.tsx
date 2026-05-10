@@ -4,10 +4,11 @@ import { currentOutletId } from "~/store/outlet";
 interface OutletOption {
   id: string;
   name: string;
+  timezone: string;
 }
 
 interface OutletSelectorProps {
-  onChange: (outletId: string) => void;
+  onChange: (outlet: OutletOption) => void;
   outlets: OutletOption[];
 }
 
@@ -23,8 +24,8 @@ export default function OutletSelector(props: OutletSelectorProps) {
     return props.outlets.find((o) => o.id === id)?.name ?? "";
   };
 
-  const handleSelect = (id: string) => {
-    props.onChange(id);
+  const handleSelect = (outlet: OutletOption) => {
+    props.onChange(outlet);
     setOpen(false);
   };
 
@@ -62,7 +63,7 @@ export default function OutletSelector(props: OutletSelectorProps) {
                       ? "bg-primary/10 font-medium text-primary"
                       : "hover:bg-accent"
                   }`}
-                  onClick={() => handleSelect(outlet.id)}
+                  onClick={() => handleSelect(outlet)}
                   type="button"
                 >
                   {outlet.name}

@@ -19,26 +19,29 @@ export interface OutletListResponse {
 }
 
 export interface OutletCreateRequest {
-  address: string;
-  hasAddress: boolean;
   merchantId: string;
   name: string;
+  address: string;
+  hasAddress: boolean;
+  timezone: string;
 }
 
 export interface OutletCreateResponse {
-  hasRegister: boolean;
   outlet: Outlet | undefined;
   register: Register | undefined;
+  hasRegister: boolean;
 }
 
 export interface OutletUpdateRequest {
+  id: string;
+  name: string;
+  hasName: boolean;
   address: string;
   hasAddress: boolean;
-  hasIsActive: boolean;
-  hasName: boolean;
-  id: string;
   isActive: boolean;
-  name: string;
+  hasIsActive: boolean;
+  timezone: string;
+  hasTimezone: boolean;
 }
 
 export interface OutletUpdateResponse {
@@ -50,10 +53,7 @@ function createBaseOutletListRequest(): OutletListRequest {
 }
 
 export const OutletListRequest: MessageFns<OutletListRequest> = {
-  encode(
-    message: OutletListRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OutletListRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.merchantId !== "") {
       writer.uint32(10).string(message.merchantId);
     }
@@ -61,8 +61,7 @@ export const OutletListRequest: MessageFns<OutletListRequest> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): OutletListRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseOutletListRequest();
     while (reader.pos < end) {
@@ -90,8 +89,8 @@ export const OutletListRequest: MessageFns<OutletListRequest> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
     };
   },
 
@@ -118,22 +117,15 @@ function createBaseOutletListResponse(): OutletListResponse {
 }
 
 export const OutletListResponse: MessageFns<OutletListResponse> = {
-  encode(
-    message: OutletListResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OutletListResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.outlets) {
       Outlet.encode(v!, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): OutletListResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletListResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseOutletListResponse();
     while (reader.pos < end) {
@@ -158,9 +150,7 @@ export const OutletListResponse: MessageFns<OutletListResponse> = {
 
   fromJSON(object: any): OutletListResponse {
     return {
-      outlets: globalThis.Array.isArray(object?.outlets)
-        ? object.outlets.map((e: any) => Outlet.fromJSON(e))
-        : [],
+      outlets: globalThis.Array.isArray(object?.outlets) ? object.outlets.map((e: any) => Outlet.fromJSON(e)) : [],
     };
   },
 
@@ -183,14 +173,11 @@ export const OutletListResponse: MessageFns<OutletListResponse> = {
 };
 
 function createBaseOutletCreateRequest(): OutletCreateRequest {
-  return { merchantId: "", name: "", address: "", hasAddress: false };
+  return { merchantId: "", name: "", address: "", hasAddress: false, timezone: "" };
 }
 
 export const OutletCreateRequest: MessageFns<OutletCreateRequest> = {
-  encode(
-    message: OutletCreateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OutletCreateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.merchantId !== "") {
       writer.uint32(10).string(message.merchantId);
     }
@@ -203,15 +190,14 @@ export const OutletCreateRequest: MessageFns<OutletCreateRequest> = {
     if (message.hasAddress !== false) {
       writer.uint32(32).bool(message.hasAddress);
     }
+    if (message.timezone !== "") {
+      writer.uint32(42).string(message.timezone);
+    }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): OutletCreateRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletCreateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseOutletCreateRequest();
     while (reader.pos < end) {
@@ -249,6 +235,14 @@ export const OutletCreateRequest: MessageFns<OutletCreateRequest> = {
           message.hasAddress = reader.bool();
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -263,15 +257,16 @@ export const OutletCreateRequest: MessageFns<OutletCreateRequest> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       address: isSet(object.address) ? globalThis.String(object.address) : "",
       hasAddress: isSet(object.hasAddress)
         ? globalThis.Boolean(object.hasAddress)
         : isSet(object.has_address)
-          ? globalThis.Boolean(object.has_address)
-          : false,
+        ? globalThis.Boolean(object.has_address)
+        : false,
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
     };
   },
 
@@ -289,6 +284,9 @@ export const OutletCreateRequest: MessageFns<OutletCreateRequest> = {
     if (message.hasAddress !== false) {
       obj.hasAddress = message.hasAddress;
     }
+    if (message.timezone !== "") {
+      obj.timezone = message.timezone;
+    }
     return obj;
   },
 
@@ -301,6 +299,7 @@ export const OutletCreateRequest: MessageFns<OutletCreateRequest> = {
     message.name = object.name ?? "";
     message.address = object.address ?? "";
     message.hasAddress = object.hasAddress ?? false;
+    message.timezone = object.timezone ?? "";
     return message;
   },
 };
@@ -310,10 +309,7 @@ function createBaseOutletCreateResponse(): OutletCreateResponse {
 }
 
 export const OutletCreateResponse: MessageFns<OutletCreateResponse> = {
-  encode(
-    message: OutletCreateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OutletCreateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outlet !== undefined) {
       Outlet.encode(message.outlet, writer.uint32(10).fork()).join();
     }
@@ -326,12 +322,8 @@ export const OutletCreateResponse: MessageFns<OutletCreateResponse> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): OutletCreateResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletCreateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseOutletCreateResponse();
     while (reader.pos < end) {
@@ -373,14 +365,12 @@ export const OutletCreateResponse: MessageFns<OutletCreateResponse> = {
   fromJSON(object: any): OutletCreateResponse {
     return {
       outlet: isSet(object.outlet) ? Outlet.fromJSON(object.outlet) : undefined,
-      register: isSet(object.register)
-        ? Register.fromJSON(object.register)
-        : undefined,
+      register: isSet(object.register) ? Register.fromJSON(object.register) : undefined,
       hasRegister: isSet(object.hasRegister)
         ? globalThis.Boolean(object.hasRegister)
         : isSet(object.has_register)
-          ? globalThis.Boolean(object.has_register)
-          : false,
+        ? globalThis.Boolean(object.has_register)
+        : false,
     };
   },
 
@@ -403,14 +393,12 @@ export const OutletCreateResponse: MessageFns<OutletCreateResponse> = {
   },
   fromPartial(object: DeepPartial<OutletCreateResponse>): OutletCreateResponse {
     const message = createBaseOutletCreateResponse();
-    message.outlet =
-      object.outlet !== undefined && object.outlet !== null
-        ? Outlet.fromPartial(object.outlet)
-        : undefined;
-    message.register =
-      object.register !== undefined && object.register !== null
-        ? Register.fromPartial(object.register)
-        : undefined;
+    message.outlet = (object.outlet !== undefined && object.outlet !== null)
+      ? Outlet.fromPartial(object.outlet)
+      : undefined;
+    message.register = (object.register !== undefined && object.register !== null)
+      ? Register.fromPartial(object.register)
+      : undefined;
     message.hasRegister = object.hasRegister ?? false;
     return message;
   },
@@ -425,14 +413,13 @@ function createBaseOutletUpdateRequest(): OutletUpdateRequest {
     hasAddress: false,
     isActive: false,
     hasIsActive: false,
+    timezone: "",
+    hasTimezone: false,
   };
 }
 
 export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
-  encode(
-    message: OutletUpdateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OutletUpdateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -454,15 +441,17 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
     if (message.hasIsActive !== false) {
       writer.uint32(56).bool(message.hasIsActive);
     }
+    if (message.timezone !== "") {
+      writer.uint32(66).string(message.timezone);
+    }
+    if (message.hasTimezone !== false) {
+      writer.uint32(72).bool(message.hasTimezone);
+    }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): OutletUpdateRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletUpdateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseOutletUpdateRequest();
     while (reader.pos < end) {
@@ -524,6 +513,22 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
           message.hasIsActive = reader.bool();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.hasTimezone = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -540,24 +545,30 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
       hasName: isSet(object.hasName)
         ? globalThis.Boolean(object.hasName)
         : isSet(object.has_name)
-          ? globalThis.Boolean(object.has_name)
-          : false,
+        ? globalThis.Boolean(object.has_name)
+        : false,
       address: isSet(object.address) ? globalThis.String(object.address) : "",
       hasAddress: isSet(object.hasAddress)
         ? globalThis.Boolean(object.hasAddress)
         : isSet(object.has_address)
-          ? globalThis.Boolean(object.has_address)
-          : false,
+        ? globalThis.Boolean(object.has_address)
+        : false,
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       hasIsActive: isSet(object.hasIsActive)
         ? globalThis.Boolean(object.hasIsActive)
         : isSet(object.has_is_active)
-          ? globalThis.Boolean(object.has_is_active)
-          : false,
+        ? globalThis.Boolean(object.has_is_active)
+        : false,
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
+      hasTimezone: isSet(object.hasTimezone)
+        ? globalThis.Boolean(object.hasTimezone)
+        : isSet(object.has_timezone)
+        ? globalThis.Boolean(object.has_timezone)
+        : false,
     };
   },
 
@@ -584,6 +595,12 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
     if (message.hasIsActive !== false) {
       obj.hasIsActive = message.hasIsActive;
     }
+    if (message.timezone !== "") {
+      obj.timezone = message.timezone;
+    }
+    if (message.hasTimezone !== false) {
+      obj.hasTimezone = message.hasTimezone;
+    }
     return obj;
   },
 
@@ -599,6 +616,8 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
     message.hasAddress = object.hasAddress ?? false;
     message.isActive = object.isActive ?? false;
     message.hasIsActive = object.hasIsActive ?? false;
+    message.timezone = object.timezone ?? "";
+    message.hasTimezone = object.hasTimezone ?? false;
     return message;
   },
 };
@@ -608,22 +627,15 @@ function createBaseOutletUpdateResponse(): OutletUpdateResponse {
 }
 
 export const OutletUpdateResponse: MessageFns<OutletUpdateResponse> = {
-  encode(
-    message: OutletUpdateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OutletUpdateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outlet !== undefined) {
       Outlet.encode(message.outlet, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): OutletUpdateResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletUpdateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseOutletUpdateResponse();
     while (reader.pos < end) {
@@ -647,9 +659,7 @@ export const OutletUpdateResponse: MessageFns<OutletUpdateResponse> = {
   },
 
   fromJSON(object: any): OutletUpdateResponse {
-    return {
-      outlet: isSet(object.outlet) ? Outlet.fromJSON(object.outlet) : undefined,
-    };
+    return { outlet: isSet(object.outlet) ? Outlet.fromJSON(object.outlet) : undefined };
   },
 
   toJSON(message: OutletUpdateResponse): unknown {
@@ -665,42 +675,30 @@ export const OutletUpdateResponse: MessageFns<OutletUpdateResponse> = {
   },
   fromPartial(object: DeepPartial<OutletUpdateResponse>): OutletUpdateResponse {
     const message = createBaseOutletUpdateResponse();
-    message.outlet =
-      object.outlet !== undefined && object.outlet !== null
-        ? Outlet.fromPartial(object.outlet)
-        : undefined;
+    message.outlet = (object.outlet !== undefined && object.outlet !== null)
+      ? Outlet.fromPartial(object.outlet)
+      : undefined;
     return message;
   },
 };
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  create(base?: DeepPartial<T>): T;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
-  fromPartial(object: DeepPartial<T>): T;
   toJSON(message: T): unknown;
+  create(base?: DeepPartial<T>): T;
+  fromPartial(object: DeepPartial<T>): T;
 }

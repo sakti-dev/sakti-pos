@@ -9,6 +9,7 @@ export interface ReceiptBusinessInfo {
   address?: string;
   name: string;
   phone?: string;
+  timezone?: string;
 }
 
 export interface ReceiptOrderInfo {

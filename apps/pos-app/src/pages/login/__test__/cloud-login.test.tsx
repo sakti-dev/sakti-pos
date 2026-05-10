@@ -141,6 +141,7 @@ describe("CloudLogin - onboarding guard", () => {
         name: "Main Outlet",
         address: null,
         isActive: true,
+        timezone: "Asia/Jakarta",
       },
     ]);
     render(() => <CloudLogin />);
@@ -169,6 +170,7 @@ describe("CloudLogin - onboarding guard", () => {
         name: "Main Outlet",
         address: "Jl. Test 1",
         isActive: true,
+        timezone: "Asia/Jakarta",
       },
     ]);
     mockGetCurrentCloudStaff.mockResolvedValueOnce({
@@ -200,7 +202,12 @@ describe("CloudLogin - onboarding guard", () => {
     await screen.findByText("Main Outlet");
     await user.click(screen.getByText("Main Outlet"));
     await vi.waitFor(() => {
-      expect(mockSetOutletContext).toHaveBeenCalledWith("o1", "m1");
+      expect(mockSetOutletContext).toHaveBeenCalledWith(
+        "o1",
+        "m1",
+        undefined,
+        "Asia/Jakarta"
+      );
     });
     await vi.waitFor(() => {
       expect(mockLoginWithCloudStaff).toHaveBeenCalledWith("s1");
@@ -223,6 +230,7 @@ describe("CloudLogin - onboarding guard", () => {
         name: "Main Outlet",
         address: "Jl. Test 1",
         isActive: true,
+        timezone: "Asia/Jakarta",
       },
     ]);
     mockGetCurrentCloudStaff.mockResolvedValueOnce({
@@ -271,6 +279,7 @@ describe("CloudLogin - onboarding guard", () => {
         name: "Main Outlet",
         address: "Jl. Test 1",
         isActive: true,
+        timezone: "Asia/Jakarta",
       },
     ]);
     mockGetCurrentCloudStaff.mockRejectedValueOnce(new Error("Not Found"));
@@ -301,6 +310,7 @@ describe("CloudLogin - onboarding guard", () => {
         name: "Main Outlet",
         address: "Jl. Test 1",
         isActive: true,
+        timezone: "Asia/Jakarta",
       },
     ]);
     mockGetCurrentCloudStaff.mockResolvedValueOnce({
@@ -343,6 +353,7 @@ describe("CloudLogin - onboarding guard", () => {
         name: "Main Outlet",
         address: "Jl. Test 1",
         isActive: true,
+        timezone: "Asia/Jakarta",
       },
     ]);
     mockGetCurrentCloudStaff.mockResolvedValueOnce({

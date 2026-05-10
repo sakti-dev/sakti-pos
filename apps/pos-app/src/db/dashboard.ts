@@ -1,7 +1,11 @@
 import { categories, orderItems, orders, products } from "@repo/database";
-import dayjs from "dayjs";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
-import { currentOutletId } from "~/store/outlet";
+import {
+  formatInBusinessTimezone,
+  getBusinessWeekStart,
+  toUtcRangeForBusinessDate,
+} from "~/lib/date-time";
+import { currentOutletId, currentOutletTimezone } from "~/store/outlet";
 import { db } from "./index";
 
 export interface DashboardSummary {
@@ -48,26 +52,54 @@ export interface CategoryRevenueRow {
   revenue: number;
 }
 
-function getNextDayStr(dateTo: string): string {
-  return dayjs(dateTo).add(1, "day").format("YYYY-MM-DD");
-}
-
 function addOutletCondition(conditions: unknown[], outletId: string | null) {
   if (outletId) {
     conditions.push(eq(orders.outletId, outletId));
   }
 }
 
+async function getCompletedOrders(
+  dateFrom: string,
+  dateTo: string,
+  timezone = currentOutletTimezone()
+): Promise<
+  { createdAt: string; paymentMethod: "cash" | "qris"; total: number }[]
+> {
+  const fromRange = toUtcRangeForBusinessDate(dateFrom, timezone);
+  const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
+
+  const outletId = currentOutletId();
+  const conditions = [
+    gte(orders.createdAt, fromRange.startUtc),
+    lt(orders.createdAt, toRange.endExclusiveUtc),
+    eq(orders.status, "completed"),
+    isNull(orders.deletedAt),
+  ];
+  addOutletCondition(conditions, outletId);
+
+  return await db
+    .select({
+      createdAt: orders.createdAt,
+      paymentMethod: orders.paymentMethod,
+      total: orders.total,
+    })
+    .from(orders)
+    .where(and(...conditions))
+    .orderBy(orders.createdAt);
+}
+
 export async function getDashboardSummary(
   dateFrom: string,
   dateTo: string
 ): Promise<DashboardSummary> {
-  const nextDayStr = getNextDayStr(dateTo);
+  const timezone = currentOutletTimezone();
+  const fromRange = toUtcRangeForBusinessDate(dateFrom, timezone);
+  const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
 
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
+    gte(orders.createdAt, fromRange.startUtc),
+    lt(orders.createdAt, toRange.endExclusiveUtc),
     eq(orders.status, "completed"),
     isNull(orders.deletedAt),
   ];
@@ -96,12 +128,14 @@ export async function getPaymentBreakdown(
   dateFrom: string,
   dateTo: string
 ): Promise<PaymentBreakdown> {
-  const nextDayStr = getNextDayStr(dateTo);
+  const timezone = currentOutletTimezone();
+  const fromRange = toUtcRangeForBusinessDate(dateFrom, timezone);
+  const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
 
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
+    gte(orders.createdAt, fromRange.startUtc),
+    lt(orders.createdAt, toRange.endExclusiveUtc),
     eq(orders.status, "completed"),
     isNull(orders.deletedAt),
   ];
@@ -130,30 +164,16 @@ export async function getHourlyBreakdown(
   dateFrom: string,
   dateTo: string
 ): Promise<HourlyRow[]> {
-  const nextDayStr = getNextDayStr(dateTo);
-
-  const outletId = currentOutletId();
-  const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
-  ];
-  addOutletCondition(conditions, outletId);
-
-  const rows = await db
-    .select({
-      hour: sql<number>`CAST(strftime('%H', ${orders.createdAt}) AS INTEGER)`,
-      revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
-    })
-    .from(orders)
-    .where(and(...conditions))
-    .groupBy(sql`strftime('%H', ${orders.createdAt})`)
-    .orderBy(sql`strftime('%H', ${orders.createdAt})`);
+  const timezone = currentOutletTimezone();
+  const rows = await getCompletedOrders(dateFrom, dateTo, timezone);
 
   const map = new Map<number, number>();
-  for (const r of rows) {
-    map.set(r.hour, r.revenue);
+  for (const row of rows) {
+    const hour = Number.parseInt(
+      formatInBusinessTimezone(row.createdAt, timezone, "HH"),
+      10
+    );
+    map.set(hour, (map.get(hour) ?? 0) + row.total);
   }
 
   return Array.from({ length: 24 }, (_, i) => ({
@@ -166,84 +186,63 @@ export async function getDailyBreakdown(
   dateFrom: string,
   dateTo: string
 ): Promise<DailyRow[]> {
-  const nextDayStr = getNextDayStr(dateTo);
+  const timezone = currentOutletTimezone();
+  const rows = await getCompletedOrders(dateFrom, dateTo, timezone);
 
-  const outletId = currentOutletId();
-  const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
-  ];
-  addOutletCondition(conditions, outletId);
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const date = formatInBusinessTimezone(
+      row.createdAt,
+      timezone,
+      "YYYY-MM-DD"
+    );
+    map.set(date, (map.get(date) ?? 0) + row.total);
+  }
 
-  const rows = await db
-    .select({
-      date: sql<string>`strftime('%Y-%m-%d', ${orders.createdAt})`,
-      revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
-    })
-    .from(orders)
-    .where(and(...conditions))
-    .groupBy(sql`strftime('%Y-%m-%d', ${orders.createdAt})`)
-    .orderBy(sql`strftime('%Y-%m-%d', ${orders.createdAt})`);
-
-  return rows;
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, revenue]) => ({ date, revenue }));
 }
 
 export async function getWeeklyBreakdown(
   dateFrom: string,
   dateTo: string
 ): Promise<WeeklyRow[]> {
-  const nextDayStr = getNextDayStr(dateTo);
+  const timezone = currentOutletTimezone();
+  const rows = await getCompletedOrders(dateFrom, dateTo, timezone);
 
-  const outletId = currentOutletId();
-  const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
-  ];
-  addOutletCondition(conditions, outletId);
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const localDate = formatInBusinessTimezone(
+      row.createdAt,
+      timezone,
+      "YYYY-MM-DD"
+    );
+    const weekStart = getBusinessWeekStart(localDate, timezone);
+    map.set(weekStart, (map.get(weekStart) ?? 0) + row.total);
+  }
 
-  const rows = await db
-    .select({
-      weekStart: sql<string>`strftime('%Y-%m-%d', ${orders.createdAt}, '-6 days', 'weekday 1')`,
-      revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
-    })
-    .from(orders)
-    .where(and(...conditions))
-    .groupBy(sql`strftime('%Y-%W', ${orders.createdAt})`)
-    .orderBy(sql`strftime('%Y-%W', ${orders.createdAt})`);
-
-  return rows;
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([weekStart, revenue]) => ({ weekStart, revenue }));
 }
 
 export async function getMonthlyBreakdown(
   dateFrom: string,
   dateTo: string
 ): Promise<MonthlyRow[]> {
-  const nextDayStr = getNextDayStr(dateTo);
+  const timezone = currentOutletTimezone();
+  const rows = await getCompletedOrders(dateFrom, dateTo, timezone);
 
-  const outletId = currentOutletId();
-  const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
-  ];
-  addOutletCondition(conditions, outletId);
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const month = formatInBusinessTimezone(row.createdAt, timezone, "YYYY-MM");
+    map.set(month, (map.get(month) ?? 0) + row.total);
+  }
 
-  const rows = await db
-    .select({
-      month: sql<string>`strftime('%Y-%m', ${orders.createdAt})`,
-      revenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
-    })
-    .from(orders)
-    .where(and(...conditions))
-    .groupBy(sql`strftime('%Y-%m', ${orders.createdAt})`)
-    .orderBy(sql`strftime('%Y-%m', ${orders.createdAt})`);
-
-  return rows;
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, revenue]) => ({ month, revenue }));
 }
 
 export async function getTopProducts(
@@ -251,12 +250,13 @@ export async function getTopProducts(
   dateTo: string,
   limit = 10
 ): Promise<TopProductRow[]> {
-  const nextDayStr = getNextDayStr(dateTo);
-
+  const timezone = currentOutletTimezone();
+  const fromRange = toUtcRangeForBusinessDate(dateFrom, timezone);
+  const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
+    gte(orders.createdAt, fromRange.startUtc),
+    lt(orders.createdAt, toRange.endExclusiveUtc),
     eq(orders.status, "completed"),
     isNull(orders.deletedAt),
     isNull(orderItems.deletedAt),
@@ -285,12 +285,13 @@ export async function getSalesByCategory(
   dateFrom: string,
   dateTo: string
 ): Promise<CategoryRevenueRow[]> {
-  const nextDayStr = getNextDayStr(dateTo);
-
+  const timezone = currentOutletTimezone();
+  const fromRange = toUtcRangeForBusinessDate(dateFrom, timezone);
+  const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, dateFrom),
-    lt(orders.createdAt, nextDayStr),
+    gte(orders.createdAt, fromRange.startUtc),
+    lt(orders.createdAt, toRange.endExclusiveUtc),
     eq(orders.status, "completed"),
     isNull(orders.deletedAt),
     isNull(orderItems.deletedAt),

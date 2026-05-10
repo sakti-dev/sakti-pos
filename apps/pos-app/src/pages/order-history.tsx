@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import {
   createEffect,
   createMemo,
@@ -23,8 +22,10 @@ import {
   type OrderItemRow,
   type OrderRow,
 } from "~/db/orders";
+import { getBusinessDate } from "~/lib/date-time";
 import { cn } from "~/lib/utils";
 import { currentUserRole } from "~/store/auth";
+import { currentOutletTimezone } from "~/store/outlet";
 import { useIsPhone } from "~/store/responsive";
 
 const statusOptions: SelectOption[] = [
@@ -35,23 +36,37 @@ const statusOptions: SelectOption[] = [
 
 export default function OrderHistory() {
   const isPhone = useIsPhone();
-  const today = () => dayjs().format("YYYY-MM-DD");
+  const today = () => getBusinessDate(currentOutletTimezone());
 
   const [dateFrom, setDateFrom] = createSignal(today());
   const [dateTo, setDateTo] = createSignal(today());
   const [statusFilter, setStatusFilter] = createSignal("");
+  const timezone = currentOutletTimezone;
 
   const filter = createMemo(() => ({
     dateFrom: dateFrom(),
     dateTo: dateTo(),
+    timezone: timezone(),
     status:
       statusFilter() === ""
         ? undefined
         : (statusFilter() as "completed" | "cancelled"),
   }));
 
-  const [orders, { refetch }] = createResource(filter, getOrders);
-  const [summary] = createResource(dateFrom, getDailySummary);
+  const [orders, { refetch }] = createResource(filter, (value) =>
+    getOrders(
+      {
+        dateFrom: value.dateFrom,
+        dateTo: value.dateTo,
+        status: value.status,
+      },
+      value.timezone
+    )
+  );
+  const [summary] = createResource(
+    () => `${dateFrom()}-${timezone()}`,
+    () => getDailySummary(dateFrom(), timezone())
+  );
 
   const [orderItemsCache, setOrderItemsCache] = createSignal<
     Record<string, OrderItemRow[]>

@@ -6,11 +6,13 @@ import {
   type ProductWithCategory,
 } from "~/db/orders";
 import { getAllOutlets } from "~/db/outlets";
+import { formatUtcTimestamp } from "~/lib/date-time";
 import { createLogger } from "~/lib/logger";
 import { getDefaultPrinter, printReceipt } from "~/lib/printer/client";
 import type { ReceiptData } from "~/lib/receipt/types";
 import { currentUser, currentUserRole } from "~/store/auth";
 import { cartItems, cartTotal, clearCart } from "~/store/cart";
+import { currentOutletTimezone } from "~/store/outlet";
 import { useIsPhone } from "~/store/responsive";
 import { getCategoryNames, getVisibleProducts } from "./pos-utils";
 
@@ -19,6 +21,7 @@ const posLogger = createLogger({ module: "pos" });
 interface OutletOption {
   id: string;
   name: string;
+  timezone: string;
 }
 
 export interface PosState {
@@ -62,6 +65,7 @@ export function usePos(): PosState {
   const filteredProducts = createMemo(() =>
     getVisibleProducts(groupedData(), selectedCategory(), search())
   );
+  const outletTimezone = createMemo(() => currentOutletTimezone());
 
   const handlePayment = async (data: {
     amountPaid: number | null;
@@ -77,10 +81,12 @@ export function usePos(): PosState {
     try {
       const items = cartItems();
       const total = cartTotal();
+      const createdAt = formatUtcTimestamp();
 
       const orderNumber = await createOrder({
         amountPaid: data.amountPaid,
         changeAmount: data.changeAmount,
+        createdAt,
         items: items.map((item) => ({
           price: item.product.price,
           product_id: item.product.id,
@@ -88,6 +94,7 @@ export function usePos(): PosState {
           qty: item.quantity,
         })),
         paymentMethod: data.paymentMethod,
+        timezone: outletTimezone(),
         total,
         staffId: user.id,
       });
@@ -95,7 +102,6 @@ export function usePos(): PosState {
       setPaymentOpen(false);
 
       const receiptData: ReceiptData = {
-        business: { name: "SAKTI POS" },
         items: items.map((item) => ({
           name: item.product.name,
           quantity: item.quantity,
@@ -104,7 +110,7 @@ export function usePos(): PosState {
         })),
         order: {
           cashierName: user.name,
-          createdAt: new Date().toISOString(),
+          createdAt,
           orderNumber,
         },
         payment: {
@@ -113,6 +119,10 @@ export function usePos(): PosState {
           method: data.paymentMethod,
         },
         totals: { total },
+        business: {
+          name: "SAKTI POS",
+          timezone: outletTimezone(),
+        },
       };
 
       clearCart();

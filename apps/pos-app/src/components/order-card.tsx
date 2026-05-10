@@ -1,8 +1,9 @@
-import dayjs from "dayjs";
 import type { Component } from "solid-js";
 import { createSignal, For, Show } from "solid-js";
 import type { OrderItemRow, OrderRow } from "~/db/orders";
+import { formatInBusinessTimezone } from "~/lib/date-time";
 import { cn, formatIDR } from "~/lib/utils";
+import { currentOutletTimezone } from "~/store/outlet";
 
 interface OrderCardProps {
   items: OrderItemRow[];
@@ -13,7 +14,12 @@ interface OrderCardProps {
 export const OrderCard: Component<OrderCardProps> = (props) => {
   const [expanded, setExpanded] = createSignal(false);
 
-  const time = () => dayjs(props.order.createdAt).format("HH:mm");
+  const time = () =>
+    formatInBusinessTimezone(
+      props.order.createdAt,
+      currentOutletTimezone(),
+      "HH:mm"
+    );
 
   return (
     <div class="rounded-xl border bg-card">

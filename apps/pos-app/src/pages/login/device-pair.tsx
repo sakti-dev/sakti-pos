@@ -27,7 +27,8 @@ export default function DevicePair() {
       setOutletContext(
         result.outlet.id,
         result.outlet.merchantId,
-        result.register.id
+        result.register.id,
+        result.outlet.timezone
       );
       navigate("/login", { replace: true });
     } catch (err) {

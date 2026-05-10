@@ -37,6 +37,7 @@ vi.mock("@repo/database", () => ({
     createdAt: "created_at",
     updatedAt: "updated_at",
   },
+  staff: { id: "id", name: "name" },
   users: { id: "id", name: "name" },
 }));
 
@@ -79,14 +80,23 @@ vi.mock("~/store/outlet", () => ({
   currentMerchantId: vi.fn(() => "merchant-1"),
   currentOutletId: vi.fn(() => "outlet-1"),
   currentRegisterId: vi.fn(() => "register-1"),
+  currentOutletTimezone: vi.fn(() => "Asia/Jakarta"),
 }));
 
 const ORDER_NUMBER_PATTERN = /^\d{4}-\d{2}-\d{2}-001$/;
+const UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+interface MockedInvoke {
+  mock: {
+    calls: [string, { statements: { params: unknown[] }[] }][];
+  };
+  mockResolvedValue(value: unknown): void;
+}
 
 describe("createOrder", () => {
   test("calls invoke with correct SQL statements and returns order number", async () => {
     const { invoke } = await import("@tauri-apps/api/core");
-    const mockedInvoke = vi.mocked(invoke);
+    const mockedInvoke = invoke as unknown as MockedInvoke;
 
     mockDbSelect.mockReturnValue({
       from: vi.fn(() => ({
@@ -123,6 +133,11 @@ describe("createOrder", () => {
         }),
       ]),
     });
+
+    const statements = mockedInvoke.mock.calls[0]?.[1];
+    const orderParams = statements?.statements?.[0]?.params;
+    expect(orderParams?.[9]).toMatch(UTC_TIMESTAMP_PATTERN);
+    expect(orderParams?.[10]).toBe(orderParams?.[9]);
     expect(mockRecordLocalChange).toHaveBeenCalledWith({
       operation: "insert",
       rowId: expect.any(String),

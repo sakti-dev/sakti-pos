@@ -15,9 +15,25 @@ vi.mock("~/store/auth", () => ({
   logout: (...args: unknown[]) => mockLogout(...args),
 }));
 
+const mockUpdateOutletTimezone = vi.fn();
+
+vi.mock("~/db/outlets", () => ({
+  getOutletById: vi.fn(() =>
+    Promise.resolve({
+      id: "outlet-1",
+      name: "Cabang Sudirman",
+      timezone: "Asia/Jakarta",
+    })
+  ),
+  updateOutletTimezone: (...args: unknown[]) =>
+    mockUpdateOutletTimezone(...args),
+}));
+
 vi.mock("~/store/outlet", () => ({
   clearOutletContext: vi.fn(),
-  currentOutletId: () => null,
+  currentOutletId: () => "outlet-1",
+  currentOutletTimezone: () => "Asia/Jakarta",
+  setOutletTimezone: vi.fn(),
 }));
 
 vi.mock("~/store/sync", () => ({
@@ -55,6 +71,26 @@ describe("useSettings", () => {
       expect(mockLogout).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
       dispose();
+    });
+  });
+
+  test("saves outlet timezone changes", async () => {
+    await new Promise<void>((resolve) => {
+      createRoot((dispose) => {
+        (async () => {
+          const settings = useSettings();
+
+          settings.setSelectedOutletTimezone("Asia/Makassar");
+          await settings.handleSaveOutletTimezone();
+
+          expect(mockUpdateOutletTimezone).toHaveBeenCalledWith(
+            "outlet-1",
+            "Asia/Makassar"
+          );
+          dispose();
+          resolve();
+        })();
+      });
     });
   });
 });

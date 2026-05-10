@@ -28,22 +28,15 @@ function createBaseMerchantListResponse(): MerchantListResponse {
 }
 
 export const MerchantListResponse: MessageFns<MerchantListResponse> = {
-  encode(
-    message: MerchantListResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: MerchantListResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.merchants) {
       SessionMerchant.encode(v!, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): MerchantListResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): MerchantListResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMerchantListResponse();
     while (reader.pos < end) {
@@ -54,9 +47,7 @@ export const MerchantListResponse: MessageFns<MerchantListResponse> = {
             break;
           }
 
-          message.merchants.push(
-            SessionMerchant.decode(reader, reader.uint32())
-          );
+          message.merchants.push(SessionMerchant.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -89,8 +80,7 @@ export const MerchantListResponse: MessageFns<MerchantListResponse> = {
   },
   fromPartial(object: DeepPartial<MerchantListResponse>): MerchantListResponse {
     const message = createBaseMerchantListResponse();
-    message.merchants =
-      object.merchants?.map((e) => SessionMerchant.fromPartial(e)) || [];
+    message.merchants = object.merchants?.map((e) => SessionMerchant.fromPartial(e)) || [];
     return message;
   },
 };
@@ -100,22 +90,15 @@ function createBaseMerchantCreateRequest(): MerchantCreateRequest {
 }
 
 export const MerchantCreateRequest: MessageFns<MerchantCreateRequest> = {
-  encode(
-    message: MerchantCreateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: MerchantCreateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): MerchantCreateRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): MerchantCreateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMerchantCreateRequest();
     while (reader.pos < end) {
@@ -153,9 +136,7 @@ export const MerchantCreateRequest: MessageFns<MerchantCreateRequest> = {
   create(base?: DeepPartial<MerchantCreateRequest>): MerchantCreateRequest {
     return MerchantCreateRequest.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<MerchantCreateRequest>
-  ): MerchantCreateRequest {
+  fromPartial(object: DeepPartial<MerchantCreateRequest>): MerchantCreateRequest {
     const message = createBaseMerchantCreateRequest();
     message.name = object.name ?? "";
     return message;
@@ -167,22 +148,15 @@ function createBaseMerchantCreateResponse(): MerchantCreateResponse {
 }
 
 export const MerchantCreateResponse: MessageFns<MerchantCreateResponse> = {
-  encode(
-    message: MerchantCreateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: MerchantCreateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.merchant !== undefined) {
       Merchant.encode(message.merchant, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): MerchantCreateResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): MerchantCreateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMerchantCreateResponse();
     while (reader.pos < end) {
@@ -206,11 +180,7 @@ export const MerchantCreateResponse: MessageFns<MerchantCreateResponse> = {
   },
 
   fromJSON(object: any): MerchantCreateResponse {
-    return {
-      merchant: isSet(object.merchant)
-        ? Merchant.fromJSON(object.merchant)
-        : undefined,
-    };
+    return { merchant: isSet(object.merchant) ? Merchant.fromJSON(object.merchant) : undefined };
   },
 
   toJSON(message: MerchantCreateResponse): unknown {
@@ -224,46 +194,32 @@ export const MerchantCreateResponse: MessageFns<MerchantCreateResponse> = {
   create(base?: DeepPartial<MerchantCreateResponse>): MerchantCreateResponse {
     return MerchantCreateResponse.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<MerchantCreateResponse>
-  ): MerchantCreateResponse {
+  fromPartial(object: DeepPartial<MerchantCreateResponse>): MerchantCreateResponse {
     const message = createBaseMerchantCreateResponse();
-    message.merchant =
-      object.merchant !== undefined && object.merchant !== null
-        ? Merchant.fromPartial(object.merchant)
-        : undefined;
+    message.merchant = (object.merchant !== undefined && object.merchant !== null)
+      ? Merchant.fromPartial(object.merchant)
+      : undefined;
     return message;
   },
 };
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  create(base?: DeepPartial<T>): T;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
-  fromPartial(object: DeepPartial<T>): T;
   toJSON(message: T): unknown;
+  create(base?: DeepPartial<T>): T;
+  fromPartial(object: DeepPartial<T>): T;
 }

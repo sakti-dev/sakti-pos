@@ -15,14 +15,14 @@ export interface RegisterPairRequest {
 }
 
 export interface RegisterPairResponse {
-  hasOutlet: boolean;
-  outlet: Outlet | undefined;
   register: Register | undefined;
+  outlet: Outlet | undefined;
+  hasOutlet: boolean;
 }
 
 export interface RegisterCreateRequest {
-  name: string;
   outletId: string;
+  name: string;
 }
 
 export interface RegisterCreateResponse {
@@ -46,22 +46,15 @@ function createBaseRegisterPairRequest(): RegisterPairRequest {
 }
 
 export const RegisterPairRequest: MessageFns<RegisterPairRequest> = {
-  encode(
-    message: RegisterPairRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterPairRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.pairingCode !== "") {
       writer.uint32(10).string(message.pairingCode);
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): RegisterPairRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterPairRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegisterPairRequest();
     while (reader.pos < end) {
@@ -89,8 +82,8 @@ export const RegisterPairRequest: MessageFns<RegisterPairRequest> = {
       pairingCode: isSet(object.pairingCode)
         ? globalThis.String(object.pairingCode)
         : isSet(object.pairing_code)
-          ? globalThis.String(object.pairing_code)
-          : "",
+        ? globalThis.String(object.pairing_code)
+        : "",
     };
   },
 
@@ -117,10 +110,7 @@ function createBaseRegisterPairResponse(): RegisterPairResponse {
 }
 
 export const RegisterPairResponse: MessageFns<RegisterPairResponse> = {
-  encode(
-    message: RegisterPairResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterPairResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.register !== undefined) {
       Register.encode(message.register, writer.uint32(10).fork()).join();
     }
@@ -133,12 +123,8 @@ export const RegisterPairResponse: MessageFns<RegisterPairResponse> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): RegisterPairResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterPairResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegisterPairResponse();
     while (reader.pos < end) {
@@ -179,15 +165,13 @@ export const RegisterPairResponse: MessageFns<RegisterPairResponse> = {
 
   fromJSON(object: any): RegisterPairResponse {
     return {
-      register: isSet(object.register)
-        ? Register.fromJSON(object.register)
-        : undefined,
+      register: isSet(object.register) ? Register.fromJSON(object.register) : undefined,
       outlet: isSet(object.outlet) ? Outlet.fromJSON(object.outlet) : undefined,
       hasOutlet: isSet(object.hasOutlet)
         ? globalThis.Boolean(object.hasOutlet)
         : isSet(object.has_outlet)
-          ? globalThis.Boolean(object.has_outlet)
-          : false,
+        ? globalThis.Boolean(object.has_outlet)
+        : false,
     };
   },
 
@@ -210,14 +194,12 @@ export const RegisterPairResponse: MessageFns<RegisterPairResponse> = {
   },
   fromPartial(object: DeepPartial<RegisterPairResponse>): RegisterPairResponse {
     const message = createBaseRegisterPairResponse();
-    message.register =
-      object.register !== undefined && object.register !== null
-        ? Register.fromPartial(object.register)
-        : undefined;
-    message.outlet =
-      object.outlet !== undefined && object.outlet !== null
-        ? Outlet.fromPartial(object.outlet)
-        : undefined;
+    message.register = (object.register !== undefined && object.register !== null)
+      ? Register.fromPartial(object.register)
+      : undefined;
+    message.outlet = (object.outlet !== undefined && object.outlet !== null)
+      ? Outlet.fromPartial(object.outlet)
+      : undefined;
     message.hasOutlet = object.hasOutlet ?? false;
     return message;
   },
@@ -228,10 +210,7 @@ function createBaseRegisterCreateRequest(): RegisterCreateRequest {
 }
 
 export const RegisterCreateRequest: MessageFns<RegisterCreateRequest> = {
-  encode(
-    message: RegisterCreateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterCreateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
@@ -241,12 +220,8 @@ export const RegisterCreateRequest: MessageFns<RegisterCreateRequest> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): RegisterCreateRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterCreateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegisterCreateRequest();
     while (reader.pos < end) {
@@ -282,8 +257,8 @@ export const RegisterCreateRequest: MessageFns<RegisterCreateRequest> = {
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
     };
   },
@@ -302,9 +277,7 @@ export const RegisterCreateRequest: MessageFns<RegisterCreateRequest> = {
   create(base?: DeepPartial<RegisterCreateRequest>): RegisterCreateRequest {
     return RegisterCreateRequest.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<RegisterCreateRequest>
-  ): RegisterCreateRequest {
+  fromPartial(object: DeepPartial<RegisterCreateRequest>): RegisterCreateRequest {
     const message = createBaseRegisterCreateRequest();
     message.outletId = object.outletId ?? "";
     message.name = object.name ?? "";
@@ -317,22 +290,15 @@ function createBaseRegisterCreateResponse(): RegisterCreateResponse {
 }
 
 export const RegisterCreateResponse: MessageFns<RegisterCreateResponse> = {
-  encode(
-    message: RegisterCreateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterCreateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.register !== undefined) {
       Register.encode(message.register, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): RegisterCreateResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterCreateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegisterCreateResponse();
     while (reader.pos < end) {
@@ -356,11 +322,7 @@ export const RegisterCreateResponse: MessageFns<RegisterCreateResponse> = {
   },
 
   fromJSON(object: any): RegisterCreateResponse {
-    return {
-      register: isSet(object.register)
-        ? Register.fromJSON(object.register)
-        : undefined,
-    };
+    return { register: isSet(object.register) ? Register.fromJSON(object.register) : undefined };
   },
 
   toJSON(message: RegisterCreateResponse): unknown {
@@ -374,14 +336,11 @@ export const RegisterCreateResponse: MessageFns<RegisterCreateResponse> = {
   create(base?: DeepPartial<RegisterCreateResponse>): RegisterCreateResponse {
     return RegisterCreateResponse.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<RegisterCreateResponse>
-  ): RegisterCreateResponse {
+  fromPartial(object: DeepPartial<RegisterCreateResponse>): RegisterCreateResponse {
     const message = createBaseRegisterCreateResponse();
-    message.register =
-      object.register !== undefined && object.register !== null
-        ? Register.fromPartial(object.register)
-        : undefined;
+    message.register = (object.register !== undefined && object.register !== null)
+      ? Register.fromPartial(object.register)
+      : undefined;
     return message;
   },
 };
@@ -391,22 +350,15 @@ function createBaseRegisterListRequest(): RegisterListRequest {
 }
 
 export const RegisterListRequest: MessageFns<RegisterListRequest> = {
-  encode(
-    message: RegisterListRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterListRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): RegisterListRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterListRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegisterListRequest();
     while (reader.pos < end) {
@@ -434,8 +386,8 @@ export const RegisterListRequest: MessageFns<RegisterListRequest> = {
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
     };
   },
 
@@ -462,22 +414,15 @@ function createBaseRegisterListResponse(): RegisterListResponse {
 }
 
 export const RegisterListResponse: MessageFns<RegisterListResponse> = {
-  encode(
-    message: RegisterListResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterListResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.registers) {
       Register.encode(v!, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): RegisterListResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterListResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegisterListResponse();
     while (reader.pos < end) {
@@ -521,8 +466,7 @@ export const RegisterListResponse: MessageFns<RegisterListResponse> = {
   },
   fromPartial(object: DeepPartial<RegisterListResponse>): RegisterListResponse {
     const message = createBaseRegisterListResponse();
-    message.registers =
-      object.registers?.map((e) => Register.fromPartial(e)) || [];
+    message.registers = object.registers?.map((e) => Register.fromPartial(e)) || [];
     return message;
   },
 };
@@ -532,22 +476,15 @@ function createBaseRegisterDeleteRequest(): RegisterDeleteRequest {
 }
 
 export const RegisterDeleteRequest: MessageFns<RegisterDeleteRequest> = {
-  encode(
-    message: RegisterDeleteRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterDeleteRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): RegisterDeleteRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterDeleteRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegisterDeleteRequest();
     while (reader.pos < end) {
@@ -585,43 +522,30 @@ export const RegisterDeleteRequest: MessageFns<RegisterDeleteRequest> = {
   create(base?: DeepPartial<RegisterDeleteRequest>): RegisterDeleteRequest {
     return RegisterDeleteRequest.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<RegisterDeleteRequest>
-  ): RegisterDeleteRequest {
+  fromPartial(object: DeepPartial<RegisterDeleteRequest>): RegisterDeleteRequest {
     const message = createBaseRegisterDeleteRequest();
     message.id = object.id ?? "";
     return message;
   },
 };
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  create(base?: DeepPartial<T>): T;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
-  fromPartial(object: DeepPartial<T>): T;
   toJSON(message: T): unknown;
+  create(base?: DeepPartial<T>): T;
+  fromPartial(object: DeepPartial<T>): T;
 }

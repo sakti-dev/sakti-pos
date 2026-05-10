@@ -1,10 +1,22 @@
 import { useNavigate } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
-import { createMemo, createResource, createSignal } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+} from "solid-js";
 import { toast } from "solid-sonner";
+import { getOutletById, updateOutletTimezone } from "~/db/outlets";
 import { logout as cloudLogout, getSession } from "~/lib/auth/cloud";
+import { DEFAULT_BUSINESS_TIMEZONE } from "~/lib/date-time";
 import { currentUser, logout } from "~/store/auth";
-import { clearOutletContext, currentOutletId } from "~/store/outlet";
+import {
+  clearOutletContext,
+  currentOutletId,
+  currentOutletTimezone,
+  setOutletTimezone,
+} from "~/store/outlet";
 import { type SyncNowResult, syncNow, syncStatus } from "~/store/sync";
 import { setTheme, theme } from "~/store/theme";
 
@@ -36,10 +48,33 @@ export function useSettings() {
   const [showLogoutConfirm, setShowLogoutConfirm] = createSignal(false);
   const [showPinDrawer, setShowPinDrawer] = createSignal(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = createSignal(false);
+  const [selectedOutletTimezone, setSelectedOutletTimezone] = createSignal(
+    currentOutletTimezone()
+  );
+  const [savingTimezone, setSavingTimezone] = createSignal(false);
   const [dbInfo] = createResource(() => invoke<DbInfo>("get_db_info"));
   const [cloudSession, { refetch: refetchCloudSession }] = createResource(() =>
     getSession().catch(() => null)
   );
+  const [outlet, { refetch: refetchOutlet }] = createResource(
+    currentOutletId,
+    async (outletId) => {
+      if (!outletId) {
+        return;
+      }
+
+      return await getOutletById(outletId);
+    }
+  );
+
+  createEffect(() => {
+    const current = outlet();
+    if (!current) {
+      return;
+    }
+
+    setSelectedOutletTimezone(current.timezone ?? DEFAULT_BUSINESS_TIMEZONE);
+  });
 
   const handleLogout = () => {
     logout();
@@ -71,6 +106,34 @@ export function useSettings() {
     navigate("/cloud-login");
   };
 
+  const handleSaveOutletTimezone = async () => {
+    const outletId = currentOutletId();
+    if (!outletId) {
+      return;
+    }
+
+    setSavingTimezone(true);
+    try {
+      const updated = await updateOutletTimezone(
+        outletId,
+        selectedOutletTimezone()
+      );
+      if (!updated) {
+        toast.error("Gagal memperbarui zona waktu outlet");
+        return;
+      }
+
+      setOutletTimezone(updated.timezone);
+      setSelectedOutletTimezone(updated.timezone);
+      toast.success("Zona waktu outlet diperbarui");
+      await refetchOutlet();
+    } catch {
+      toast.error("Gagal memperbarui zona waktu outlet");
+    } finally {
+      setSavingTimezone(false);
+    }
+  };
+
   const activeUserLabel = createMemo(
     () => user?.name.charAt(0).toUpperCase() ?? "?"
   );
@@ -84,12 +147,16 @@ export function useSettings() {
     handleConnectCloud,
     handleLogout,
     handleSyncNow,
+    handleSaveOutletTimezone,
     setShowDisconnectConfirm,
     setShowLogoutConfirm,
     setShowPinDrawer,
+    setSelectedOutletTimezone,
     showDisconnectConfirm,
     showLogoutConfirm,
     showPinDrawer,
+    selectedOutletTimezone,
+    savingTimezone,
     syncStatus,
     theme,
     user,

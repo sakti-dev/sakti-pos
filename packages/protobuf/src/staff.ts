@@ -16,16 +16,16 @@ export interface StaffCurrentRequest {
 
 export interface StaffCurrentResponse {
   claimed: boolean;
-  hasStaff: boolean;
   reason: string;
   staff: Staff | undefined;
+  hasStaff: boolean;
 }
 
 export interface StaffCreateRequest {
-  hasOutletId: boolean;
   merchantId: string;
-  name: string;
   outletId: string;
+  hasOutletId: boolean;
+  name: string;
   pin: string;
   role: string;
 }
@@ -60,22 +60,15 @@ function createBaseStaffCurrentRequest(): StaffCurrentRequest {
 }
 
 export const StaffCurrentRequest: MessageFns<StaffCurrentRequest> = {
-  encode(
-    message: StaffCurrentRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffCurrentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.merchantId !== "") {
       writer.uint32(10).string(message.merchantId);
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): StaffCurrentRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffCurrentRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffCurrentRequest();
     while (reader.pos < end) {
@@ -103,8 +96,8 @@ export const StaffCurrentRequest: MessageFns<StaffCurrentRequest> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
     };
   },
 
@@ -131,10 +124,7 @@ function createBaseStaffCurrentResponse(): StaffCurrentResponse {
 }
 
 export const StaffCurrentResponse: MessageFns<StaffCurrentResponse> = {
-  encode(
-    message: StaffCurrentResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffCurrentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.claimed !== false) {
       writer.uint32(8).bool(message.claimed);
     }
@@ -150,12 +140,8 @@ export const StaffCurrentResponse: MessageFns<StaffCurrentResponse> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): StaffCurrentResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffCurrentResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffCurrentResponse();
     while (reader.pos < end) {
@@ -204,16 +190,14 @@ export const StaffCurrentResponse: MessageFns<StaffCurrentResponse> = {
 
   fromJSON(object: any): StaffCurrentResponse {
     return {
-      claimed: isSet(object.claimed)
-        ? globalThis.Boolean(object.claimed)
-        : false,
+      claimed: isSet(object.claimed) ? globalThis.Boolean(object.claimed) : false,
       reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
       staff: isSet(object.staff) ? Staff.fromJSON(object.staff) : undefined,
       hasStaff: isSet(object.hasStaff)
         ? globalThis.Boolean(object.hasStaff)
         : isSet(object.has_staff)
-          ? globalThis.Boolean(object.has_staff)
-          : false,
+        ? globalThis.Boolean(object.has_staff)
+        : false,
     };
   },
 
@@ -241,31 +225,18 @@ export const StaffCurrentResponse: MessageFns<StaffCurrentResponse> = {
     const message = createBaseStaffCurrentResponse();
     message.claimed = object.claimed ?? false;
     message.reason = object.reason ?? "";
-    message.staff =
-      object.staff !== undefined && object.staff !== null
-        ? Staff.fromPartial(object.staff)
-        : undefined;
+    message.staff = (object.staff !== undefined && object.staff !== null) ? Staff.fromPartial(object.staff) : undefined;
     message.hasStaff = object.hasStaff ?? false;
     return message;
   },
 };
 
 function createBaseStaffCreateRequest(): StaffCreateRequest {
-  return {
-    merchantId: "",
-    outletId: "",
-    hasOutletId: false,
-    name: "",
-    pin: "",
-    role: "",
-  };
+  return { merchantId: "", outletId: "", hasOutletId: false, name: "", pin: "", role: "" };
 }
 
 export const StaffCreateRequest: MessageFns<StaffCreateRequest> = {
-  encode(
-    message: StaffCreateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffCreateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.merchantId !== "") {
       writer.uint32(10).string(message.merchantId);
     }
@@ -287,12 +258,8 @@ export const StaffCreateRequest: MessageFns<StaffCreateRequest> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): StaffCreateRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffCreateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffCreateRequest();
     while (reader.pos < end) {
@@ -360,18 +327,18 @@ export const StaffCreateRequest: MessageFns<StaffCreateRequest> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
       hasOutletId: isSet(object.hasOutletId)
         ? globalThis.Boolean(object.hasOutletId)
         : isSet(object.has_outlet_id)
-          ? globalThis.Boolean(object.has_outlet_id)
-          : false,
+        ? globalThis.Boolean(object.has_outlet_id)
+        : false,
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       pin: isSet(object.pin) ? globalThis.String(object.pin) : "",
       role: isSet(object.role) ? globalThis.String(object.role) : "",
@@ -421,22 +388,15 @@ function createBaseStaffCreateResponse(): StaffCreateResponse {
 }
 
 export const StaffCreateResponse: MessageFns<StaffCreateResponse> = {
-  encode(
-    message: StaffCreateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffCreateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.staff !== undefined) {
       Staff.encode(message.staff, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): StaffCreateResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffCreateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffCreateResponse();
     while (reader.pos < end) {
@@ -460,9 +420,7 @@ export const StaffCreateResponse: MessageFns<StaffCreateResponse> = {
   },
 
   fromJSON(object: any): StaffCreateResponse {
-    return {
-      staff: isSet(object.staff) ? Staff.fromJSON(object.staff) : undefined,
-    };
+    return { staff: isSet(object.staff) ? Staff.fromJSON(object.staff) : undefined };
   },
 
   toJSON(message: StaffCreateResponse): unknown {
@@ -478,10 +436,7 @@ export const StaffCreateResponse: MessageFns<StaffCreateResponse> = {
   },
   fromPartial(object: DeepPartial<StaffCreateResponse>): StaffCreateResponse {
     const message = createBaseStaffCreateResponse();
-    message.staff =
-      object.staff !== undefined && object.staff !== null
-        ? Staff.fromPartial(object.staff)
-        : undefined;
+    message.staff = (object.staff !== undefined && object.staff !== null) ? Staff.fromPartial(object.staff) : undefined;
     return message;
   },
 };
@@ -491,10 +446,7 @@ function createBaseStaffListRequest(): StaffListRequest {
 }
 
 export const StaffListRequest: MessageFns<StaffListRequest> = {
-  encode(
-    message: StaffListRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffListRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.merchantId !== "") {
       writer.uint32(10).string(message.merchantId);
     }
@@ -502,8 +454,7 @@ export const StaffListRequest: MessageFns<StaffListRequest> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): StaffListRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffListRequest();
     while (reader.pos < end) {
@@ -531,8 +482,8 @@ export const StaffListRequest: MessageFns<StaffListRequest> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
     };
   },
 
@@ -559,10 +510,7 @@ function createBaseStaffListResponse(): StaffListResponse {
 }
 
 export const StaffListResponse: MessageFns<StaffListResponse> = {
-  encode(
-    message: StaffListResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffListResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.staff) {
       Staff.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -570,8 +518,7 @@ export const StaffListResponse: MessageFns<StaffListResponse> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): StaffListResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffListResponse();
     while (reader.pos < end) {
@@ -595,11 +542,7 @@ export const StaffListResponse: MessageFns<StaffListResponse> = {
   },
 
   fromJSON(object: any): StaffListResponse {
-    return {
-      staff: globalThis.Array.isArray(object?.staff)
-        ? object.staff.map((e: any) => Staff.fromJSON(e))
-        : [],
-    };
+    return { staff: globalThis.Array.isArray(object?.staff) ? object.staff.map((e: any) => Staff.fromJSON(e)) : [] };
   },
 
   toJSON(message: StaffListResponse): unknown {
@@ -625,10 +568,7 @@ function createBaseStaffUpdatePinRequest(): StaffUpdatePinRequest {
 }
 
 export const StaffUpdatePinRequest: MessageFns<StaffUpdatePinRequest> = {
-  encode(
-    message: StaffUpdatePinRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffUpdatePinRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -638,12 +578,8 @@ export const StaffUpdatePinRequest: MessageFns<StaffUpdatePinRequest> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): StaffUpdatePinRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffUpdatePinRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffUpdatePinRequest();
     while (reader.pos < end) {
@@ -695,9 +631,7 @@ export const StaffUpdatePinRequest: MessageFns<StaffUpdatePinRequest> = {
   create(base?: DeepPartial<StaffUpdatePinRequest>): StaffUpdatePinRequest {
     return StaffUpdatePinRequest.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<StaffUpdatePinRequest>
-  ): StaffUpdatePinRequest {
+  fromPartial(object: DeepPartial<StaffUpdatePinRequest>): StaffUpdatePinRequest {
     const message = createBaseStaffUpdatePinRequest();
     message.id = object.id ?? "";
     message.pin = object.pin ?? "";
@@ -710,22 +644,15 @@ function createBaseStaffUpdatePinResponse(): StaffUpdatePinResponse {
 }
 
 export const StaffUpdatePinResponse: MessageFns<StaffUpdatePinResponse> = {
-  encode(
-    message: StaffUpdatePinResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffUpdatePinResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.staff !== undefined) {
       Staff.encode(message.staff, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): StaffUpdatePinResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffUpdatePinResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffUpdatePinResponse();
     while (reader.pos < end) {
@@ -749,9 +676,7 @@ export const StaffUpdatePinResponse: MessageFns<StaffUpdatePinResponse> = {
   },
 
   fromJSON(object: any): StaffUpdatePinResponse {
-    return {
-      staff: isSet(object.staff) ? Staff.fromJSON(object.staff) : undefined,
-    };
+    return { staff: isSet(object.staff) ? Staff.fromJSON(object.staff) : undefined };
   },
 
   toJSON(message: StaffUpdatePinResponse): unknown {
@@ -765,14 +690,9 @@ export const StaffUpdatePinResponse: MessageFns<StaffUpdatePinResponse> = {
   create(base?: DeepPartial<StaffUpdatePinResponse>): StaffUpdatePinResponse {
     return StaffUpdatePinResponse.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<StaffUpdatePinResponse>
-  ): StaffUpdatePinResponse {
+  fromPartial(object: DeepPartial<StaffUpdatePinResponse>): StaffUpdatePinResponse {
     const message = createBaseStaffUpdatePinResponse();
-    message.staff =
-      object.staff !== undefined && object.staff !== null
-        ? Staff.fromPartial(object.staff)
-        : undefined;
+    message.staff = (object.staff !== undefined && object.staff !== null) ? Staff.fromPartial(object.staff) : undefined;
     return message;
   },
 };
@@ -782,22 +702,15 @@ function createBaseStaffDeleteRequest(): StaffDeleteRequest {
 }
 
 export const StaffDeleteRequest: MessageFns<StaffDeleteRequest> = {
-  encode(
-    message: StaffDeleteRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: StaffDeleteRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): StaffDeleteRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffDeleteRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaffDeleteRequest();
     while (reader.pos < end) {
@@ -842,34 +755,23 @@ export const StaffDeleteRequest: MessageFns<StaffDeleteRequest> = {
   },
 };
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  create(base?: DeepPartial<T>): T;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
-  fromPartial(object: DeepPartial<T>): T;
   toJSON(message: T): unknown;
+  create(base?: DeepPartial<T>): T;
+  fromPartial(object: DeepPartial<T>): T;
 }

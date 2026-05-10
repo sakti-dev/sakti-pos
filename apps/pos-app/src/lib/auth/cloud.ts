@@ -36,6 +36,7 @@ interface Outlet {
   isActive: boolean;
   merchantId: string;
   name: string;
+  timezone: string;
 }
 
 interface Register {
@@ -184,6 +185,7 @@ export function getOutlets(merchantId: string): Promise<Outlet[]> {
       isActive: outlet.isActive,
       merchantId: outlet.merchantId,
       name: outlet.name,
+      timezone: outlet.timezone,
     }))
   );
 }
@@ -191,7 +193,8 @@ export function getOutlets(merchantId: string): Promise<Outlet[]> {
 export function createOutlet(
   merchantId: string,
   name: string,
-  address?: string
+  address?: string,
+  timezone = "Asia/Jakarta"
 ): Promise<Outlet & { register?: Register }> {
   return withError(
     outletsApi.create({
@@ -199,6 +202,7 @@ export function createOutlet(
       hasAddress: address !== undefined,
       merchantId,
       name,
+      timezone,
     }),
     "POST",
     "api/outlets/create"
@@ -213,6 +217,7 @@ export function createOutlet(
       isActive: result.outlet.isActive,
       merchantId: result.outlet.merchantId,
       name: result.outlet.name,
+      timezone: result.outlet.timezone,
       register:
         result.hasRegister && result.register
           ? {
@@ -310,6 +315,7 @@ export function pairRegister(pairingCode: string): Promise<PairResult> {
         isActive: result.outlet.isActive,
         merchantId: result.outlet.merchantId,
         name: result.outlet.name,
+        timezone: result.outlet.timezone,
       },
       register: {
         id: result.register.id,

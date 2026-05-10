@@ -64,6 +64,7 @@ describe("domain protobuf messages", () => {
           isActive: true,
           merchantId: "merchant-1",
           name: "Main",
+          timezone: "Asia/Jakarta",
           updatedAt: "2026-05-10T00:00:00.000Z",
         },
         register: undefined,
@@ -76,6 +77,7 @@ describe("domain protobuf messages", () => {
         hasAddress: false,
         merchantId: "merchant-1",
         name: "Main",
+        timezone: "Asia/Jakarta",
       }).finish()
     );
 

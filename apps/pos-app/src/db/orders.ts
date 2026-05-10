@@ -19,8 +19,14 @@ import {
   sql,
 } from "drizzle-orm";
 import {
+  formatUtcTimestamp,
+  getBusinessDateFromInstant,
+  toUtcRangeForBusinessDate,
+} from "~/lib/date-time";
+import {
   currentMerchantId,
   currentOutletId,
+  currentOutletTimezone,
   currentRegisterId,
 } from "~/store/outlet";
 import { db } from "./index";
@@ -40,6 +46,7 @@ interface BatchResult {
 export async function createOrder(data: {
   amountPaid: number | null;
   changeAmount: number | null;
+  createdAt?: string;
   items: {
     originalPrice?: number;
     price: number;
@@ -50,11 +57,12 @@ export async function createOrder(data: {
   paymentMethod: "cash" | "qris";
   staffId: string;
   total: number;
+  timezone?: string;
 }): Promise<string> {
-  const today = dayjs().format("YYYY-MM-DD");
-  const orderNumber = await getNextOrderNumber(today);
-
-  const now = dayjs().toISOString();
+  const timezone = data.timezone ?? currentOutletTimezone();
+  const createdAt = data.createdAt ?? formatUtcTimestamp();
+  const businessDate = getBusinessDateFromInstant(createdAt, timezone);
+  const orderNumber = await getNextOrderNumber(businessDate);
   const outletId = currentOutletId();
   const registerId = currentRegisterId();
   const orderId = crypto.randomUUID();
@@ -71,8 +79,8 @@ export async function createOrder(data: {
       data.paymentMethod,
       data.amountPaid,
       data.changeAmount,
-      now,
-      now,
+      createdAt,
+      createdAt,
     ],
   };
 
@@ -94,8 +102,8 @@ export async function createOrder(data: {
         item.price,
         item.originalPrice ?? null,
         item.qty * item.price,
-        now,
-        now,
+        createdAt,
+        createdAt,
       ],
     })
   );
@@ -217,11 +225,14 @@ export interface OrderItemRow {
 
 export type OrderWithItems = OrderRow & { items: OrderItemRow[] };
 
-export async function getOrders(filter: {
-  dateFrom?: string;
-  dateTo?: string;
-  status?: "completed" | "cancelled";
-}): Promise<OrderRow[]> {
+export async function getOrders(
+  filter: {
+    dateFrom?: string;
+    dateTo?: string;
+    status?: "completed" | "cancelled";
+  },
+  timezone = currentOutletTimezone()
+): Promise<OrderRow[]> {
   const conditions: SQL[] = [isNull(orders.deletedAt)];
   const outletId = currentOutletId();
   if (outletId) {
@@ -231,11 +242,12 @@ export async function getOrders(filter: {
     conditions.push(eq(orders.status, filter.status));
   }
   if (filter.dateFrom) {
-    conditions.push(gte(orders.createdAt, filter.dateFrom));
+    const range = toUtcRangeForBusinessDate(filter.dateFrom, timezone);
+    conditions.push(gte(orders.createdAt, range.startUtc));
   }
   if (filter.dateTo) {
-    const nextDayStr = dayjs(filter.dateTo).add(1, "day").format("YYYY-MM-DD");
-    conditions.push(lt(orders.createdAt, nextDayStr));
+    const range = toUtcRangeForBusinessDate(filter.dateTo, timezone);
+    conditions.push(lt(orders.createdAt, range.endExclusiveUtc));
   }
 
   const rows = await db
@@ -301,13 +313,16 @@ export interface DailySummary {
   totalRevenue: number;
 }
 
-export async function getDailySummary(date: string): Promise<DailySummary> {
-  const nextDayStr = dayjs(date).add(1, "day").format("YYYY-MM-DD");
+export async function getDailySummary(
+  date: string,
+  timezone = currentOutletTimezone()
+): Promise<DailySummary> {
+  const range = toUtcRangeForBusinessDate(date, timezone);
 
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, date),
-    lt(orders.createdAt, nextDayStr),
+    gte(orders.createdAt, range.startUtc),
+    lt(orders.createdAt, range.endExclusiveUtc),
     eq(orders.status, "completed"),
     isNull(orders.deletedAt),
   ];

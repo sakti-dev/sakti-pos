@@ -9,60 +9,62 @@ import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
 export const protobufPackage = "sakti.common.v1";
 
-export type Empty = {};
+export interface Empty {
+}
 
 export interface DeleteResponse {
   success: boolean;
 }
 
 export interface ApiUser {
-  email: string;
   id: string;
+  email: string;
   name: string;
 }
 
 export interface Merchant {
-  createdAt: string;
   id: string;
   name: string;
+  createdAt: string;
   updatedAt: string;
 }
 
 export interface Outlet {
-  address: string;
-  createdAt: string;
-  hasAddress: boolean;
   id: string;
-  isActive: boolean;
   merchantId: string;
   name: string;
+  address: string;
+  timezone: string;
+  hasAddress: boolean;
+  isActive: boolean;
+  createdAt: string;
   updatedAt: string;
 }
 
 export interface Register {
-  createdAt: string;
-  hasPairingCode: boolean;
-  hasPairingExpiresAt: boolean;
   id: string;
-  isActive: boolean;
-  name: string;
   outletId: string;
-  pairingCode: string;
-  pairingExpiresAt: string;
+  name: string;
   shortId: string;
+  pairingCode: string;
+  hasPairingCode: boolean;
+  pairingExpiresAt: string;
+  hasPairingExpiresAt: boolean;
+  isActive: boolean;
+  createdAt: string;
   updatedAt: string;
 }
 
 export interface Staff {
-  createdAt: string;
-  hasOutletId: boolean;
-  hasPin: boolean;
   id: string;
-  isActive: boolean;
   merchantId: string;
-  name: string;
   outletId: string;
+  hasOutletId: boolean;
+  name: string;
   role: string;
+  isActive: boolean;
+  hasPin: boolean;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -76,8 +78,7 @@ export const Empty: MessageFns<Empty> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Empty {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseEmpty();
     while (reader.pos < end) {
@@ -115,10 +116,7 @@ function createBaseDeleteResponse(): DeleteResponse {
 }
 
 export const DeleteResponse: MessageFns<DeleteResponse> = {
-  encode(
-    message: DeleteResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DeleteResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
       writer.uint32(8).bool(message.success);
     }
@@ -126,8 +124,7 @@ export const DeleteResponse: MessageFns<DeleteResponse> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): DeleteResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseDeleteResponse();
     while (reader.pos < end) {
@@ -151,11 +148,7 @@ export const DeleteResponse: MessageFns<DeleteResponse> = {
   },
 
   fromJSON(object: any): DeleteResponse {
-    return {
-      success: isSet(object.success)
-        ? globalThis.Boolean(object.success)
-        : false,
-    };
+    return { success: isSet(object.success) ? globalThis.Boolean(object.success) : false };
   },
 
   toJSON(message: DeleteResponse): unknown {
@@ -181,10 +174,7 @@ function createBaseApiUser(): ApiUser {
 }
 
 export const ApiUser: MessageFns<ApiUser> = {
-  encode(
-    message: ApiUser,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ApiUser, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -198,8 +188,7 @@ export const ApiUser: MessageFns<ApiUser> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): ApiUser {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseApiUser();
     while (reader.pos < end) {
@@ -277,10 +266,7 @@ function createBaseMerchant(): Merchant {
 }
 
 export const Merchant: MessageFns<Merchant> = {
-  encode(
-    message: Merchant,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: Merchant, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -297,8 +283,7 @@ export const Merchant: MessageFns<Merchant> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Merchant {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseMerchant();
     while (reader.pos < end) {
@@ -352,13 +337,13 @@ export const Merchant: MessageFns<Merchant> = {
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : "",
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : "",
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
@@ -398,6 +383,7 @@ function createBaseOutlet(): Outlet {
     merchantId: "",
     name: "",
     address: "",
+    timezone: "",
     hasAddress: false,
     isActive: false,
     createdAt: "",
@@ -406,10 +392,7 @@ function createBaseOutlet(): Outlet {
 }
 
 export const Outlet: MessageFns<Outlet> = {
-  encode(
-    message: Outlet,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: Outlet, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -422,24 +405,26 @@ export const Outlet: MessageFns<Outlet> = {
     if (message.address !== "") {
       writer.uint32(34).string(message.address);
     }
+    if (message.timezone !== "") {
+      writer.uint32(42).string(message.timezone);
+    }
     if (message.hasAddress !== false) {
-      writer.uint32(40).bool(message.hasAddress);
+      writer.uint32(48).bool(message.hasAddress);
     }
     if (message.isActive !== false) {
-      writer.uint32(48).bool(message.isActive);
+      writer.uint32(56).bool(message.isActive);
     }
     if (message.createdAt !== "") {
-      writer.uint32(58).string(message.createdAt);
+      writer.uint32(66).string(message.createdAt);
     }
     if (message.updatedAt !== "") {
-      writer.uint32(66).string(message.updatedAt);
+      writer.uint32(74).string(message.updatedAt);
     }
     return writer;
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Outlet {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseOutlet();
     while (reader.pos < end) {
@@ -478,11 +463,11 @@ export const Outlet: MessageFns<Outlet> = {
           continue;
         }
         case 5: {
-          if (tag !== 40) {
+          if (tag !== 42) {
             break;
           }
 
-          message.hasAddress = reader.bool();
+          message.timezone = reader.string();
           continue;
         }
         case 6: {
@@ -490,19 +475,27 @@ export const Outlet: MessageFns<Outlet> = {
             break;
           }
 
-          message.isActive = reader.bool();
+          message.hasAddress = reader.bool();
           continue;
         }
         case 7: {
-          if (tag !== 58) {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
             break;
           }
 
           message.createdAt = reader.string();
           continue;
         }
-        case 8: {
-          if (tag !== 66) {
+        case 9: {
+          if (tag !== 74) {
             break;
           }
 
@@ -524,30 +517,31 @@ export const Outlet: MessageFns<Outlet> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       address: isSet(object.address) ? globalThis.String(object.address) : "",
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
       hasAddress: isSet(object.hasAddress)
         ? globalThis.Boolean(object.hasAddress)
         : isSet(object.has_address)
-          ? globalThis.Boolean(object.has_address)
-          : false,
+        ? globalThis.Boolean(object.has_address)
+        : false,
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : "",
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : "",
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
@@ -564,6 +558,9 @@ export const Outlet: MessageFns<Outlet> = {
     }
     if (message.address !== "") {
       obj.address = message.address;
+    }
+    if (message.timezone !== "") {
+      obj.timezone = message.timezone;
     }
     if (message.hasAddress !== false) {
       obj.hasAddress = message.hasAddress;
@@ -589,6 +586,7 @@ export const Outlet: MessageFns<Outlet> = {
     message.merchantId = object.merchantId ?? "";
     message.name = object.name ?? "";
     message.address = object.address ?? "";
+    message.timezone = object.timezone ?? "";
     message.hasAddress = object.hasAddress ?? false;
     message.isActive = object.isActive ?? false;
     message.createdAt = object.createdAt ?? "";
@@ -614,10 +612,7 @@ function createBaseRegister(): Register {
 }
 
 export const Register: MessageFns<Register> = {
-  encode(
-    message: Register,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: Register, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -655,8 +650,7 @@ export const Register: MessageFns<Register> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Register {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseRegister();
     while (reader.pos < end) {
@@ -765,49 +759,49 @@ export const Register: MessageFns<Register> = {
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       shortId: isSet(object.shortId)
         ? globalThis.String(object.shortId)
         : isSet(object.short_id)
-          ? globalThis.String(object.short_id)
-          : "",
+        ? globalThis.String(object.short_id)
+        : "",
       pairingCode: isSet(object.pairingCode)
         ? globalThis.String(object.pairingCode)
         : isSet(object.pairing_code)
-          ? globalThis.String(object.pairing_code)
-          : "",
+        ? globalThis.String(object.pairing_code)
+        : "",
       hasPairingCode: isSet(object.hasPairingCode)
         ? globalThis.Boolean(object.hasPairingCode)
         : isSet(object.has_pairing_code)
-          ? globalThis.Boolean(object.has_pairing_code)
-          : false,
+        ? globalThis.Boolean(object.has_pairing_code)
+        : false,
       pairingExpiresAt: isSet(object.pairingExpiresAt)
         ? globalThis.String(object.pairingExpiresAt)
         : isSet(object.pairing_expires_at)
-          ? globalThis.String(object.pairing_expires_at)
-          : "",
+        ? globalThis.String(object.pairing_expires_at)
+        : "",
       hasPairingExpiresAt: isSet(object.hasPairingExpiresAt)
         ? globalThis.Boolean(object.hasPairingExpiresAt)
         : isSet(object.has_pairing_expires_at)
-          ? globalThis.Boolean(object.has_pairing_expires_at)
-          : false,
+        ? globalThis.Boolean(object.has_pairing_expires_at)
+        : false,
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : "",
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : "",
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
@@ -885,10 +879,7 @@ function createBaseStaff(): Staff {
 }
 
 export const Staff: MessageFns<Staff> = {
-  encode(
-    message: Staff,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: Staff, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -923,8 +914,7 @@ export const Staff: MessageFns<Staff> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): Staff {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStaff();
     while (reader.pos < end) {
@@ -1025,40 +1015,40 @@ export const Staff: MessageFns<Staff> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
       hasOutletId: isSet(object.hasOutletId)
         ? globalThis.Boolean(object.hasOutletId)
         : isSet(object.has_outlet_id)
-          ? globalThis.Boolean(object.has_outlet_id)
-          : false,
+        ? globalThis.Boolean(object.has_outlet_id)
+        : false,
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       role: isSet(object.role) ? globalThis.String(object.role) : "",
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       hasPin: isSet(object.hasPin)
         ? globalThis.Boolean(object.hasPin)
         : isSet(object.has_pin)
-          ? globalThis.Boolean(object.has_pin)
-          : false,
+        ? globalThis.Boolean(object.has_pin)
+        : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : "",
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : "",
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
@@ -1116,34 +1106,23 @@ export const Staff: MessageFns<Staff> = {
   },
 };
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  create(base?: DeepPartial<T>): T;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
-  fromPartial(object: DeepPartial<T>): T;
   toJSON(message: T): unknown;
+  create(base?: DeepPartial<T>): T;
+  fromPartial(object: DeepPartial<T>): T;
 }

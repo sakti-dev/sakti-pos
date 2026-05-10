@@ -45,11 +45,13 @@ describe("domain protobuf helpers", () => {
       isActive: true,
       merchantId: "merchant-1",
       name: "Main",
+      timezone: "Asia/Jakarta",
       updatedAt: "2026-05-10T00:00:00.000Z",
     });
 
     expect(outlet.address).toBe("");
     expect(outlet.hasAddress).toBe(false);
+    expect(outlet.timezone).toBe("Asia/Jakarta");
   });
 
   test("encodes register nullable pairing fields", () => {

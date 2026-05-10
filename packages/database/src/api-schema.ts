@@ -68,6 +68,7 @@ export const outlets = sqliteTable("outlets", {
   merchantId: text("merchant_id")
     .notNull()
     .references(() => merchants.id),
+  timezone: text("timezone").notNull().default("Asia/Jakarta"),
   name: text("name").notNull(),
   address: text("address"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),

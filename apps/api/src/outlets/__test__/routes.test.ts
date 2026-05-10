@@ -80,6 +80,7 @@ describe("outlets protobuf routes", () => {
         hasAddress: false,
         merchantId: "merchant-1",
         name: "Test Outlet",
+        timezone: "Asia/Jakarta",
       }).finish(),
     });
 
@@ -118,6 +119,7 @@ describe("outlets protobuf routes", () => {
                 isActive: true,
                 merchantId: "merchant-1",
                 name: "Test Outlet",
+                timezone: "Asia/Jakarta",
                 updatedAt: now,
               },
             ];
@@ -146,6 +148,7 @@ describe("outlets protobuf routes", () => {
         hasAddress: false,
         merchantId: "merchant-1",
         name: "Test Outlet",
+        timezone: "Asia/Jakarta",
       }).finish(),
       cookie: "narvik_session=valid-token",
     });
@@ -182,6 +185,7 @@ describe("outlets protobuf routes", () => {
               isActive: true,
               merchantId: "merchant-1",
               name: "Outlet 1",
+              timezone: "Asia/Jakarta",
               updatedAt: "2026-05-10T00:00:00.000Z",
             },
           ]),
@@ -218,6 +222,7 @@ describe("outlets protobuf routes", () => {
                 address: "Jl. Lama",
                 isActive: true,
                 name: "Outlet Lama",
+                timezone: "Asia/Jakarta",
               },
             ]),
           }),
@@ -242,6 +247,7 @@ describe("outlets protobuf routes", () => {
               isActive: false,
               merchantId: "merchant-1",
               name: "Outlet Baru",
+              timezone: "Asia/Jakarta",
               updatedAt: "2026-05-10T00:01:00.000Z",
             },
           ]),
@@ -258,6 +264,8 @@ describe("outlets protobuf routes", () => {
         id: "outlet-1",
         isActive: false,
         name: "Outlet Baru",
+        hasTimezone: true,
+        timezone: "Asia/Jakarta",
       }).finish(),
       cookie: "narvik_session=valid-token",
     });

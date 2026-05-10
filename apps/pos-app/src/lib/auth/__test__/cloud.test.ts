@@ -12,6 +12,17 @@ vi.mock("../storage", () => ({
   },
 }));
 
+const mockOutletList = vi.fn();
+const mockOutletCreate = vi.fn();
+
+vi.mock("~/lib/api/outlets", () => ({
+  outletsApi: {
+    create: (...args: unknown[]) => mockOutletCreate(...args),
+    list: (...args: unknown[]) => mockOutletList(...args),
+    update: vi.fn(),
+  },
+}));
+
 const originalFetch = globalThis.fetch;
 
 describe("isCloudAuthenticated", () => {
@@ -77,5 +88,65 @@ describe("isCloudAuthenticated", () => {
       StaffCurrentRequest.decode(new Uint8Array(await request.arrayBuffer()))
     ).toEqual({ merchantId: "merchant-1" });
     expect(result.staff?.id).toBe("staff-1");
+  });
+
+  test("getOutlets maps timezone from the API response", async () => {
+    mockOutletList.mockResolvedValueOnce({
+      outlets: [
+        {
+          address: "Jl. Merdeka",
+          hasAddress: true,
+          id: "outlet-1",
+          isActive: true,
+          merchantId: "merchant-1",
+          name: "Main",
+          timezone: "Asia/Makassar",
+        },
+      ],
+    });
+
+    const { getOutlets } = await import("../cloud");
+    const outlets = await getOutlets("merchant-1");
+
+    expect(outlets).toEqual([
+      {
+        address: "Jl. Merdeka",
+        id: "outlet-1",
+        isActive: true,
+        merchantId: "merchant-1",
+        name: "Main",
+        timezone: "Asia/Makassar",
+      },
+    ]);
+  });
+
+  test("createOutlet defaults timezone to Asia/Jakarta", async () => {
+    mockOutletCreate.mockResolvedValueOnce({
+      hasRegister: false,
+      outlet: {
+        address: "",
+        createdAt: "2026-05-10T00:00:00.000Z",
+        hasAddress: false,
+        id: "outlet-1",
+        isActive: true,
+        merchantId: "merchant-1",
+        name: "Main",
+        timezone: "Asia/Jakarta",
+        updatedAt: "2026-05-10T00:00:00.000Z",
+      },
+      register: undefined,
+    });
+
+    const { createOutlet } = await import("../cloud");
+    const outlet = await createOutlet("merchant-1", "Main");
+
+    expect(mockOutletCreate).toHaveBeenCalledWith({
+      address: "",
+      hasAddress: false,
+      merchantId: "merchant-1",
+      name: "Main",
+      timezone: "Asia/Jakarta",
+    });
+    expect(outlet.timezone).toBe("Asia/Jakarta");
   });
 });

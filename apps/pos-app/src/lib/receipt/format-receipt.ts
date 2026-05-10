@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { formatInBusinessTimezone } from "~/lib/date-time";
 import type { ReceiptData } from "./types";
 
 const LINE_WIDTH = 32;
@@ -51,7 +51,10 @@ export const formatReceiptForAndroid = (data: ReceiptData): string => {
   lines.push(
     "[C]--------------------------------",
     `[L]No: ${data.order.orderNumber}`,
-    `[L]Tgl: ${dayjs(data.order.createdAt).format("YYYY-MM-DD HH:mm")}`,
+    `[L]Tgl: ${formatInBusinessTimezone(
+      data.order.createdAt,
+      data.business.timezone
+    )}`,
     `[L]Kasir: ${data.order.cashierName}`,
     "[C]--------------------------------"
   );

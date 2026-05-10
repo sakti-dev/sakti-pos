@@ -8,6 +8,7 @@ const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
 const mockSetTheme = vi.fn();
 const mockChangeCurrentUserPin = vi.fn();
+const mockUpdateOutletTimezone = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
   useNavigate: () => mockNavigate,
@@ -28,9 +29,28 @@ vi.mock("~/store/auth", () => ({
     mockChangeCurrentUserPin(...args),
 }));
 
+vi.mock("~/store/outlet", () => ({
+  clearOutletContext: vi.fn(),
+  currentOutletId: () => "outlet-1",
+  currentOutletTimezone: () => "Asia/Jakarta",
+  setOutletTimezone: vi.fn(),
+}));
+
 vi.mock("~/store/theme", () => ({
   theme: vi.fn(() => "system"),
   setTheme: (...args: unknown[]) => mockSetTheme(...args),
+}));
+
+vi.mock("~/db/outlets", () => ({
+  getOutletById: vi.fn(() =>
+    Promise.resolve({
+      id: "outlet-1",
+      name: "Cabang Sudirman",
+      timezone: "Asia/Jakarta",
+    })
+  ),
+  updateOutletTimezone: (...args: unknown[]) =>
+    mockUpdateOutletTimezone(...args),
 }));
 
 vi.mock("~/lib/auth/cloud", () => ({
@@ -182,6 +202,13 @@ describe("Settings", () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
     expect(screen.getByText("0.1.0")).toBeInTheDocument();
+  });
+
+  test("shows outlet timezone selector", async () => {
+    render(() => <Settings />);
+    await screen.findByText("Pengaturan");
+    expect(screen.getByText("Zona Waktu Outlet")).toBeInTheDocument();
+    expect(screen.getByText("Simpan Zona Waktu")).toBeInTheDocument();
   });
 });
 

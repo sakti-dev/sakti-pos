@@ -73,6 +73,7 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
           merchantId,
           name,
           address: request.hasAddress ? request.address : null,
+          timezone: request.timezone || "Asia/Jakarta",
           createdAt: now,
           updatedAt: now,
         })
@@ -171,6 +172,7 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
           address: request.hasAddress ? request.address : outlet.address,
           isActive: request.hasIsActive ? request.isActive : outlet.isActive,
           name: request.hasName ? request.name : outlet.name,
+          timezone: request.hasTimezone ? request.timezone : outlet.timezone,
           updatedAt: now,
         })
         .where(eq(outlets.id, request.id))

@@ -21,6 +21,7 @@ import {
   getChartGranularity,
   getPreviousRange,
 } from "~/lib/dashboard/period";
+import { currentOutletTimezone } from "~/store/outlet";
 
 export type RevenueType = "hourly" | "daily" | "weekly" | "monthly";
 
@@ -57,10 +58,13 @@ function getFallbackRevenue(type: RevenueType): RevenueData {
 }
 
 export function useDashboardData(range: Accessor<DateRange>): DashboardData {
+  const timezone = currentOutletTimezone;
   const prevRange = createMemo(() => getPreviousRange(range()));
-  const rangeKey = createMemo(() => `${range().dateFrom}-${range().dateTo}`);
+  const rangeKey = createMemo(
+    () => `${timezone()}-${range().dateFrom}-${range().dateTo}`
+  );
   const prevKey = createMemo(
-    () => `${prevRange().dateFrom}-${prevRange().dateTo}`
+    () => `${timezone()}-${prevRange().dateFrom}-${prevRange().dateTo}`
   );
   const granularity = createMemo(() => getChartGranularity(range()));
 

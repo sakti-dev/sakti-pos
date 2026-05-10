@@ -99,7 +99,12 @@ export default function Onboarding() {
         outletName().trim(),
         outletAddress().trim() || undefined
       );
-      setOutletContext(result.id, result.merchantId, result.register?.id);
+      setOutletContext(
+        result.id,
+        result.merchantId,
+        result.register?.id,
+        result.timezone
+      );
       setCreatedOutletId(result.id);
 
       const existingOwner = await getOwnerStaff(merchant.id);

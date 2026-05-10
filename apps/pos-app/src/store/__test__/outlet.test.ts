@@ -31,9 +31,10 @@ describe("isDevicePaired", () => {
   });
 
   test("returns true after loading persisted context", () => {
-    setOutletContext("outlet-1", "merchant-1", "register-1");
+    setOutletContext("outlet-1", "merchant-1", "register-1", "Asia/Makassar");
     clearOutletContext();
     localStorage.setItem("sakti-pos:current-outlet-id", "outlet-1");
+    localStorage.setItem("sakti-pos:current-outlet-timezone", "Asia/Makassar");
     localStorage.setItem("sakti-pos:current-merchant-id", "merchant-1");
     loadOutletContext();
     expect(isDevicePaired()).toBe(true);

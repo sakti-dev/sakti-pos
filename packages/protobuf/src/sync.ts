@@ -15,54 +15,54 @@ export interface SyncPushRequest {
 }
 
 export interface SyncServerWin {
-  ids: string[];
   table: string;
+  ids: string[];
 }
 
 export interface SyncPushResponse {
-  serverTime: string;
   serverWins: SyncServerWin[];
+  serverTime: string;
 }
 
 export interface SyncStatusRequest {
-  lastServerEventId: number;
   outletId: string;
+  lastServerEventId: number;
 }
 
 export interface SyncStatusResponse {
   changedTables: string[];
   hasChanges: boolean;
-  hasOldestAvailableEventId: boolean;
   latestEventId: number;
   needsFullResync: boolean;
   oldestAvailableEventId: number;
+  hasOldestAvailableEventId: boolean;
 }
 
 export interface SyncPullEventsRequest {
-  afterEventId: number;
   outletId: string;
+  afterEventId: number;
 }
 
 export interface SyncTableRows {
-  rowsJson: string;
   table: string;
+  rowsJson: string;
 }
 
 export interface SyncPullEventsResponse {
+  tables: SyncTableRows[];
   latestEventId: number;
   needsFullResync: boolean;
-  tables: SyncTableRows[];
 }
 
 export interface SyncPullRequest {
   outletId: string;
-  since: string;
   tables: string[];
+  since: string;
 }
 
 export interface SyncPullResponse {
-  serverTime: string;
   tables: SyncTableRows[];
+  serverTime: string;
 }
 
 function createBaseSyncPushRequest(): SyncPushRequest {
@@ -70,10 +70,7 @@ function createBaseSyncPushRequest(): SyncPushRequest {
 }
 
 export const SyncPushRequest: MessageFns<SyncPushRequest> = {
-  encode(
-    message: SyncPushRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncPushRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
@@ -84,8 +81,7 @@ export const SyncPushRequest: MessageFns<SyncPushRequest> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SyncPushRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncPushRequest();
     while (reader.pos < end) {
@@ -121,13 +117,13 @@ export const SyncPushRequest: MessageFns<SyncPushRequest> = {
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
       payloadJson: isSet(object.payloadJson)
         ? globalThis.String(object.payloadJson)
         : isSet(object.payload_json)
-          ? globalThis.String(object.payload_json)
-          : "",
+        ? globalThis.String(object.payload_json)
+        : "",
     };
   },
 
@@ -158,10 +154,7 @@ function createBaseSyncServerWin(): SyncServerWin {
 }
 
 export const SyncServerWin: MessageFns<SyncServerWin> = {
-  encode(
-    message: SyncServerWin,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncServerWin, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.table !== "") {
       writer.uint32(10).string(message.table);
     }
@@ -172,8 +165,7 @@ export const SyncServerWin: MessageFns<SyncServerWin> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SyncServerWin {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncServerWin();
     while (reader.pos < end) {
@@ -207,9 +199,7 @@ export const SyncServerWin: MessageFns<SyncServerWin> = {
   fromJSON(object: any): SyncServerWin {
     return {
       table: isSet(object.table) ? globalThis.String(object.table) : "",
-      ids: globalThis.Array.isArray(object?.ids)
-        ? object.ids.map((e: any) => globalThis.String(e))
-        : [],
+      ids: globalThis.Array.isArray(object?.ids) ? object.ids.map((e: any) => globalThis.String(e)) : [],
     };
   },
 
@@ -240,10 +230,7 @@ function createBaseSyncPushResponse(): SyncPushResponse {
 }
 
 export const SyncPushResponse: MessageFns<SyncPushResponse> = {
-  encode(
-    message: SyncPushResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncPushResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.serverWins) {
       SyncServerWin.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -254,8 +241,7 @@ export const SyncPushResponse: MessageFns<SyncPushResponse> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SyncPushResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncPushResponse();
     while (reader.pos < end) {
@@ -266,9 +252,7 @@ export const SyncPushResponse: MessageFns<SyncPushResponse> = {
             break;
           }
 
-          message.serverWins.push(
-            SyncServerWin.decode(reader, reader.uint32())
-          );
+          message.serverWins.push(SyncServerWin.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
@@ -293,13 +277,13 @@ export const SyncPushResponse: MessageFns<SyncPushResponse> = {
       serverWins: globalThis.Array.isArray(object?.serverWins)
         ? object.serverWins.map((e: any) => SyncServerWin.fromJSON(e))
         : globalThis.Array.isArray(object?.server_wins)
-          ? object.server_wins.map((e: any) => SyncServerWin.fromJSON(e))
-          : [],
+        ? object.server_wins.map((e: any) => SyncServerWin.fromJSON(e))
+        : [],
       serverTime: isSet(object.serverTime)
         ? globalThis.String(object.serverTime)
         : isSet(object.server_time)
-          ? globalThis.String(object.server_time)
-          : "",
+        ? globalThis.String(object.server_time)
+        : "",
     };
   },
 
@@ -319,8 +303,7 @@ export const SyncPushResponse: MessageFns<SyncPushResponse> = {
   },
   fromPartial(object: DeepPartial<SyncPushResponse>): SyncPushResponse {
     const message = createBaseSyncPushResponse();
-    message.serverWins =
-      object.serverWins?.map((e) => SyncServerWin.fromPartial(e)) || [];
+    message.serverWins = object.serverWins?.map((e) => SyncServerWin.fromPartial(e)) || [];
     message.serverTime = object.serverTime ?? "";
     return message;
   },
@@ -331,10 +314,7 @@ function createBaseSyncStatusRequest(): SyncStatusRequest {
 }
 
 export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
-  encode(
-    message: SyncStatusRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncStatusRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
@@ -345,8 +325,7 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SyncStatusRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncStatusRequest();
     while (reader.pos < end) {
@@ -382,13 +361,13 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
       lastServerEventId: isSet(object.lastServerEventId)
         ? globalThis.Number(object.lastServerEventId)
         : isSet(object.last_server_event_id)
-          ? globalThis.Number(object.last_server_event_id)
-          : 0,
+        ? globalThis.Number(object.last_server_event_id)
+        : 0,
     };
   },
 
@@ -426,10 +405,7 @@ function createBaseSyncStatusResponse(): SyncStatusResponse {
 }
 
 export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
-  encode(
-    message: SyncStatusResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncStatusResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.changedTables) {
       writer.uint32(10).string(v!);
     }
@@ -451,12 +427,8 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): SyncStatusResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): SyncStatusResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncStatusResponse();
     while (reader.pos < end) {
@@ -524,33 +496,33 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
       changedTables: globalThis.Array.isArray(object?.changedTables)
         ? object.changedTables.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.changed_tables)
-          ? object.changed_tables.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.changed_tables.map((e: any) => globalThis.String(e))
+        : [],
       hasChanges: isSet(object.hasChanges)
         ? globalThis.Boolean(object.hasChanges)
         : isSet(object.has_changes)
-          ? globalThis.Boolean(object.has_changes)
-          : false,
+        ? globalThis.Boolean(object.has_changes)
+        : false,
       latestEventId: isSet(object.latestEventId)
         ? globalThis.Number(object.latestEventId)
         : isSet(object.latest_event_id)
-          ? globalThis.Number(object.latest_event_id)
-          : 0,
+        ? globalThis.Number(object.latest_event_id)
+        : 0,
       needsFullResync: isSet(object.needsFullResync)
         ? globalThis.Boolean(object.needsFullResync)
         : isSet(object.needs_full_resync)
-          ? globalThis.Boolean(object.needs_full_resync)
-          : false,
+        ? globalThis.Boolean(object.needs_full_resync)
+        : false,
       oldestAvailableEventId: isSet(object.oldestAvailableEventId)
         ? globalThis.Number(object.oldestAvailableEventId)
         : isSet(object.oldest_available_event_id)
-          ? globalThis.Number(object.oldest_available_event_id)
-          : 0,
+        ? globalThis.Number(object.oldest_available_event_id)
+        : 0,
       hasOldestAvailableEventId: isSet(object.hasOldestAvailableEventId)
         ? globalThis.Boolean(object.hasOldestAvailableEventId)
         : isSet(object.has_oldest_available_event_id)
-          ? globalThis.Boolean(object.has_oldest_available_event_id)
-          : false,
+        ? globalThis.Boolean(object.has_oldest_available_event_id)
+        : false,
     };
   },
 
@@ -587,8 +559,7 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
     message.latestEventId = object.latestEventId ?? 0;
     message.needsFullResync = object.needsFullResync ?? false;
     message.oldestAvailableEventId = object.oldestAvailableEventId ?? 0;
-    message.hasOldestAvailableEventId =
-      object.hasOldestAvailableEventId ?? false;
+    message.hasOldestAvailableEventId = object.hasOldestAvailableEventId ?? false;
     return message;
   },
 };
@@ -598,10 +569,7 @@ function createBaseSyncPullEventsRequest(): SyncPullEventsRequest {
 }
 
 export const SyncPullEventsRequest: MessageFns<SyncPullEventsRequest> = {
-  encode(
-    message: SyncPullEventsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncPullEventsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
@@ -611,12 +579,8 @@ export const SyncPullEventsRequest: MessageFns<SyncPullEventsRequest> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): SyncPullEventsRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): SyncPullEventsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncPullEventsRequest();
     while (reader.pos < end) {
@@ -652,13 +616,13 @@ export const SyncPullEventsRequest: MessageFns<SyncPullEventsRequest> = {
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
+        ? globalThis.String(object.outlet_id)
+        : "",
       afterEventId: isSet(object.afterEventId)
         ? globalThis.Number(object.afterEventId)
         : isSet(object.after_event_id)
-          ? globalThis.Number(object.after_event_id)
-          : 0,
+        ? globalThis.Number(object.after_event_id)
+        : 0,
     };
   },
 
@@ -676,9 +640,7 @@ export const SyncPullEventsRequest: MessageFns<SyncPullEventsRequest> = {
   create(base?: DeepPartial<SyncPullEventsRequest>): SyncPullEventsRequest {
     return SyncPullEventsRequest.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<SyncPullEventsRequest>
-  ): SyncPullEventsRequest {
+  fromPartial(object: DeepPartial<SyncPullEventsRequest>): SyncPullEventsRequest {
     const message = createBaseSyncPullEventsRequest();
     message.outletId = object.outletId ?? "";
     message.afterEventId = object.afterEventId ?? 0;
@@ -691,10 +653,7 @@ function createBaseSyncTableRows(): SyncTableRows {
 }
 
 export const SyncTableRows: MessageFns<SyncTableRows> = {
-  encode(
-    message: SyncTableRows,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncTableRows, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.table !== "") {
       writer.uint32(10).string(message.table);
     }
@@ -705,8 +664,7 @@ export const SyncTableRows: MessageFns<SyncTableRows> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SyncTableRows {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncTableRows();
     while (reader.pos < end) {
@@ -743,8 +701,8 @@ export const SyncTableRows: MessageFns<SyncTableRows> = {
       rowsJson: isSet(object.rowsJson)
         ? globalThis.String(object.rowsJson)
         : isSet(object.rows_json)
-          ? globalThis.String(object.rows_json)
-          : "",
+        ? globalThis.String(object.rows_json)
+        : "",
     };
   },
 
@@ -775,10 +733,7 @@ function createBaseSyncPullEventsResponse(): SyncPullEventsResponse {
 }
 
 export const SyncPullEventsResponse: MessageFns<SyncPullEventsResponse> = {
-  encode(
-    message: SyncPullEventsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncPullEventsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.tables) {
       SyncTableRows.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -791,12 +746,8 @@ export const SyncPullEventsResponse: MessageFns<SyncPullEventsResponse> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): SyncPullEventsResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): SyncPullEventsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncPullEventsResponse();
     while (reader.pos < end) {
@@ -837,19 +788,17 @@ export const SyncPullEventsResponse: MessageFns<SyncPullEventsResponse> = {
 
   fromJSON(object: any): SyncPullEventsResponse {
     return {
-      tables: globalThis.Array.isArray(object?.tables)
-        ? object.tables.map((e: any) => SyncTableRows.fromJSON(e))
-        : [],
+      tables: globalThis.Array.isArray(object?.tables) ? object.tables.map((e: any) => SyncTableRows.fromJSON(e)) : [],
       latestEventId: isSet(object.latestEventId)
         ? globalThis.Number(object.latestEventId)
         : isSet(object.latest_event_id)
-          ? globalThis.Number(object.latest_event_id)
-          : 0,
+        ? globalThis.Number(object.latest_event_id)
+        : 0,
       needsFullResync: isSet(object.needsFullResync)
         ? globalThis.Boolean(object.needsFullResync)
         : isSet(object.needs_full_resync)
-          ? globalThis.Boolean(object.needs_full_resync)
-          : false,
+        ? globalThis.Boolean(object.needs_full_resync)
+        : false,
     };
   },
 
@@ -870,12 +819,9 @@ export const SyncPullEventsResponse: MessageFns<SyncPullEventsResponse> = {
   create(base?: DeepPartial<SyncPullEventsResponse>): SyncPullEventsResponse {
     return SyncPullEventsResponse.fromPartial(base ?? {});
   },
-  fromPartial(
-    object: DeepPartial<SyncPullEventsResponse>
-  ): SyncPullEventsResponse {
+  fromPartial(object: DeepPartial<SyncPullEventsResponse>): SyncPullEventsResponse {
     const message = createBaseSyncPullEventsResponse();
-    message.tables =
-      object.tables?.map((e) => SyncTableRows.fromPartial(e)) || [];
+    message.tables = object.tables?.map((e) => SyncTableRows.fromPartial(e)) || [];
     message.latestEventId = object.latestEventId ?? 0;
     message.needsFullResync = object.needsFullResync ?? false;
     return message;
@@ -887,10 +833,7 @@ function createBaseSyncPullRequest(): SyncPullRequest {
 }
 
 export const SyncPullRequest: MessageFns<SyncPullRequest> = {
-  encode(
-    message: SyncPullRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncPullRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
@@ -904,8 +847,7 @@ export const SyncPullRequest: MessageFns<SyncPullRequest> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SyncPullRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncPullRequest();
     while (reader.pos < end) {
@@ -949,11 +891,9 @@ export const SyncPullRequest: MessageFns<SyncPullRequest> = {
       outletId: isSet(object.outletId)
         ? globalThis.String(object.outletId)
         : isSet(object.outlet_id)
-          ? globalThis.String(object.outlet_id)
-          : "",
-      tables: globalThis.Array.isArray(object?.tables)
-        ? object.tables.map((e: any) => globalThis.String(e))
-        : [],
+        ? globalThis.String(object.outlet_id)
+        : "",
+      tables: globalThis.Array.isArray(object?.tables) ? object.tables.map((e: any) => globalThis.String(e)) : [],
       since: isSet(object.since) ? globalThis.String(object.since) : "",
     };
   },
@@ -989,10 +929,7 @@ function createBaseSyncPullResponse(): SyncPullResponse {
 }
 
 export const SyncPullResponse: MessageFns<SyncPullResponse> = {
-  encode(
-    message: SyncPullResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SyncPullResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.tables) {
       SyncTableRows.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -1003,8 +940,7 @@ export const SyncPullResponse: MessageFns<SyncPullResponse> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SyncPullResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSyncPullResponse();
     while (reader.pos < end) {
@@ -1037,14 +973,12 @@ export const SyncPullResponse: MessageFns<SyncPullResponse> = {
 
   fromJSON(object: any): SyncPullResponse {
     return {
-      tables: globalThis.Array.isArray(object?.tables)
-        ? object.tables.map((e: any) => SyncTableRows.fromJSON(e))
-        : [],
+      tables: globalThis.Array.isArray(object?.tables) ? object.tables.map((e: any) => SyncTableRows.fromJSON(e)) : [],
       serverTime: isSet(object.serverTime)
         ? globalThis.String(object.serverTime)
         : isSet(object.server_time)
-          ? globalThis.String(object.server_time)
-          : "",
+        ? globalThis.String(object.server_time)
+        : "",
     };
   },
 
@@ -1064,31 +998,19 @@ export const SyncPullResponse: MessageFns<SyncPullResponse> = {
   },
   fromPartial(object: DeepPartial<SyncPullResponse>): SyncPullResponse {
     const message = createBaseSyncPullResponse();
-    message.tables =
-      object.tables?.map((e) => SyncTableRows.fromPartial(e)) || [];
+    message.tables = object.tables?.map((e) => SyncTableRows.fromPartial(e)) || [];
     message.serverTime = object.serverTime ?? "";
     return message;
   },
 };
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 function longToNumber(int64: { toString(): string }): number {
   const num = globalThis.Number(int64.toString());
@@ -1106,10 +1028,10 @@ function isSet(value: any): boolean {
 }
 
 export interface MessageFns<T> {
-  create(base?: DeepPartial<T>): T;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
-  fromPartial(object: DeepPartial<T>): T;
   toJSON(message: T): unknown;
+  create(base?: DeepPartial<T>): T;
+  fromPartial(object: DeepPartial<T>): T;
 }

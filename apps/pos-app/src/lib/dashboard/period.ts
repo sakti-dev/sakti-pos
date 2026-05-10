@@ -1,4 +1,10 @@
 import dayjs from "dayjs";
+import {
+  getBusinessDate,
+  getBusinessWeekStart,
+  shiftBusinessDate,
+} from "~/lib/date-time";
+import { currentOutletTimezone } from "~/store/outlet";
 
 export type PeriodPreset =
   | "custom"
@@ -15,53 +21,55 @@ export interface DateRange {
 }
 
 export function getTodayRange(): DateRange {
-  const today = dayjs().format("YYYY-MM-DD");
+  const today = getBusinessDate(currentOutletTimezone());
   return { dateFrom: today, dateTo: today, preset: "today" };
 }
 
 export function getYesterdayRange(): DateRange {
-  const yesterday = dayjs().subtract(1, "day").format("YYYY-MM-DD");
+  const today = getBusinessDate(currentOutletTimezone());
+  const yesterday = shiftBusinessDate(today, -1, currentOutletTimezone());
   return { dateFrom: yesterday, dateTo: yesterday, preset: "yesterday" };
 }
 
 export function getWeekRange(): DateRange {
-  const now = dayjs();
-  const day = now.day();
-  const diffToMonday = day === 0 ? 6 : day - 1;
-  const monday = now.subtract(diffToMonday, "day");
-  const sunday = monday.add(6, "day");
+  const today = getBusinessDate(currentOutletTimezone());
+  const monday = getBusinessWeekStart(today, currentOutletTimezone());
+  const sunday = shiftBusinessDate(monday, 6, currentOutletTimezone());
   return {
-    dateFrom: monday.format("YYYY-MM-DD"),
-    dateTo: sunday.format("YYYY-MM-DD"),
+    dateFrom: monday,
+    dateTo: sunday,
     preset: "week",
   };
 }
 
 export function getMonthRange(): DateRange {
+  const timezone = currentOutletTimezone();
+  const today = dayjs().tz(timezone);
   return {
-    dateFrom: dayjs().startOf("month").format("YYYY-MM-DD"),
-    dateTo: dayjs().endOf("month").format("YYYY-MM-DD"),
+    dateFrom: today.startOf("month").format("YYYY-MM-DD"),
+    dateTo: today.endOf("month").format("YYYY-MM-DD"),
     preset: "month",
   };
 }
 
 export function getYearRange(): DateRange {
+  const timezone = currentOutletTimezone();
+  const today = dayjs().tz(timezone);
   return {
-    dateFrom: dayjs().startOf("year").format("YYYY-MM-DD"),
-    dateTo: dayjs().endOf("year").format("YYYY-MM-DD"),
+    dateFrom: today.startOf("year").format("YYYY-MM-DD"),
+    dateTo: today.endOf("year").format("YYYY-MM-DD"),
     preset: "year",
   };
 }
 
 export function getPreviousRange(range: DateRange): DateRange {
-  const from = dayjs(range.dateFrom);
-  const to = dayjs(range.dateTo);
-  const days = to.diff(from, "day");
-  const prevTo = from.subtract(1, "day");
-  const prevFrom = prevTo.subtract(days, "day");
+  const timezone = currentOutletTimezone();
+  const days = dayjs(range.dateTo).diff(dayjs(range.dateFrom), "day");
+  const prevTo = shiftBusinessDate(range.dateFrom, -1, timezone);
+  const prevFrom = shiftBusinessDate(prevTo, -days, timezone);
   return {
-    dateFrom: prevFrom.format("YYYY-MM-DD"),
-    dateTo: prevTo.format("YYYY-MM-DD"),
+    dateFrom: prevFrom,
+    dateTo: prevTo,
     preset: "custom",
   };
 }

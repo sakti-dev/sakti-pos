@@ -84,6 +84,7 @@ vi.mock("~/store/cart", () => ({
 
 const mockPrintReceipt = vi.fn();
 const mockGetDefaultPrinter = vi.fn<() => string | null>(() => null);
+const UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 vi.mock("~/lib/printer/client", () => ({
   printReceipt: (...args: unknown[]) => mockPrintReceipt(...args),
@@ -357,6 +358,7 @@ describe("POS page", () => {
         order: expect.objectContaining({
           orderNumber: "2026-05-04-001",
           cashierName: "Kasir",
+          createdAt: expect.stringMatching(UTC_TIMESTAMP_PATTERN),
         }),
         totals: expect.objectContaining({ total: 30_000 }),
       })

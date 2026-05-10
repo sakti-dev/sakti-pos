@@ -68,7 +68,7 @@ export function useCloudAuthFlow() {
       outletId: outlet.id,
       outletName: outlet.name,
     });
-    setOutletContext(outlet.id, outlet.merchantId);
+    setOutletContext(outlet.id, outlet.merchantId, undefined, outlet.timezone);
     let currentCloudStaff: CurrentCloudStaff;
     try {
       cloudLoginLogger.info("current_cloud_staff:request", {

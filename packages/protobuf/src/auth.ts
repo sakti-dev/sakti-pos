@@ -12,8 +12,8 @@ export const protobufPackage = "sakti.auth.v1";
 
 export interface AuthRegisterRequest {
   email: string;
-  name: string;
   password: string;
+  name: string;
 }
 
 export interface AuthLoginRequest {
@@ -33,9 +33,9 @@ export interface AuthResponse {
 }
 
 export interface AuthSessionResponse {
+  user: ApiUser | undefined;
   hasUser: boolean;
   merchants: SessionMerchant[];
-  user: ApiUser | undefined;
 }
 
 export interface LogoutResponse {
@@ -47,10 +47,7 @@ function createBaseAuthRegisterRequest(): AuthRegisterRequest {
 }
 
 export const AuthRegisterRequest: MessageFns<AuthRegisterRequest> = {
-  encode(
-    message: AuthRegisterRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AuthRegisterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
@@ -63,12 +60,8 @@ export const AuthRegisterRequest: MessageFns<AuthRegisterRequest> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): AuthRegisterRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): AuthRegisterRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseAuthRegisterRequest();
     while (reader.pos < end) {
@@ -110,9 +103,7 @@ export const AuthRegisterRequest: MessageFns<AuthRegisterRequest> = {
   fromJSON(object: any): AuthRegisterRequest {
     return {
       email: isSet(object.email) ? globalThis.String(object.email) : "",
-      password: isSet(object.password)
-        ? globalThis.String(object.password)
-        : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
     };
   },
@@ -148,10 +139,7 @@ function createBaseAuthLoginRequest(): AuthLoginRequest {
 }
 
 export const AuthLoginRequest: MessageFns<AuthLoginRequest> = {
-  encode(
-    message: AuthLoginRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AuthLoginRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
@@ -162,8 +150,7 @@ export const AuthLoginRequest: MessageFns<AuthLoginRequest> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AuthLoginRequest {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseAuthLoginRequest();
     while (reader.pos < end) {
@@ -197,9 +184,7 @@ export const AuthLoginRequest: MessageFns<AuthLoginRequest> = {
   fromJSON(object: any): AuthLoginRequest {
     return {
       email: isSet(object.email) ? globalThis.String(object.email) : "",
-      password: isSet(object.password)
-        ? globalThis.String(object.password)
-        : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
     };
   },
 
@@ -230,10 +215,7 @@ function createBaseSessionMerchant(): SessionMerchant {
 }
 
 export const SessionMerchant: MessageFns<SessionMerchant> = {
-  encode(
-    message: SessionMerchant,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: SessionMerchant, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.merchantId !== "") {
       writer.uint32(10).string(message.merchantId);
     }
@@ -247,8 +229,7 @@ export const SessionMerchant: MessageFns<SessionMerchant> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SessionMerchant {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSessionMerchant();
     while (reader.pos < end) {
@@ -292,8 +273,8 @@ export const SessionMerchant: MessageFns<SessionMerchant> = {
       merchantId: isSet(object.merchantId)
         ? globalThis.String(object.merchantId)
         : isSet(object.merchant_id)
-          ? globalThis.String(object.merchant_id)
-          : "",
+        ? globalThis.String(object.merchant_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       role: isSet(object.role) ? globalThis.String(object.role) : "",
     };
@@ -330,10 +311,7 @@ function createBaseAuthResponse(): AuthResponse {
 }
 
 export const AuthResponse: MessageFns<AuthResponse> = {
-  encode(
-    message: AuthResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AuthResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.sessionToken !== "") {
       writer.uint32(10).string(message.sessionToken);
     }
@@ -344,8 +322,7 @@ export const AuthResponse: MessageFns<AuthResponse> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AuthResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseAuthResponse();
     while (reader.pos < end) {
@@ -381,8 +358,8 @@ export const AuthResponse: MessageFns<AuthResponse> = {
       sessionToken: isSet(object.sessionToken)
         ? globalThis.String(object.sessionToken)
         : isSet(object.session_token)
-          ? globalThis.String(object.session_token)
-          : "",
+        ? globalThis.String(object.session_token)
+        : "",
       user: isSet(object.user) ? ApiUser.fromJSON(object.user) : undefined,
     };
   },
@@ -404,10 +381,7 @@ export const AuthResponse: MessageFns<AuthResponse> = {
   fromPartial(object: DeepPartial<AuthResponse>): AuthResponse {
     const message = createBaseAuthResponse();
     message.sessionToken = object.sessionToken ?? "";
-    message.user =
-      object.user !== undefined && object.user !== null
-        ? ApiUser.fromPartial(object.user)
-        : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? ApiUser.fromPartial(object.user) : undefined;
     return message;
   },
 };
@@ -417,10 +391,7 @@ function createBaseAuthSessionResponse(): AuthSessionResponse {
 }
 
 export const AuthSessionResponse: MessageFns<AuthSessionResponse> = {
-  encode(
-    message: AuthSessionResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AuthSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.user !== undefined) {
       ApiUser.encode(message.user, writer.uint32(10).fork()).join();
     }
@@ -433,12 +404,8 @@ export const AuthSessionResponse: MessageFns<AuthSessionResponse> = {
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number
-  ): AuthSessionResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+  decode(input: BinaryReader | Uint8Array, length?: number): AuthSessionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseAuthSessionResponse();
     while (reader.pos < end) {
@@ -465,9 +432,7 @@ export const AuthSessionResponse: MessageFns<AuthSessionResponse> = {
             break;
           }
 
-          message.merchants.push(
-            SessionMerchant.decode(reader, reader.uint32())
-          );
+          message.merchants.push(SessionMerchant.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -485,8 +450,8 @@ export const AuthSessionResponse: MessageFns<AuthSessionResponse> = {
       hasUser: isSet(object.hasUser)
         ? globalThis.Boolean(object.hasUser)
         : isSet(object.has_user)
-          ? globalThis.Boolean(object.has_user)
-          : false,
+        ? globalThis.Boolean(object.has_user)
+        : false,
       merchants: globalThis.Array.isArray(object?.merchants)
         ? object.merchants.map((e: any) => SessionMerchant.fromJSON(e))
         : [],
@@ -512,13 +477,9 @@ export const AuthSessionResponse: MessageFns<AuthSessionResponse> = {
   },
   fromPartial(object: DeepPartial<AuthSessionResponse>): AuthSessionResponse {
     const message = createBaseAuthSessionResponse();
-    message.user =
-      object.user !== undefined && object.user !== null
-        ? ApiUser.fromPartial(object.user)
-        : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? ApiUser.fromPartial(object.user) : undefined;
     message.hasUser = object.hasUser ?? false;
-    message.merchants =
-      object.merchants?.map((e) => SessionMerchant.fromPartial(e)) || [];
+    message.merchants = object.merchants?.map((e) => SessionMerchant.fromPartial(e)) || [];
     return message;
   },
 };
@@ -528,10 +489,7 @@ function createBaseLogoutResponse(): LogoutResponse {
 }
 
 export const LogoutResponse: MessageFns<LogoutResponse> = {
-  encode(
-    message: LogoutResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: LogoutResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
       writer.uint32(8).bool(message.success);
     }
@@ -539,8 +497,7 @@ export const LogoutResponse: MessageFns<LogoutResponse> = {
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): LogoutResponse {
-    const reader =
-      input instanceof BinaryReader ? input : new BinaryReader(input);
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseLogoutResponse();
     while (reader.pos < end) {
@@ -564,11 +521,7 @@ export const LogoutResponse: MessageFns<LogoutResponse> = {
   },
 
   fromJSON(object: any): LogoutResponse {
-    return {
-      success: isSet(object.success)
-        ? globalThis.Boolean(object.success)
-        : false,
-    };
+    return { success: isSet(object.success) ? globalThis.Boolean(object.success) : false };
   },
 
   toJSON(message: LogoutResponse): unknown {
@@ -589,34 +542,23 @@ export const LogoutResponse: MessageFns<LogoutResponse> = {
   },
 };
 
-type Builtin =
-  | Date
-  | Function
-  | Uint8Array
-  | string
-  | number
-  | boolean
-  | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  create(base?: DeepPartial<T>): T;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
-  fromPartial(object: DeepPartial<T>): T;
   toJSON(message: T): unknown;
+  create(base?: DeepPartial<T>): T;
+  fromPartial(object: DeepPartial<T>): T;
 }

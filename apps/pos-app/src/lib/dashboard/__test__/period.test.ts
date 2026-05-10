@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { describe, expect, test } from "vitest";
+import { shiftBusinessDate } from "~/lib/date-time";
 import {
   type DateRange,
   getChartGranularity,
@@ -25,15 +26,10 @@ describe("getTodayRange", () => {
 describe("getYesterdayRange", () => {
   test("returns yesterday as both from and to with preset 'yesterday'", () => {
     const range = getYesterdayRange();
+    const today = getTodayRange().dateFrom;
     expect(range.dateFrom).toBe(range.dateTo);
     expect(range.preset).toBe("yesterday");
-    expect(range.dateFrom).toMatch(DATE_PATTERN);
-  });
-
-  test("returns a date before today", () => {
-    const range = getYesterdayRange();
-    const today = dayjs().format("YYYY-MM-DD");
-    expect(range.dateFrom).not.toBe(today);
+    expect(range.dateFrom).toBe(shiftBusinessDate(today, -1));
   });
 });
 

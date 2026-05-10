@@ -106,9 +106,7 @@ describe("getHourlyBreakdown", () => {
     mockDbSelect.mockReturnValue({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
-          groupBy: vi.fn(() => ({
-            orderBy: vi.fn(() => []),
-          })),
+          orderBy: vi.fn(() => []),
         })),
       })),
     } as never);
@@ -194,9 +192,7 @@ describe("getDailyBreakdown", () => {
     mockDbSelect.mockReturnValue({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
-          groupBy: vi.fn(() => ({
-            orderBy: vi.fn(() => []),
-          })),
+          orderBy: vi.fn(() => []),
         })),
       })),
     } as never);
@@ -212,9 +208,7 @@ describe("getWeeklyBreakdown", () => {
     mockDbSelect.mockReturnValue({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
-          groupBy: vi.fn(() => ({
-            orderBy: vi.fn(() => []),
-          })),
+          orderBy: vi.fn(() => []),
         })),
       })),
     } as never);
@@ -230,9 +224,7 @@ describe("getMonthlyBreakdown", () => {
     mockDbSelect.mockReturnValue({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
-          groupBy: vi.fn(() => ({
-            orderBy: vi.fn(() => []),
-          })),
+          orderBy: vi.fn(() => []),
         })),
       })),
     } as never);

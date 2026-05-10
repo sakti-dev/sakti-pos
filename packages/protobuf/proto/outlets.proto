@@ -17,6 +17,7 @@ message OutletCreateRequest {
   string name = 2;
   string address = 3;
   bool has_address = 4;
+  string timezone = 5;
 }
 
 message OutletCreateResponse {
@@ -33,6 +34,8 @@ message OutletUpdateRequest {
   bool has_address = 5;
   bool is_active = 6;
   bool has_is_active = 7;
+  string timezone = 8;
+  bool has_timezone = 9;
 }
 
 message OutletUpdateResponse {

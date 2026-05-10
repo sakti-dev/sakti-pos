@@ -8,7 +8,7 @@ import { PaymentDialog } from "~/components/pos/payment-dialog";
 import { ProductGrid } from "~/components/pos/product-grid";
 import { TextField, TextFieldInput } from "~/components/ui/text-field";
 import { cn } from "~/lib/utils";
-import { setCurrentOutletId } from "~/store/outlet";
+import { setCurrentOutletId, setCurrentOutletTimezone } from "~/store/outlet";
 import type { PosState } from "./use-pos";
 import { usePos } from "./use-pos";
 
@@ -55,7 +55,10 @@ export function PosShell(props: PosShellProps) {
               }
             >
               <OutletSelector
-                onChange={(id) => setCurrentOutletId(id)}
+                onChange={(outlet) => {
+                  setCurrentOutletId(outlet.id);
+                  setCurrentOutletTimezone(outlet.timezone);
+                }}
                 outlets={props.state.outlets()}
               />
             </Show>
