@@ -19,7 +19,7 @@ vi.mock("~/lib/auth/storage", () => ({
   },
 }));
 
-vi.mock("~/lib/sync/api", () => ({
+vi.mock("~/lib/api/sync", () => ({
   getSyncStatus: (...args: unknown[]) => mockGetSyncStatus(...args),
 }));
 

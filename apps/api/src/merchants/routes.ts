@@ -2,19 +2,14 @@ import { merchants, userMerchants } from "@repo/database/api-schema";
 import { eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
-import { getSessionFromRequest } from "../lib/session";
+import { authenticated } from "../lib/authenticated";
 import { recordSyncEvent } from "../lib/sync-events";
 
 export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
+  .use(authenticated)
   .post(
     "/",
-    async ({ body, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
+    async ({ body, session }) => {
       const now = new Date().toISOString();
       const [merchant] = await db
         .insert(merchants)
@@ -49,13 +44,7 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
       }),
     }
   )
-  .get("/", async ({ set, request }) => {
-    const session = await getSessionFromRequest(request);
-    if (!session) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
+  .get("/", async ({ session }) => {
     const results = await db
       .select({
         merchantId: userMerchants.merchantId,

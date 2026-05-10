@@ -202,7 +202,9 @@ bun run tauri android dev
 - `apps/pos-app/src/store/auth.ts`: local auth and `loginWithCloudStaff`.
 - `apps/pos-app/src/store/sync.ts`: smart sync decision flow and JS wrapper for native sync commands.
 - `apps/pos-app/src-tauri/src/sync.rs`: native pull/push/GC sync implementation.
+- `packages/protobuf/proto/sync.proto`: shared protobuf contract for sync transport.
 - `apps/api/src/routes/staff.ts`: `/api/merchants/:merchantId/staff/me`.
-- `apps/api/src/lib/sync.ts`: API pull/push handlers.
+- `apps/api/src/sync/routes.ts`: protobuf sync API routes.
+- `apps/api/src/sync/service.ts`: API pull/push handlers.
 - `packages/database/src/api-schema.ts`: API database schema.
 - `packages/database/src/local-schema.ts`: POS local SQLite schema.

@@ -1,9 +1,20 @@
+use prost::Message;
 use serde_json::Value;
 use sqlx::{Column, Row, SqliteConnection, SqlitePool};
 use tauri::{command, State};
 
 use crate::db_utils;
 use crate::drizzle_proxy::AppState;
+
+#[allow(dead_code)]
+mod sync_proto {
+    include!(concat!(env!("OUT_DIR"), "/sakti.sync.v1.rs"));
+}
+
+use sync_proto::{
+    SyncPullEventsRequest, SyncPullEventsResponse, SyncPullRequest, SyncPullResponse,
+    SyncPushRequest, SyncPushResponse, SyncServerWin, SyncTableRows,
+};
 
 const SYNC_TABLES: &[&str] = &[
     "merchants",
@@ -296,13 +307,46 @@ pub struct LocalSyncState {
     needs_baseline_sync: bool,
 }
 
-fn build_pull_events_url(api_url: &str, outlet_id: &str, after_event_id: i64) -> String {
-    format!(
-        "{}/api/sync/pull-events?outletId={}&afterEventId={}",
-        api_url,
-        urlencoding::encode(outlet_id),
-        after_event_id
-    )
+fn protobuf_tables_to_json_map(tables: Vec<SyncTableRows>) -> Result<Value, String> {
+    let mut map = serde_json::Map::new();
+    for table in tables {
+        let rows: Value = serde_json::from_str(&table.rows_json)
+            .map_err(|e| format!("Failed to parse protobuf rows for {}: {}", table.table, e))?;
+        map.insert(table.table, rows);
+    }
+    Ok(Value::Object(map))
+}
+
+fn build_sync_push_request(outlet_id: &str, tables: Value) -> SyncPushRequest {
+    SyncPushRequest {
+        outlet_id: outlet_id.to_string(),
+        payload_json: serde_json::to_string(&tables).unwrap_or_else(|_| "{}".to_string()),
+    }
+}
+
+fn server_wins_to_skip_map(
+    server_wins: Vec<SyncServerWin>,
+) -> std::collections::HashMap<String, std::collections::HashSet<String>> {
+    let mut map = std::collections::HashMap::new();
+    for win in server_wins {
+        map.insert(win.table, win.ids.into_iter().collect());
+    }
+    map
+}
+
+fn build_sync_pull_request(outlet_id: &str, since: &str) -> SyncPullRequest {
+    SyncPullRequest {
+        outlet_id: outlet_id.to_string(),
+        tables: SYNC_TABLES.iter().map(|table| table.to_string()).collect(),
+        since: since.to_string(),
+    }
+}
+
+fn build_sync_pull_events_request(outlet_id: &str, after_event_id: i64) -> SyncPullEventsRequest {
+    SyncPullEventsRequest {
+        outlet_id: outlet_id.to_string(),
+        after_event_id,
+    }
 }
 
 #[cfg(test)]
@@ -625,15 +669,15 @@ async fn sync_push_inner(
         tables_json.insert(table.to_string(), Value::Array(rows));
     }
 
-    let body = serde_json::json!({
-        "outletId": outlet_id,
-        "tables": tables_json
-    });
     println!("[SYNC-DEBUG] push: sending to {}/api/sync/push", api_url);
+    let request = build_sync_push_request(outlet_id, Value::Object(tables_json));
+    let request_body = request.encode_to_vec();
 
     let response = client
         .post(format!("{}/api/sync/push", api_url))
-        .json(&body)
+        .header(reqwest::header::CONTENT_TYPE, "application/x-protobuf")
+        .header(reqwest::header::ACCEPT, "application/x-protobuf")
+        .body(request_body)
         .send()
         .await
         .map_err(|e| format!("Sync push failed: {}", e))?;
@@ -645,39 +689,21 @@ async fn sync_push_inner(
         return Err(format!("Sync push failed ({}): {}", status, text));
     }
 
-    let result: Value = response
-        .json()
+    let response_body = response
+        .bytes()
         .await
-        .map_err(|e| format!("Failed to parse push response: {}", e))?;
+        .map_err(|e| format!("Failed to read push response: {}", e))?;
+    let result = SyncPushResponse::decode(response_body)
+        .map_err(|e| format!("Failed to decode push response: {}", e))?;
     println!(
-        "[SYNC-DEBUG] push response: {}",
-        serde_json::to_string(&result).unwrap_or_default()
+        "[SYNC-DEBUG] push response: server_wins={}, server_time={}",
+        result.server_wins.len(),
+        result.server_time
     );
 
-    let server_wins_map: std::collections::HashMap<String, std::collections::HashSet<String>> = {
-        let mut map = std::collections::HashMap::new();
-        if let Some(sw) = result.get("serverWins").and_then(|v| v.as_array()) {
-            for entry in sw {
-                if let (Some(table), Some(ids)) = (
-                    entry.get("table").and_then(|v| v.as_str()),
-                    entry.get("ids").and_then(|v| v.as_array()),
-                ) {
-                    let set: std::collections::HashSet<String> = ids
-                        .iter()
-                        .filter_map(|id| id.as_str().map(|s| s.to_string()))
-                        .collect();
-                    map.insert(table.to_string(), set);
-                }
-            }
-        }
-        map
-    };
-
-    let server_time = result
-        .get("serverTime")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
+    let server_wins_count = result.server_wins.len();
+    let server_time = result.server_time.clone();
+    let server_wins_map = server_wins_to_skip_map(result.server_wins);
 
     let mut tx = pool
         .begin()
@@ -702,12 +728,6 @@ async fn sync_push_inner(
     tx.commit()
         .await
         .map_err(|e| format!("Failed to commit push transaction: {}", e))?;
-
-    let server_wins_count = result
-        .get("serverWins")
-        .and_then(|v| v.as_array())
-        .map(|a| a.len())
-        .unwrap_or(0);
 
     Ok(PushResult {
         tables_synced: SYNC_TABLES.iter().map(|t| t.to_string()).collect(),
@@ -789,18 +809,16 @@ async fn sync_pull_inner(
         outlet_id, since
     );
 
-    let tables = SYNC_TABLES.join(",");
-    let url = format!(
-        "{}/api/sync/pull?outletId={}&tables={}&since={}",
-        api_url,
-        outlet_id,
-        tables,
-        urlencoding::encode(&since)
-    );
-    println!("[SYNC-DEBUG] pull: GET {}", url);
+    let url = format!("{}/api/sync/pull", api_url);
+    println!("[SYNC-DEBUG] pull: POST {}", url);
+    let request = build_sync_pull_request(outlet_id, &since);
+    let request_body = request.encode_to_vec();
 
     let response = client
-        .get(&url)
+        .post(&url)
+        .header(reqwest::header::CONTENT_TYPE, "application/x-protobuf")
+        .header(reqwest::header::ACCEPT, "application/x-protobuf")
+        .body(request_body)
         .send()
         .await
         .map_err(|e| format!("Sync pull failed: {}", e))?;
@@ -812,10 +830,14 @@ async fn sync_pull_inner(
         return Err(format!("Sync pull failed ({}): {}", status, text));
     }
 
-    let result: Value = response
-        .json()
+    let response_body = response
+        .bytes()
         .await
-        .map_err(|e| format!("Failed to parse pull response: {}", e))?;
+        .map_err(|e| format!("Failed to read pull response: {}", e))?;
+    let pull_response = SyncPullResponse::decode(response_body)
+        .map_err(|e| format!("Failed to decode pull response: {}", e))?;
+    let server_time = pull_response.server_time.clone();
+    let result = protobuf_tables_to_json_map(pull_response.tables)?;
 
     let mut total_rows = 0;
 
@@ -846,13 +868,8 @@ async fn sync_pull_inner(
     }
     println!("[SYNC-DEBUG] pull: total_rows_upserted={}", total_rows);
 
-    let server_time = result
-        .get("serverTime")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
     for table in SYNC_TABLES {
-        set_last_sync_at_tx(&mut tx, table, outlet_id, server_time).await?;
+        set_last_sync_at_tx(&mut tx, table, outlet_id, &server_time).await?;
     }
 
     tx.commit()
@@ -861,7 +878,7 @@ async fn sync_pull_inner(
 
     Ok(PullResult {
         rows_received: total_rows,
-        server_time: server_time.to_string(),
+        server_time,
     })
 }
 
@@ -1008,11 +1025,16 @@ pub async fn sync_pull_events(
     let pool = &state.db_pool;
     let client = build_client(&session_token)?;
     let after_event_id = get_last_server_event_id(pool, &outlet_id).await?;
-    let url = build_pull_events_url(&api_url, &outlet_id, after_event_id);
-    println!("[SYNC-DEBUG] sync_pull_events: GET {}", url);
+    let url = format!("{}/api/sync/pull-events", api_url);
+    println!("[SYNC-DEBUG] sync_pull_events: POST {}", url);
+    let request = build_sync_pull_events_request(&outlet_id, after_event_id);
+    let request_body = request.encode_to_vec();
 
     let response = client
-        .get(&url)
+        .post(&url)
+        .header(reqwest::header::CONTENT_TYPE, "application/x-protobuf")
+        .header(reqwest::header::ACCEPT, "application/x-protobuf")
+        .body(request_body)
         .send()
         .await
         .map_err(|e| format!("Sync event pull failed: {}", e))?;
@@ -1026,22 +1048,22 @@ pub async fn sync_pull_events(
         return Err(format!("Sync event pull failed ({}): {}", status, text));
     }
 
-    let result: Value = response
-        .json()
+    let response_body = response
+        .bytes()
         .await
-        .map_err(|e| format!("Failed to parse event pull response: {}", e))?;
-    let needs_full_resync = result
-        .get("needsFullResync")
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false);
-    if needs_full_resync {
+        .map_err(|e| format!("Failed to read event pull response: {}", e))?;
+    let pull_response = SyncPullEventsResponse::decode(response_body)
+        .map_err(|e| format!("Failed to decode event pull response: {}", e))?;
+    if pull_response.needs_full_resync {
         return Err("Event cursor expired; full resync required".to_string());
     }
 
-    let response_latest_event_id = result
-        .get("latestEventId")
-        .and_then(|value| value.as_i64())
-        .unwrap_or(latest_event_id);
+    let response_latest_event_id = if pull_response.latest_event_id == 0 {
+        latest_event_id
+    } else {
+        pull_response.latest_event_id
+    };
+    let result = protobuf_tables_to_json_map(pull_response.tables)?;
 
     let mut total_rows = 0;
     let mut tx = pool
@@ -1231,11 +1253,69 @@ mod tests {
     }
 
     #[test]
-    fn builds_event_pull_url_with_encoded_outlet_cursor() {
+    fn protobuf_table_rows_decode_json_rows() {
+        let tables = vec![SyncTableRows {
+            table: "products".to_string(),
+            rows_json: r#"[{"id":"product-1"}]"#.to_string(),
+        }];
+
+        let result = protobuf_tables_to_json_map(tables).expect("tables should decode");
+
         assert_eq!(
-            build_pull_events_url("http://localhost:3001", "outlet 1", 42),
-            "http://localhost:3001/api/sync/pull-events?outletId=outlet%201&afterEventId=42"
+            result
+                .get("products")
+                .and_then(|value| value.as_array())
+                .map(std::vec::Vec::len),
+            Some(1)
         );
+    }
+
+    #[test]
+    fn build_push_request_encodes_outlet_and_payload_json() {
+        let mut tables = serde_json::Map::new();
+        tables.insert(
+            "products".to_string(),
+            serde_json::json!([{ "id": "product-1" }]),
+        );
+
+        let request = build_sync_push_request("outlet-1", Value::Object(tables));
+
+        assert_eq!(request.outlet_id, "outlet-1");
+        assert!(request.payload_json.contains("product-1"));
+    }
+
+    #[test]
+    fn push_response_server_wins_to_map_groups_ids_by_table() {
+        let response = SyncPushResponse {
+            server_time: "2026-05-10T00:00:00.000Z".to_string(),
+            server_wins: vec![SyncServerWin {
+                table: "products".to_string(),
+                ids: vec!["product-1".to_string()],
+            }],
+        };
+
+        let map = server_wins_to_skip_map(response.server_wins);
+
+        assert!(map
+            .get("products")
+            .is_some_and(|ids| ids.contains("product-1")));
+    }
+
+    #[test]
+    fn build_pull_request_carries_tables_and_since_cursor() {
+        let request = build_sync_pull_request("outlet-1", "2026-05-10T00:00:00.000Z");
+
+        assert_eq!(request.outlet_id, "outlet-1");
+        assert_eq!(request.since, "2026-05-10T00:00:00.000Z");
+        assert!(request.tables.contains(&"products".to_string()));
+    }
+
+    #[test]
+    fn build_pull_events_request_uses_event_cursor() {
+        let request = build_sync_pull_events_request("outlet-1", 42);
+
+        assert_eq!(request.outlet_id, "outlet-1");
+        assert_eq!(request.after_event_id, 42);
     }
 
     #[test]

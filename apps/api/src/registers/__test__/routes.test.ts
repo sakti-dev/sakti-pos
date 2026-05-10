@@ -162,7 +162,10 @@ describe("POST /api/registers/pair", () => {
     });
 
     expect(status).toBe(400);
-    expect((json as Record<string, unknown>).error).toBeDefined();
+    expect((json as Record<string, unknown>).error).toBe(
+      "Invalid pairing code"
+    );
+    expect(mockValidateSession).not.toHaveBeenCalled();
   });
 
   test("returns 400 when pairingCode is expired", async () => {

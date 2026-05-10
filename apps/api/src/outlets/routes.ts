@@ -2,7 +2,8 @@ import { outlets, registers, userMerchants } from "@repo/database/api-schema";
 import { and, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
-import { getSessionFromRequest } from "../lib/session";
+import { authenticated } from "../lib/authenticated";
+import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { recordSyncEvent } from "../lib/sync-events";
 
 function generateShortId(): string {
@@ -27,20 +28,14 @@ async function verifyMerchantAccess(
 }
 
 export const outletsRoutes = new Elysia({ prefix: "/api" })
+  .use(authenticated)
   .post(
     "/merchants/:merchantId/outlets",
-    async ({ body, params: { merchantId }, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const hasAccess = await verifyMerchantAccess(session.userId, merchantId);
-      if (!hasAccess) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
+    async ({ body, params: { merchantId }, session }) => {
+      throwIfFalse(
+        await verifyMerchantAccess(session.userId, merchantId),
+        new ForbiddenRequestError()
+      );
 
       const now = new Date().toISOString();
       const [outlet] = await db
@@ -93,18 +88,11 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
   )
   .get(
     "/merchants/:merchantId/outlets",
-    async ({ params: { merchantId }, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const hasAccess = await verifyMerchantAccess(session.userId, merchantId);
-      if (!hasAccess) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
+    async ({ params: { merchantId }, session }) => {
+      throwIfFalse(
+        await verifyMerchantAccess(session.userId, merchantId),
+        new ForbiddenRequestError()
+      );
 
       const results = await db
         .select()
@@ -115,13 +103,7 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
   )
   .patch(
     "/outlets/:id",
-    async ({ body, params: { id }, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
+    async ({ body, params: { id }, session, set }) => {
       const [outlet] = await db
         .select()
         .from(outlets)
@@ -133,14 +115,10 @@ export const outletsRoutes = new Elysia({ prefix: "/api" })
         return { error: "Outlet not found" };
       }
 
-      const hasAccess = await verifyMerchantAccess(
-        session.userId,
-        outlet.merchantId
+      throwIfFalse(
+        await verifyMerchantAccess(session.userId, outlet.merchantId),
+        new ForbiddenRequestError()
       );
-      if (!hasAccess) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
 
       const [updated] = await db
         .update(outlets)

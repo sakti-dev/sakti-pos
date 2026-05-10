@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createSignal } from "solid-js";
+import { getSyncStatus } from "~/lib/api/sync";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
-import { getSyncStatus } from "~/lib/sync/api";
 import { describeError } from "~/lib/utils";
 import { currentOutletId } from "./outlet";
 

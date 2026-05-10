@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package sakti.sync.v1;
+
+message SyncPushRequest {
+  string outlet_id = 1;
+  string payload_json = 2;
+}
+
+message SyncServerWin {
+  string table = 1;
+  repeated string ids = 2;
+}
+
+message SyncPushResponse {
+  repeated SyncServerWin server_wins = 1;
+  string server_time = 2;
+}
+
+message SyncStatusRequest {
+  string outlet_id = 1;
+  int64 last_server_event_id = 2;
+}
+
+message SyncStatusResponse {
+  repeated string changed_tables = 1;
+  bool has_changes = 2;
+  int64 latest_event_id = 3;
+  bool needs_full_resync = 4;
+  int64 oldest_available_event_id = 5;
+  bool has_oldest_available_event_id = 6;
+}
+
+message SyncPullEventsRequest {
+  string outlet_id = 1;
+  int64 after_event_id = 2;
+}
+
+message SyncTableRows {
+  string table = 1;
+  string rows_json = 2;
+}
+
+message SyncPullEventsResponse {
+  repeated SyncTableRows tables = 1;
+  int64 latest_event_id = 2;
+  bool needs_full_resync = 3;
+}
+
+message SyncPullRequest {
+  string outlet_id = 1;
+  repeated string tables = 2;
+  string since = 3;
+}
+
+message SyncPullResponse {
+  repeated SyncTableRows tables = 1;
+  string server_time = 2;
+}

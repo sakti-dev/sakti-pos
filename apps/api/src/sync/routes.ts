@@ -1,8 +1,27 @@
 import { outlets } from "@repo/database/api-schema";
+import {
+  SyncPullEventsRequest,
+  SyncPullEventsResponse,
+  SyncPullRequest,
+  SyncPullResponse,
+  SyncPushRequest,
+  SyncPushResponse,
+  SyncStatusRequest,
+  SyncStatusResponse,
+} from "@repo/protobuf/sync";
 import { eq } from "drizzle-orm";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { db } from "../db";
-import { getSessionFromRequest } from "../lib/session";
+import { authenticated } from "../lib/authenticated";
+import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
+import { tsProtoPlugin } from "../lib/ts-proto-plugin";
+import {
+  decodePushRequestTables,
+  encodePullEventsResponse,
+  encodePullResponse,
+  encodePushResponse,
+  encodeStatusResponse,
+} from "./protobuf";
 import {
   handleEventPull,
   handlePull,
@@ -12,28 +31,21 @@ import {
 } from "./service";
 
 export const syncRoutes = new Elysia({ prefix: "/api/sync" })
+  .use(tsProtoPlugin)
+  .use(authenticated)
   .post(
     "/push",
-    async ({ body, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const authorized = await verifyOutletAccess(
-        session.userId,
-        body.outletId
+    async ({ body, session, set }) => {
+      const pushRequest = body as SyncPushRequest;
+      throwIfFalse(
+        await verifyOutletAccess(session.userId, pushRequest.outletId),
+        new ForbiddenRequestError()
       );
-      if (!authorized) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
 
       const [outlet] = await db
         .select({ merchantId: outlets.merchantId })
         .from(outlets)
-        .where(eq(outlets.id, body.outletId))
+        .where(eq(outlets.id, pushRequest.outletId))
         .limit(1);
 
       if (!outlet) {
@@ -41,37 +53,41 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         return { error: "Outlet not found" };
       }
 
-      return handlePush(body.outletId, outlet.merchantId, body.tables);
+      let tables: Record<string, unknown[]>;
+      try {
+        tables = decodePushRequestTables(pushRequest.payloadJson);
+      } catch {
+        set.status = 400;
+        return "Invalid sync payload JSON";
+      }
+
+      const result = await handlePush(
+        pushRequest.outletId,
+        outlet.merchantId,
+        tables
+      );
+      return encodePushResponse(result);
     },
     {
-      body: t.Object({
-        outletId: t.String(),
-        tables: t.Record(t.String(), t.Array(t.Any())),
-      }),
+      proto: {
+        req: SyncPushRequest,
+        res: SyncPushResponse,
+      },
     }
   )
-  .get(
+  .post(
     "/status",
-    async ({ query, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const authorized = await verifyOutletAccess(
-        session.userId,
-        query.outletId
+    async ({ body, session, set }) => {
+      const statusRequest = body as SyncStatusRequest;
+      throwIfFalse(
+        await verifyOutletAccess(session.userId, statusRequest.outletId),
+        new ForbiddenRequestError()
       );
-      if (!authorized) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
 
       const [outlet] = await db
         .select({ merchantId: outlets.merchantId })
         .from(outlets)
-        .where(eq(outlets.id, query.outletId))
+        .where(eq(outlets.id, statusRequest.outletId))
         .limit(1);
 
       if (!outlet) {
@@ -79,41 +95,33 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         return { error: "Outlet not found" };
       }
 
-      return handleSyncStatus({
-        lastServerEventId: query.lastServerEventId,
+      const result = await handleSyncStatus({
+        lastServerEventId: statusRequest.lastServerEventId,
         merchantId: outlet.merchantId,
-        outletId: query.outletId,
+        outletId: statusRequest.outletId,
       });
+      return encodeStatusResponse(result);
     },
     {
-      query: t.Object({
-        outletId: t.String(),
-        lastServerEventId: t.Number(),
-      }),
+      proto: {
+        req: SyncStatusRequest,
+        res: SyncStatusResponse,
+      },
     }
   )
-  .get(
+  .post(
     "/pull-events",
-    async ({ query, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const authorized = await verifyOutletAccess(
-        session.userId,
-        query.outletId
+    async ({ body, session, set }) => {
+      const pullEventsRequest = body as SyncPullEventsRequest;
+      throwIfFalse(
+        await verifyOutletAccess(session.userId, pullEventsRequest.outletId),
+        new ForbiddenRequestError()
       );
-      if (!authorized) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
 
       const [outlet] = await db
         .select({ merchantId: outlets.merchantId })
         .from(outlets)
-        .where(eq(outlets.id, query.outletId))
+        .where(eq(outlets.id, pullEventsRequest.outletId))
         .limit(1);
 
       if (!outlet) {
@@ -121,41 +129,33 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         return { error: "Outlet not found" };
       }
 
-      return handleEventPull({
-        afterEventId: query.afterEventId,
+      const result = await handleEventPull({
+        afterEventId: pullEventsRequest.afterEventId,
         merchantId: outlet.merchantId,
-        outletId: query.outletId,
+        outletId: pullEventsRequest.outletId,
       });
+      return encodePullEventsResponse(result);
     },
     {
-      query: t.Object({
-        afterEventId: t.Number(),
-        outletId: t.String(),
-      }),
+      proto: {
+        req: SyncPullEventsRequest,
+        res: SyncPullEventsResponse,
+      },
     }
   )
-  .get(
+  .post(
     "/pull",
-    async ({ query, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const authorized = await verifyOutletAccess(
-        session.userId,
-        query.outletId
+    async ({ body, session, set }) => {
+      const pullRequest = body as SyncPullRequest;
+      throwIfFalse(
+        await verifyOutletAccess(session.userId, pullRequest.outletId),
+        new ForbiddenRequestError()
       );
-      if (!authorized) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
 
       const [outlet] = await db
         .select({ merchantId: outlets.merchantId })
         .from(outlets)
-        .where(eq(outlets.id, query.outletId))
+        .where(eq(outlets.id, pullRequest.outletId))
         .limit(1);
 
       if (!outlet) {
@@ -163,14 +163,18 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         return { error: "Outlet not found" };
       }
 
-      const tables = query.tables.split(",");
-      return handlePull(query.outletId, outlet.merchantId, tables, query.since);
+      const result = await handlePull(
+        pullRequest.outletId,
+        outlet.merchantId,
+        pullRequest.tables,
+        pullRequest.since
+      );
+      return encodePullResponse(result);
     },
     {
-      query: t.Object({
-        outletId: t.String(),
-        tables: t.String(),
-        since: t.String(),
-      }),
+      proto: {
+        req: SyncPullRequest,
+        res: SyncPullResponse,
+      },
     }
   );

@@ -57,15 +57,21 @@ It intentionally does not store full payloads. Event pull materializes the curre
 
 Events are written from:
 
-- `/api/sync/push` for accepted client changes.
+- `POST /api/sync/push` for accepted client changes.
 - Direct cloud writes such as merchant/outlet/register/staff creation or updates.
+
+## Sync Transport
+
+Sync endpoints use `application/x-protobuf` request and response bodies. The protobuf schema lives in `packages/protobuf/proto/sync.proto` and is shared by the API, Solid status client, and Tauri Rust sync client.
+
+Protocol v1 keeps table rows as JSON strings inside protobuf envelopes (`payload_json` for push and `rows_json` for pull responses). The API still derives `merchantId` from the authenticated `outletId`; clients do not send trusted merchant scope.
 
 ## POS Decision Flow
 
 `apps/pos-app/src/store/sync.ts` runs:
 
 1. `get_sync_local_state` Tauri command.
-2. `GET /api/sync/status?outletId=...&lastServerEventId=...`.
+2. `POST /api/sync/status` with a protobuf `SyncStatusRequest`.
 3. Chooses one native transfer command:
 
 ```text
@@ -91,7 +97,7 @@ reinstall/login/select outlet
 
 ## API Status And Event Pull
 
-`GET /api/sync/status` returns:
+`POST /api/sync/status` returns:
 
 - `hasChanges`
 - `latestEventId`
@@ -105,7 +111,7 @@ A cursor is expired only when the next required event is missing:
 lastServerEventId + 1 < oldestAvailableEventId
 ```
 
-`GET /api/sync/pull-events` returns current snapshots for rows referenced by events after the client cursor. Repeated events for the same row are coalesced into one row snapshot.
+`POST /api/sync/pull-events` returns current snapshots for rows referenced by events after the client cursor. Repeated events for the same row are coalesced into one row snapshot.
 
 Validated incremental flow:
 

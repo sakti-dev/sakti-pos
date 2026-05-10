@@ -246,3 +246,33 @@ describe("POST /api/merchants/:merchantId/staff/me", () => {
     });
   });
 });
+
+describe("POST /api/merchants/:merchantId/staff", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("keeps forbidden merchant access as 403 after auth succeeds", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+
+    mockSelect.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    });
+
+    const { json, status } = await makeRequest("/api/merchants/m-1/staff", {
+      method: "POST",
+      body: { name: "Cashier", pin: "123456", role: "cashier" },
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(status).toBe(403);
+    expect((json as Record<string, unknown>).error).toBe("Forbidden");
+  });
+});

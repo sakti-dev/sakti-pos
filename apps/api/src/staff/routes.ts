@@ -2,7 +2,8 @@ import { staff, userMerchants } from "@repo/database/api-schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { db } from "../db";
-import { getSessionFromRequest } from "../lib/session";
+import { authenticated } from "../lib/authenticated";
+import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { recordSyncEvent } from "../lib/sync-events";
 
 const PBKDF2_ITERATIONS = 100_000;
@@ -91,23 +92,15 @@ function serializeCurrentStaff(row: {
 }
 
 export const staffRoutes = new Elysia({ prefix: "/api" })
+  .use(authenticated)
   .post(
     "/merchants/:merchantId/staff/me",
-    async ({ params: { merchantId }, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
+    async ({ params: { merchantId }, session }) => {
       const membership = await getMerchantMembership(
         session.userId,
         merchantId
       );
-      if (!membership) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
+      throwIfFalse(!!membership, new ForbiddenRequestError());
 
       const [mappedStaff] = await db
         .select({
@@ -196,18 +189,11 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
   )
   .post(
     "/merchants/:merchantId/staff",
-    async ({ body, params: { merchantId }, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const hasAccess = await verifyMerchantAccess(session.userId, merchantId);
-      if (!hasAccess) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
+    async ({ body, params: { merchantId }, session }) => {
+      throwIfFalse(
+        await verifyMerchantAccess(session.userId, merchantId),
+        new ForbiddenRequestError()
+      );
 
       const pinHash = await hashPin(body.pin);
       const now = new Date().toISOString();
@@ -253,18 +239,11 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
   )
   .get(
     "/merchants/:merchantId/staff",
-    async ({ params: { merchantId }, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const hasAccess = await verifyMerchantAccess(session.userId, merchantId);
-      if (!hasAccess) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
+    async ({ params: { merchantId }, session }) => {
+      throwIfFalse(
+        await verifyMerchantAccess(session.userId, merchantId),
+        new ForbiddenRequestError()
+      );
 
       return db
         .select({
@@ -283,13 +262,7 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
   )
   .patch(
     "/staff/:id/pin",
-    async ({ body, params: { id }, set, request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
+    async ({ body, params: { id }, session, set }) => {
       const [existing] = await db
         .select({ merchantId: staff.merchantId })
         .from(staff)
@@ -301,14 +274,10 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
         return { error: "Staff not found" };
       }
 
-      const hasAccess = await verifyMerchantAccess(
-        session.userId,
-        existing.merchantId
+      throwIfFalse(
+        await verifyMerchantAccess(session.userId, existing.merchantId),
+        new ForbiddenRequestError()
       );
-      if (!hasAccess) {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
 
       const pinHash = await hashPin(body.pin);
       const now = new Date().toISOString();
@@ -335,13 +304,7 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
       }),
     }
   )
-  .delete("/staff/:id", async ({ params: { id }, set, request }) => {
-    const session = await getSessionFromRequest(request);
-    if (!session) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
+  .delete("/staff/:id", async ({ params: { id }, session, set }) => {
     const [existing] = await db
       .select({ merchantId: staff.merchantId })
       .from(staff)
@@ -353,14 +316,10 @@ export const staffRoutes = new Elysia({ prefix: "/api" })
       return { error: "Staff not found" };
     }
 
-    const hasAccess = await verifyMerchantAccess(
-      session.userId,
-      existing.merchantId
+    throwIfFalse(
+      await verifyMerchantAccess(session.userId, existing.merchantId),
+      new ForbiddenRequestError()
     );
-    if (!hasAccess) {
-      set.status = 403;
-      return { error: "Forbidden" };
-    }
 
     const now = new Date().toISOString();
     await db

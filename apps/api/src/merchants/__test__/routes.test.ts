@@ -122,6 +122,42 @@ describe("POST /api/merchants", () => {
       })
     );
   });
+
+  test("injects session into merchant creation", async () => {
+    mockValidateSession.mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+    });
+
+    const insertedValues: unknown[] = [];
+    mockInsert.mockImplementation(() => ({
+      values: vi.fn().mockImplementation((vals: unknown) => {
+        insertedValues.push(vals);
+        return {
+          returning: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "merchant-1", ...(vals as Record<string, unknown>) },
+            ]),
+        };
+      }),
+    }));
+
+    const { status } = await makeRequest("/api/merchants", {
+      method: "POST",
+      body: { name: "Test Merchant" },
+      cookie: "narvik_session=valid-token",
+    });
+
+    expect(status).toBe(200);
+    expect(insertedValues[1]).toEqual(
+      expect.objectContaining({
+        merchantId: "merchant-1",
+        role: "owner",
+        userId: "user-1",
+      })
+    );
+  });
 });
 
 describe("GET /api/merchants", () => {
