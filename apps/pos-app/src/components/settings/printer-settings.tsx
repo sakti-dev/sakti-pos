@@ -173,7 +173,7 @@ export default function PrinterSettings() {
 					<span>{refreshing() ? "Menyegarkan..." : "Segarkan"}</span>
 				</Button>
 			</div>
-			<div class="rounded-xl border bg-card">
+			<div class="rounded-xl border bg-card overflow-hidden">
 				<Show when={loading()}>
 					<div class="p-4 text-muted-foreground text-sm">Memuat...</div>
 				</Show>

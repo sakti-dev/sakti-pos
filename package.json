@@ -5,7 +5,7 @@
 		"build": "turbo run build",
 		"dev": "turbo run dev",
 		"lint": "turbo run lint",
-		"check-types": "turbo run check-types",
+		"typecheck": "turbo run typecheck",
 		"prepare": "husky",
 		"api:dev": "bun run dev --filter=@repo/api",
 		"api:db:studio": "bun run db:studio --filter=@repo/api",

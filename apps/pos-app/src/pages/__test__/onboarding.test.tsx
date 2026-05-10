@@ -7,6 +7,11 @@ const mockCreateMerchant = vi.fn();
 const mockCreateOutlet = vi.fn();
 const mockSetOutletContext = vi.fn();
 const mockCreateStaffApi = vi.fn();
+const mockGetSession = vi.fn(() =>
+	Promise.resolve({
+		user: { id: "user-1", name: "Test User", email: "test@test.com" },
+	}),
+);
 const mockGetCurrentCloudStaff = vi.fn((_merchantId: string) =>
 	Promise.resolve({
 		claimed: true,
@@ -15,7 +20,7 @@ const mockGetCurrentCloudStaff = vi.fn((_merchantId: string) =>
 			id: "staff-1",
 			isActive: true,
 			merchantId: "merchant-1",
-			name: "Test Biz",
+			name: "Test User",
 			outletId: "outlet-1",
 			role: "owner" as const,
 		},
@@ -57,6 +62,7 @@ vi.mock("~/lib/cloud-auth", () => ({
 	createStaff: (data: unknown) => mockCreateStaffApi(data),
 	getCurrentCloudStaff: (merchantId: string) =>
 		mockGetCurrentCloudStaff(merchantId),
+	getSession: () => mockGetSession(),
 }));
 
 vi.mock("~/store/outlet", () => ({
@@ -174,6 +180,7 @@ describe("Onboarding", () => {
 			expect(mockCreateStaffApi).toHaveBeenCalledWith(
 				expect.objectContaining({
 					merchantId: "merchant-1",
+					name: "Test User",
 					role: "owner",
 					pin: "123456",
 				}),

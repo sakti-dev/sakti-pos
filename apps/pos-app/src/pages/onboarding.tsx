@@ -9,6 +9,7 @@ import {
 	createOutlet,
 	createStaff as createStaffApi,
 	getCurrentCloudStaff,
+	getSession,
 	type Merchant,
 } from "~/lib/cloud-auth";
 import { login } from "~/store/auth";
@@ -133,10 +134,12 @@ export default function Onboarding() {
 		setLoading(true);
 
 		try {
+			const session = await getSession();
+			const ownerName = session.user?.name || "Owner";
 			await createStaffApi({
 				merchantId: merchant.id,
 				outletId: createdOutletId() ?? undefined,
-				name: merchant.name || "Owner",
+				name: ownerName,
 				pin: pin(),
 				role: "owner",
 			});
