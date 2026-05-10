@@ -39,7 +39,7 @@ export async function createCategory(data: NewCategory): Promise<Category> {
 	const merchantId = currentMerchantId() ?? "";
 	const [row] = await db
 		.insert(categories)
-		.values({ ...data, merchantId })
+		.values({ ...data, isSynced: false, merchantId })
 		.returning();
 	await recordLocalChange({
 		operation: "insert",
@@ -136,7 +136,7 @@ export async function createProduct(data: NewProduct): Promise<Product> {
 	const merchantId = currentMerchantId() ?? "";
 	const [row] = await db
 		.insert(products)
-		.values({ ...data, merchantId })
+		.values({ ...data, isSynced: false, merchantId })
 		.returning();
 	await recordLocalChange({
 		operation: "insert",

@@ -195,7 +195,7 @@ export const orderItems = sqliteTable("order_items", {
 	outletId: text("outlet_id")
 		.notNull()
 		.references(() => outlets.id),
-	productId: text("product_id").references(() => products.id),
+	productId: text("product_id"),
 	productName: text("product_name").notNull(),
 	quantity: integer("quantity").notNull(),
 	unitPrice: integer("unit_price").notNull(),

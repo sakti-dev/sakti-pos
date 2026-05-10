@@ -110,6 +110,7 @@ describe("menu db", () => {
 
 		expect(result).toEqual(newCategory);
 		expect(mockValues).toHaveBeenCalledWith({
+			isSynced: false,
 			name: "Dessert",
 			merchantId: "",
 		});
@@ -220,6 +221,7 @@ describe("menu db", () => {
 
 		expect(result).toEqual(newProduct);
 		expect(mockValues).toHaveBeenCalledWith({
+			isSynced: false,
 			name: "Nasi Goreng",
 			price: 15_000,
 			merchantId: "",

@@ -736,6 +736,59 @@ describe("handlePush", () => {
 
 		expect(result.serverWins).toEqual([]);
 	});
+
+	test("updates existing category tombstones during push", async () => {
+		const existingUpdatedAt = "2026-05-09T12:00:00.000Z";
+		const deletedAt = "2026-05-10T12:00:00.000Z";
+		const set = vi.fn().mockReturnValue({
+			where: vi.fn().mockResolvedValue(undefined),
+		});
+
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const tx = {
+					select: vi.fn().mockReturnValue({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi
+									.fn()
+									.mockResolvedValue([
+										{ id: "cat-deleted", updatedAt: existingUpdatedAt },
+									]),
+							}),
+						}),
+					}),
+					insert: vi.fn().mockReturnValue({
+						values: vi.fn().mockResolvedValue(undefined),
+					}),
+					update: vi.fn().mockReturnValue({ set }),
+				};
+				await fn(tx);
+			},
+		);
+
+		const result = await handlePush("outlet-1", "merchant-1", {
+			categories: [
+				{
+					createdAt: existingUpdatedAt,
+					deletedAt,
+					id: "cat-deleted",
+					merchantId: "merchant-1",
+					name: "Deleted Category",
+					updatedAt: deletedAt,
+				},
+			],
+		});
+
+		expect(result.serverWins).toEqual([]);
+		expect(set).toHaveBeenCalledWith(
+			expect.objectContaining({
+				deletedAt,
+				id: "cat-deleted",
+				updatedAt: deletedAt,
+			}),
+		);
+	});
 });
 
 describe("handlePull", () => {

@@ -63,11 +63,12 @@ async fn read_unsynced_rows(
 ) -> Result<Vec<Value>, String> {
     let filter_col = get_table_filter_column(table);
     let query = format!(
-        "SELECT * FROM {} WHERE {} = ?1 AND is_synced = 0",
+        "SELECT * FROM {} WHERE {} = ?1 AND (is_synced = 0 OR id IN (SELECT row_id FROM sync_outbox WHERE table_name = ?2 AND synced_at IS NULL))",
         table, filter_col
     );
     let rows = sqlx::query(&query)
         .bind(filter_value)
+        .bind(table)
         .fetch_all(pool)
         .await
         .map_err(|e| format!("Failed to read unsynced rows for {}: {}", table, e))?;
@@ -416,6 +417,35 @@ fn debug_row_summary(row: &Value) -> String {
     serde_json::to_string(&Value::Object(summary)).unwrap_or_else(|_| "<invalid-json>".to_string())
 }
 
+fn build_upsert_query(table: &str, columns: &[String]) -> String {
+    let placeholders: Vec<String> = (1..=columns.len()).map(|i| format!("?{}", i)).collect();
+
+    let set_clause: Vec<String> = columns
+        .iter()
+        .filter(|c| *c != "id")
+        .map(|c| format!("{} = excluded.{}", c, c))
+        .collect();
+
+    if set_clause.is_empty() {
+        return format!(
+            "INSERT OR IGNORE INTO {} ({}) VALUES ({})",
+            table,
+            columns.join(", "),
+            placeholders.join(", ")
+        );
+    }
+
+    format!(
+        "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT(id) DO UPDATE SET {} WHERE {}.is_synced = 1 OR excluded.updated_at >= {}.updated_at",
+        table,
+        columns.join(", "),
+        placeholders.join(", "),
+        set_clause.join(", "),
+        table,
+        table
+    )
+}
+
 fn redact_debug_value(value: &Value) -> Value {
     let Some(obj) = value.as_object() else {
         return value.clone();
@@ -504,30 +534,7 @@ async fn upsert_row(conn: &mut SqliteConnection, table: &str, row: &Value) -> Re
             .unwrap_or_default()
     );
 
-    let placeholders: Vec<String> = (1..=columns.len()).map(|i| format!("?{}", i)).collect();
-
-    let set_clause: Vec<String> = columns
-        .iter()
-        .filter(|c| *c != "id")
-        .map(|c| format!("{} = excluded.{}", c, c))
-        .collect();
-
-    let query = if set_clause.is_empty() {
-        format!(
-            "INSERT OR IGNORE INTO {} ({}) VALUES ({})",
-            table,
-            columns.join(", "),
-            placeholders.join(", ")
-        )
-    } else {
-        format!(
-            "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT(id) DO UPDATE SET {}",
-            table,
-            columns.join(", "),
-            placeholders.join(", "),
-            set_clause.join(", ")
-        )
-    };
+    let query = build_upsert_query(table, &columns);
 
     let mut q = sqlx::query(&query);
     for col in &columns {
@@ -666,6 +673,12 @@ async fn sync_push_inner(
         map
     };
 
+    let server_time = result
+        .get("serverTime")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
     let mut tx = pool
         .begin()
         .await
@@ -679,6 +692,13 @@ async fn sync_push_inner(
             .unwrap_or_default();
         mark_rows_synced_tx(&mut tx, table, filter_col, filter_value, &skip_ids).await?;
     }
+    let synced_at = if server_time.is_empty() {
+        current_time_millis_string()
+    } else {
+        server_time.clone()
+    };
+    let marked_outbox = mark_outbox_synced_tx(&mut tx, outlet_id, &merchant_id, &synced_at).await?;
+    println!("[SYNC-DEBUG] push: marked_outbox_synced={}", marked_outbox);
     tx.commit()
         .await
         .map_err(|e| format!("Failed to commit push transaction: {}", e))?;
@@ -688,12 +708,6 @@ async fn sync_push_inner(
         .and_then(|v| v.as_array())
         .map(|a| a.len())
         .unwrap_or(0);
-
-    let server_time = result
-        .get("serverTime")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
 
     Ok(PushResult {
         tables_synced: SYNC_TABLES.iter().map(|t| t.to_string()).collect(),
@@ -1230,5 +1244,21 @@ mod tests {
         assert!(cursor_gap_requires_full_resync(10, Some(12)));
         assert!(!cursor_gap_requires_full_resync(0, Some(50)));
         assert!(!cursor_gap_requires_full_resync(10, None));
+    }
+
+    #[test]
+    fn pull_upsert_keeps_newer_local_dirty_rows() {
+        let columns = vec![
+            "id".to_string(),
+            "deleted_at".to_string(),
+            "is_synced".to_string(),
+            "updated_at".to_string(),
+        ];
+
+        let query = build_upsert_query("categories", &columns);
+
+        assert!(query.contains(
+            "WHERE categories.is_synced = 1 OR excluded.updated_at >= categories.updated_at"
+        ));
     }
 }
