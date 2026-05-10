@@ -3,14 +3,14 @@ import { describe, expect, test, vi } from "bun:test";
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 
-vi.mock("../db", () => ({
+vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
   },
 }));
 
-vi.mock("../lib/auth", () => ({
+vi.mock("../auth", () => ({
   narvik: {
     createSession: vi.fn(),
     invalidateSession: vi.fn(),
@@ -39,7 +39,7 @@ const {
   getBearerToken,
   createCookieString,
   createDeleteCookieString,
-} = await import("../lib/session");
+} = await import("../session");
 
 describe("getBearerToken", () => {
   test("extracts token from Authorization header", () => {

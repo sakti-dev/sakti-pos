@@ -13,7 +13,10 @@ import {
 } from "@repo/database/api-schema";
 import { and, eq, gt, inArray, or } from "drizzle-orm";
 import { db } from "../db";
-import type { SyncEventOperation, SyncEventScopeType } from "./sync-events";
+import type {
+  SyncEventOperation,
+  SyncEventScopeType,
+} from "../lib/sync-events";
 
 const ALL_SYNC_TABLE_NAMES = [
   "merchants",

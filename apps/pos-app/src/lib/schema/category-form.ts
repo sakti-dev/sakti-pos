@@ -1,7 +1,7 @@
-import * as v from "valibot";
+import { type InferOutput, nonEmpty, object, pipe, string } from "valibot";
 
-export const CategorySchema = v.object({
-  name: v.pipe(v.string("Nama wajib diisi"), v.nonEmpty("Nama wajib diisi")),
+export const CategorySchema = object({
+  name: pipe(string("Nama wajib diisi"), nonEmpty("Nama wajib diisi")),
 });
 
-export type CategoryFormValues = v.InferOutput<typeof CategorySchema>;
+export type CategoryFormValues = InferOutput<typeof CategorySchema>;

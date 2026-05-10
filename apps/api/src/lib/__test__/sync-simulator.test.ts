@@ -3,14 +3,14 @@ import { afterEach, describe, expect, test, vi } from "bun:test";
 const mockSelect = vi.fn();
 const mockTransaction = vi.fn();
 
-vi.mock("../db/script", () => ({
+vi.mock("../../db/script", () => ({
   scriptDb: {
     select: (...args: unknown[]) => mockSelect(...args),
     transaction: (fn: unknown) => mockTransaction(fn),
   },
 }));
 
-const { simulateProductChange } = await import("../lib/sync-simulator");
+const { simulateProductChange } = await import("../sync-simulator");
 
 describe("simulateProductChange", () => {
   afterEach(() => {

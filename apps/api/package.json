@@ -16,6 +16,7 @@
     "sync:simulate-product": "bun src/scripts/sync-simulate-product.ts"
   },
   "dependencies": {
+    "@bogeychan/elysia-logger": "^0.1.10",
     "@elysiajs/cors": "^1.4.2",
     "@libsql/client": "^0.17.3",
     "@repo/database": "*",

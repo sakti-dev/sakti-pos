@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "bun:test";
 
 const mockDelete = vi.fn();
 
-vi.mock("../db", () => ({
+vi.mock("../../db", () => ({
   db: {
     delete: (...args: unknown[]) => mockDelete(...args),
   },
@@ -24,7 +24,7 @@ describe("cleanupSyncHistory", () => {
     const where = vi.fn().mockResolvedValue({ rowsAffected: 3 });
     mockDelete.mockReturnValue({ where });
 
-    const { cleanupSyncHistory } = await import("../lib/sync-cleanup");
+    const { cleanupSyncHistory } = await import("../sync-cleanup");
     const result = await cleanupSyncHistory({
       now: new Date("2026-05-09T12:00:00.000Z"),
       retentionDays: 30,
@@ -38,7 +38,7 @@ describe("cleanupSyncHistory", () => {
     const where = vi.fn().mockResolvedValue({ rowsAffected: 0 });
     mockDelete.mockReturnValue({ where });
 
-    const { cleanupSyncHistory } = await import("../lib/sync-cleanup");
+    const { cleanupSyncHistory } = await import("../sync-cleanup");
     const result = await cleanupSyncHistory({
       now: new Date("2026-05-09T12:00:00.000Z"),
       retentionDays: 30,

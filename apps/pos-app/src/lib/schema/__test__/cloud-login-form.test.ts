@@ -1,11 +1,11 @@
-import * as v from "valibot";
+import { safeParse } from "valibot";
 import { describe, expect, test } from "vitest";
 
 import { CloudLoginSchema, CloudRegisterSchema } from "../cloud-login-form";
 
 describe("cloud auth schemas", () => {
   test("accepts login payload", () => {
-    const result = v.safeParse(CloudLoginSchema, {
+    const result = safeParse(CloudLoginSchema, {
       email: "user@example.com",
       password: "password1234",
     });
@@ -14,7 +14,7 @@ describe("cloud auth schemas", () => {
   });
 
   test("accepts register payload", () => {
-    const result = v.safeParse(CloudRegisterSchema, {
+    const result = safeParse(CloudRegisterSchema, {
       name: "Nama",
       email: "user@example.com",
       password: "password1234",

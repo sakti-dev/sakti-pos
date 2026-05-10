@@ -6,7 +6,7 @@ const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 const mockTransaction = vi.fn();
 
-vi.mock("../db", () => ({
+vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
@@ -16,7 +16,7 @@ vi.mock("../db", () => ({
   },
 }));
 
-vi.mock("../lib/auth", () => ({
+vi.mock("../../lib/auth", () => ({
   narvik: {
     createSession: vi.fn(),
     invalidateSession: vi.fn(),
@@ -46,7 +46,7 @@ const {
   handleEventPull,
   handleSyncStatus,
   verifyOutletAccess,
-} = await import("../lib/sync");
+} = await import("../service");
 
 describe("verifyOutletAccess", () => {
   afterEach(() => {

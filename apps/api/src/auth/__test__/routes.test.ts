@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test, vi } from "bun:test";
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 
-vi.mock("../db", () => ({
+vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
@@ -11,7 +11,7 @@ vi.mock("../db", () => ({
 }));
 
 const mockValidateSession = vi.fn();
-vi.mock("../lib/auth", () => ({
+vi.mock("../../lib/auth", () => ({
   narvik: {
     createSession: vi.fn().mockResolvedValue({ token: "session-token-123" }),
     invalidateSession: vi.fn().mockResolvedValue(undefined),
@@ -24,7 +24,7 @@ vi.mock("../lib/auth", () => ({
   },
 }));
 
-vi.mock("../lib/oauth", () => ({
+vi.mock("../../lib/oauth", () => ({
   google: {
     createAuthorizationURL: vi.fn(
       () => new URL("https://accounts.google.com/o/oauth2/v2/auth")
@@ -46,7 +46,7 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-const { authRoutes } = await import("../routes/auth");
+const { authRoutes } = await import("../routes");
 
 async function makeRequest(
   path: string,

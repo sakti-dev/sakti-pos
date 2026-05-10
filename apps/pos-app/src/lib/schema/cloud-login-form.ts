@@ -1,30 +1,38 @@
-import * as v from "valibot";
+import {
+  email,
+  type InferOutput,
+  minLength,
+  nonEmpty,
+  object,
+  pipe,
+  string,
+} from "valibot";
 
-export const CloudLoginSchema = v.object({
-  email: v.pipe(
-    v.string("Email wajib diisi"),
-    v.nonEmpty("Email wajib diisi"),
-    v.email("Format email tidak valid")
+export const CloudLoginSchema = object({
+  email: pipe(
+    string("Email wajib diisi"),
+    nonEmpty("Email wajib diisi"),
+    email("Format email tidak valid")
   ),
-  password: v.pipe(
-    v.string("Kata sandi wajib diisi"),
-    v.nonEmpty("Kata sandi wajib diisi")
+  password: pipe(
+    string("Kata sandi wajib diisi"),
+    nonEmpty("Kata sandi wajib diisi")
   ),
 });
 
-export const CloudRegisterSchema = v.object({
-  name: v.pipe(v.string("Nama wajib diisi"), v.nonEmpty("Nama wajib diisi")),
-  email: v.pipe(
-    v.string("Email wajib diisi"),
-    v.nonEmpty("Email wajib diisi"),
-    v.email("Format email tidak valid")
+export const CloudRegisterSchema = object({
+  name: pipe(string("Nama wajib diisi"), nonEmpty("Nama wajib diisi")),
+  email: pipe(
+    string("Email wajib diisi"),
+    nonEmpty("Email wajib diisi"),
+    email("Format email tidak valid")
   ),
-  password: v.pipe(
-    v.string("Kata sandi wajib diisi"),
-    v.nonEmpty("Kata sandi wajib diisi"),
-    v.minLength(8, "Kata sandi minimal 8 karakter")
+  password: pipe(
+    string("Kata sandi wajib diisi"),
+    nonEmpty("Kata sandi wajib diisi"),
+    minLength(8, "Kata sandi minimal 8 karakter")
   ),
 });
 
-export type CloudLoginValues = v.InferOutput<typeof CloudLoginSchema>;
-export type CloudRegisterValues = v.InferOutput<typeof CloudRegisterSchema>;
+export type CloudLoginValues = InferOutput<typeof CloudLoginSchema>;
+export type CloudRegisterValues = InferOutput<typeof CloudRegisterSchema>;

@@ -1,7 +1,35 @@
-import * as schema from "@repo/database";
+import {
+  categories,
+  merchants,
+  orderItems,
+  orders,
+  outletProducts,
+  outlets,
+  products,
+  registers,
+  staff,
+  syncCursors,
+  syncMeta,
+  syncOutbox,
+} from "@repo/database";
 import { invoke } from "@tauri-apps/api/core";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { createLogger } from "~/lib/logger";
+
+const schema = {
+  categories,
+  merchants,
+  orderItems,
+  orders,
+  outletProducts,
+  outlets,
+  products,
+  registers,
+  staff,
+  syncCursors,
+  syncMeta,
+  syncOutbox,
+};
 
 const dbLogger = createLogger({ module: "db" });
 

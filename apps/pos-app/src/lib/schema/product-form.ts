@@ -1,27 +1,38 @@
-import * as v from "valibot";
+import {
+  finite,
+  type InferOutput,
+  integer,
+  literal,
+  minValue,
+  nonEmpty,
+  number,
+  object,
+  pipe,
+  string,
+  transform,
+  union,
+  url,
+} from "valibot";
 
-export const ProductSchema = v.object({
-  name: v.pipe(
-    v.string("Nama produk wajib diisi"),
-    v.nonEmpty("Nama produk wajib diisi")
+export const ProductSchema = object({
+  name: pipe(
+    string("Nama produk wajib diisi"),
+    nonEmpty("Nama produk wajib diisi")
   ),
-  categoryId: v.pipe(
-    v.string("Kategori wajib dipilih"),
-    v.nonEmpty("Kategori wajib dipilih")
+  categoryId: pipe(
+    string("Kategori wajib dipilih"),
+    nonEmpty("Kategori wajib dipilih")
   ),
-  price: v.pipe(
-    v.string("Harga wajib diisi"),
-    v.nonEmpty("Harga wajib diisi"),
-    v.transform((input) => Number(input)),
-    v.number("Harga harus berupa angka"),
-    v.finite("Harga harus berupa angka"),
-    v.integer("Harga harus bilangan bulat"),
-    v.minValue(0, "Harga tidak boleh negatif")
+  price: pipe(
+    string("Harga wajib diisi"),
+    nonEmpty("Harga wajib diisi"),
+    transform((input) => Number(input)),
+    number("Harga harus berupa angka"),
+    finite("Harga harus berupa angka"),
+    integer("Harga harus bilangan bulat"),
+    minValue(0, "Harga tidak boleh negatif")
   ),
-  imageUrl: v.union([
-    v.literal(""),
-    v.pipe(v.string(), v.url("URL gambar tidak valid")),
-  ]),
+  imageUrl: union([literal(""), pipe(string(), url("URL gambar tidak valid"))]),
 });
 
-export type ProductFormValues = v.InferOutput<typeof ProductSchema>;
+export type ProductFormValues = InferOutput<typeof ProductSchema>;

@@ -4,7 +4,7 @@ const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
 
-vi.mock("../db", () => ({
+vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
@@ -13,7 +13,7 @@ vi.mock("../db", () => ({
 }));
 
 const mockValidateSession = vi.fn();
-vi.mock("../lib/auth", () => ({
+vi.mock("../../lib/auth", () => ({
   narvik: {
     createSession: vi.fn(),
     invalidateSession: vi.fn(),
@@ -37,7 +37,7 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-const { staffRoutes } = await import("../routes/staff");
+const { staffRoutes } = await import("../routes");
 
 async function makeRequest(
   path: string,

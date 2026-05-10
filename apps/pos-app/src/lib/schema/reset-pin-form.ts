@@ -1,21 +1,29 @@
-import * as v from "valibot";
+import {
+  check,
+  type InferOutput,
+  minLength,
+  nonEmpty,
+  object,
+  pipe,
+  string,
+} from "valibot";
 
-export const ResetPinSchema = v.pipe(
-  v.object({
-    pin: v.pipe(
-      v.string("PIN wajib diisi"),
-      v.nonEmpty("PIN wajib diisi"),
-      v.minLength(6, "PIN minimal 6 digit")
+export const ResetPinSchema = pipe(
+  object({
+    pin: pipe(
+      string("PIN wajib diisi"),
+      nonEmpty("PIN wajib diisi"),
+      minLength(6, "PIN minimal 6 digit")
     ),
-    confirmPin: v.pipe(
-      v.string("Konfirmasi PIN wajib diisi"),
-      v.nonEmpty("Konfirmasi PIN wajib diisi")
+    confirmPin: pipe(
+      string("Konfirmasi PIN wajib diisi"),
+      nonEmpty("Konfirmasi PIN wajib diisi")
     ),
   }),
-  v.check(
+  check(
     (input) => input.confirmPin === "" || input.pin === input.confirmPin,
     "PIN tidak cocok"
   )
 );
 
-export type ResetPinFormValues = v.InferOutput<typeof ResetPinSchema>;
+export type ResetPinFormValues = InferOutput<typeof ResetPinSchema>;

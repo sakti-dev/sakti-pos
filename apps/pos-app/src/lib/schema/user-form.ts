@@ -1,35 +1,37 @@
-import * as v from "valibot";
+import {
+  check,
+  type InferOutput,
+  minLength,
+  nonEmpty,
+  object,
+  pipe,
+  string,
+} from "valibot";
 
-export const CreateUserSchema = v.pipe(
-  v.object({
-    name: v.pipe(v.string("Nama wajib diisi"), v.nonEmpty("Nama wajib diisi")),
-    role: v.pipe(
-      v.string("Peran wajib dipilih"),
-      v.nonEmpty("Peran wajib dipilih")
+export const CreateUserSchema = pipe(
+  object({
+    name: pipe(string("Nama wajib diisi"), nonEmpty("Nama wajib diisi")),
+    role: pipe(string("Peran wajib dipilih"), nonEmpty("Peran wajib dipilih")),
+    pin: pipe(
+      string("PIN wajib diisi"),
+      nonEmpty("PIN wajib diisi"),
+      minLength(6, "PIN minimal 6 digit")
     ),
-    pin: v.pipe(
-      v.string("PIN wajib diisi"),
-      v.nonEmpty("PIN wajib diisi"),
-      v.minLength(6, "PIN minimal 6 digit")
-    ),
-    confirmPin: v.pipe(
-      v.string("Konfirmasi PIN wajib diisi"),
-      v.nonEmpty("Konfirmasi PIN wajib diisi")
+    confirmPin: pipe(
+      string("Konfirmasi PIN wajib diisi"),
+      nonEmpty("Konfirmasi PIN wajib diisi")
     ),
   }),
-  v.check(
+  check(
     (input) => input.confirmPin === "" || input.pin === input.confirmPin,
     "PIN tidak cocok"
   )
 );
 
-export const EditUserSchema = v.object({
-  name: v.pipe(v.string("Nama wajib diisi"), v.nonEmpty("Nama wajib diisi")),
-  role: v.pipe(
-    v.string("Peran wajib dipilih"),
-    v.nonEmpty("Peran wajib dipilih")
-  ),
+export const EditUserSchema = object({
+  name: pipe(string("Nama wajib diisi"), nonEmpty("Nama wajib diisi")),
+  role: pipe(string("Peran wajib dipilih"), nonEmpty("Peran wajib dipilih")),
 });
 
-export type CreateUserValues = v.InferOutput<typeof CreateUserSchema>;
-export type EditUserValues = v.InferOutput<typeof EditUserSchema>;
+export type CreateUserValues = InferOutput<typeof CreateUserSchema>;
+export type EditUserValues = InferOutput<typeof EditUserSchema>;

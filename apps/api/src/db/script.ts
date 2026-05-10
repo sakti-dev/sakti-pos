@@ -1,5 +1,35 @@
-import * as schema from "@repo/database/api-schema";
+import {
+  categories,
+  merchants,
+  orderItems,
+  orders,
+  outletProducts,
+  outlets,
+  products,
+  registers,
+  staff,
+  syncEvents,
+  userMerchants,
+  userSessions,
+  users,
+} from "@repo/database/api-schema";
 import { drizzle } from "drizzle-orm/libsql";
+
+const schema = {
+  categories,
+  merchants,
+  orderItems,
+  orders,
+  outletProducts,
+  outlets,
+  products,
+  registers,
+  staff,
+  syncEvents,
+  userMerchants,
+  userSessions,
+  users,
+};
 
 export const scriptDb = drizzle({
   connection: {

@@ -6,7 +6,7 @@ const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 const PAIRING_CODE_REGEX = /^[A-Z0-9]{8}$/;
 
-vi.mock("../db", () => ({
+vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
     select: (...args: unknown[]) => mockSelect(...args),
@@ -16,7 +16,7 @@ vi.mock("../db", () => ({
 }));
 
 const mockValidateSession = vi.fn();
-vi.mock("../lib/auth", () => ({
+vi.mock("../../lib/auth", () => ({
   narvik: {
     createSession: vi.fn(),
     invalidateSession: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-const { registersRoutes } = await import("../routes/registers");
+const { registersRoutes } = await import("../routes");
 
 async function makeRequest(
   path: string,

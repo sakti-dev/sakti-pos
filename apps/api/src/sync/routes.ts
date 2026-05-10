@@ -9,7 +9,7 @@ import {
   handlePush,
   handleSyncStatus,
   verifyOutletAccess,
-} from "../lib/sync";
+} from "./service";
 
 export const syncRoutes = new Elysia({ prefix: "/api/sync" })
   .post(

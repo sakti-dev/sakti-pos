@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "bun:test";
 
 const mockInsert = vi.fn();
 
-vi.mock("../db", () => ({
+vi.mock("../../db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
   },
@@ -24,7 +24,7 @@ describe("recordSyncEvent", () => {
     const values = vi.fn().mockResolvedValue(undefined);
     mockInsert.mockReturnValue({ values });
 
-    const { recordSyncEvent } = await import("../lib/sync-events");
+    const { recordSyncEvent } = await import("../sync-events");
     await recordSyncEvent({
       changedAt: "2026-05-09T12:00:00.000Z",
       operation: "update",
