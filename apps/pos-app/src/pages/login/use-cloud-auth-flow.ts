@@ -8,10 +8,13 @@ import {
 	getOutlets,
 	type Outlet,
 	type SessionMerchant,
-} from "~/lib/cloud-auth";
+} from "~/lib/auth/cloud";
+import { createLogger } from "~/lib/logger";
 import { getActiveStaff, loginWithCloudStaff } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
+
+const cloudLoginLogger = createLogger({ module: "cloud-login" });
 
 export type CloudAuthStep = "auth" | "merchant-picker" | "outlet-picker";
 
@@ -31,10 +34,6 @@ function describeError(error: unknown): string {
 	} catch {
 		return String(error);
 	}
-}
-
-function debugLog(event: string, data: Record<string, unknown>) {
-	console.info(`[CLOUD-LOGIN] ${event} ${JSON.stringify(data)}`);
 }
 
 export function useCloudAuthFlow() {
@@ -79,7 +78,7 @@ export function useCloudAuthFlow() {
 	const handleSelectOutlet = async (outlet: Outlet) => {
 		setPicking(true);
 		setError("");
-		debugLog("outlet selected", {
+		cloudLoginLogger.info("outlet_selected", {
 			merchantId: outlet.merchantId,
 			outletId: outlet.id,
 			outletName: outlet.name,
@@ -87,11 +86,11 @@ export function useCloudAuthFlow() {
 		setOutletContext(outlet.id, outlet.merchantId);
 		let currentCloudStaff: CurrentCloudStaff;
 		try {
-			debugLog("current cloud staff request", {
+			cloudLoginLogger.info("current_cloud_staff:request", {
 				merchantId: outlet.merchantId,
 			});
 			currentCloudStaff = await getCurrentCloudStaff(outlet.merchantId);
-			debugLog("current cloud staff result", {
+			cloudLoginLogger.info("current_cloud_staff:result", {
 				claimed: currentCloudStaff.claimed,
 				reason: currentCloudStaff.reason,
 				staffId: currentCloudStaff.staff?.id,
@@ -99,37 +98,31 @@ export function useCloudAuthFlow() {
 			});
 		} catch (err) {
 			const message = describeError(err);
-			console.error(
-				`[CLOUD-LOGIN] current cloud staff failed ${JSON.stringify({
-					error: message,
-					merchantId: outlet.merchantId,
-					outletId: outlet.id,
-				})}`,
-			);
+			cloudLoginLogger.error("current_cloud_staff:failed", err, {
+				merchantId: outlet.merchantId,
+				outletId: outlet.id,
+			});
 			setError(`Gagal memeriksa staff cloud: ${message}`);
 			setPicking(false);
 			return;
 		}
 
 		try {
-			debugLog("sync request", {
+			cloudLoginLogger.info("sync:request", {
 				merchantId: outlet.merchantId,
 				outletId: outlet.id,
 			});
 			await syncNow();
-			debugLog("sync result", {
+			cloudLoginLogger.info("sync:result", {
 				merchantId: outlet.merchantId,
 				outletId: outlet.id,
 			});
 		} catch (err) {
 			const message = describeError(err);
-			console.error(
-				`[CLOUD-LOGIN] sync failed ${JSON.stringify({
-					error: message,
-					merchantId: outlet.merchantId,
-					outletId: outlet.id,
-				})}`,
-			);
+			cloudLoginLogger.error("sync:failed", err, {
+				merchantId: outlet.merchantId,
+				outletId: outlet.id,
+			});
 			setError(`Gagal menyinkronkan data: ${message}`);
 			return;
 		} finally {
@@ -141,12 +134,9 @@ export function useCloudAuthFlow() {
 				const authUser = await loginWithCloudStaff(currentCloudStaff.staff.id);
 				navigate(routeForRole(authUser.role), { replace: true });
 			} catch (err) {
-				console.error(
-					`[CLOUD-LOGIN] local cloud staff login failed ${JSON.stringify({
-						error: describeError(err),
-						staffId: currentCloudStaff.staff.id,
-					})}`,
-				);
+				cloudLoginLogger.error("local_cloud_staff_login:failed", err, {
+					staffId: currentCloudStaff.staff.id,
+				});
 				setError("Data pengguna belum tersinkron. Coba sinkronkan lagi.");
 			}
 			return;

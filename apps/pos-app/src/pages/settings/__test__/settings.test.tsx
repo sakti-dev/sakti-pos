@@ -33,7 +33,7 @@ vi.mock("~/store/theme", () => ({
 	setTheme: (...args: unknown[]) => mockSetTheme(...args),
 }));
 
-vi.mock("~/lib/cloud-auth", () => ({
+vi.mock("~/lib/auth/cloud", () => ({
 	getSession: vi.fn(() => Promise.resolve({ user: null })),
 	logout: vi.fn(),
 }));

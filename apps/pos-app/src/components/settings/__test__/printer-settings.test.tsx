@@ -8,11 +8,25 @@ const mockTestPrint = vi.fn();
 const mockSaveDefaultPrinter = vi.fn();
 const mockGetDefaultPrinter = vi.fn<() => string | null>(() => null);
 const mockRequestBluetoothPermission = vi.fn();
-const mockLogPrinterInfo = vi.fn();
-const mockLogPrinterError = vi.fn();
-const mockLogPrinterWarn = vi.fn();
+const mockLogger = vi.hoisted(() => {
+	const info = vi.fn();
+	const error = vi.fn();
+	const warn = vi.fn();
+	const child = vi.fn();
+	const debug = vi.fn();
+	return {
+		error: (...args: unknown[]) => error(...args),
+		info: (...args: unknown[]) => info(...args),
+		warn: (...args: unknown[]) => warn(...args),
+		child,
+		debug,
+		errorCalls: error,
+		infoCalls: info,
+		warnCalls: warn,
+	};
+});
 
-vi.mock("~/lib/printer", () => ({
+vi.mock("~/lib/printer/client", () => ({
 	listPairedPrinters: () => mockListPairedPrinters(),
 	testPrint: (...args: unknown[]) => mockTestPrint(...args),
 	saveDefaultPrinter: (...args: unknown[]) => mockSaveDefaultPrinter(...args),
@@ -20,10 +34,9 @@ vi.mock("~/lib/printer", () => ({
 	requestBluetoothPermission: () => mockRequestBluetoothPermission(),
 }));
 
-vi.mock("~/lib/printer-log", () => ({
-	logPrinterError: (...args: unknown[]) => mockLogPrinterError(...args),
-	logPrinterInfo: (...args: unknown[]) => mockLogPrinterInfo(...args),
-	logPrinterWarn: (...args: unknown[]) => mockLogPrinterWarn(...args),
+vi.mock("~/lib/logger", () => ({
+	createLogger: vi.fn(() => mockLogger),
+	logger: mockLogger,
 }));
 
 vi.mock("~/components/ui/button", () => ({
@@ -94,8 +107,8 @@ describe("PrinterSettings", () => {
 				"Gagal memuat printer. Tekan Segarkan untuk mencoba lagi.",
 			);
 			expect(screen.queryByText("Memuat...")).not.toBeInTheDocument();
-			expect(mockLogPrinterWarn).toHaveBeenCalledWith(
-				"settings:load_printers:timeout",
+			expect(mockLogger.warnCalls).toHaveBeenCalledWith(
+				"load_printers:timeout",
 			);
 		} finally {
 			vi.useRealTimers();
@@ -126,7 +139,7 @@ describe("PrinterSettings", () => {
 
 		expect(mockRequestBluetoothPermission).toHaveBeenCalled();
 		await screen.findByText("Printer58");
-		expect(mockLogPrinterWarn).not.toHaveBeenCalledWith(
+		expect(mockLogger.warnCalls).not.toHaveBeenCalledWith(
 			"settings:request_permission:reload_fallback",
 		);
 	});
@@ -147,11 +160,11 @@ describe("PrinterSettings", () => {
 			fireEvent.click(screen.getByText("Berikan Izin Bluetooth"));
 			await vi.advanceTimersByTimeAsync(1500);
 
-			await screen.findByText("Printer58");
-			expect(mockListPairedPrinters).toHaveBeenCalledTimes(2);
-			expect(mockLogPrinterWarn).toHaveBeenCalledWith(
-				"settings:request_permission:reload_fallback",
-			);
+		await screen.findByText("Printer58");
+		expect(mockListPairedPrinters).toHaveBeenCalledTimes(2);
+		expect(mockLogger.warnCalls).toHaveBeenCalledWith(
+			"request_permission:reload_fallback",
+		);
 		} finally {
 			vi.useRealTimers();
 		}
@@ -175,7 +188,7 @@ describe("PrinterSettings", () => {
 		await screen.findByText("ThermalPrinter");
 		expect(mockListPairedPrinters).toHaveBeenCalledTimes(2);
 		expect(toast.success).toHaveBeenCalledWith("1 printer ditemukan");
-		expect(mockLogPrinterInfo).not.toHaveBeenCalled();
+		expect(mockLogger.infoCalls).not.toHaveBeenCalled();
 	});
 
 	test("shows refresh progress while reload is pending", async () => {
@@ -265,7 +278,7 @@ describe("PrinterSettings", () => {
 
 		expect(mockRequestBluetoothPermission).toHaveBeenCalled();
 		expect(mockTestPrint).toHaveBeenCalledWith("00:11:22:33:44:55");
-		expect(mockLogPrinterInfo).not.toHaveBeenCalled();
+		expect(mockLogger.infoCalls).not.toHaveBeenCalled();
 	});
 
 	test("shows saved default printer as selected", async () => {

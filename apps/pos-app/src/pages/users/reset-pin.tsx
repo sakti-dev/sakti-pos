@@ -5,7 +5,7 @@ import { toast } from "solid-sonner";
 import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
-import { changePin } from "~/lib/auth-provider";
+import { changePin } from "~/lib/auth/provider";
 import { ResetPinSchema, type ResetPinFormValues } from "~/lib/schema/reset-pin-form";
 
 export default function ResetPin() {

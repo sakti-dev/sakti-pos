@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-vi.mock("../auth-storage", () => ({
+vi.mock("../storage", () => ({
 	AuthStorage: {
 		getToken: vi.fn(() => Promise.resolve(null)),
 		saveToken: vi.fn(() => Promise.resolve()),
@@ -15,16 +15,16 @@ describe("isCloudAuthenticated", () => {
 	});
 
 	test("returns false when no token stored", async () => {
-		const { isCloudAuthenticated } = await import("../cloud-auth");
+		const { isCloudAuthenticated } = await import("../cloud");
 		expect(await isCloudAuthenticated()).toBe(false);
 	});
 
 	test("returns true when token exists", async () => {
-		const { AuthStorage } = await import("../auth-storage");
+		const { AuthStorage } = await import("../storage");
 		(AuthStorage.getToken as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
 			"test-token",
 		);
-		const { isCloudAuthenticated } = await import("../cloud-auth");
+		const { isCloudAuthenticated } = await import("../cloud");
 		expect(await isCloudAuthenticated()).toBe(true);
 	});
 
@@ -52,7 +52,7 @@ describe("isCloudAuthenticated", () => {
 		);
 		vi.stubGlobal("fetch", fetchMock);
 
-		const { getCurrentCloudStaff } = await import("../cloud-auth");
+		const { getCurrentCloudStaff } = await import("../cloud");
 		const result = await getCurrentCloudStaff("merchant-1");
 
 		expect(fetchMock).toHaveBeenCalledWith(

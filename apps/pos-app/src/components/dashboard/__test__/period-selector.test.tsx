@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import { createSignal } from "solid-js";
 import { describe, expect, test } from "vitest";
-import type { DateRange } from "~/lib/period";
+import type { DateRange } from "~/lib/dashboard/period";
 import { PeriodSelector } from "../period-selector";
 
 const TODAY_RANGE: DateRange = {

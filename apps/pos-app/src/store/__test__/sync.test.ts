@@ -13,13 +13,13 @@ vi.mock("~/store/outlet", () => ({
 	currentOutletId: () => mockOutletId,
 }));
 
-vi.mock("~/lib/auth-storage", () => ({
+vi.mock("~/lib/auth/storage", () => ({
 	AuthStorage: {
 		getToken: () => Promise.resolve(mockToken),
 	},
 }));
 
-vi.mock("~/lib/sync-api", () => ({
+vi.mock("~/lib/sync/api", () => ({
 	getSyncStatus: (...args: unknown[]) => mockGetSyncStatus(...args),
 }));
 

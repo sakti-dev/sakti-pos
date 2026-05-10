@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { createSignal, For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
-import { ApiError, pairRegister } from "~/lib/cloud-auth";
+import { ApiError, pairRegister } from "~/lib/auth/cloud";
 import { setOutletContext } from "~/store/outlet";
 
 export default function DevicePair() {

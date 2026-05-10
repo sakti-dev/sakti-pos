@@ -16,7 +16,7 @@ import type {
 	TopProductRow,
 	WeeklyRow,
 } from "~/db/dashboard";
-import { getTodayRange, type DateRange } from "~/lib/period";
+import { getTodayRange, type DateRange } from "~/lib/dashboard/period";
 import { useDashboardData } from "./use-dashboard-data";
 
 type RevenueData = {

@@ -11,7 +11,7 @@ vi.mock("@solidjs/router", () => ({
 	useParams: () => ({ id: "1" }),
 }));
 
-vi.mock("~/lib/auth-provider", () => ({
+vi.mock("~/lib/auth/provider", () => ({
 	changePin: (...args: unknown[]) => mockChangePin(...args),
 }));
 

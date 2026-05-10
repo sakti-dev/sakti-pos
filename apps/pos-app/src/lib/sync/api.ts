@@ -1,4 +1,4 @@
-import { AuthStorage } from "./auth-storage";
+import { AuthStorage } from "~/lib/auth/storage";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 

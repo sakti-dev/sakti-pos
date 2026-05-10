@@ -3,7 +3,7 @@ import type { Component } from "solid-js";
 import { Match, Show, Switch } from "solid-js";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { PaymentBreakdown } from "~/db/dashboard";
-import "~/lib/chart-setup";
+import "~/lib/dashboard/chart-setup";
 import { formatIDR } from "~/lib/utils";
 
 interface PaymentBreakdownChartProps {

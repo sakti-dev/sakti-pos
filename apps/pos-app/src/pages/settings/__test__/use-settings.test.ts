@@ -30,7 +30,7 @@ vi.mock("~/store/theme", () => ({
 	theme: vi.fn(() => "system"),
 }));
 
-vi.mock("~/lib/cloud-auth", () => ({
+vi.mock("~/lib/auth/cloud", () => ({
 	getSession: vi.fn(() => Promise.resolve({ user: null })),
 	logout: vi.fn(),
 }));

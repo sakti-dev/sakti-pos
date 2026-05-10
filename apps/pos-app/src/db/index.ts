@@ -1,6 +1,9 @@
 import * as schema from "@repo/database";
 import { invoke } from "@tauri-apps/api/core";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
+import { createLogger } from "~/lib/logger";
+
+const dbLogger = createLogger({ module: "db" });
 
 interface SqlRow {
 	columns: string[];
@@ -22,14 +25,7 @@ export const db = drizzle(
 				? { rows: rows[0]?.values ?? [] }
 				: { rows: rows.map((r) => r.values) };
 		} catch (err) {
-			console.error(
-				"DB query failed:",
-				sql,
-				"params:",
-				JSON.stringify(params),
-				"error:",
-				err,
-			);
+			dbLogger.error("query_failed", err, { method, params, sql });
 			throw err;
 		}
 	},

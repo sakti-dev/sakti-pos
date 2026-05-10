@@ -2,7 +2,7 @@ import { useNavigate } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
 import { createMemo, createResource, createSignal } from "solid-js";
 import { toast } from "solid-sonner";
-import { logout as cloudLogout, getSession } from "~/lib/cloud-auth";
+import { logout as cloudLogout, getSession } from "~/lib/auth/cloud";
 import { currentUser, logout } from "~/store/auth";
 import { clearOutletContext, currentOutletId } from "~/store/outlet";
 import { type SyncNowResult, syncNow, syncStatus } from "~/store/sync";

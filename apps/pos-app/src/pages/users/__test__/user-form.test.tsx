@@ -19,7 +19,7 @@ vi.mock("~/store/auth", () => ({
 	currentUser: vi.fn(() => ({ id: "staff-1", name: "Admin", role: "manager" })),
 }));
 
-vi.mock("~/lib/cloud-auth", () => ({
+vi.mock("~/lib/auth/cloud", () => ({
 	createStaff: (...args: unknown[]) => mockCreateStaffApi(...args),
 }));
 

@@ -48,7 +48,7 @@ vi.mock("@solidjs/router", () => ({
 	useSearchParams: () => [{ get: () => null }, () => {}],
 }));
 
-vi.mock("~/lib/cloud-auth", () => ({
+vi.mock("~/lib/auth/cloud", () => ({
 	ApiError: class extends Error {
 		status: number;
 		constructor(m: string, s: number) {

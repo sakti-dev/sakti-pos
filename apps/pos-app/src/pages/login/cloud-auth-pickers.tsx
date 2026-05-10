@@ -1,6 +1,6 @@
 import { For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
-import type { Outlet, SessionMerchant } from "~/lib/cloud-auth";
+import type { Outlet, SessionMerchant } from "~/lib/auth/cloud";
 import type { CloudAuthStep } from "./use-cloud-auth-flow";
 
 interface CloudAuthPickersProps {

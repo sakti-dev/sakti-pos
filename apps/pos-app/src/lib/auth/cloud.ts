@@ -1,23 +1,12 @@
-import { AuthStorage } from "./auth-storage";
+import { AuthStorage } from "./storage";
+import { createLogger } from "~/lib/logger";
+
+const cloudAuthLogger = createLogger({ module: "auth", scope: "cloud" });
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-function describeError(error: unknown): string {
-	if (error instanceof Error) {
-		return `${error.name}: ${error.message}`;
-	}
-	if (typeof error === "string") {
-		return error;
-	}
-	try {
-		return JSON.stringify(error);
-	} catch {
-		return String(error);
-	}
-}
-
 function debugLog(event: string, data: Record<string, unknown>) {
-	console.info(`[CLOUD-AUTH] ${event} ${JSON.stringify(data)}`);
+	cloudAuthLogger.info(event, data);
 }
 
 interface ApiUser {
@@ -105,8 +94,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 			},
 		});
 	} catch (error) {
-		debugLog("network-error", {
-			error: describeError(error),
+		cloudAuthLogger.error("network-error", error, {
 			method,
 			path,
 		});
@@ -120,7 +108,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 	} catch {
 		body = { error: text || `Non-JSON response (${res.status})` };
 	}
-	debugLog("response", {
+	cloudAuthLogger.info("response", {
 		body: res.ok ? undefined : body,
 		method,
 		ok: res.ok,

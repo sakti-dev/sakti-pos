@@ -3,7 +3,7 @@ import type { Component } from "solid-js";
 import { createSignal, Match, Show, Switch } from "solid-js";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { TopProductRow } from "~/db/dashboard";
-import { formatRupiahAxis } from "~/lib/chart-setup";
+import { formatRupiahAxis } from "~/lib/dashboard/chart-setup";
 import { cn } from "~/lib/utils";
 import { useIsPhone } from "~/store/responsive";
 

@@ -4,7 +4,7 @@ import { Show } from "solid-js";
 import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
 import { GoogleIcon } from "~/components/ui/custom-icon";
-import { ApiError, login as cloudLogin } from "~/lib/cloud-auth";
+import { ApiError, login as cloudLogin } from "~/lib/auth/cloud";
 import {
   CloudLoginSchema,
   type CloudLoginValues,

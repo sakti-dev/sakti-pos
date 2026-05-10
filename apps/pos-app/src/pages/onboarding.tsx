@@ -11,7 +11,7 @@ import {
 	getCurrentCloudStaff,
 	getSession,
 	type Merchant,
-} from "~/lib/cloud-auth";
+} from "~/lib/auth/cloud";
 import { login } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";

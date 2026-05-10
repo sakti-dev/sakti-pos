@@ -31,7 +31,7 @@ describe("auth-provider", () => {
 	});
 
 	test("verifyPin succeeds with correct PBKDF2 pin", async () => {
-		const { verifyPin } = await import("../auth-provider");
+		const { verifyPin } = await import("../provider");
 
 		mockStaffRows([
 			{
@@ -49,7 +49,7 @@ describe("auth-provider", () => {
 	});
 
 	test("verifyPin rejects wrong pin", async () => {
-		const { verifyPin } = await import("../auth-provider");
+		const { verifyPin } = await import("../provider");
 
 		mockStaffRows([
 			{
@@ -65,7 +65,7 @@ describe("auth-provider", () => {
 	});
 
 	test("verifyPin rejects inactive staff", async () => {
-		const { verifyPin } = await import("../auth-provider");
+		const { verifyPin } = await import("../provider");
 
 		mockStaffRows([
 			{
@@ -83,7 +83,7 @@ describe("auth-provider", () => {
 	});
 
 	test("verifyPin rejects missing staff", async () => {
-		const { verifyPin } = await import("../auth-provider");
+		const { verifyPin } = await import("../provider");
 
 		mockStaffRows([]);
 

@@ -6,13 +6,15 @@ import {
 	type ProductWithCategory,
 } from "~/db/orders";
 import { getAllOutlets } from "~/db/outlets";
-import { getDefaultPrinter, printReceipt } from "~/lib/printer";
-import { logPrinterError } from "~/lib/printer-log";
+import { getDefaultPrinter, printReceipt } from "~/lib/printer/client";
+import { createLogger } from "~/lib/logger";
 import type { ReceiptData } from "~/lib/receipt/types";
 import { currentUser, currentUserRole } from "~/store/auth";
 import { cartItems, cartTotal, clearCart } from "~/store/cart";
 import { useIsPhone } from "~/store/responsive";
 import { getCategoryNames, getVisibleProducts } from "./pos-utils";
+
+const posLogger = createLogger({ module: "pos" });
 
 type OutletOption = {
 	id: string;
@@ -122,7 +124,7 @@ export function usePos(): PosState {
 				printReceipt(printerAddress, receiptData).catch((error: unknown) => {
 					const message =
 						error instanceof Error ? error.message : "Gagal mencetak struk";
-					logPrinterError("checkout:auto_print:failed", error, {
+					posLogger.error("checkout:auto_print:failed", error, {
 						address: printerAddress,
 						orderNumber,
 					});
@@ -150,7 +152,7 @@ export function usePos(): PosState {
 
 		printReceipt(printerAddress, receipt).catch((error: unknown) => {
 			const message = error instanceof Error ? error.message : "Gagal mencetak struk";
-			logPrinterError("checkout:reprint:failed", error, {
+			posLogger.error("checkout:reprint:failed", error, {
 				address: printerAddress,
 				orderNumber: receipt.order.orderNumber,
 			});

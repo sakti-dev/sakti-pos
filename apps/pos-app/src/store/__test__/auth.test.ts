@@ -22,7 +22,7 @@ vi.mock("~/db", () => ({
 	},
 }));
 
-vi.mock("~/lib/auth-provider", () => ({
+vi.mock("~/lib/auth/provider", () => ({
 	verifyPin: (...args: unknown[]) => mockVerifyPin(...args),
 	changePin: (...args: unknown[]) => mockChangePin(...args),
 }));

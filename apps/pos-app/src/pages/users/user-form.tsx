@@ -9,11 +9,10 @@ import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
 import {
-	createStaff,
 	getStaffMember,
 	updateStaffMember,
 } from "~/db/staff";
-import { createStaff as createStaffApi } from "~/lib/cloud-auth";
+import { createStaff as createStaffApi } from "~/lib/auth/cloud";
 import { cn } from "~/lib/utils";
 import {
 	CreateUserSchema,

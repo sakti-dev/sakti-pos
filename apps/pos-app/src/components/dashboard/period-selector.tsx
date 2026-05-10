@@ -9,7 +9,7 @@ import {
 	getYearRange,
 	getYesterdayRange,
 	type PeriodPreset,
-} from "~/lib/period";
+} from "~/lib/dashboard/period";
 import { cn } from "~/lib/utils";
 
 interface PeriodSelectorProps {

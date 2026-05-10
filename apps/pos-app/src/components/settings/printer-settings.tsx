@@ -9,8 +9,10 @@ import {
 	saveDefaultPrinter,
 	type ThermalPrinterInfo,
 	testPrint,
-} from "~/lib/printer";
-import { logPrinterError, logPrinterWarn } from "~/lib/printer-log";
+} from "~/lib/printer/client";
+import { createLogger } from "~/lib/logger";
+
+const settingsPrinterLogger = createLogger({ module: "settings", scope: "printer" });
 
 const PERMISSION_RELOAD_FALLBACK_MS = 1_500;
 const LIST_PRINTERS_TIMEOUT_MS = 3_000;
@@ -57,7 +59,7 @@ export default function PrinterSettings() {
 			const result = await withTimeout(
 				listPairedPrinters(),
 				LIST_PRINTERS_TIMEOUT_MS,
-				() => logPrinterWarn("settings:load_printers:timeout"),
+				() => settingsPrinterLogger.warn("load_printers:timeout"),
 			);
 			setPrinters(result);
 			setNeedsPermission(false);
@@ -80,7 +82,7 @@ export default function PrinterSettings() {
 				setError(null);
 			} else {
 				setError(message);
-				logPrinterError("settings:load_printers:failed", e, {
+				settingsPrinterLogger.error("load_printers:failed", e, {
 					message,
 				});
 				if (options?.notify) {
@@ -98,14 +100,14 @@ export default function PrinterSettings() {
 		const permissionRequest = requestBluetoothPermission();
 		permissionRequest.catch((e) => {
 			toast.error("Izin Bluetooth ditolak");
-			logPrinterError("settings:request_permission:failed", e);
+			settingsPrinterLogger.error("request_permission:failed", e);
 		});
 
 		try {
 			let fallbackTimeout: ReturnType<typeof setTimeout> | undefined;
 			const fallback = new Promise<"fallback">((resolve) => {
 				fallbackTimeout = setTimeout(() => {
-					logPrinterWarn("settings:request_permission:reload_fallback");
+					settingsPrinterLogger.warn("request_permission:reload_fallback");
 					resolve("fallback");
 				}, PERMISSION_RELOAD_FALLBACK_MS);
 			});
@@ -140,7 +142,7 @@ export default function PrinterSettings() {
 	const handleTestPrint = async () => {
 		const address = savedAddress();
 		if (!address) {
-			logPrinterWarn("settings:test_print:skipped_no_printer");
+			settingsPrinterLogger.warn("test_print:skipped_no_printer");
 			return;
 		}
 		setTesting(true);
@@ -150,7 +152,7 @@ export default function PrinterSettings() {
 			toast.success("Test print berhasil");
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : "Gagal mencetak test");
-			logPrinterError("settings:test_print:failed", e, { address });
+			settingsPrinterLogger.error("test_print:failed", e, { address });
 		} finally {
 			setTesting(false);
 		}

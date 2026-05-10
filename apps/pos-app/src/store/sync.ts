@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createSignal } from "solid-js";
-import { AuthStorage } from "~/lib/auth-storage";
-import { getSyncStatus } from "~/lib/sync-api";
+import { AuthStorage } from "~/lib/auth/storage";
+import { createLogger } from "~/lib/logger";
+import { getSyncStatus } from "~/lib/sync/api";
 import { currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";
@@ -9,6 +10,7 @@ export type SyncMode = "skipped" | "push_only" | "pull_only" | "full";
 
 const [syncStatus, setSyncStatus] = createSignal<SyncStatus>("idle");
 const [lastSyncTime, setLastSyncTime] = createSignal<string | null>(null);
+const syncLogger = createLogger({ module: "sync" });
 
 export { lastSyncTime, syncStatus };
 
@@ -28,10 +30,6 @@ function describeError(error: unknown): string {
 	} catch {
 		return String(error);
 	}
-}
-
-function debugLog(event: string, data: Record<string, unknown>) {
-	console.info(`[SYNC-DEBUG] ${event} ${JSON.stringify(data)}`);
 }
 
 export function startSyncScheduler() {
@@ -125,7 +123,7 @@ export async function syncNow(): Promise<SyncNowResult> {
 			sessionToken,
 		};
 
-		debugLog("syncNow decision", {
+		syncLogger.info("decision", {
 			hasLocalChanges,
 			hasServerChanges,
 			latestEventId: serverStatus.latestEventId,
@@ -164,7 +162,7 @@ export async function syncNow(): Promise<SyncNowResult> {
 			);
 		}
 
-		debugLog("syncNow result", {
+		syncLogger.info("result", {
 			mode: result.mode,
 			pullRows: result.pull.rows_received,
 			pullServerTime: result.pull.server_time,
@@ -178,13 +176,7 @@ export async function syncNow(): Promise<SyncNowResult> {
 		return result;
 	} catch (err) {
 		const message = describeError(err);
-		console.error(
-			`[SYNC-DEBUG] syncNow failed ${JSON.stringify({
-				apiUrl: API_URL,
-				error: message,
-				outletId,
-			})}`,
-		);
+		syncLogger.error("failed", err, { apiUrl: API_URL, outletId });
 		setSyncStatus("offline");
 		throw new Error(`Gagal menyinkronkan: ${message}`);
 	}

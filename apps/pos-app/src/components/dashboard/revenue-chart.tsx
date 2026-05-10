@@ -10,8 +10,8 @@ import type {
 	MonthlyRow,
 	WeeklyRow,
 } from "~/db/dashboard";
-import { formatRupiahAxis } from "~/lib/chart-setup";
-import type { ChartGranularity } from "~/lib/period";
+import { formatRupiahAxis } from "~/lib/dashboard/chart-setup";
+import type { ChartGranularity } from "~/lib/dashboard/period";
 import { useIsPhone } from "~/store/responsive";
 
 dayjs.locale("id");

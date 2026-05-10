@@ -1,5 +1,8 @@
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { Stronghold } from "@tauri-apps/plugin-stronghold";
+import { createLogger } from "~/lib/logger";
+
+const storageLogger = createLogger({ module: "auth", scope: "storage" });
 
 const VAULT_NAME = "sakti-pos-vault.hold";
 const CLIENT_NAME = "auth_client";
@@ -30,7 +33,7 @@ async function persistToStronghold(token: string): Promise<void> {
 		await store.insert(STORE_KEY, Array.from(encoder.encode(token)));
 		await stronghold.save();
 	} catch (err) {
-		console.error("[auth-storage] stronghold persist failed:", err);
+		storageLogger.error("stronghold_persist:failed", err);
 	}
 }
 

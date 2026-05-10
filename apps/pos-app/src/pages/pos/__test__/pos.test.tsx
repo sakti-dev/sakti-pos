@@ -85,7 +85,7 @@ vi.mock("~/store/cart", () => ({
 const mockPrintReceipt = vi.fn();
 const mockGetDefaultPrinter = vi.fn<() => string | null>(() => null);
 
-vi.mock("~/lib/printer", () => ({
+vi.mock("~/lib/printer/client", () => ({
 	printReceipt: (...args: unknown[]) => mockPrintReceipt(...args),
 	getDefaultPrinter: () => mockGetDefaultPrinter(),
 }));

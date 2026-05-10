@@ -20,7 +20,7 @@ import {
 	type DateRange,
 	getChartGranularity,
 	getPreviousRange,
-} from "~/lib/period";
+} from "~/lib/dashboard/period";
 
 export type RevenueType = "hourly" | "daily" | "weekly" | "monthly";
 

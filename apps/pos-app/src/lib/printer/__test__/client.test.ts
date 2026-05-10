@@ -6,20 +6,34 @@ import {
 	printReceipt,
 	saveDefaultPrinter,
 	testPrint,
-} from "../printer";
-import type { ReceiptData } from "../receipt/types";
+} from "../client";
+import type { ReceiptData } from "../../receipt/types";
 
-const mockLogPrinterInfo = vi.fn();
-const mockLogPrinterError = vi.fn();
+const mockLogger = vi.hoisted(() => {
+	const info = vi.fn();
+	const error = vi.fn();
+	const warn = vi.fn();
+	const child = vi.fn();
+	const debug = vi.fn();
+	return {
+		error: (...args: unknown[]) => error(...args),
+		info: (...args: unknown[]) => info(...args),
+		warn: (...args: unknown[]) => warn(...args),
+		child,
+		debug,
+		errorCalls: error,
+		infoCalls: info,
+		warnCalls: warn,
+	};
+});
 
 vi.mock("@tauri-apps/api/core", () => ({
 	invoke: vi.fn(),
 }));
 
-vi.mock("../printer-log", () => ({
-	logPrinterError: (...args: unknown[]) => mockLogPrinterError(...args),
-	logPrinterInfo: (...args: unknown[]) => mockLogPrinterInfo(...args),
-	logPrinterWarn: vi.fn(),
+vi.mock("~/lib/logger", () => ({
+	createLogger: vi.fn(() => mockLogger),
+	logger: mockLogger,
 }));
 
 const receipt: ReceiptData = {
@@ -49,7 +63,7 @@ describe("printer service", () => {
 
 		expect(printers).toEqual([{ address: "00:11", name: "Printer58" }]);
 		expect(invoke).toHaveBeenCalledWith("list_paired_thermal_printers");
-		expect(mockLogPrinterInfo).not.toHaveBeenCalled();
+		expect(mockLogger.infoCalls).not.toHaveBeenCalled();
 	});
 
 	test("prints receipt through native command", async () => {
@@ -61,7 +75,7 @@ describe("printer service", () => {
 			address: "00:11",
 			formattedText: expect.stringContaining("SAKTI KOPI"),
 		});
-		expect(mockLogPrinterInfo).not.toHaveBeenCalled();
+		expect(mockLogger.infoCalls).not.toHaveBeenCalled();
 	});
 
 	test("saves and retrieves default printer address", () => {
@@ -82,6 +96,6 @@ describe("printer service", () => {
 		expect(invoke).toHaveBeenCalledWith("test_thermal_printer", {
 			address: "00:11",
 		});
-		expect(mockLogPrinterInfo).not.toHaveBeenCalled();
+		expect(mockLogger.infoCalls).not.toHaveBeenCalled();
 	});
 });

@@ -2,7 +2,7 @@ import { staff } from "@repo/database";
 import { invoke } from "@tauri-apps/api/core";
 import { eq } from "drizzle-orm";
 import { db } from "~/db";
-import { AuthStorage } from "~/lib/auth-storage";
+import { AuthStorage } from "~/lib/auth/storage";
 
 export type StaffRole = "cashier" | "manager" | "owner";
 

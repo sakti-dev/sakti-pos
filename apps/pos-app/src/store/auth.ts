@@ -2,10 +2,13 @@ import { staff } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { createSignal } from "solid-js";
 import { db } from "~/db";
-import type { AuthUser } from "~/lib/auth-provider";
-import { changePin, verifyPin } from "~/lib/auth-provider";
+import type { AuthUser } from "~/lib/auth/provider";
+import { changePin, verifyPin } from "~/lib/auth/provider";
+import { createLogger } from "~/lib/logger";
 
-export type { StaffRole } from "~/lib/auth-provider";
+const authLogger = createLogger({ module: "auth" });
+
+export type { StaffRole } from "~/lib/auth/provider";
 export type { AuthUser };
 
 const LAST_USER_KEY = "sakti-pos:last-staff-id";
@@ -37,9 +40,7 @@ export const login = async (
 export const loginWithCloudStaff = async (
 	staffId: string,
 ): Promise<AuthUser> => {
-	console.info(
-		`[AUTH] loginWithCloudStaff request ${JSON.stringify({ staffId })}`,
-	);
+	authLogger.info("login_with_cloud_staff:request", { staffId });
 	const rows = await db
 		.select({
 			id: staff.id,
@@ -51,14 +52,12 @@ export const loginWithCloudStaff = async (
 		.where(eq(staff.id, staffId));
 
 	const row = rows[0];
-	console.info(
-		`[AUTH] loginWithCloudStaff result ${JSON.stringify({
-			found: !!row,
-			isActive: row?.isActive,
-			role: row?.role,
-			staffId,
-		})}`,
-	);
+	authLogger.info("login_with_cloud_staff:result", {
+		found: !!row,
+		isActive: row?.isActive,
+		role: row?.role,
+		staffId,
+	});
 	if (!row) {
 		const localStaff = await db
 			.select({
@@ -70,13 +69,11 @@ export const loginWithCloudStaff = async (
 			})
 			.from(staff)
 			.limit(10);
-		console.info(
-			`[AUTH] loginWithCloudStaff local staff sample ${JSON.stringify({
-				count: localStaff.length,
-				rows: localStaff,
-				staffId,
-			})}`,
-		);
+		authLogger.info("login_with_cloud_staff:local_sample", {
+			count: localStaff.length,
+			rows: localStaff,
+			staffId,
+		});
 		throw new Error("Staff not found");
 	}
 	if (!row.isActive) {

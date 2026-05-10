@@ -19,7 +19,7 @@ vi.mock("~/store/auth", () => ({
 	login: () => mockLogin(),
 }));
 
-vi.mock("~/lib/cloud-auth", () => ({
+vi.mock("~/lib/auth/cloud", () => ({
 	isCloudAuthenticated: () => mockIsCloudAuthenticated(),
 }));
 

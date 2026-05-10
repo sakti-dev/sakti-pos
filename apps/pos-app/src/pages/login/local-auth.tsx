@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { createSignal, For, onMount, Show } from "solid-js";
 import PinPad from "~/components/ui/pinpad";
-import { isCloudAuthenticated } from "~/lib/cloud-auth";
+import { isCloudAuthenticated } from "~/lib/auth/cloud";
 import {
 	type AuthUser,
 	getActiveStaff,
