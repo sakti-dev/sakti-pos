@@ -13,6 +13,15 @@ describe("cloud auth schemas", () => {
     expect(result.success).toBe(true);
   });
 
+  test("rejects short login password", () => {
+    const result = safeParse(CloudLoginSchema, {
+      email: "user@example.com",
+      password: "short",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   test("accepts register payload", () => {
     const result = safeParse(CloudRegisterSchema, {
       name: "Nama",

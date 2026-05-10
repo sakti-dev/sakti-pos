@@ -16,7 +16,8 @@ export const CloudLoginSchema = object({
   ),
   password: pipe(
     string("Kata sandi wajib diisi"),
-    nonEmpty("Kata sandi wajib diisi")
+    nonEmpty("Kata sandi wajib diisi"),
+    minLength(8, "Kata sandi minimal 8 karakter")
   ),
 });
 
