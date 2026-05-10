@@ -274,6 +274,375 @@ describe("handlePush", () => {
 		});
 	});
 
+	test("keeps order item snapshots when referenced product is missing", async () => {
+		const insertedValues = vi.fn().mockResolvedValue(undefined);
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const select = vi
+					.fn()
+					.mockReturnValueOnce({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					})
+					.mockReturnValueOnce({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					});
+				const tx = {
+					insert: vi.fn().mockReturnValue({
+						values: insertedValues,
+					}),
+					select,
+				};
+				await fn(tx);
+			},
+		);
+
+		await handlePush("outlet-1", "merchant-1", {
+			order_items: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "item-1",
+					orderId: "order-1",
+					productId: "missing-product",
+					productName: "Nasi",
+					quantity: 1,
+					subtotal: 4000,
+					unitPrice: 4000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+		});
+
+		expect(insertedValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: "item-1",
+				outletId: "outlet-1",
+				productId: null,
+				productName: "Nasi",
+				subtotal: 4000,
+			}),
+		);
+	});
+
+	test("does not enforce product references for order item snapshots", async () => {
+		const insertedValues = vi.fn().mockResolvedValue(undefined);
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const select = vi
+					.fn()
+					.mockReturnValueOnce({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					})
+					.mockReturnValueOnce({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([{ id: "prod-1" }]),
+							}),
+						}),
+					});
+				const tx = {
+					insert: vi.fn().mockReturnValue({
+						values: insertedValues,
+					}),
+					select,
+				};
+				await fn(tx);
+			},
+		);
+
+		await handlePush("outlet-1", "merchant-1", {
+			order_items: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "item-1",
+					orderId: "order-1",
+					productId: "prod-1",
+					productName: "Nasi",
+					quantity: 1,
+					subtotal: 4000,
+					unitPrice: 4000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+		});
+
+		expect(insertedValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: "item-1",
+				productId: null,
+				productName: "Nasi",
+			}),
+		);
+	});
+
+	test("normalizes empty string productId to null for order item inserts", async () => {
+		const insertedValues = vi.fn().mockResolvedValue(undefined);
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const tx = {
+					insert: vi.fn().mockReturnValue({
+						values: insertedValues,
+					}),
+					select: vi.fn().mockReturnValue({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					}),
+				};
+				await fn(tx);
+			},
+		);
+
+		await handlePush("outlet-1", "merchant-1", {
+			order_items: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "item-1",
+					orderId: "order-1",
+					productId: "",
+					productName: "Nasi",
+					quantity: 1,
+					subtotal: 4000,
+					unitPrice: 4000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+		});
+
+		expect(insertedValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: "item-1",
+				productId: null,
+			}),
+		);
+	});
+
+	test("normalizes empty string registerId to null for order inserts", async () => {
+		const insertedValues = vi.fn().mockResolvedValue(undefined);
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const tx = {
+					insert: vi.fn().mockReturnValue({
+						values: insertedValues,
+					}),
+					select: vi.fn().mockReturnValue({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					}),
+				};
+				await fn(tx);
+			},
+		);
+
+		await handlePush("outlet-1", "merchant-1", {
+			orders: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "order-1",
+					orderNumber: "2026-05-10-001",
+					paymentMethod: "cash",
+					registerId: "",
+					staffId: "staff-1",
+					status: "completed",
+					total: 18000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+		});
+
+		expect(insertedValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: "order-1",
+				registerId: null,
+				staffId: "staff-1",
+			}),
+		);
+	});
+
+	test("normalizes empty string categoryId to null for product inserts", async () => {
+		const insertedValues = vi.fn().mockResolvedValue(undefined);
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const tx = {
+					insert: vi.fn().mockReturnValue({
+						values: insertedValues,
+					}),
+					select: vi.fn().mockReturnValue({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					}),
+				};
+				await fn(tx);
+			},
+		);
+
+		const now = new Date().toISOString();
+		await handlePush("outlet-1", "merchant-1", {
+			products: [
+				{
+					categoryId: "",
+					createdAt: now,
+					id: "prod-1",
+					merchantId: "merchant-1",
+					name: "Nasi Goreng",
+					price: 15000,
+					updatedAt: now,
+				},
+			],
+		});
+
+		expect(insertedValues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				categoryId: null,
+				id: "prod-1",
+				name: "Nasi Goreng",
+			}),
+		);
+	});
+
+	test("normalizes empty strings across orders and order_items in a single push", async () => {
+		const insertedValues: Record<string, unknown>[] = [];
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const tx = {
+					insert: vi.fn().mockReturnValue({
+						values: vi.fn((value: Record<string, unknown>) => {
+							insertedValues.push(value);
+							return Promise.resolve();
+						}),
+					}),
+					select: vi.fn().mockReturnValue({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					}),
+				};
+				await fn(tx);
+			},
+		);
+
+		await handlePush("outlet-1", "merchant-1", {
+			order_items: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "item-1",
+					orderId: "order-1",
+					productId: "",
+					productName: "Nasi",
+					quantity: 1,
+					subtotal: 4000,
+					unitPrice: 4000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+			orders: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "order-1",
+					orderNumber: "2026-05-10-001",
+					paymentMethod: "cash",
+					registerId: "",
+					staffId: "staff-1",
+					status: "completed",
+					total: 4000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+		});
+
+		const order = insertedValues.find((v) => v.id === "order-1");
+		const item = insertedValues.find((v) => v.id === "item-1");
+
+		expect(order).toEqual(
+			expect.objectContaining({
+				registerId: null,
+				staffId: "staff-1",
+			}),
+		);
+
+		expect(item).toEqual(
+			expect.objectContaining({
+				productId: null,
+				productName: "Nasi",
+			}),
+		);
+	});
+
+	test("processes parent tables before child tables regardless of payload key order", async () => {
+		const insertedValues: Record<string, unknown>[] = [];
+		mockTransaction.mockImplementation(
+			async (fn: (tx: unknown) => Promise<void>) => {
+				const tx = {
+					insert: vi.fn().mockReturnValue({
+						values: vi.fn((value: Record<string, unknown>) => {
+							insertedValues.push(value);
+							return Promise.resolve();
+						}),
+					}),
+					select: vi.fn().mockReturnValue({
+						from: vi.fn().mockReturnValue({
+							where: vi.fn().mockReturnValue({
+								limit: vi.fn().mockResolvedValue([]),
+							}),
+						}),
+					}),
+				};
+				await fn(tx);
+			},
+		);
+
+		await handlePush("outlet-1", "merchant-1", {
+			order_items: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "item-1",
+					orderId: "order-1",
+					productName: "Nasi",
+					quantity: 1,
+					subtotal: 4000,
+					unitPrice: 4000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+			orders: [
+				{
+					createdAt: "2026-05-10T00:39:47.185Z",
+					id: "order-1",
+					orderNumber: "2026-05-10-001",
+					paymentMethod: "cash",
+					status: "completed",
+					total: 4000,
+					updatedAt: "2026-05-10T00:39:47.185Z",
+				},
+			],
+		});
+
+		const businessRows = insertedValues.filter((value) => "id" in value);
+		expect(businessRows[0]).toEqual(expect.objectContaining({ id: "order-1" }));
+		expect(businessRows[1]).toEqual(expect.objectContaining({ id: "item-1" }));
+	});
+
 	test("handles outlet_products push", async () => {
 		const now = new Date().toISOString();
 

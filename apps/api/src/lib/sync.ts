@@ -27,6 +27,18 @@ const ALL_SYNC_TABLE_NAMES = [
 	"order_items",
 ];
 
+const PUSH_TABLE_ORDER = [
+	"merchants",
+	"outlets",
+	"registers",
+	"staff",
+	"categories",
+	"products",
+	"outlet_products",
+	"orders",
+	"order_items",
+];
+
 export async function verifyOutletAccess(
 	sessionUserId: string,
 	requestedOutletId: string,
@@ -66,6 +78,17 @@ function stripLocalOnlyColumns(
 	return clean;
 }
 
+function normalizeEmptyToNull(
+	row: Record<string, unknown>,
+): Record<string, unknown> {
+	const result: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(row)) {
+		result[key] =
+			typeof value === "string" && value.length === 0 ? null : value;
+	}
+	return result;
+}
+
 export async function handlePush(
 	outletId: string,
 	merchantId: string,
@@ -74,13 +97,14 @@ export async function handlePush(
 	const serverWins: { table: string; ids: string[] }[] = [];
 
 	await db.transaction(async (tx) => {
-		for (const [tableName, rows] of Object.entries(data)) {
+		for (const tableName of PUSH_TABLE_ORDER) {
+			const rows = data[tableName];
 			if (!rows || rows.length === 0) continue;
 
 			const wins: string[] = [];
 
 			for (const rawRow of rows as Record<string, unknown>[]) {
-				const row = stripLocalOnlyColumns(rawRow);
+				const row = normalizeEmptyToNull(stripLocalOnlyColumns(rawRow));
 				let upsertResult: UpsertResult | null = null;
 
 				switch (tableName) {
@@ -293,9 +317,10 @@ async function upsertOrderItem(
 		const clientCreated = new Date(row.createdAt as string).getTime();
 
 		if (clientCreated >= serverCreated) {
+			const normalizedRow = normalizeOrderItemRow(row);
 			await tx
 				.update(orderItems)
-				.set(row)
+				.set(normalizedRow)
 				.where(eq(orderItems.id, row.id as string));
 			return {
 				acceptedOperation: getAcceptedOperation(row, "update"),
@@ -305,11 +330,18 @@ async function upsertOrderItem(
 		return { acceptedOperation: null, serverWin: row.id as string };
 	}
 
-	await tx.insert(orderItems).values({ ...row, outletId } as never);
+	const normalizedRow = normalizeOrderItemRow(row);
+	await tx.insert(orderItems).values({ ...normalizedRow, outletId } as never);
 	return {
 		acceptedOperation: getAcceptedOperation(row, "insert"),
 		serverWin: null,
 	};
+}
+
+function normalizeOrderItemRow(
+	row: Record<string, unknown>,
+): Record<string, unknown> {
+	return { ...row, productId: null };
 }
 
 function getAcceptedOperation(
