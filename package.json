@@ -36,5 +36,9 @@
 	"workspaces": [
 		"apps/*",
 		"packages/*"
-	]
+	],
+	"dependencies": {
+		"@formisch/solid": "^0.9.5",
+		"valibot": "^1.4.0"
+	}
 }
