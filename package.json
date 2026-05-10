@@ -1,44 +1,44 @@
 {
-	"name": "sakti-pos",
-	"private": true,
-	"scripts": {
-		"build": "turbo run build",
-		"dev": "turbo run dev",
-		"lint": "turbo run lint",
-		"typecheck": "turbo run typecheck",
-		"prepare": "husky",
-		"api:dev": "bun run dev --filter=@repo/api",
-		"api:db:studio": "bun run db:studio --filter=@repo/api",
-		"app:dev": "bash apps/pos-app/scripts/dev",
-		"app:build-apk": "bash apps/pos-app/scripts/build-apk",
-		"app:resize": "bash apps/pos-app/scripts/resize",
-		"app:restart": "bash apps/pos-app/scripts/restart",
-		"test": "turbo run test"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.4.12",
-		"husky": "^9.1.7",
-		"lint-staged": "^16.4.0",
-		"turbo": "^2.9.8",
-		"typescript": "5.9.2",
-		"ultracite": "7.6.2",
-		"wrangler": "^4.87.0"
-	},
-	"lint-staged": {
-		"*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
-			"bun x ultracite fix"
-		]
-	},
-	"engines": {
-		"node": ">=18"
-	},
-	"packageManager": "bun@1.3.13",
-	"workspaces": [
-		"apps/*",
-		"packages/*"
-	],
-	"dependencies": {
-		"@formisch/solid": "^0.9.5",
-		"valibot": "^1.4.0"
-	}
+  "name": "sakti-pos",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "prepare": "husky",
+    "api:dev": "bun run dev --filter=@repo/api",
+    "api:db:studio": "bun run db:studio --filter=@repo/api",
+    "app:dev": "bash apps/pos-app/scripts/dev",
+    "app:build-apk": "bash apps/pos-app/scripts/build-apk",
+    "app:resize": "bash apps/pos-app/scripts/resize",
+    "app:restart": "bash apps/pos-app/scripts/restart",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.12",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "turbo": "^2.9.8",
+    "typescript": "5.9.2",
+    "ultracite": "7.6.2",
+    "wrangler": "^4.87.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
+      "bun x ultracite fix"
+    ]
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "bun@1.3.13",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "dependencies": {
+    "@formisch/solid": "^0.9.5",
+    "valibot": "^1.4.0"
+  }
 }

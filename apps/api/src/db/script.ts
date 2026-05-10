@@ -2,9 +2,9 @@ import * as schema from "@repo/database/api-schema";
 import { drizzle } from "drizzle-orm/libsql";
 
 export const scriptDb = drizzle({
-	connection: {
-		authToken: process.env.TURSO_AUTH_TOKEN || undefined,
-		url: process.env.TURSO_DATABASE_URL ?? "http://127.0.0.1:8080",
-	},
-	schema,
+  connection: {
+    authToken: process.env.TURSO_AUTH_TOKEN || undefined,
+    url: process.env.TURSO_DATABASE_URL ?? "http://127.0.0.1:8080",
+  },
+  schema,
 });

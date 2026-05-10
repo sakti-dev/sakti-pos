@@ -5,56 +5,56 @@ const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
-	useNavigate: () => mockNavigate,
-	useParams: () => ({}),
+  useNavigate: () => mockNavigate,
+  useParams: () => ({}),
 }));
 
 vi.mock("~/store/auth", () => ({
-	currentUser: vi.fn(() => ({ id: 1, name: "Admin", role: "owner" })),
-	changeCurrentUserPin: vi.fn(),
-	logout: (...args: unknown[]) => mockLogout(...args),
+  currentUser: vi.fn(() => ({ id: 1, name: "Admin", role: "owner" })),
+  changeCurrentUserPin: vi.fn(),
+  logout: (...args: unknown[]) => mockLogout(...args),
 }));
 
 vi.mock("~/store/outlet", () => ({
-	clearOutletContext: vi.fn(),
-	currentOutletId: () => null,
+  clearOutletContext: vi.fn(),
+  currentOutletId: () => null,
 }));
 
 vi.mock("~/store/sync", () => ({
-	syncNow: vi.fn(),
-	syncStatus: vi.fn(() => "idle"),
+  syncNow: vi.fn(),
+  syncStatus: vi.fn(() => "idle"),
 }));
 
 vi.mock("~/store/theme", () => ({
-	setTheme: vi.fn(),
-	theme: vi.fn(() => "system"),
+  setTheme: vi.fn(),
+  theme: vi.fn(() => "system"),
 }));
 
 vi.mock("~/lib/auth/cloud", () => ({
-	getSession: vi.fn(() => Promise.resolve({ user: null })),
-	logout: vi.fn(),
+  getSession: vi.fn(() => Promise.resolve({ user: null })),
+  logout: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-	invoke: vi.fn(),
+  invoke: vi.fn(),
 }));
 
 import { useSettings } from "../use-settings";
 
 describe("useSettings", () => {
-	afterEach(() => {
-		vi.clearAllMocks();
-	});
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
-	test("logs out and navigates to /login", () => {
-		createRoot((dispose) => {
-			const settings = useSettings();
+  test("logs out and navigates to /login", () => {
+    createRoot((dispose) => {
+      const settings = useSettings();
 
-			settings.handleLogout();
+      settings.handleLogout();
 
-			expect(mockLogout).toHaveBeenCalledTimes(1);
-			expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
-			dispose();
-		});
-	});
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+      dispose();
+    });
+  });
 });

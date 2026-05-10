@@ -3,6 +3,7 @@ import { createSignal } from "solid-js";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
 import { getSyncStatus } from "~/lib/sync/api";
+import { describeError } from "~/lib/utils";
 import { currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";
@@ -18,182 +19,172 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 
-function describeError(error: unknown): string {
-	if (error instanceof Error) {
-		return `${error.name}: ${error.message}`;
-	}
-	if (typeof error === "string") {
-		return error;
-	}
-	try {
-		return JSON.stringify(error);
-	} catch {
-		return String(error);
-	}
-}
-
 export function startSyncScheduler() {
-	if (syncInterval) return;
+  if (syncInterval) {
+    return;
+  }
 
-	syncNow();
-	syncInterval = setInterval(() => syncNow(), 5 * 60 * 1000);
+  syncNow();
+  syncInterval = setInterval(() => syncNow(), 5 * 60 * 1000);
 }
 
 export function stopSyncScheduler() {
-	if (syncInterval) {
-		clearInterval(syncInterval);
-		syncInterval = null;
-	}
+  if (syncInterval) {
+    clearInterval(syncInterval);
+    syncInterval = null;
+  }
 }
 
 export interface SyncNowResult {
-	mode: SyncMode;
-	pull: { rows_received: number; server_time: string };
-	push: {
-		server_time: string;
-		server_wins_count: number;
-		tables_synced: string[];
-	};
-	purged: number;
+  mode: SyncMode;
+  pull: { rows_received: number; server_time: string };
+  purged: number;
+  push: {
+    server_time: string;
+    server_wins_count: number;
+    tables_synced: string[];
+  };
 }
 
 interface LocalSyncState {
-	last_server_event_id: number;
-	local_dirty_count: number;
-	needs_baseline_sync?: boolean;
+  last_server_event_id: number;
+  local_dirty_count: number;
+  needs_baseline_sync?: boolean;
 }
 
 function emptySyncResult(mode: SyncMode): SyncNowResult {
-	return {
-		mode,
-		pull: { rows_received: 0, server_time: "" },
-		purged: 0,
-		push: { server_time: "", server_wins_count: 0, tables_synced: [] },
-	};
+  return {
+    mode,
+    pull: { rows_received: 0, server_time: "" },
+    purged: 0,
+    push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+  };
 }
 
 function withMode(
-	result: Omit<SyncNowResult, "mode"> | SyncNowResult,
-	mode: SyncMode,
+  result: Omit<SyncNowResult, "mode"> | SyncNowResult,
+  mode: SyncMode
 ) {
-	return { ...result, mode };
+  return { ...result, mode };
 }
 
 async function invokeSyncTransfer(
-	command:
-		| "sync_full_resync"
-		| "sync_now"
-		| "sync_pull_events"
-		| "sync_push_outbox",
-	params: Record<string, unknown>,
-	mode: SyncMode,
+  command:
+    | "sync_full_resync"
+    | "sync_now"
+    | "sync_pull_events"
+    | "sync_push_outbox",
+  params: Record<string, unknown>,
+  mode: SyncMode
 ): Promise<SyncNowResult> {
-	const result = await invoke<Omit<SyncNowResult, "mode"> | SyncNowResult>(
-		command,
-		params,
-	);
-	return withMode(result, mode);
+  const result = await invoke<Omit<SyncNowResult, "mode"> | SyncNowResult>(
+    command,
+    params
+  );
+  return withMode(result, mode);
 }
 
 export async function syncNow(): Promise<SyncNowResult> {
-	const outletId = currentOutletId();
-	if (!outletId) {
-		return emptySyncResult("skipped");
-	}
+  const outletId = currentOutletId();
+  if (!outletId) {
+    return emptySyncResult("skipped");
+  }
 
-	const sessionToken = await AuthStorage.getToken();
-	if (!sessionToken) {
-		throw new Error("Sesi tidak ditemukan. Silakan login ulang.");
-	}
+  const sessionToken = await AuthStorage.getToken();
+  if (!sessionToken) {
+    throw new Error("Sesi tidak ditemukan. Silakan login ulang.");
+  }
 
-	setSyncStatus("syncing");
-	try {
-		const localState = await invoke<LocalSyncState>("get_sync_local_state", {
-			outletId,
-		});
-		const serverStatus = await getSyncStatus({
-			lastServerEventId: localState.last_server_event_id,
-			outletId,
-		});
-		const hasLocalChanges = localState.local_dirty_count > 0;
-		const hasServerChanges = serverStatus.hasChanges;
-		const baseParams = {
-			apiUrl: API_URL,
-			outletId,
-			sessionToken,
-		};
+  setSyncStatus("syncing");
+  try {
+    const localState = await invoke<LocalSyncState>("get_sync_local_state", {
+      outletId,
+    });
+    const serverStatus = await getSyncStatus({
+      lastServerEventId: localState.last_server_event_id,
+      outletId,
+    });
+    const hasLocalChanges = localState.local_dirty_count > 0;
+    const hasServerChanges = serverStatus.hasChanges;
+    const baseParams = {
+      apiUrl: API_URL,
+      outletId,
+      sessionToken,
+    };
 
-		syncLogger.info("decision", {
-			hasLocalChanges,
-			hasServerChanges,
-			latestEventId: serverStatus.latestEventId,
-			localDirtyCount: localState.local_dirty_count,
-			needsBaselineSync: localState.needs_baseline_sync ?? false,
-			needsFullResync: serverStatus.needsFullResync,
-			outletId,
-		});
+    syncLogger.info("decision", {
+      hasLocalChanges,
+      hasServerChanges,
+      latestEventId: serverStatus.latestEventId,
+      localDirtyCount: localState.local_dirty_count,
+      needsBaselineSync: localState.needs_baseline_sync ?? false,
+      needsFullResync: serverStatus.needsFullResync,
+      outletId,
+    });
 
-		let result: SyncNowResult;
-		if (localState.needs_baseline_sync || serverStatus.needsFullResync) {
-			result = await invokeSyncTransfer(
-				"sync_full_resync",
-				{ ...baseParams, latestEventId: serverStatus.latestEventId },
-				"full",
-			);
-		} else if (
-			!hasLocalChanges &&
-			!hasServerChanges &&
-			!serverStatus.needsFullResync
-		) {
-			result = emptySyncResult("skipped");
-		} else if (hasLocalChanges && hasServerChanges) {
-			result = await invokeSyncTransfer("sync_now", baseParams, "full");
-		} else if (hasLocalChanges) {
-			result = await invokeSyncTransfer(
-				"sync_push_outbox",
-				baseParams,
-				"push_only",
-			);
-		} else {
-			result = await invokeSyncTransfer(
-				"sync_pull_events",
-				{ ...baseParams, latestEventId: serverStatus.latestEventId },
-				"pull_only",
-			);
-		}
+    let result: SyncNowResult;
+    if (localState.needs_baseline_sync || serverStatus.needsFullResync) {
+      result = await invokeSyncTransfer(
+        "sync_full_resync",
+        { ...baseParams, latestEventId: serverStatus.latestEventId },
+        "full"
+      );
+    } else if (
+      !(hasLocalChanges || hasServerChanges || serverStatus.needsFullResync)
+    ) {
+      result = emptySyncResult("skipped");
+    } else if (hasLocalChanges && hasServerChanges) {
+      result = await invokeSyncTransfer("sync_now", baseParams, "full");
+    } else if (hasLocalChanges) {
+      result = await invokeSyncTransfer(
+        "sync_push_outbox",
+        baseParams,
+        "push_only"
+      );
+    } else {
+      result = await invokeSyncTransfer(
+        "sync_pull_events",
+        { ...baseParams, latestEventId: serverStatus.latestEventId },
+        "pull_only"
+      );
+    }
 
-		syncLogger.info("result", {
-			mode: result.mode,
-			pullRows: result.pull.rows_received,
-			pullServerTime: result.pull.server_time,
-			purged: result.purged,
-			pushServerTime: result.push.server_time,
-			serverWins: result.push.server_wins_count,
-			tablesSynced: result.push.tables_synced,
-		});
-		setLastSyncTime(result.pull.server_time);
-		setSyncStatus("idle");
-		return result;
-	} catch (err) {
-		const message = describeError(err);
-		syncLogger.error("failed", err, { apiUrl: API_URL, outletId });
-		setSyncStatus("offline");
-		throw new Error(`Gagal menyinkronkan: ${message}`);
-	}
+    syncLogger.info("result", {
+      mode: result.mode,
+      pullRows: result.pull.rows_received,
+      pullServerTime: result.pull.server_time,
+      purged: result.purged,
+      pushServerTime: result.push.server_time,
+      serverWins: result.push.server_wins_count,
+      tablesSynced: result.push.tables_synced,
+    });
+    setLastSyncTime(result.pull.server_time);
+    setSyncStatus("idle");
+    return result;
+  } catch (err) {
+    const message = describeError(err);
+    syncLogger.error("failed", err, { apiUrl: API_URL, outletId });
+    setSyncStatus("offline");
+    throw new Error(`Gagal menyinkronkan: ${message}`);
+  }
 }
 
 export async function runStartupSync(): Promise<void> {
-	const outletId = currentOutletId();
-	if (!outletId) return;
+  const outletId = currentOutletId();
+  if (!outletId) {
+    return;
+  }
 
-	const sessionToken = await AuthStorage.getToken();
-	if (!sessionToken) return;
+  const sessionToken = await AuthStorage.getToken();
+  if (!sessionToken) {
+    return;
+  }
 
-	setSyncStatus("syncing");
-	try {
-		await syncNow();
-		setSyncStatus("idle");
-	} catch {
-		setSyncStatus("offline");
-	}
+  setSyncStatus("syncing");
+  try {
+    await syncNow();
+    setSyncStatus("idle");
+  } catch {
+    setSyncStatus("offline");
+  }
 }

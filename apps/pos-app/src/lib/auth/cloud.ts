@@ -1,249 +1,229 @@
-import { AuthStorage } from "./storage";
+import { HTTPError } from "ky";
+import { API_URL, api, getApiErrorMessage } from "~/lib/http";
 import { createLogger } from "~/lib/logger";
+import { AuthStorage } from "./storage";
 
 const cloudAuthLogger = createLogger({ module: "auth", scope: "cloud" });
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-
-function debugLog(event: string, data: Record<string, unknown>) {
-	cloudAuthLogger.info(event, data);
-}
-
 interface ApiUser {
-	email: string;
-	id: string;
-	name: string;
+  email: string;
+  id: string;
+  name: string;
 }
 
 interface Merchant {
-	id: string;
-	name: string;
-	createdAt: string;
-	updatedAt: string;
+  createdAt: string;
+  id: string;
+  name: string;
+  updatedAt: string;
 }
 
 interface SessionMerchant {
-	merchantId: string;
-	name: string;
-	role: string;
+  merchantId: string;
+  name: string;
+  role: string;
 }
 
 interface Outlet {
-	address: string | null;
-	id: string;
-	isActive: boolean;
-	merchantId: string;
-	name: string;
+  address: string | null;
+  id: string;
+  isActive: boolean;
+  merchantId: string;
+  name: string;
 }
 
 interface Register {
-	id: string;
-	isActive: boolean;
-	name: string;
-	outletId: string;
-	pairingCode: string | null;
-	shortId: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  outletId: string;
+  pairingCode: string | null;
+  shortId: string;
 }
 
 interface PairResult {
-	outlet: Outlet;
-	register: Register;
+  outlet: Outlet;
+  register: Register;
 }
 
 interface CurrentCloudStaff {
-	claimed: boolean;
-	reason?: "no-staff" | "ambiguous-owner" | "not-allowed";
-	staff: {
-		hasPin: boolean;
-		id: string;
-		isActive: boolean;
-		merchantId: string;
-		name: string;
-		outletId: string | null;
-		role: "cashier" | "manager" | "owner";
-	} | null;
+  claimed: boolean;
+  reason?: "no-staff" | "ambiguous-owner" | "not-allowed";
+  staff: {
+    hasPin: boolean;
+    id: string;
+    isActive: boolean;
+    merchantId: string;
+    name: string;
+    outletId: string | null;
+    role: "cashier" | "manager" | "owner";
+  } | null;
 }
 
 class ApiError extends Error {
-	status: number;
+  status: number;
 
-	constructor(message: string, status: number) {
-		super(message);
-		this.name = "ApiError";
-		this.status = status;
-	}
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
 }
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-	const token = await AuthStorage.getToken();
-	const headers: Record<string, string> = {
-		"Content-Type": "application/json",
-	};
-	if (token) {
-		headers.Authorization = `Bearer ${token}`;
-	}
-	const method = options?.method ?? "GET";
-	debugLog("request", { hasToken: !!token, method, path });
-	let res: Response;
-	try {
-		res = await fetch(`${API_URL}${path}`, {
-			...options,
-			headers: {
-				...headers,
-				...(options?.headers as Record<string, string>),
-			},
-		});
-	} catch (error) {
-		cloudAuthLogger.error("network-error", error, {
-			method,
-			path,
-		});
-		throw error;
-	}
+async function logRequest(method: string, path: string): Promise<void> {
+  const token = await AuthStorage.getToken();
+  cloudAuthLogger.info("request", {
+    hasToken: !!token,
+    method,
+    path,
+  });
+}
 
-	const text = await res.text();
-	let body: Record<string, unknown>;
-	try {
-		body = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-	} catch {
-		body = { error: text || `Non-JSON response (${res.status})` };
-	}
-	cloudAuthLogger.info("response", {
-		body: res.ok ? undefined : body,
-		method,
-		ok: res.ok,
-		path,
-		status: res.status,
-	});
-
-	if (!res.ok) {
-		const message = (body.error as string) ?? `Request failed (${res.status})`;
-		throw new ApiError(message, res.status);
-	}
-
-	return body as T;
+async function withError<T>(
+  promise: Promise<T>,
+  method: string,
+  path: string
+): Promise<T> {
+  try {
+    const result = await promise;
+    cloudAuthLogger.info("response", { method, ok: true, path });
+    return result;
+  } catch (error) {
+    cloudAuthLogger.error("network-error", error, { method, path });
+    const message = await getApiErrorMessage(error);
+    if (error instanceof HTTPError) {
+      const response = error.response;
+      throw new ApiError(message, response.status);
+    }
+    throw new ApiError(message, 500);
+  }
 }
 
 export async function register(
-	email: string,
-	password: string,
-	name: string,
+  email: string,
+  password: string,
+  name: string
 ): Promise<{ user: ApiUser }> {
-	const result = await apiFetch<{ sessionToken: string; user: ApiUser }>(
-		"/api/auth/register",
-		{
-			body: JSON.stringify({ email, name, password }),
-			method: "POST",
-		},
-	);
-	await AuthStorage.saveToken(result.sessionToken);
-	return { user: result.user };
+  await logRequest("POST", "api/auth/register");
+  const result = await withError(
+    api
+      .post("api/auth/register", {
+        json: { email, name, password },
+      })
+      .json<{ sessionToken: string; user: ApiUser }>(),
+    "POST",
+    "api/auth/register"
+  );
+  await AuthStorage.saveToken(result.sessionToken);
+  return { user: result.user };
 }
 
 export async function login(
-	email: string,
-	password: string,
+  email: string,
+  password: string
 ): Promise<{ user: ApiUser }> {
-	const result = await apiFetch<{ sessionToken: string; user: ApiUser }>(
-		"/api/auth/login",
-		{
-			body: JSON.stringify({ email, password }),
-			method: "POST",
-		},
-	);
-	await AuthStorage.saveToken(result.sessionToken);
-	return { user: result.user };
+  await logRequest("POST", "api/auth/login");
+  const result = await withError(
+    api
+      .post("api/auth/login", {
+        json: { email, password },
+      })
+      .json<{ sessionToken: string; user: ApiUser }>(),
+    "POST",
+    "api/auth/login"
+  );
+  await AuthStorage.saveToken(result.sessionToken);
+  return { user: result.user };
 }
 
-export async function getSession(): Promise<{
-	merchants: SessionMerchant[];
-	user: ApiUser | null;
+export function getSession(): Promise<{
+  merchants: SessionMerchant[];
+  user: ApiUser | null;
 }> {
-	return apiFetch("/api/auth/session");
+  return api.get("api/auth/session").json<{
+    merchants: SessionMerchant[];
+    user: ApiUser | null;
+  }>();
 }
 
 export async function logout(): Promise<void> {
-	await apiFetch("/api/auth/logout", { method: "POST" });
+  await api.post("api/auth/logout");
 }
 
 export function getGoogleOAuthUrl(): string {
-	return `${API_URL}/api/auth/google`;
+  return `${API_URL}/api/auth/google`;
 }
 
-export async function getMerchants(): Promise<SessionMerchant[]> {
-	return apiFetch("/api/merchants");
+export function getMerchants(): Promise<SessionMerchant[]> {
+  return api.get("api/merchants").json<SessionMerchant[]>();
 }
 
-export async function createMerchant(name: string): Promise<Merchant> {
-	return apiFetch("/api/merchants", {
-		body: JSON.stringify({ name }),
-		method: "POST",
-	});
+export function createMerchant(name: string): Promise<Merchant> {
+  return api.post("api/merchants", { json: { name } }).json<Merchant>();
 }
 
-export async function getOutlets(merchantId: string): Promise<Outlet[]> {
-	return apiFetch(`/api/merchants/${merchantId}/outlets`);
+export function getOutlets(merchantId: string): Promise<Outlet[]> {
+  return api.get(`api/merchants/${merchantId}/outlets`).json<Outlet[]>();
 }
 
-export async function createOutlet(
-	merchantId: string,
-	name: string,
-	address?: string,
+export function createOutlet(
+  merchantId: string,
+  name: string,
+  address?: string
 ): Promise<Outlet & { register?: Register }> {
-	return apiFetch(`/api/merchants/${merchantId}/outlets`, {
-		body: JSON.stringify({ address, name }),
-		method: "POST",
-	});
+  return api
+    .post(`api/merchants/${merchantId}/outlets`, {
+      json: { address, name },
+    })
+    .json<Outlet & { register?: Register }>();
 }
 
-export async function createStaff(params: {
-	merchantId: string;
-	outletId?: string;
-	name: string;
-	pin: string;
-	role?: "cashier" | "manager" | "owner";
+export function createStaff(params: {
+  merchantId: string;
+  outletId?: string;
+  name: string;
+  pin: string;
+  role?: "cashier" | "manager" | "owner";
 }): Promise<Record<string, unknown>> {
-	const body: Record<string, unknown> = {
-		name: params.name,
-		pin: params.pin,
-		role: params.role ?? "cashier",
-	};
-	if (params.outletId) {
-		body.outletId = params.outletId;
-	}
-	return apiFetch(`/api/merchants/${params.merchantId}/staff`, {
-		body: JSON.stringify(body),
-		method: "POST",
-	});
+  const body: Record<string, unknown> = {
+    name: params.name,
+    pin: params.pin,
+    role: params.role ?? "cashier",
+  };
+  if (params.outletId) {
+    body.outletId = params.outletId;
+  }
+  return api
+    .post(`api/merchants/${params.merchantId}/staff`, { json: body })
+    .json<Record<string, unknown>>();
 }
 
-export async function getCurrentCloudStaff(
-	merchantId: string,
+export function getCurrentCloudStaff(
+  merchantId: string
 ): Promise<CurrentCloudStaff> {
-	return apiFetch(`/api/merchants/${merchantId}/staff/me`, {
-		method: "POST",
-	});
+  return api
+    .post(`api/merchants/${merchantId}/staff/me`)
+    .json<CurrentCloudStaff>();
 }
 
-export async function pairRegister(pairingCode: string): Promise<PairResult> {
-	return apiFetch("/api/registers/pair", {
-		body: JSON.stringify({ pairingCode }),
-		method: "POST",
-	});
+export function pairRegister(pairingCode: string): Promise<PairResult> {
+  return api
+    .post("api/registers/pair", { json: { pairingCode } })
+    .json<PairResult>();
 }
 
 export async function isCloudAuthenticated(): Promise<boolean> {
-	const token = await AuthStorage.getToken();
-	return token !== null;
+  const token = await AuthStorage.getToken();
+  return token !== null;
 }
 
 export type {
-	ApiUser,
-	CurrentCloudStaff,
-	Merchant,
-	Outlet,
-	PairResult,
-	Register,
-	SessionMerchant,
+  ApiUser,
+  CurrentCloudStaff,
+  Merchant,
+  Outlet,
+  PairResult,
+  Register,
+  SessionMerchant,
 };
 export { ApiError };

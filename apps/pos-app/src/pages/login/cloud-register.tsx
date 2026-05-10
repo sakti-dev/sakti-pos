@@ -29,6 +29,15 @@ export default function CloudRegister() {
   } = useCloudAuthFlow();
   const pickerStep = () =>
     step() === "merchant-picker" ? "merchant-picker" : "outlet-picker";
+  const subtitle = () => {
+    if (step() === "merchant-picker") {
+      return "Pilih bisnis";
+    }
+    if (step() === "outlet-picker") {
+      return "Pilih outlet";
+    }
+    return "Buat akun baru";
+  };
 
   const authForm = createForm({
     schema: CloudRegisterSchema,
@@ -57,17 +66,10 @@ export default function CloudRegister() {
     <div class="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
       <div class="w-full max-w-sm text-center">
         <h1 class="font-bold text-3xl">Sakti POS</h1>
-        <p class="mt-1 text-muted-foreground text-sm">
-          {step() === "merchant-picker"
-            ? "Pilih bisnis"
-            : step() === "outlet-picker"
-              ? "Pilih outlet"
-              : "Buat akun baru"}
-        </p>
+        <p class="mt-1 text-muted-foreground text-sm">{subtitle()}</p>
       </div>
 
       <Show
-        when={step() === "auth"}
         fallback={
           <CloudAuthPickers
             error={error()}
@@ -83,6 +85,7 @@ export default function CloudRegister() {
             step={pickerStep()}
           />
         }
+        when={step() === "auth"}
       >
         <Form
           class="flex w-full max-w-sm flex-col gap-4"

@@ -1,13 +1,13 @@
 {
-	"extends": "@repo/typescript-config/solid.json",
-	"compilerOptions": {
-		"paths": {
-			"~/*": ["./src/*"],
-			"@repo/database": ["../../packages/database/src/schema.ts"]
-		},
-		"types": ["vitest/globals", "@testing-library/jest-dom"]
-	},
-	"include": ["src"],
-	"exclude": ["docs/external"],
-	"references": [{ "path": "./tsconfig.node.json" }]
+  "extends": "@repo/typescript-config/solid.json",
+  "compilerOptions": {
+    "paths": {
+      "~/*": ["./src/*"],
+      "@repo/database": ["../../packages/database/src/schema.ts"]
+    },
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": ["src"],
+  "exclude": ["docs/external"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

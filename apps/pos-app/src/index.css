@@ -6,107 +6,107 @@
 @tailwind utilities;
 
 @layer base {
-	:root {
-		--radius: 0.5rem;
-		--background: 330 0% 97.6%;
-		--foreground: 333.3 0% 12.6%;
-		--muted: 342 0% 93.7%;
-		--muted-foreground: 330 0% 39.2%;
-		--popover: 345 0% 98.8%;
-		--popover-foreground: 333.3 0% 12.6%;
-		--card: 345 0% 98.8%;
-		--card-foreground: 333.3 0% 12.6%;
-		--border: 333.3 0% 84.7%;
-		--input: 338.2 0% 94.1%;
-		--primary: 16.3 21.7% 32.3%;
-		--primary-foreground: 338.2 300% 100%;
-		--secondary: 34 99.9% 85.5%;
-		--secondary-foreground: 16.3 50.8% 22.9%;
-		--accent: 334.3 0% 91%;
-		--accent-foreground: 333.3 0% 12.6%;
-		--destructive: 10.2 78% 53.9%;
-		--destructive-foreground: 338.2 300% 100%;
-		--ring: 24.8 79.9% 63.1%;
-		--chart-1: 16.3 21.7% 32.3%;
-		--chart-2: 34 99.9% 85.5%;
-		--chart-3: 334.3 0% 91%;
-		--chart-4: 34.1 100% 88.5%;
-		--chart-5: 16.3 24.4% 32.2%;
-	}
+  :root {
+    --radius: 0.5rem;
+    --background: 330 0% 97.6%;
+    --foreground: 333.3 0% 12.6%;
+    --muted: 342 0% 93.7%;
+    --muted-foreground: 330 0% 39.2%;
+    --popover: 345 0% 98.8%;
+    --popover-foreground: 333.3 0% 12.6%;
+    --card: 345 0% 98.8%;
+    --card-foreground: 333.3 0% 12.6%;
+    --border: 333.3 0% 84.7%;
+    --input: 338.2 0% 94.1%;
+    --primary: 16.3 21.7% 32.3%;
+    --primary-foreground: 338.2 300% 100%;
+    --secondary: 34 99.9% 85.5%;
+    --secondary-foreground: 16.3 50.8% 22.9%;
+    --accent: 334.3 0% 91%;
+    --accent-foreground: 333.3 0% 12.6%;
+    --destructive: 10.2 78% 53.9%;
+    --destructive-foreground: 338.2 300% 100%;
+    --ring: 24.8 79.9% 63.1%;
+    --chart-1: 16.3 21.7% 32.3%;
+    --chart-2: 34 99.9% 85.5%;
+    --chart-3: 334.3 0% 91%;
+    --chart-4: 34.1 100% 88.5%;
+    --chart-5: 16.3 24.4% 32.2%;
+  }
 
-	.dark {
-		--radius: 0.5rem;
-		--background: 348 0% 6.7%;
-		--foreground: 336 0% 93.3%;
-		--muted: 336 0% 13.3%;
-		--muted-foreground: 330 0% 70.6%;
-		--popover: 330 0% 9.8%;
-		--popover-foreground: 336 0% 93.3%;
-		--card: 330 0% 9.8%;
-		--card-foreground: 336 0% 93.3%;
-		--border: 44 13.8% 11%;
-		--input: 0 0% 28.3%;
-		--primary: 29.5 99.7% 88.1%;
-		--primary-foreground: 185.7 55.7% 6.9%;
-		--secondary: 28.5 17.6% 19%;
-		--secondary-foreground: 29.5 99.7% 88.1%;
-		--accent: 336 0% 16.5%;
-		--accent-foreground: 336 0% 93.3%;
-		--destructive: 10.2 78% 53.9%;
-		--destructive-foreground: 338.2 300% 100%;
-		--ring: 29.5 99.7% 88.1%;
-		--chart-1: 29.5 99.7% 88.1%;
-		--chart-2: 28.5 17.6% 19%;
-		--chart-3: 336 0% 16.5%;
-		--chart-4: 28.5 17.1% 22%;
-		--chart-5: 29.9 100% 87.8%;
-	}
+  .dark {
+    --radius: 0.5rem;
+    --background: 348 0% 6.7%;
+    --foreground: 336 0% 93.3%;
+    --muted: 336 0% 13.3%;
+    --muted-foreground: 330 0% 70.6%;
+    --popover: 330 0% 9.8%;
+    --popover-foreground: 336 0% 93.3%;
+    --card: 330 0% 9.8%;
+    --card-foreground: 336 0% 93.3%;
+    --border: 44 13.8% 11%;
+    --input: 0 0% 28.3%;
+    --primary: 29.5 99.7% 88.1%;
+    --primary-foreground: 185.7 55.7% 6.9%;
+    --secondary: 28.5 17.6% 19%;
+    --secondary-foreground: 29.5 99.7% 88.1%;
+    --accent: 336 0% 16.5%;
+    --accent-foreground: 336 0% 93.3%;
+    --destructive: 10.2 78% 53.9%;
+    --destructive-foreground: 338.2 300% 100%;
+    --ring: 29.5 99.7% 88.1%;
+    --chart-1: 29.5 99.7% 88.1%;
+    --chart-2: 28.5 17.6% 19%;
+    --chart-3: 336 0% 16.5%;
+    --chart-4: 28.5 17.1% 22%;
+    --chart-5: 29.9 100% 87.8%;
+  }
 }
 
 @layer base {
-	* {
-		@apply border-border;
-	}
-	body {
-		min-height: 100vh;
-		letter-spacing: -0.01em;
-		@apply bg-background text-foreground;
-	}
-	code,
-	kbd,
-	pre,
-	samp {
-		font-family: monospace;
-	}
-	h1,
-	h2,
-	h3,
-	h4,
-	h5,
-	h6 {
-		@apply font-heading;
-	}
+  * {
+    @apply border-border;
+  }
+  body {
+    min-height: 100vh;
+    letter-spacing: -0.01em;
+    @apply bg-background text-foreground;
+  }
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: monospace;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
 }
 
 ::-webkit-scrollbar {
-	width: 16px;
+  width: 16px;
 }
 
 ::-webkit-scrollbar-thumb {
-	background-clip: content-box;
-	border: 4px solid transparent;
-	border-radius: 9999px;
-	@apply bg-accent;
+  background-clip: content-box;
+  border: 4px solid transparent;
+  border-radius: 9999px;
+  @apply bg-accent;
 }
 
 ::-webkit-scrollbar-corner {
-	display: none;
+  display: none;
 }
 
 .scrollbar-none {
-	-ms-overflow-style: none;
-	scrollbar-width: none;
-	&::-webkit-scrollbar {
-		display: none;
-	}
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

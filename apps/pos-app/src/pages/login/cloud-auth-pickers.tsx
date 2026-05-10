@@ -24,7 +24,6 @@ export function CloudAuthPickers(props: CloudAuthPickersProps) {
       </Show>
 
       <Show
-        when={props.step === "merchant-picker"}
         fallback={
           <div class="grid w-full gap-2">
             <For each={props.outlets}>
@@ -51,6 +50,7 @@ export function CloudAuthPickers(props: CloudAuthPickersProps) {
             </Button>
           </div>
         }
+        when={props.step === "merchant-picker"}
       >
         <div class="grid w-full gap-2">
           <For each={props.merchants}>

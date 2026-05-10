@@ -1,18 +1,18 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "api",
-	"main": "src/index.ts",
-	"compatibility_date": "2025-06-01",
-	"dev": {
-		"ip": "0.0.0.0",
-		"port": 3001
-	},
-	"vars": {
-		"TURSO_DATABASE_URL": "",
-		"TURSO_AUTH_TOKEN": "",
-		"GOOGLE_CLIENT_ID": "",
-		"GOOGLE_CLIENT_SECRET": "",
-		"API_URL": "http://localhost:3001",
-		"NODE_ENV": "development"
-	}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+  "dev": {
+    "ip": "0.0.0.0",
+    "port": 3001
+  },
+  "vars": {
+    "TURSO_DATABASE_URL": "",
+    "TURSO_AUTH_TOKEN": "",
+    "GOOGLE_CLIENT_ID": "",
+    "GOOGLE_CLIENT_SECRET": "",
+    "API_URL": "http://localhost:3001",
+    "NODE_ENV": "development"
+  }
 }
