@@ -22,13 +22,14 @@ vi.mock("~/components/ui/button", () => ({
 		disabled?: boolean;
 		onClick?: () => void;
 		size?: string;
+		type?: "button" | "submit";
 	}) => (
 		<button
 			class={props.class}
 			data-testid="save-btn"
 			disabled={props.disabled}
 			onClick={props.onClick}
-			type="button"
+			type={props.type ?? "button"}
 		>
 			{props.children}
 		</button>
@@ -64,8 +65,8 @@ describe("ResetPin", () => {
 
 	test("shows PIN input fields", () => {
 		render(() => <ResetPin />);
-		expect(screen.getByLabelText("PIN Baru (6 digit)")).toBeInTheDocument();
-		expect(screen.getByLabelText("Konfirmasi PIN Baru")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Minimal 6 digit")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Ulangi PIN baru")).toBeInTheDocument();
 	});
 
 	test("submit button is disabled when PIN is too short", () => {
@@ -75,8 +76,8 @@ describe("ResetPin", () => {
 
 	test("submit button is disabled when PINs do not match", async () => {
 		render(() => <ResetPin />);
-		const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
-		const confirmInput = screen.getByLabelText("Konfirmasi PIN Baru");
+		const pinInput = screen.getByPlaceholderText("Minimal 6 digit");
+		const confirmInput = screen.getByPlaceholderText("Ulangi PIN baru");
 		await user.type(pinInput, "123456");
 		await user.type(confirmInput, "654321");
 		expect(screen.getByTestId("save-btn")).toBeDisabled();
@@ -84,8 +85,8 @@ describe("ResetPin", () => {
 
 	test("submit button is enabled when PINs match and are valid", async () => {
 		render(() => <ResetPin />);
-		const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
-		const confirmInput = screen.getByLabelText("Konfirmasi PIN Baru");
+		const pinInput = screen.getByPlaceholderText("Minimal 6 digit");
+		const confirmInput = screen.getByPlaceholderText("Ulangi PIN baru");
 		await user.type(pinInput, "123456");
 		await user.type(confirmInput, "123456");
 		expect(screen.getByTestId("save-btn")).not.toBeDisabled();
@@ -93,8 +94,19 @@ describe("ResetPin", () => {
 
 	test("save button remains disabled when PIN is too short", async () => {
 		render(() => <ResetPin />);
-		const pinInput = screen.getByLabelText("PIN Baru (6 digit)");
+		const pinInput = screen.getByPlaceholderText("Minimal 6 digit");
 		await user.type(pinInput, "123");
 		expect(screen.getByTestId("save-btn")).toBeDisabled();
+	});
+
+	test("shows an error when saving fails", async () => {
+		mockChangePin.mockRejectedValueOnce(new Error("Gagal menyimpan PIN"));
+		render(() => <ResetPin />);
+		const pinInput = screen.getByPlaceholderText("Minimal 6 digit");
+		const confirmInput = screen.getByPlaceholderText("Ulangi PIN baru");
+		await user.type(pinInput, "123456");
+		await user.type(confirmInput, "123456");
+		await user.click(screen.getByTestId("save-btn"));
+		expect(await screen.findByText("Gagal menyimpan PIN")).toBeInTheDocument();
 	});
 });

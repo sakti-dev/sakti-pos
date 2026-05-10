@@ -12,7 +12,7 @@ const URL_GAMBAR = /URL Gambar/;
 
 const mockCategories = [
 	{
-		id: 1,
+		id: "category-1",
 		name: "Minuman",
 		sortOrder: 0,
 		isActive: true,
@@ -20,7 +20,7 @@ const mockCategories = [
 		updatedAt: "",
 	},
 	{
-		id: 2,
+		id: "category-2",
 		name: "Makanan",
 		sortOrder: 1,
 		isActive: true,
@@ -38,10 +38,10 @@ vi.mock("~/db/menu", () => ({
 	getCategories: vi.fn(() => Promise.resolve(mockCategories)),
 	getProduct: vi.fn(() =>
 		Promise.resolve({
-			id: 1,
+			id: "product-1",
 			name: "Kopi Susu",
 			price: 15_000,
-			categoryId: 1,
+			categoryId: "category-1",
 			imageUrl: null,
 			isActive: true,
 			createdAt: "",
@@ -68,13 +68,14 @@ vi.mock("~/components/ui/button", () => ({
 		disabled?: boolean;
 		onClick?: () => void;
 		size?: string;
+		type?: "button" | "submit";
 	}) => (
 		<button
 			class={props.class}
 			data-testid="save-btn"
 			disabled={props.disabled}
 			onClick={props.onClick}
-			type="button"
+			type={props.type ?? "button"}
 		>
 			{props.children}
 		</button>
@@ -86,19 +87,19 @@ vi.mock("~/components/ui/select", () => ({
 		label?: string;
 		name?: string;
 		onChange: (v: unknown) => void;
-		options: { label: string; value: number }[];
+		options: { label: string; value: string }[];
 		placeholder?: string;
 		value?: unknown;
 	}) => (
 		<select
 			data-testid="category-select"
 			name={props.name}
-			onChange={(e) => props.onChange(Number(e.currentTarget.value))}
+			onChange={(e) => props.onChange(e.currentTarget.value)}
 			value={String(props.value ?? "")}
 		>
 			<option value="">{props.placeholder}</option>
-			<option value="1">Minuman</option>
-			<option value="2">Makanan</option>
+			<option value="category-1">Minuman</option>
+			<option value="category-2">Makanan</option>
 		</select>
 	),
 }));
@@ -119,9 +120,9 @@ describe("ProductForm (create mode)", () => {
 
 	test("shows name, category, price, and image URL inputs", () => {
 		render(() => <ProductForm />);
-		expect(screen.getByLabelText("Nama Produk")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Contoh: Kopi Susu")).toBeInTheDocument();
 		expect(screen.getByTestId("category-select")).toBeInTheDocument();
-		expect(screen.getByLabelText("Harga (Rp)")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("0")).toBeInTheDocument();
 		expect(screen.getByText(URL_GAMBAR)).toBeInTheDocument();
 	});
 
@@ -132,9 +133,9 @@ describe("ProductForm (create mode)", () => {
 
 	test("submit is enabled when all required fields are filled", async () => {
 		render(() => <ProductForm />);
-		await user.type(screen.getByLabelText("Nama Produk"), "Es Teh");
-		await user.selectOptions(screen.getByTestId("category-select"), "1");
-		await user.type(screen.getByLabelText("Harga (Rp)"), "10000");
+		await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
+		await user.selectOptions(screen.getByTestId("category-select"), "category-1");
+		await user.type(screen.getByPlaceholderText("0"), "10000");
 		expect(screen.getByTestId("save-btn")).not.toBeDisabled();
 	});
 
@@ -144,6 +145,22 @@ describe("ProductForm (create mode)", () => {
 		expect(options).toHaveLength(3);
 		expect(options[1]).toHaveTextContent("Minuman");
 		expect(options[2]).toHaveTextContent("Makanan");
+	});
+
+	test("submit calls createProduct with imageUrl: null when no image is set", async () => {
+		render(() => <ProductForm />);
+		await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
+		await user.selectOptions(screen.getByTestId("category-select"), "category-1");
+		await user.type(screen.getByPlaceholderText("0"), "10000");
+		await user.click(screen.getByTestId("save-btn"));
+		expect(mockCreateProduct).toHaveBeenCalledWith(
+			expect.objectContaining({ imageUrl: null }),
+		);
+	});
+
+	test("shows required asterisk on required fields", () => {
+		render(() => <ProductForm />);
+		expect(screen.getByText("*")).toBeInTheDocument();
 	});
 });
 
@@ -157,5 +174,8 @@ describe("ProductForm (edit mode)", () => {
 		render(() => <ProductForm />);
 		await screen.findByText("Edit Produk");
 		expect(screen.getByText("Edit Produk")).toBeInTheDocument();
+		expect(await screen.findByDisplayValue("Kopi Susu")).toBeInTheDocument();
+		expect(screen.getByTestId("category-select")).toHaveValue("category-1");
+		expect(screen.getByDisplayValue("15000")).toBeInTheDocument();
 	});
 });

@@ -44,13 +44,14 @@ vi.mock("~/components/ui/button", () => ({
 		disabled?: boolean;
 		onClick?: () => void;
 		size?: string;
+		type?: "button" | "submit";
 	}) => (
 		<button
 			class={props.class}
 			data-testid="save-btn"
 			disabled={props.disabled}
 			onClick={props.onClick}
-			type="button"
+			type={props.type ?? "button"}
 		>
 			{props.children}
 		</button>
@@ -78,8 +79,22 @@ describe("CategoryForm (create mode)", () => {
 
 	test("submit is enabled when name is filled", async () => {
 		render(() => <CategoryForm />);
-		await user.type(screen.getByLabelText("Nama Kategori"), "Minuman");
+		await user.type(screen.getByPlaceholderText("Contoh: Minuman"), "Minuman");
 		expect(screen.getByTestId("save-btn")).not.toBeDisabled();
+	});
+	test("shows an error when saving fails", async () => {
+		mockCreateCategory.mockRejectedValueOnce(new Error("Gagal menyimpan kategori"));
+		render(() => <CategoryForm />);
+		await user.type(screen.getByPlaceholderText("Contoh: Minuman"), "Minuman");
+		await user.click(screen.getByTestId("save-btn"));
+		expect(
+			await screen.findByText("Gagal menyimpan kategori"),
+		).toBeInTheDocument();
+	});
+
+	test("shows required asterisk on name field", () => {
+		render(() => <CategoryForm />);
+		expect(screen.getByText("*")).toBeInTheDocument();
 	});
 });
 
@@ -93,5 +108,6 @@ describe("CategoryForm (edit mode)", () => {
 		render(() => <CategoryForm />);
 		await screen.findByText("Edit Kategori");
 		expect(screen.getByText("Edit Kategori")).toBeInTheDocument();
+		expect(await screen.findByDisplayValue("Minuman")).toBeInTheDocument();
 	});
 });

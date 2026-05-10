@@ -1,9 +1,11 @@
+import { createEffect, createMemo, createResource, createSignal, Show } from "solid-js";
+import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
-import { createResource, createSignal, Show } from "solid-js";
-
+import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { createCategory, getCategory, updateCategory } from "~/db/menu";
+import { CategorySchema, type CategoryFormValues } from "~/lib/schema/category-form";
 import { currentMerchantId } from "~/store/outlet";
 
 export default function CategoryForm() {
@@ -17,33 +19,42 @@ export default function CategoryForm() {
 		(id) => (id === undefined ? undefined : getCategory(id)),
 	);
 
-	const [name, setName] = createSignal("");
-	const [loading, setLoading] = createSignal(false);
+	const form = createForm({
+		schema: CategorySchema,
+		initialInput: { name: "" },
+	});
 	const [error, setError] = createSignal("");
 
-	const handleSave = async () => {
-		const trimmed = name().trim();
-		if (!trimmed) {
+	const canSubmit = createMemo(() => {
+		const input = getInput(form);
+		return !!input?.name?.trim() && !form.isSubmitting;
+	});
+
+	createEffect(() => {
+		const data = category();
+		if (!data) {
 			return;
 		}
 
-		setLoading(true);
+		reset(form, {
+			initialInput: { name: data.name },
+		});
 		setError("");
+	});
 
+	const handleSave = async (values: CategoryFormValues) => {
 		try {
 			if (isEdit()) {
-				await updateCategory(params.id ?? "", { name: trimmed });
+				await updateCategory(params.id ?? "", { name: values.name });
 			} else {
 				await createCategory({
-					name: trimmed,
+					name: values.name,
 					merchantId: currentMerchantId() ?? "",
 				});
 			}
 			navigate("/menu/categories", { replace: true });
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Gagal menyimpan kategori");
-		} finally {
-			setLoading(false);
 		}
 	};
 
@@ -52,7 +63,10 @@ export default function CategoryForm() {
 			<PageHeader backHref="/menu/categories">{title()}</PageHeader>
 			<div class="flex flex-1 flex-col p-4">
 				<Show when={error()}>
-					<div class="mb-3 rounded-lg bg-error px-3 py-2 text-error-foreground text-sm">
+					<div
+						class="rounded-lg bg-destructive/10 px-3 py-2 text-destructive text-sm"
+						role="alert"
+					>
 						{error()}
 					</div>
 				</Show>
@@ -65,33 +79,37 @@ export default function CategoryForm() {
 					}
 					when={!isEdit() || category()}
 				>
-					<div class="flex flex-col gap-4">
-						<div>
-							<label class="mb-1.5 block font-medium text-sm" for="cat-name">
-								Nama Kategori
-							</label>
-							<input
-								class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-								id="cat-name"
-								onInput={(e) => setName(e.currentTarget.value)}
-								placeholder="Contoh: Minuman"
-								type="text"
-								value={isEdit() ? (category()?.name ?? "") : name()}
-							/>
-						</div>
-					</div>
-				</Show>
-
-				<div class="mt-auto pt-4">
-					<Button
-						class="w-full"
-						disabled={!name().trim() || loading()}
-						onClick={handleSave}
-						size="lg"
+					<Form
+						class="flex flex-1 flex-col gap-4"
+						of={form}
+						onSubmit={handleSave}
 					>
-						{loading() ? "Menyimpan..." : "Simpan"}
-					</Button>
-				</div>
+						<Field of={form} path={["name"]}>
+							{(field) => (
+								<FormTextField
+									{...field.props}
+									errors={field.errors}
+									input={field.input}
+									label="Nama Kategori"
+									placeholder="Contoh: Minuman"
+									required
+									type="text"
+								/>
+							)}
+						</Field>
+
+						<div class="mt-auto pt-4">
+							<Button
+								class="w-full"
+								disabled={!canSubmit()}
+								size="lg"
+								type="submit"
+							>
+								{form.isSubmitting ? "Menyimpan..." : "Simpan"}
+							</Button>
+						</div>
+					</Form>
+				</Show>
 			</div>
 		</>
 	);

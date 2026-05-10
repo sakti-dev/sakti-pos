@@ -1,6 +1,7 @@
+import { createEffect, createMemo, createResource, createSignal, Show } from "solid-js";
+import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
-import { createResource, createSignal, Show } from "solid-js";
-
+import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
@@ -10,6 +11,7 @@ import {
 	getProduct,
 	updateProduct,
 } from "~/db/menu";
+import { ProductSchema, type ProductFormValues } from "~/lib/schema/product-form";
 import { currentMerchantId } from "~/store/outlet";
 
 export default function ProductForm() {
@@ -24,46 +26,64 @@ export default function ProductForm() {
 		(id) => (id === undefined ? undefined : getProduct(id)),
 	);
 
-	const [name, setName] = createSignal("");
-	const [categoryId, setCategoryId] = createSignal<string | null>(null);
-	const [price, setPrice] = createSignal("");
-	const [imageUrl, setImageUrl] = createSignal("");
-	const [loading, setLoading] = createSignal(false);
+	const form = createForm({
+		schema: ProductSchema,
+		initialInput: {
+			name: "",
+			categoryId: "",
+			price: "",
+			imageUrl: "",
+		},
+	});
 	const [error, setError] = createSignal("");
 
-	const handleSave = async () => {
-		const trimmedName = name().trim();
-		const parsedPrice = Number.parseInt(price(), 10);
-		if (
-			!trimmedName ||
-			Number.isNaN(parsedPrice) ||
-			parsedPrice < 0 ||
-			categoryId() === null
-		) {
+	const canSubmit = createMemo(() => {
+		const input = getInput(form);
+		return (
+			!!input?.name?.trim() &&
+			!!input?.categoryId &&
+			!!input?.price?.trim() &&
+			!form.isSubmitting
+		);
+	});
+
+	createEffect(() => {
+		const data = product();
+		if (!data || !categories()) {
 			return;
 		}
 
-		setLoading(true);
+			reset(form, {
+				initialInput: {
+					name: data.name,
+					categoryId: data.categoryId ?? "",
+					price: String(data.price),
+					imageUrl: data.imageUrl ?? "",
+				},
+		});
 		setError("");
+	});
 
+	const handleSave = async (values: ProductFormValues) => {
 		try {
 			const data = {
-				name: trimmedName,
-				categoryId: categoryId()!,
-				price: parsedPrice,
-				imageUrl: imageUrl().trim() || null,
+				name: values.name,
+				categoryId: values.categoryId,
+				price: values.price,
+				imageUrl: values.imageUrl === "" ? null : values.imageUrl,
 			};
 
 			if (isEdit()) {
 				await updateProduct(params.id ?? "", data);
 			} else {
-				await createProduct({ ...data, merchantId: currentMerchantId() ?? "" });
+				await createProduct({
+					...data,
+					merchantId: currentMerchantId() ?? "",
+				});
 			}
 			navigate("/menu/products", { replace: true });
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Gagal menyimpan produk");
-		} finally {
-			setLoading(false);
 		}
 	};
 
@@ -72,7 +92,10 @@ export default function ProductForm() {
 			<PageHeader backHref="/menu/products">{title()}</PageHeader>
 			<div class="flex flex-1 flex-col p-4">
 				<Show when={error()}>
-					<div class="mb-3 rounded-lg bg-error px-3 py-2 text-error-foreground text-sm">
+					<div
+						class="rounded-lg bg-destructive/10 px-3 py-2 text-destructive text-sm"
+						role="alert"
+					>
 						{error()}
 					</div>
 				</Show>
@@ -85,93 +108,90 @@ export default function ProductForm() {
 					}
 					when={!isEdit() || (product() && categories())}
 				>
-					<div class="flex flex-col gap-4">
-						<div>
-							<label class="mb-1.5 block font-medium text-sm" for="prod-name">
-								Nama Produk
-							</label>
-							<input
-								class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-								id="prod-name"
-								onInput={(e) => setName(e.currentTarget.value)}
-								placeholder="Contoh: Kopi Susu"
-								type="text"
-								value={isEdit() ? (product()?.name ?? "") : name()}
-							/>
-						</div>
-
-						<div>
-							<label
-								class="mb-1.5 block font-medium text-sm"
-								for="prod-category"
-							>
-								Kategori
-							</label>
-							<Select
-								label="Kategori"
-								name="category"
-								onChange={(v) => setCategoryId(v == null ? null : String(v))}
-								options={
-									categories()?.map((cat) => ({
-										value: cat.id,
-										label: cat.name,
-									})) ?? []
-								}
-								placeholder="Pilih kategori"
-								value={
-									categoryId() ??
-									(isEdit() ? product()?.categoryId : undefined) ??
-									undefined
-								}
-							/>
-						</div>
-
-						<div>
-							<label class="mb-1.5 block font-medium text-sm" for="prod-price">
-								Harga (Rp)
-							</label>
-							<input
-								class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-								id="prod-price"
-								inputMode="numeric"
-								onInput={(e) => setPrice(e.currentTarget.value)}
-								placeholder="0"
-								type="number"
-								value={isEdit() ? String(product()?.price ?? "") : price()}
-							/>
-						</div>
-
-						<div>
-							<label class="mb-1.5 block font-medium text-sm" for="prod-image">
-								URL Gambar <span class="text-muted-foreground">(opsional)</span>
-							</label>
-							<input
-								class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-								id="prod-image"
-								onInput={(e) => setImageUrl(e.currentTarget.value)}
-								placeholder="https://..."
-								type="url"
-								value={isEdit() ? (product()?.imageUrl ?? "") : imageUrl()}
-							/>
-						</div>
-					</div>
-				</Show>
-
-				<div class="mt-auto pt-4">
-					<Button
-						class="w-full"
-						disabled={
-							!name().trim() ||
-							Number.isNaN(Number.parseInt(price(), 10)) ||
-							categoryId() === null ||
-							loading()
-						}
-						onClick={handleSave}
-						size="lg"
+					<Form
+						class="flex flex-1 flex-col gap-4"
+						of={form}
+						onSubmit={handleSave}
 					>
-						{loading() ? "Menyimpan..." : "Simpan"}
-					</Button>
-				</div>
+						<Field of={form} path={["name"]}>
+							{(field) => (
+								<FormTextField
+									{...field.props}
+									errors={field.errors}
+									input={field.input}
+									label="Nama Produk"
+									placeholder="Contoh: Kopi Susu"
+									required
+									type="text"
+								/>
+							)}
+						</Field>
+
+						<Field of={form} path={["categoryId"]}>
+							{(field) => (
+								<div class="flex flex-col gap-1.5">
+									<label
+										class="font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+										for={field.props.name}
+									>
+										Kategori
+										<span class="text-muted-foreground ml-0.5">*</span>
+									</label>
+									<Select
+										name={field.props.name}
+										onChange={(v) => field.onInput(v == null ? "" : String(v))}
+										options={
+											categories()?.map((cat) => ({
+												value: cat.id,
+												label: cat.name,
+											})) ?? []
+										}
+										placeholder="Pilih kategori"
+										value={field.input}
+									/>
+								</div>
+							)}
+						</Field>
+
+						<Field of={form} path={["price"]}>
+							{(field) => (
+								<FormTextField
+									{...field.props}
+									errors={field.errors}
+									input={field.input}
+									label="Harga (Rp)"
+									placeholder="0"
+									required
+									type="number"
+								/>
+							)}
+						</Field>
+
+						<Field of={form} path={["imageUrl"]}>
+							{(field) => (
+								<FormTextField
+									{...field.props}
+									errors={field.errors}
+									input={field.input}
+									label="URL Gambar"
+									placeholder="https://..."
+									type="url"
+								/>
+							)}
+						</Field>
+
+						<div class="mt-auto pt-4">
+							<Button
+								class="w-full"
+								disabled={!canSubmit()}
+								size="lg"
+								type="submit"
+							>
+								{form.isSubmitting ? "Menyimpan..." : "Simpan"}
+							</Button>
+						</div>
+					</Form>
+				</Show>
 			</div>
 		</>
 	);

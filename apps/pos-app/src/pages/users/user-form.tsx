@@ -1,24 +1,33 @@
+import { createEffect, createMemo, createResource, createSignal, Show } from "solid-js";
+import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
-import { createResource, createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
+
 import { ConfirmDrawer } from "~/components/confirm-drawer";
+import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
 import {
-	countActiveManagers,
+	createStaff,
 	getStaffMember,
 	updateStaffMember,
 } from "~/db/staff";
 import { createStaff as createStaffApi } from "~/lib/cloud-auth";
 import { cn } from "~/lib/utils";
+import {
+	CreateUserSchema,
+	EditUserSchema,
+	type CreateUserValues,
+	type EditUserValues,
+} from "~/lib/schema/user-form";
 import { currentUser } from "~/store/auth";
 import { currentMerchantId } from "~/store/outlet";
 
 const ROLE_OPTIONS = [
+	{ value: "owner", label: "Owner" },
+	{ value: "manager", label: "Manager" },
 	{ value: "cashier", label: "Kasir" },
-	{ value: "manager", label: "Manajer" },
-	{ value: "owner", label: "Pemilik" },
 ];
 
 export default function UserForm() {
@@ -32,121 +41,114 @@ export default function UserForm() {
 		(id) => (id === undefined ? undefined : getStaffMember(id)),
 	);
 
-	const [name, setName] = createSignal("");
-	const [role, setRole] = createSignal<string | undefined>(undefined);
-	const [pin, setPin] = createSignal("");
-	const [confirmPin, setConfirmPin] = createSignal("");
 	const [isActive, setIsActive] = createSignal(true);
-	const [loading, setLoading] = createSignal(false);
 	const [error, setError] = createSignal("");
 	const [deactivateOpen, setDeactivateOpen] = createSignal(false);
 
-	const validate = (): string | null => {
-		const trimmed = name().trim();
-		if (!trimmed) {
-			return "Nama wajib diisi";
+	const createFormInstance = createForm({
+		schema: CreateUserSchema,
+		initialInput: { name: "", role: "", pin: "", confirmPin: "" },
+	});
+
+	const editFormInstance = createForm({
+		schema: EditUserSchema,
+		initialInput: { name: "", role: "" },
+	});
+
+	createEffect(() => {
+		const data = user();
+		if (!data) {
+			return;
 		}
-		if (!role()) {
-			return "Peran wajib dipilih";
-		}
-		if (!isEdit()) {
-			if (pin().length < 6) {
-				return "PIN minimal 6 digit";
-			}
-			if (pin() !== confirmPin()) {
-				return "PIN tidak cocok";
-			}
-		}
-		return null;
-	};
+
+		reset(editFormInstance, {
+			initialInput: { name: data.name, role: data.role },
+		});
+		setIsActive(data.isActive);
+		setError("");
+	});
+
+	const canSubmitCreate = createMemo(() => {
+		const input = getInput(createFormInstance);
+		if (!input) return false;
+		if (createFormInstance.isSubmitting) return false;
+		return (
+			!!input.name?.trim() &&
+			!!input.role?.trim() &&
+			!!input.pin &&
+			input.pin.length >= 6 &&
+			input.pin === input.confirmPin
+		);
+	});
+
+	const canSubmitEdit = createMemo(() => {
+		const input = getInput(editFormInstance);
+		if (!input) return false;
+		if (editFormInstance.isSubmitting) return false;
+		return !!input.name?.trim() && !!input.role?.trim();
+	});
 
 	const checkBusinessRules = async (): Promise<string | null> => {
 		const me = currentUser();
 		const targetId = params.id ?? "";
-		const newRole = role();
+		const input = getInput(editFormInstance);
+		const newRole = input?.role;
 
 		if (isEdit() && me?.id === targetId) {
 			if (!isActive()) {
-				return "Tidak dapat menonaktifkan akun sendiri";
+				return "Tidak bisa menonaktifkan diri sendiri";
 			}
-			if (newRole !== "manager" && newRole !== "owner") {
-				const managerCount = await countActiveManagers();
-				if (managerCount <= 1) {
-					return "Tidak dapat mengubah peran — Anda satu-satunya manajer aktif";
-				}
-			}
-		}
 
-		if (isEdit() && !isActive()) {
-			const managerCount = await countActiveManagers();
-			if (managerCount <= 1 && user()?.role === "manager") {
-				return "Tidak dapat menonaktifkan — setidaknya harus ada satu manajer aktif";
+			if (me.role === "owner" && newRole !== "owner") {
+				return "Owner tidak bisa mengubah peran sendiri";
 			}
 		}
 
 		return null;
 	};
 
-	const handleSave = async () => {
-		const validationError = validate();
-		if (validationError) {
-			setError(validationError);
-			return;
-		}
-
-		setLoading(true);
+	const handleCreate = async (values: CreateUserValues) => {
 		setError("");
 
 		try {
-			if (isEdit()) {
-				const ruleError = await checkBusinessRules();
-				if (ruleError) {
-					setError(ruleError);
-					setLoading(false);
-					return;
-				}
-
-				await updateStaffMember(params.id ?? "", {
-					name: name().trim(),
-					role: role() as "manager" | "cashier" | "owner",
-					isActive: isActive(),
-				});
-				toast.success("Pengguna diperbarui");
-			} else {
-				await createStaffApi({
-					merchantId: currentMerchantId() ?? "",
-					name: name().trim(),
-					pin: pin(),
-					role: role() as "manager" | "cashier" | "owner",
-				});
-				toast.success("Pengguna ditambahkan");
-			}
+			await createStaffApi({
+				merchantId: currentMerchantId() ?? "",
+				name: values.name.trim(),
+				pin: values.pin,
+				role: values.role as "manager" | "cashier" | "owner",
+			});
+			toast.success("Pengguna ditambahkan");
 			navigate("/users", { replace: true });
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Gagal menyimpan pengguna");
-		} finally {
-			setLoading(false);
 		}
 	};
 
-	const handleToggleActive = async () => {
+	const handleEdit = async (values: EditUserValues) => {
+		setError("");
+
+		try {
+			const ruleError = await checkBusinessRules();
+			if (ruleError) {
+				setError(ruleError);
+				return;
+			}
+
+			await updateStaffMember(params.id ?? "", {
+				name: values.name.trim(),
+				role: values.role as "manager" | "cashier" | "owner",
+				isActive: isActive(),
+			});
+			toast.success("Pengguna diperbarui");
+			navigate("/users", { replace: true });
+		} catch (e) {
+			setError(e instanceof Error ? e.message : "Gagal menyimpan pengguna");
+		}
+	};
+
+	const handleDeactivate = () => {
+		setIsActive(false);
 		setDeactivateOpen(false);
-		const ruleError = await checkBusinessRules();
-		if (ruleError) {
-			setError(ruleError);
-			return;
-		}
-		setIsActive(!isActive());
-	};
-
-	const canSave = () => {
-		if (!(name().trim() && role()) || loading()) {
-			return false;
-		}
-		if (!isEdit()) {
-			return pin().length >= 6 && pin() === confirmPin();
-		}
-		return true;
 	};
 
 	return (
@@ -154,7 +156,10 @@ export default function UserForm() {
 			<PageHeader backHref="/users">{title()}</PageHeader>
 			<div class="flex flex-1 flex-col p-4">
 				<Show when={error()}>
-					<div class="mb-3 rounded-lg bg-error px-3 py-2 text-error-foreground text-sm">
+					<div
+						class="mb-3 rounded-lg bg-error px-3 py-2 text-error-foreground text-sm"
+						role="alert"
+					>
 						{error()}
 					</div>
 				</Show>
@@ -167,87 +172,147 @@ export default function UserForm() {
 					}
 					when={!isEdit() || user()}
 				>
-					<div class="flex flex-col gap-4">
-						<div>
-							<label class="mb-1.5 block font-medium text-sm" for="user-name">
-								Nama
-							</label>
-							<input
-								class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-								id="user-name"
-								onInput={(e) => setName(e.currentTarget.value)}
-								placeholder="Nama pengguna"
-								type="text"
-								value={isEdit() ? (user()?.name ?? "") : name()}
-							/>
-						</div>
+					<Show
+						fallback={
+							<Form
+								class="flex flex-1 flex-col gap-4"
+								of={createFormInstance}
+								onSubmit={handleCreate}
+							>
+								<Field of={createFormInstance} path={["name"]}>
+									{(field) => (
+										<FormTextField
+											{...field.props}
+											errors={field.errors}
+											input={field.input}
+											label="Nama"
+											placeholder="Nama pengguna"
+											required
+											type="text"
+										/>
+									)}
+								</Field>
 
-						<div>
-							<label class="mb-1.5 block font-medium text-sm" for="user-role">
-								Peran
-							</label>
-							<Select
-								label="Peran"
-								name="role"
-								onChange={(v) => setRole(v == null ? undefined : String(v))}
-								options={ROLE_OPTIONS}
-								placeholder="Pilih peran"
-								value={
-									role() ?? (isEdit() ? user()?.role : undefined) ?? undefined
-								}
-							/>
-						</div>
+								<Field of={createFormInstance} path={["role"]}>
+									{(field) => (
+										<div>
+											<label
+												class="mb-1.5 block font-medium text-sm"
+												for="user-role"
+											>
+												Peran
+											</label>
+											<Select
+												label="Peran"
+												name="role"
+												onChange={(v) =>
+													field.onInput(v == null ? "" : String(v))
+												}
+												options={ROLE_OPTIONS}
+												placeholder="Pilih peran"
+												value={field.input}
+											/>
+										</div>
+									)}
+								</Field>
 
-						<Show when={!isEdit()}>
-							<div>
-								<label class="mb-1.5 block font-medium text-sm" for="user-pin">
-									PIN (6 digit)
-								</label>
-								<input
-									class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-									id="user-pin"
-									inputMode="numeric"
-									onInput={(e) => setPin(e.currentTarget.value)}
-									placeholder="Minimal 6 digit"
-									type="password"
-									value={pin()}
-								/>
-							</div>
-							<div>
-								<label
-									class="mb-1.5 block font-medium text-sm"
-									for="user-confirm-pin"
-								>
-									Konfirmasi PIN
-								</label>
-								<input
-									class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-									id="user-confirm-pin"
-									inputMode="numeric"
-									onInput={(e) => setConfirmPin(e.currentTarget.value)}
-									placeholder="Ulangi PIN"
-									type="password"
-									value={confirmPin()}
-								/>
-							</div>
-						</Show>
+								<Field of={createFormInstance} path={["pin"]}>
+									{(field) => (
+										<FormTextField
+											{...field.props}
+											errors={field.errors}
+											input={field.input}
+											label="PIN (6 digit)"
+											placeholder="Minimal 6 digit"
+											required
+											type="password"
+										/>
+									)}
+								</Field>
 
-						<Show when={isEdit()}>
+								<Field of={createFormInstance} path={["confirmPin"]}>
+									{(field) => (
+										<FormTextField
+											{...field.props}
+											errors={field.errors}
+											input={field.input}
+											label="Konfirmasi PIN"
+											placeholder="Ulangi PIN"
+											required
+											type="password"
+										/>
+									)}
+								</Field>
+
+								<div class="mt-auto pt-4">
+									<Button
+										class="w-full"
+										disabled={!canSubmitCreate()}
+										size="lg"
+										type="submit"
+									>
+										{createFormInstance.isSubmitting
+											? "Menyimpan..."
+											: "Simpan"}
+									</Button>
+								</div>
+							</Form>
+						}
+						when={isEdit()}
+					>
+						<Form
+							class="flex flex-1 flex-col gap-4"
+							of={editFormInstance}
+							onSubmit={handleEdit}
+						>
+							<Field of={editFormInstance} path={["name"]}>
+								{(field) => (
+									<FormTextField
+										{...field.props}
+										errors={field.errors}
+										input={field.input}
+										label="Nama"
+										placeholder="Nama pengguna"
+										required
+										type="text"
+									/>
+								)}
+							</Field>
+
+							<Field of={editFormInstance} path={["role"]}>
+								{(field) => (
+									<div>
+										<label
+											class="mb-1.5 block font-medium text-sm"
+											for="user-role"
+										>
+											Peran
+										</label>
+										<Select
+											label="Peran"
+											name="role"
+											onChange={(v) =>
+												field.onInput(v == null ? "" : String(v))
+											}
+											options={ROLE_OPTIONS}
+											placeholder="Pilih peran"
+											value={field.input}
+										/>
+									</div>
+								)}
+							</Field>
+
 							<div class="flex items-center justify-between rounded-xl border p-3">
 								<div>
 									<p class="font-medium text-sm">Status Aktif</p>
 									<p class="text-muted-foreground text-xs">
-										{isActive()
-											? "Pengguna dapat login"
-											: "Pengguna tidak dapat login"}
+										Nonaktifkan untuk menyembunyikan dari layar login
 									</p>
 								</div>
 								<button
 									class={cn(
-										"shrink-0 rounded-full px-2.5 py-1 font-medium text-xs",
-										isActive()
-											? "bg-success text-success-foreground"
-											: "bg-muted text-muted-foreground",
+										"relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+										isActive() ? "bg-primary" : "bg-muted",
 									)}
 									onClick={() => {
 										if (isActive()) {
@@ -258,41 +323,45 @@ export default function UserForm() {
 									}}
 									type="button"
 								>
-									{isActive() ? "Aktif" : "Nonaktif"}
+									<span
+										class={cn(
+											"pointer-events-none block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+											isActive() ? "translate-x-5" : "translate-x-0",
+										)}
+									/>
 								</button>
 							</div>
 
 							<button
-								class="text-primary text-sm underline"
+								class="text-primary text-sm hover:underline"
 								onClick={() =>
-									navigate(`/users/${params.id}/reset-pin`, {
-										replace: true,
-									})
+									navigate(`/users/${params.id}/reset-pin`)
 								}
 								type="button"
 							>
 								Ubah PIN
 							</button>
-						</Show>
-					</div>
-				</Show>
 
-				<div class="mt-auto pt-4">
-					<Button
-						class="w-full"
-						disabled={!canSave()}
-						onClick={handleSave}
-						size="lg"
-					>
-						{loading() ? "Menyimpan..." : "Simpan"}
-					</Button>
-				</div>
+							<div class="mt-auto pt-4">
+								<Button
+									class="w-full"
+									disabled={!canSubmitEdit()}
+									size="lg"
+									type="submit"
+								>
+									{editFormInstance.isSubmitting ? "Menyimpan..." : "Simpan"}
+								</Button>
+							</div>
+						</Form>
+					</Show>
+				</Show>
 			</div>
 
 			<ConfirmDrawer
-				message="Nonaktifkan pengguna ini? Mereka tidak akan bisa login."
+				confirmLabel="Nonaktifkan"
+				message="Pengguna yang dinonaktifkan tidak bisa masuk ke aplikasi."
 				onClose={() => setDeactivateOpen(false)}
-				onConfirm={handleToggleActive}
+				onConfirm={handleDeactivate}
 				open={deactivateOpen()}
 				title="Nonaktifkan Pengguna"
 				variant="destructive"

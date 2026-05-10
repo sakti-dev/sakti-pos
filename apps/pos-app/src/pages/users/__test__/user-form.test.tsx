@@ -50,13 +50,14 @@ vi.mock("~/components/ui/button", () => ({
 		disabled?: boolean;
 		onClick?: () => void;
 		size?: string;
+		type?: "button" | "submit";
 	}) => (
 		<button
 			class={props.class}
 			data-testid="save-btn"
 			disabled={props.disabled}
 			onClick={props.onClick}
-			type="button"
+			type={props.type ?? "button"}
 		>
 			{props.children}
 		</button>
@@ -138,10 +139,10 @@ describe("UserForm (create mode)", () => {
 
 	test("shows name, role, PIN and confirm PIN inputs", () => {
 		render(() => <UserForm />);
-		expect(screen.getByLabelText("Nama")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Nama pengguna")).toBeInTheDocument();
 		expect(screen.getByTestId("role-select")).toBeInTheDocument();
-		expect(screen.getByLabelText("PIN (6 digit)")).toBeInTheDocument();
-		expect(screen.getByLabelText("Konfirmasi PIN")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Minimal 6 digit")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Ulangi PIN")).toBeInTheDocument();
 	});
 
 	test("submit is disabled when form is empty", () => {
@@ -152,34 +153,34 @@ describe("UserForm (create mode)", () => {
 	test("submit is disabled when name is missing", async () => {
 		render(() => <UserForm />);
 		await user.selectOptions(screen.getByTestId("role-select"), "cashier");
-		await user.type(screen.getByLabelText("PIN (6 digit)"), "123456");
-		await user.type(screen.getByLabelText("Konfirmasi PIN"), "123456");
+		await user.type(screen.getByPlaceholderText("Minimal 6 digit"), "123456");
+		await user.type(screen.getByPlaceholderText("Ulangi PIN"), "123456");
 		expect(screen.getByTestId("save-btn")).toBeDisabled();
 	});
 
 	test("submit is disabled when PINs do not match", async () => {
 		render(() => <UserForm />);
-		await user.type(screen.getByLabelText("Nama"), "Test User");
+		await user.type(screen.getByPlaceholderText("Nama pengguna"), "Test User");
 		await user.selectOptions(screen.getByTestId("role-select"), "cashier");
-		await user.type(screen.getByLabelText("PIN (6 digit)"), "123456");
-		await user.type(screen.getByLabelText("Konfirmasi PIN"), "654321");
+		await user.type(screen.getByPlaceholderText("Minimal 6 digit"), "123456");
+		await user.type(screen.getByPlaceholderText("Ulangi PIN"), "654321");
 		expect(screen.getByTestId("save-btn")).toBeDisabled();
 	});
 
 	test("submit is enabled when form is valid", async () => {
 		render(() => <UserForm />);
-		await user.type(screen.getByLabelText("Nama"), "Test User");
+		await user.type(screen.getByPlaceholderText("Nama pengguna"), "Test User");
 		await user.selectOptions(screen.getByTestId("role-select"), "cashier");
-		await user.type(screen.getByLabelText("PIN (6 digit)"), "123456");
-		await user.type(screen.getByLabelText("Konfirmasi PIN"), "123456");
+		await user.type(screen.getByPlaceholderText("Minimal 6 digit"), "123456");
+		await user.type(screen.getByPlaceholderText("Ulangi PIN"), "123456");
 		expect(screen.getByTestId("save-btn")).not.toBeDisabled();
 	});
 
 	test("save button remains disabled when name is missing", async () => {
 		render(() => <UserForm />);
 		await user.selectOptions(screen.getByTestId("role-select"), "cashier");
-		await user.type(screen.getByLabelText("PIN (6 digit)"), "123456");
-		await user.type(screen.getByLabelText("Konfirmasi PIN"), "123456");
+		await user.type(screen.getByPlaceholderText("Minimal 6 digit"), "123456");
+		await user.type(screen.getByPlaceholderText("Ulangi PIN"), "123456");
 		expect(screen.getByTestId("save-btn")).toBeDisabled();
 	});
 });
@@ -194,6 +195,8 @@ describe("UserForm (edit mode)", () => {
 		render(() => <UserForm />);
 		await screen.findByText("Edit Pengguna");
 		expect(screen.getByText("Edit Pengguna")).toBeInTheDocument();
+		expect(await screen.findByDisplayValue("Admin")).toBeInTheDocument();
+		expect(screen.getByTestId("role-select")).toHaveValue("manager");
 	});
 
 	test("shows active status toggle", async () => {
