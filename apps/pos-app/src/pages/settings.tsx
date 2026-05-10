@@ -9,6 +9,7 @@ import { createResource, createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
+import PrinterSettings from "~/components/settings/printer-settings";
 import { Button } from "~/components/ui/button";
 import {
 	Drawer,
@@ -170,6 +171,8 @@ export default function Settings() {
 						</div>
 					</section>
 				</Show>
+
+				<PrinterSettings />
 
 				<section class="space-y-2">
 					<h2 class="font-medium text-muted-foreground text-sm">Aplikasi</h2>

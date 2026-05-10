@@ -14,6 +14,9 @@ import {
 	type ProductWithCategory,
 } from "~/db/orders";
 import { getAllOutlets } from "~/db/outlets";
+import { getDefaultPrinter, printReceipt } from "~/lib/printer";
+import { logPrinterError } from "~/lib/printer-log";
+import type { ReceiptData } from "~/lib/receipt/types";
 import { cn } from "~/lib/utils";
 import { currentUser, currentUserRole } from "~/store/auth";
 import { cartItems, cartTotal, clearCart } from "~/store/cart";
@@ -31,6 +34,7 @@ export default function POS() {
 	const [paymentOpen, setPaymentOpen] = createSignal(false);
 	const [paymentLoading, setPaymentLoading] = createSignal(false);
 	const [orderResult, setOrderResult] = createSignal<string | null>(null);
+	const [lastReceipt, setLastReceipt] = createSignal<ReceiptData | null>(null);
 	const [search, setSearch] = createSignal("");
 
 	const categories = () => groupedData()?.map((g) => g.categoryName) ?? [];
@@ -66,24 +70,67 @@ export default function POS() {
 
 		setPaymentLoading(true);
 		try {
+			const items = cartItems();
+			const total = cartTotal();
+
 			const orderNumber = await createOrder({
 				amountPaid: data.amountPaid,
 				changeAmount: data.changeAmount,
-				items: cartItems().map((item) => ({
+				items: items.map((item) => ({
 					price: item.product.price,
 					product_id: item.product.id,
 					product_name: item.product.name,
 					qty: item.quantity,
 				})),
 				paymentMethod: data.paymentMethod,
-				total: cartTotal(),
+				total,
 				staffId: user.id,
 			});
 
 			setPaymentOpen(false);
+
+			const receiptData: ReceiptData = {
+				business: { name: "SAKTI POS" },
+				items: items.map((item) => ({
+					name: item.product.name,
+					quantity: item.quantity,
+					subtotal: item.product.price * item.quantity,
+					unitPrice: item.product.price,
+				})),
+				order: {
+					cashierName: user.name,
+					createdAt: new Date().toISOString(),
+					orderNumber,
+				},
+				payment: {
+					amountPaid: data.amountPaid ?? total,
+					changeAmount: data.changeAmount,
+					method: data.paymentMethod,
+				},
+				totals: { total },
+			};
+
 			clearCart();
 			setOrderResult(orderNumber);
-			setTimeout(() => setOrderResult(null), 2000);
+			setLastReceipt(receiptData);
+
+			const printerAddress = getDefaultPrinter();
+			if (printerAddress) {
+				printReceipt(printerAddress, receiptData).catch((e: unknown) => {
+					const message =
+						e instanceof Error ? e.message : "Gagal mencetak struk";
+					logPrinterError("checkout:auto_print:failed", e, {
+						address: printerAddress,
+						orderNumber,
+					});
+					toast.error(message);
+				});
+			}
+
+			setTimeout(() => {
+				setOrderResult(null);
+				setLastReceipt(null);
+			}, 2000);
 		} catch {
 			toast.error("Gagal membuat pesanan");
 		} finally {
@@ -103,6 +150,29 @@ export default function POS() {
 					<div class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-background/95">
 						<span class="font-bold text-4xl text-primary">Selesai!</span>
 						<span class="text-lg text-muted-foreground">{num()}</span>
+						<Show when={lastReceipt() && getDefaultPrinter()}>
+							<button
+								class="mt-2 rounded-lg border px-4 py-2 text-sm active:bg-accent"
+								onClick={() => {
+									const address = getDefaultPrinter();
+									const receipt = lastReceipt();
+									if (address && receipt) {
+										printReceipt(address, receipt).catch((e: unknown) => {
+											const message =
+												e instanceof Error ? e.message : "Gagal mencetak struk";
+											logPrinterError("checkout:reprint:failed", e, {
+												address,
+												orderNumber: receipt.order.orderNumber,
+											});
+											toast.error(message);
+										});
+									}
+								}}
+								type="button"
+							>
+								Cetak Ulang
+							</button>
+						</Show>
 					</div>
 				)}
 			</Show>

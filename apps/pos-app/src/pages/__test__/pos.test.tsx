@@ -2,7 +2,7 @@ import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
 import { For, Show } from "solid-js";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { ProductWithCategory } from "~/db/orders";
 
 const mockGroupedData: {
@@ -80,6 +80,14 @@ vi.mock("~/store/cart", () => ({
 	cartItems: vi.fn(() => []),
 	cartTotal: vi.fn(() => 0),
 	clearCart: vi.fn(),
+}));
+
+const mockPrintReceipt = vi.fn();
+const mockGetDefaultPrinter = vi.fn<() => string | null>(() => null);
+
+vi.mock("~/lib/printer", () => ({
+	printReceipt: (...args: unknown[]) => mockPrintReceipt(...args),
+	getDefaultPrinter: () => mockGetDefaultPrinter(),
 }));
 
 vi.mock("~/store/responsive", () => ({
@@ -233,6 +241,10 @@ import POS from "../pos";
 const user = userEvent.setup();
 
 describe("POS page", () => {
+	beforeEach(() => {
+		mockPrintReceipt.mockResolvedValue(undefined);
+	});
+
 	afterEach(() => {
 		vi.clearAllMocks();
 	});
@@ -300,5 +312,100 @@ describe("POS page", () => {
 		await user.click(screen.getByTestId("payment-confirm"));
 		expect(await screen.findByText("Selesai!")).toBeInTheDocument();
 		expect(screen.getByText("2026-05-04-001")).toBeInTheDocument();
+	});
+
+	test("prints receipt after checkout when default printer is set", async () => {
+		const { cartItems, cartTotal } = await import("~/store/cart");
+
+		vi.mocked(cartItems).mockReturnValue([
+			{
+				product: {
+					categoryId: "cat-1",
+					createdAt: "2026-01-01T00:00:00.000Z",
+					id: "product-1",
+					imageUrl: null,
+					isActive: true,
+					merchantId: "merchant-1",
+					name: "Kopi Susu",
+					price: 15_000,
+					sortOrder: 0,
+					updatedAt: "2026-01-01T00:00:00.000Z",
+					deletedAt: null,
+					isSynced: false,
+				},
+				quantity: 2,
+			},
+		]);
+		vi.mocked(cartTotal).mockReturnValue(30_000);
+		mockGetDefaultPrinter.mockReturnValue("00:11:22:33:44:55");
+
+		render(() => <POS />);
+		await screen.findByText("Kasir");
+		await user.click(screen.getByTestId("cart-panel-pay"));
+		await user.click(screen.getByTestId("payment-confirm"));
+		await screen.findByText("Selesai!");
+
+		expect(mockPrintReceipt).toHaveBeenCalledWith(
+			"00:11:22:33:44:55",
+			expect.objectContaining({
+				items: expect.arrayContaining([
+					expect.objectContaining({
+						name: "Kopi Susu",
+						quantity: 2,
+					}),
+				]),
+				order: expect.objectContaining({
+					orderNumber: "2026-05-04-001",
+					cashierName: "Kasir",
+				}),
+				totals: expect.objectContaining({ total: 30_000 }),
+			}),
+		);
+	});
+
+	test("shows Cetak Ulang button and retries printing when clicked", async () => {
+		const { cartItems, cartTotal } = await import("~/store/cart");
+
+		vi.mocked(cartItems).mockReturnValue([
+			{
+				product: {
+					categoryId: "cat-1",
+					createdAt: "2026-01-01T00:00:00.000Z",
+					id: "product-1",
+					imageUrl: null,
+					isActive: true,
+					merchantId: "merchant-1",
+					name: "Kopi Susu",
+					price: 15_000,
+					sortOrder: 0,
+					updatedAt: "2026-01-01T00:00:00.000Z",
+					deletedAt: null,
+					isSynced: false,
+				},
+				quantity: 1,
+			},
+		]);
+		vi.mocked(cartTotal).mockReturnValue(15_000);
+		mockGetDefaultPrinter.mockReturnValue("00:11:22:33:44:55");
+
+		render(() => <POS />);
+		await screen.findByText("Kasir");
+		await user.click(screen.getByTestId("cart-panel-pay"));
+		await user.click(screen.getByTestId("payment-confirm"));
+		await screen.findByText("Selesai!");
+
+		expect(screen.getByText("Cetak Ulang")).toBeInTheDocument();
+
+		mockPrintReceipt.mockClear();
+		await user.click(screen.getByText("Cetak Ulang"));
+
+		expect(mockPrintReceipt).toHaveBeenCalledWith(
+			"00:11:22:33:44:55",
+			expect.objectContaining({
+				order: expect.objectContaining({
+					orderNumber: "2026-05-04-001",
+				}),
+			}),
+		);
 	});
 });

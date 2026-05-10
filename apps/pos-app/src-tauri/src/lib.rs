@@ -1,5 +1,6 @@
 mod db_utils;
 mod drizzle_proxy;
+mod printer;
 mod sync;
 
 use argon2::{hash_raw, Config, Variant, Version};
@@ -9,6 +10,7 @@ use tauri_plugin_stronghold::Builder;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(printer::init())
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async move {
@@ -45,6 +47,10 @@ pub fn run() {
             drizzle_proxy::run_sql,
             drizzle_proxy::run_sql_batch,
             drizzle_proxy::get_db_info,
+            printer::list_paired_thermal_printers,
+            printer::test_thermal_printer,
+            printer::print_thermal_receipt,
+            printer::request_bluetooth_permission,
             sync::sync_push,
             sync::sync_pull,
             sync::get_sync_local_state,

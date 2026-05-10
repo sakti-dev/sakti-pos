@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ANDROID_TARGET="${ANDROID_TARGET:-aarch64}"
+MODE="${1:-quick}"
+
+if [[ "$MODE" != "quick" && "$MODE" != "--full" && "$MODE" != "full" ]]; then
+    echo "Usage: apps/pos-app/scripts/test-printer [quick|--full]"
+    echo ""
+    echo "quick  : frontend printer tests + Rust printer tests + Android Kotlin debug compile"
+    echo "--full : quick checks + release Android APK/AAB build"
+    exit 2
+fi
+
+if [[ "$MODE" == "--full" ]]; then
+    MODE="full"
+fi
+
+distrobox enter dev -- /bin/bash -lc "
+    set -euo pipefail
+
+    export ANDROID_HOME=\"\$HOME/Android/Sdk\"
+    export NDK_HOME=\"\$ANDROID_HOME/ndk/26.1.10909125\"
+    export JAVA_HOME=\"\$HOME/android-studio/jbr\"
+    export PATH=\"\$PATH:\$ANDROID_HOME/platform-tools:\$ANDROID_HOME/cmdline-tools/latest/bin\"
+
+    cd \"$APP_ROOT\"
+
+    echo '==> Running focused frontend printer tests...'
+    ./node_modules/.bin/vitest run \
+        src/lib/receipt/__test__/types.test.ts \
+        src/lib/receipt/__test__/format-receipt.test.ts \
+        src/lib/__test__/printer-log.test.ts \
+        src/lib/__test__/printer.test.ts \
+        src/components/settings/__test__/printer-settings.test.tsx \
+        src/pages/__test__/pos.test.tsx
+
+    echo '==> Checking focused printer formatting...'
+    BUN_TMPDIR=/tmp bun x ultracite check \
+        src/lib/receipt/types.ts \
+        src/lib/receipt/format-receipt.ts \
+        src/lib/printer-log.ts \
+        src/lib/printer.ts \
+        src/components/settings/printer-settings.tsx \
+        src/pages/pos.tsx \
+        src/lib/receipt/__test__/types.test.ts \
+        src/lib/receipt/__test__/format-receipt.test.ts \
+        src/lib/__test__/printer-log.test.ts \
+        src/lib/__test__/printer.test.ts \
+        src/components/settings/__test__/printer-settings.test.tsx \
+        src/pages/__test__/pos.test.tsx
+
+    echo '==> Running Rust printer tests...'
+    cd src-tauri
+    cargo test printer
+
+    echo '==> Compiling Android Kotlin printer bridge...'
+    cd gen/android
+    ./gradlew :app:compileUniversalDebugKotlin
+
+    if [[ \"$MODE\" == \"full\" ]]; then
+        echo '==> Building Android release artifacts...'
+        cd ../..
+        bun run tauri android build --target \"$ANDROID_TARGET\"
+    fi
+
+    echo '==> Printer verification complete.'
+    echo 'Logcat command for device testing:'
+    echo \"adb logcat -c && adb logcat -v time | rg 'SaktiPrinter|\\\\[PRINTER\\\\]|AndroidRuntime|RustStdout|RustStderr'\"
+"
