@@ -1,4 +1,4 @@
-import { A, useNavigate } from "@solidjs/router";
+import { A, type RouteSectionProps, useNavigate } from "@solidjs/router";
 import {
   TbOutlinePackage,
   TbOutlinePencil,
@@ -29,7 +29,9 @@ import {
 } from "~/db/menu";
 import { cn, formatIDR } from "~/lib/utils";
 
-export default function ProductList(props?: { hideHeader?: boolean }) {
+export default function ProductList(
+  props: Partial<RouteSectionProps> & { hideHeader?: boolean } = {}
+) {
   const navigate = useNavigate();
   const [categories] = createResource(getCategories);
   const [filterCategoryId, setFilterCategoryId] = createSignal<

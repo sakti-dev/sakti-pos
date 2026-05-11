@@ -1,4 +1,4 @@
-import { A, useNavigate } from "@solidjs/router";
+import { A, type RouteSectionProps, useNavigate } from "@solidjs/router";
 import {
   TbOutlineCategory,
   TbOutlinePencil,
@@ -27,7 +27,9 @@ import {
 } from "~/db/menu";
 import { cn } from "~/lib/utils";
 
-export default function CategoryList(props?: { hideHeader?: boolean }) {
+export default function CategoryList(
+  props: Partial<RouteSectionProps> & { hideHeader?: boolean } = {}
+) {
   const navigate = useNavigate();
   const [categories, { refetch }] = createResource(getCategories);
   const [deleteTarget, setDeleteTarget] = createSignal<Category | undefined>();

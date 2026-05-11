@@ -1,4 +1,9 @@
-import { Route, Router, useNavigate } from "@solidjs/router";
+import {
+  Route,
+  Router,
+  type RouteSectionProps,
+  useNavigate,
+} from "@solidjs/router";
 import { createEffect, type JSX, Show } from "solid-js";
 import { currentUserRole, isAuthenticated } from "./store/auth";
 import { isDevicePaired } from "./store/outlet";
@@ -80,7 +85,7 @@ function App() {
         path="/pos"
       />
       <Route
-        component={(props) => (
+        component={(props: RouteSectionProps) => (
           <RequireAuth roles={["manager", "owner"]}>
             {props.children}
           </RequireAuth>
@@ -117,7 +122,9 @@ function App() {
         <Route component={ResetPin} path="/:id/reset-pin" />
       </Route>
       <Route
-        component={(props) => <RequireAuth>{props.children}</RequireAuth>}
+        component={(props: RouteSectionProps) => (
+          <RequireAuth>{props.children}</RequireAuth>
+        )}
         path="/settings"
       >
         <Route component={Settings} path="/" />

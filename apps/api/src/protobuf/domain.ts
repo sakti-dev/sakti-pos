@@ -62,18 +62,26 @@ export function encodeOutlet(row: {
   isActive: boolean;
   merchantId: string;
   name: string;
+  receiptAddress: string | null;
+  receiptName: string | null;
   timezone?: string | null;
   updatedAt?: string;
 }): Outlet {
   const address = optionalString(row.address);
+  const receiptAddress = optionalString(row.receiptAddress);
+  const receiptName = optionalString(row.receiptName);
   return {
     address: address.value,
     createdAt: row.createdAt ?? "",
     hasAddress: address.hasValue,
+    hasReceiptAddress: receiptAddress.hasValue,
+    hasReceiptName: receiptName.hasValue,
     id: row.id,
     isActive: row.isActive,
     merchantId: row.merchantId,
     name: row.name,
+    receiptAddress: receiptAddress.value,
+    receiptName: receiptName.value,
     timezone: row.timezone ?? "Asia/Jakarta",
     updatedAt: row.updatedAt ?? "",
   };

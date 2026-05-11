@@ -37,7 +37,7 @@ describe("domain protobuf helpers", () => {
     expect(merchant.name).toBe("Warung");
   });
 
-  test("encodes outlet nullable address", () => {
+  test("encodes outlet nullable address and receipt header fields", () => {
     const outlet = encodeOutlet({
       address: null,
       createdAt: "2026-05-10T00:00:00.000Z",
@@ -45,12 +45,18 @@ describe("domain protobuf helpers", () => {
       isActive: true,
       merchantId: "merchant-1",
       name: "Main",
+      receiptAddress: null,
+      receiptName: null,
       timezone: "Asia/Jakarta",
       updatedAt: "2026-05-10T00:00:00.000Z",
     });
 
     expect(outlet.address).toBe("");
     expect(outlet.hasAddress).toBe(false);
+    expect(outlet.receiptAddress).toBe("");
+    expect(outlet.hasReceiptAddress).toBe(false);
+    expect(outlet.receiptName).toBe("");
+    expect(outlet.hasReceiptName).toBe(false);
     expect(outlet.timezone).toBe("Asia/Jakarta");
   });
 

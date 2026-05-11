@@ -36,6 +36,8 @@ interface Outlet {
   isActive: boolean;
   merchantId: string;
   name: string;
+  receiptAddress: string | null;
+  receiptName: string | null;
   timezone: string;
 }
 
@@ -185,6 +187,8 @@ export function getOutlets(merchantId: string): Promise<Outlet[]> {
       isActive: outlet.isActive,
       merchantId: outlet.merchantId,
       name: outlet.name,
+      receiptAddress: outlet.hasReceiptAddress ? outlet.receiptAddress : null,
+      receiptName: outlet.hasReceiptName ? outlet.receiptName : null,
       timezone: outlet.timezone,
     }))
   );
@@ -217,6 +221,12 @@ export function createOutlet(
       isActive: result.outlet.isActive,
       merchantId: result.outlet.merchantId,
       name: result.outlet.name,
+      receiptAddress: result.outlet.hasReceiptAddress
+        ? result.outlet.receiptAddress
+        : null,
+      receiptName: result.outlet.hasReceiptName
+        ? result.outlet.receiptName
+        : null,
       timezone: result.outlet.timezone,
       register:
         result.hasRegister && result.register
@@ -315,6 +325,12 @@ export function pairRegister(pairingCode: string): Promise<PairResult> {
         isActive: result.outlet.isActive,
         merchantId: result.outlet.merchantId,
         name: result.outlet.name,
+        receiptAddress: result.outlet.hasReceiptAddress
+          ? result.outlet.receiptAddress
+          : null,
+        receiptName: result.outlet.hasReceiptName
+          ? result.outlet.receiptName
+          : null,
         timezone: result.outlet.timezone,
       },
       register: {

@@ -42,6 +42,10 @@ export interface OutletUpdateRequest {
   hasIsActive: boolean;
   timezone: string;
   hasTimezone: boolean;
+  receiptName: string;
+  hasReceiptName: boolean;
+  receiptAddress: string;
+  hasReceiptAddress: boolean;
 }
 
 export interface OutletUpdateResponse {
@@ -415,6 +419,10 @@ function createBaseOutletUpdateRequest(): OutletUpdateRequest {
     hasIsActive: false,
     timezone: "",
     hasTimezone: false,
+    receiptName: "",
+    hasReceiptName: false,
+    receiptAddress: "",
+    hasReceiptAddress: false,
   };
 }
 
@@ -446,6 +454,18 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
     }
     if (message.hasTimezone !== false) {
       writer.uint32(72).bool(message.hasTimezone);
+    }
+    if (message.receiptName !== "") {
+      writer.uint32(82).string(message.receiptName);
+    }
+    if (message.hasReceiptName !== false) {
+      writer.uint32(88).bool(message.hasReceiptName);
+    }
+    if (message.receiptAddress !== "") {
+      writer.uint32(98).string(message.receiptAddress);
+    }
+    if (message.hasReceiptAddress !== false) {
+      writer.uint32(104).bool(message.hasReceiptAddress);
     }
     return writer;
   },
@@ -529,6 +549,38 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
           message.hasTimezone = reader.bool();
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.receiptName = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.hasReceiptName = reader.bool();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.receiptAddress = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.hasReceiptAddress = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -569,6 +621,26 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
         : isSet(object.has_timezone)
         ? globalThis.Boolean(object.has_timezone)
         : false,
+      receiptName: isSet(object.receiptName)
+        ? globalThis.String(object.receiptName)
+        : isSet(object.receipt_name)
+        ? globalThis.String(object.receipt_name)
+        : "",
+      hasReceiptName: isSet(object.hasReceiptName)
+        ? globalThis.Boolean(object.hasReceiptName)
+        : isSet(object.has_receipt_name)
+        ? globalThis.Boolean(object.has_receipt_name)
+        : false,
+      receiptAddress: isSet(object.receiptAddress)
+        ? globalThis.String(object.receiptAddress)
+        : isSet(object.receipt_address)
+        ? globalThis.String(object.receipt_address)
+        : "",
+      hasReceiptAddress: isSet(object.hasReceiptAddress)
+        ? globalThis.Boolean(object.hasReceiptAddress)
+        : isSet(object.has_receipt_address)
+        ? globalThis.Boolean(object.has_receipt_address)
+        : false,
     };
   },
 
@@ -601,6 +673,18 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
     if (message.hasTimezone !== false) {
       obj.hasTimezone = message.hasTimezone;
     }
+    if (message.receiptName !== "") {
+      obj.receiptName = message.receiptName;
+    }
+    if (message.hasReceiptName !== false) {
+      obj.hasReceiptName = message.hasReceiptName;
+    }
+    if (message.receiptAddress !== "") {
+      obj.receiptAddress = message.receiptAddress;
+    }
+    if (message.hasReceiptAddress !== false) {
+      obj.hasReceiptAddress = message.hasReceiptAddress;
+    }
     return obj;
   },
 
@@ -618,6 +702,10 @@ export const OutletUpdateRequest: MessageFns<OutletUpdateRequest> = {
     message.hasIsActive = object.hasIsActive ?? false;
     message.timezone = object.timezone ?? "";
     message.hasTimezone = object.hasTimezone ?? false;
+    message.receiptName = object.receiptName ?? "";
+    message.hasReceiptName = object.hasReceiptName ?? false;
+    message.receiptAddress = object.receiptAddress ?? "";
+    message.hasReceiptAddress = object.hasReceiptAddress ?? false;
     return message;
   },
 };

@@ -31,6 +31,10 @@ message Outlet {
   bool is_active = 7;
   string created_at = 8;
   string updated_at = 9;
+  string receipt_name = 10;
+  bool has_receipt_name = 11;
+  string receipt_address = 12;
+  bool has_receipt_address = 13;
 }
 
 message Register {

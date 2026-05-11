@@ -65,10 +65,7 @@ impl<R: Runtime> ThermalPrinter<R> {
                 .mobile_plugin_handle
                 .run_mobile_plugin("testPrint", serde_json::json!({ "address": address }))
                 .map_err(|error| {
-                    log_printer_error(
-                        "bridge:test_printer:failed",
-                        Some(&error.to_string()),
-                    );
+                    log_printer_error("bridge:test_printer:failed", Some(&error.to_string()));
                     error.to_string()
                 });
         }
@@ -87,10 +84,7 @@ impl<R: Runtime> ThermalPrinter<R> {
                 .mobile_plugin_handle
                 .run_mobile_plugin("printReceipt", args)
                 .map_err(|error| {
-                    log_printer_error(
-                        "bridge:print_receipt:failed",
-                        Some(&error.to_string()),
-                    );
+                    log_printer_error("bridge:print_receipt:failed", Some(&error.to_string()));
                     error.to_string()
                 });
         }
@@ -109,10 +103,7 @@ impl<R: Runtime> ThermalPrinter<R> {
                 .mobile_plugin_handle
                 .run_mobile_plugin("requestBluetoothPermission", serde_json::json!({}))
                 .map_err(|error| {
-                    log_printer_error(
-                        "bridge:request_permission:failed",
-                        Some(&error.to_string()),
-                    );
+                    log_printer_error("bridge:request_permission:failed", Some(&error.to_string()));
                     error.to_string()
                 });
         }

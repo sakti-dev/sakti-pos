@@ -115,6 +115,13 @@ describe("outlets protobuf routes", () => {
         }),
       }),
     }));
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ name: "Warung" }]),
+        }),
+      }),
+    }));
 
     const now = new Date().toISOString();
     let insertCallCount = 0;
@@ -125,12 +132,14 @@ describe("outlets protobuf routes", () => {
           if (insertCallCount === 1) {
             return [
               {
-                address: null,
+                address: "Jl. Test",
                 createdAt: now,
                 id: "outlet-1",
                 isActive: true,
                 merchantId: "merchant-1",
                 name: "Test Outlet",
+                receiptAddress: "Jl. Test",
+                receiptName: "Warung",
                 timezone: "Asia/Jakarta",
                 updatedAt: now,
               },
@@ -156,8 +165,8 @@ describe("outlets protobuf routes", () => {
 
     const response = await makeProtoRequest("/api/outlets/create", {
       body: OutletCreateRequest.encode({
-        address: "",
-        hasAddress: false,
+        address: "Jl. Test",
+        hasAddress: true,
         merchantId: "merchant-1",
         name: "Test Outlet",
         timezone: "Asia/Jakarta",
@@ -170,6 +179,8 @@ describe("outlets protobuf routes", () => {
       new Uint8Array(await response.arrayBuffer())
     );
     expect(decoded.outlet?.name).toBe("Test Outlet");
+    expect(decoded.outlet?.receiptName).toBe("Warung");
+    expect(decoded.outlet?.receiptAddress).toBe("Jl. Test");
     expect(decoded.register?.name).toBe("Register 1");
   });
 
@@ -197,6 +208,8 @@ describe("outlets protobuf routes", () => {
               isActive: true,
               merchantId: "merchant-1",
               name: "Outlet 1",
+              receiptAddress: "Jl. Test",
+              receiptName: "Warung",
               timezone: "Asia/Jakarta",
               updatedAt: "2026-05-10T00:00:00.000Z",
             },
@@ -234,6 +247,8 @@ describe("outlets protobuf routes", () => {
                 address: "Jl. Lama",
                 isActive: true,
                 name: "Outlet Lama",
+                receiptAddress: "Jl. Lama",
+                receiptName: "Warung Lama",
                 timezone: "Asia/Jakarta",
               },
             ]),
@@ -259,6 +274,8 @@ describe("outlets protobuf routes", () => {
               isActive: false,
               merchantId: "merchant-1",
               name: "Outlet Baru",
+              receiptAddress: "Jl. Baru",
+              receiptName: "Warung Baru",
               timezone: "Asia/Jakarta",
               updatedAt: "2026-05-10T00:01:00.000Z",
             },
@@ -273,9 +290,13 @@ describe("outlets protobuf routes", () => {
         hasAddress: true,
         hasIsActive: true,
         hasName: true,
+        hasReceiptAddress: true,
+        hasReceiptName: true,
         id: "outlet-1",
         isActive: false,
         name: "Outlet Baru",
+        receiptAddress: "Jl. Baru",
+        receiptName: "Warung Baru",
         hasTimezone: true,
         timezone: "Asia/Jakarta",
       }).finish(),
@@ -288,5 +309,6 @@ describe("outlets protobuf routes", () => {
     );
     expect(decoded.outlet?.name).toBe("Outlet Baru");
     expect(decoded.outlet?.isActive).toBe(false);
+    expect(decoded.outlet?.receiptName).toBe("Warung Baru");
   });
 });

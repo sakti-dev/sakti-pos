@@ -14,37 +14,11 @@ use tauri::{command, AppHandle, State};
 use tokio::fs;
 
 use crate::db_utils;
+include!(concat!(env!("OUT_DIR"), "/drizzle_migrations.rs"));
 
 pub struct AppState {
     pub db_pool: SqlitePool,
 }
-
-const MIGRATIONS: &[(&str, &str)] = &[
-    (
-        "0001_medical_puppet_master",
-        include_str!("../../drizzle/0001_medical_puppet_master.sql"),
-    ),
-    (
-        "0002_peaceful_rhino",
-        include_str!("../../drizzle/0002_peaceful_rhino.sql"),
-    ),
-    (
-        "0003_stiff_colonel_america",
-        include_str!("../../drizzle/0003_stiff_colonel_america.sql"),
-    ),
-    (
-        "0004_happy_psylocke",
-        include_str!("../../drizzle/0004_happy_psylocke.sql"),
-    ),
-    (
-        "0005_lush_dark_beast",
-        include_str!("../../drizzle/0005_lush_dark_beast.sql"),
-    ),
-    (
-        "0007_open_zarda",
-        include_str!("../../drizzle/0007_open_zarda.sql"),
-    ),
-];
 
 #[derive(Debug, Deserialize)]
 pub struct SqlQuery {
@@ -93,7 +67,9 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
     .await
     .map_err(|e| format!("Failed to create migration tracking table: {}", e))?;
 
-    for (name, sql) in MIGRATIONS {
+    for migration in MIGRATIONS {
+        let name = migration.name;
+        let sql = migration.sql;
         let applied: bool = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM __drizzle_migrations WHERE hash = $1",
         )
