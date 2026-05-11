@@ -3,6 +3,8 @@ import dayjs from "dayjs";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index";
 
+type TransactionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export type SyncOperation = "insert" | "update" | "delete";
 export type SyncScopeType = "merchant" | "outlet";
 export type SyncOutboxRow = typeof syncOutbox.$inferSelect;
@@ -16,9 +18,11 @@ export interface LocalChangeInput {
 }
 
 export async function recordLocalChange(
-  input: LocalChangeInput
+  input: LocalChangeInput,
+  tx?: TransactionTx
 ): Promise<void> {
-  const [existing] = await db
+  const executor = tx ?? db;
+  const [existing] = await executor
     .select()
     .from(syncOutbox)
     .where(
@@ -37,7 +41,7 @@ export async function recordLocalChange(
   const changedAt = dayjs().toISOString();
 
   if (!nextOperation) {
-    await db
+    await executor
       .delete(syncOutbox)
       .where(
         and(
@@ -50,7 +54,7 @@ export async function recordLocalChange(
   }
 
   if (existing) {
-    await db
+    await executor
       .update(syncOutbox)
       .set({
         changedAt,
@@ -68,7 +72,7 @@ export async function recordLocalChange(
     return;
   }
 
-  await db.insert(syncOutbox).values({
+  await executor.insert(syncOutbox).values({
     changedAt,
     id: crypto.randomUUID(),
     operation: nextOperation,

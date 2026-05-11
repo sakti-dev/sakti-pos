@@ -131,6 +131,12 @@ describe("createOrder", () => {
         expect.objectContaining({
           sql: expect.stringContaining("INSERT INTO orders"),
         }),
+        expect.objectContaining({
+          sql: expect.stringContaining("INSERT INTO order_items"),
+        }),
+        expect.objectContaining({
+          sql: expect.stringContaining("INSERT INTO sync_outbox"),
+        }),
       ]),
     });
 
@@ -138,19 +144,5 @@ describe("createOrder", () => {
     const orderParams = statements?.statements?.[0]?.params;
     expect(orderParams?.[9]).toMatch(UTC_TIMESTAMP_PATTERN);
     expect(orderParams?.[10]).toBe(orderParams?.[9]);
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "insert",
-      rowId: expect.any(String),
-      scopeId: "outlet-1",
-      scopeType: "outlet",
-      tableName: "orders",
-    });
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "insert",
-      rowId: expect.any(String),
-      scopeId: "outlet-1",
-      scopeType: "outlet",
-      tableName: "order_items",
-    });
   });
 });

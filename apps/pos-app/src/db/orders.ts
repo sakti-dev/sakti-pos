@@ -108,27 +108,38 @@ export async function createOrder(data: {
     })
   );
 
-  await invoke<BatchResult>("run_sql_batch", {
-    statements: [insertOrder, ...itemStatements],
-  });
-
   const scopeId = outletId ?? "";
-  await recordLocalChange({
-    operation: "insert",
-    rowId: orderId,
-    scopeId,
-    scopeType: "outlet",
-    tableName: "orders",
+  const outboxChangedAt = createdAt;
+  const outboxStatements: SqlStatement[] = [
+    {
+      sql: "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_id, scope_type, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      params: [
+        crypto.randomUUID(),
+        "orders",
+        orderId,
+        "insert",
+        scopeId,
+        "outlet",
+        outboxChangedAt,
+      ],
+    },
+    ...orderItemsWithIds.map(({ id }) => ({
+      sql: "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_id, scope_type, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      params: [
+        crypto.randomUUID(),
+        "order_items",
+        id,
+        "insert",
+        scopeId,
+        "outlet",
+        outboxChangedAt,
+      ],
+    })),
+  ];
+
+  await invoke<BatchResult>("run_sql_batch", {
+    statements: [insertOrder, ...itemStatements, ...outboxStatements],
   });
-  for (const { id } of orderItemsWithIds) {
-    await recordLocalChange({
-      operation: "insert",
-      rowId: id,
-      scopeId,
-      scopeType: "outlet",
-      tableName: "order_items",
-    });
-  }
 
   return orderNumber;
 }

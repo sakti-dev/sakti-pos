@@ -3,7 +3,7 @@ import {
   RegisterPairRequest,
   RegisterPairResponse,
 } from "@repo/protobuf/registers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { recordSyncEvent } from "../lib/sync-events";
@@ -36,36 +36,52 @@ export const publicRegisterRoutes = new Elysia({ prefix: "/api/registers" })
       }
 
       const now = new Date().toISOString();
-      await db
-        .update(registers)
-        .set({
-          pairingCode: null,
-          pairingExpiresAt: null,
-          lastSeenAt: now,
-          updatedAt: now,
-        })
-        .where(eq(registers.id, register.id));
+      return await db.transaction(async (tx) => {
+        const [updatedRegister] = await tx
+          .update(registers)
+          .set({
+            pairingCode: null,
+            pairingExpiresAt: null,
+            lastSeenAt: now,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(registers.id, register.id),
+              eq(registers.pairingCode, request.pairingCode)
+            )
+          )
+          .returning();
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "update",
-        rowId: register.id,
-        scopeId: register.outletId,
-        scopeType: "outlet",
-        tableName: "registers",
+        if (!updatedRegister) {
+          set.status = 400;
+          return { error: "Pairing code expired" };
+        }
+
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "update",
+            rowId: updatedRegister.id,
+            scopeId: updatedRegister.outletId,
+            scopeType: "outlet",
+            tableName: "registers",
+          },
+          tx
+        );
+
+        const [outlet] = await tx
+          .select()
+          .from(outlets)
+          .where(eq(outlets.id, updatedRegister.outletId))
+          .limit(1);
+
+        return {
+          hasOutlet: !!outlet,
+          outlet: outlet ? encodeOutlet(outlet) : undefined,
+          register: encodeRegister(updatedRegister),
+        };
       });
-
-      const [outlet] = await db
-        .select()
-        .from(outlets)
-        .where(eq(outlets.id, register.outletId))
-        .limit(1);
-
-      return {
-        hasOutlet: !!outlet,
-        outlet: outlet ? encodeOutlet(outlet) : undefined,
-        register: encodeRegister(register),
-      };
     },
     {
       proto: {

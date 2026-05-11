@@ -8,14 +8,25 @@ import {
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
+type MockFn = ReturnType<typeof vi.fn>;
+interface MockDb {
+  delete: MockFn;
+  insert: typeof mockInsert;
+  select: typeof mockSelect;
+  transaction: (fn: (tx: MockDb) => Promise<unknown>) => Promise<unknown>;
+  update: MockFn;
+}
+
+const mockDb: MockDb = {
+  delete: vi.fn(),
+  insert: mockInsert,
+  select: mockSelect,
+  transaction: async (fn) => await fn(mockDb),
+  update: vi.fn(),
+};
 
 vi.mock("../../db", () => ({
-  db: {
-    insert: (...args: unknown[]) => mockInsert(...args),
-    select: (...args: unknown[]) => mockSelect(...args),
-    update: vi.fn(),
-    delete: vi.fn(),
-  },
+  db: mockDb,
 }));
 
 const mockValidateSession = vi.fn();

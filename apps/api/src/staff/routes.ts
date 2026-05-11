@@ -172,67 +172,90 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
         });
       }
 
-      const ownerRows = await db
-        .select({
-          createdAt: staff.createdAt,
-          id: staff.id,
-          merchantId: staff.merchantId,
-          outletId: staff.outletId,
-          name: staff.name,
-          role: staff.role,
-          isActive: staff.isActive,
-          updatedAt: staff.updatedAt,
-          pin: staff.pin,
-        })
-        .from(staff)
-        .where(
-          and(
-            eq(staff.merchantId, request.merchantId),
-            eq(staff.role, "owner"),
-            eq(staff.isActive, true),
-            isNull(staff.cloudUserId)
+      return await db.transaction(async (tx) => {
+        const ownerRows = await tx
+          .select({
+            createdAt: staff.createdAt,
+            id: staff.id,
+            merchantId: staff.merchantId,
+            outletId: staff.outletId,
+            name: staff.name,
+            role: staff.role,
+            isActive: staff.isActive,
+            updatedAt: staff.updatedAt,
+            pin: staff.pin,
+          })
+          .from(staff)
+          .where(
+            and(
+              eq(staff.merchantId, request.merchantId),
+              eq(staff.role, "owner"),
+              eq(staff.isActive, true),
+              isNull(staff.cloudUserId)
+            )
           )
-        )
-        .limit(2);
+          .limit(2);
 
-      if (ownerRows.length === 0) {
+        if (ownerRows.length === 0) {
+          return encodeCurrentStaffResponse({
+            claimed: false,
+            reason: "no-staff",
+            staff: null,
+          });
+        }
+
+        if (ownerRows.length > 1) {
+          return encodeCurrentStaffResponse({
+            claimed: false,
+            reason: "ambiguous-owner",
+            staff: null,
+          });
+        }
+
+        const now = new Date().toISOString();
+        const [claimedOwner] = await tx
+          .update(staff)
+          .set({
+            cloudUserId: session.userId,
+            updatedAt: now,
+          })
+          .where(and(eq(staff.id, ownerRows[0].id), isNull(staff.cloudUserId)))
+          .returning({
+            createdAt: staff.createdAt,
+            id: staff.id,
+            merchantId: staff.merchantId,
+            outletId: staff.outletId,
+            name: staff.name,
+            role: staff.role,
+            isActive: staff.isActive,
+            updatedAt: staff.updatedAt,
+            pin: staff.pin,
+          });
+
+        if (!claimedOwner) {
+          return encodeCurrentStaffResponse({
+            claimed: false,
+            reason: "no-staff",
+            staff: null,
+          });
+        }
+
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "update",
+            rowId: claimedOwner.id,
+            scopeId: request.merchantId,
+            scopeType: "merchant",
+            tableName: "staff",
+          },
+          tx
+        );
+
         return encodeCurrentStaffResponse({
-          claimed: false,
-          reason: "no-staff",
-          staff: null,
+          claimed: true,
+          staff: claimedOwner,
         });
-      }
-
-      if (ownerRows.length > 1) {
-        return encodeCurrentStaffResponse({
-          claimed: false,
-          reason: "ambiguous-owner",
-          staff: null,
-        });
-      }
-
-      const owner = ownerRows[0];
-      const now = new Date().toISOString();
-      await db
-        .update(staff)
-        .set({
-          cloudUserId: session.userId,
-          updatedAt: now,
-        })
-        .where(eq(staff.id, owner.id));
-
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "update",
-        rowId: owner.id,
-        scopeId: request.merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
-      });
-
-      return encodeCurrentStaffResponse({
-        claimed: true,
-        staff: owner,
       });
     },
     {
@@ -272,26 +295,33 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
       const pinHash = await hashPin(pin);
       const now = new Date().toISOString();
 
-      const [created] = await db
-        .insert(staff)
-        .values({
-          merchantId,
-          outletId: request.hasOutletId ? request.outletId : null,
-          name,
-          pin: pinHash,
-          role: requireRole(request.role),
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
+      const created = await db.transaction(async (tx) => {
+        const [result] = await tx
+          .insert(staff)
+          .values({
+            merchantId,
+            outletId: request.hasOutletId ? request.outletId : null,
+            name,
+            pin: pinHash,
+            role: requireRole(request.role),
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "insert",
-        rowId: created.id,
-        scopeId: merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "insert",
+            rowId: result.id,
+            scopeId: merchantId,
+            scopeType: "merchant",
+            tableName: "staff",
+          },
+          tx
+        );
+
+        return result;
       });
 
       return {
@@ -381,19 +411,26 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
 
       const pinHash = await hashPin(pin);
       const now = new Date().toISOString();
-      const [updated] = await db
-        .update(staff)
-        .set({ pin: pinHash, updatedAt: now })
-        .where(eq(staff.id, request.id))
-        .returning();
+      const updated = await db.transaction(async (tx) => {
+        const [result] = await tx
+          .update(staff)
+          .set({ pin: pinHash, updatedAt: now })
+          .where(eq(staff.id, request.id))
+          .returning();
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "update",
-        rowId: request.id,
-        scopeId: existing.merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "update",
+            rowId: request.id,
+            scopeId: existing.merchantId,
+            scopeType: "merchant",
+            tableName: "staff",
+          },
+          tx
+        );
+
+        return result;
       });
 
       return {
@@ -431,22 +468,27 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
       );
 
       const now = new Date().toISOString();
-      await db
-        .update(staff)
-        .set({
-          isActive: false,
-          deletedAt: now,
-          updatedAt: now,
-        })
-        .where(eq(staff.id, request.id));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(staff)
+          .set({
+            isActive: false,
+            deletedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(staff.id, request.id));
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "delete",
-        rowId: request.id,
-        scopeId: existing.merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "delete",
+            rowId: request.id,
+            scopeId: existing.merchantId,
+            scopeType: "merchant",
+            tableName: "staff",
+          },
+          tx
+        );
       });
 
       return {

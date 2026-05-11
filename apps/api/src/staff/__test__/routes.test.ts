@@ -15,13 +15,25 @@ import {
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
+type MockFn = ReturnType<typeof vi.fn>;
+interface MockDb {
+  delete: MockFn;
+  insert: typeof mockInsert;
+  select: typeof mockSelect;
+  transaction: (fn: (tx: MockDb) => Promise<unknown>) => Promise<unknown>;
+  update: typeof mockUpdate;
+}
+
+const mockDb: MockDb = {
+  delete: vi.fn(),
+  insert: mockInsert,
+  select: mockSelect,
+  transaction: async (fn) => await fn(mockDb),
+  update: mockUpdate,
+};
 
 vi.mock("../../db", () => ({
-  db: {
-    insert: (...args: unknown[]) => mockInsert(...args),
-    select: (...args: unknown[]) => mockSelect(...args),
-    update: (...args: unknown[]) => mockUpdate(...args),
-  },
+  db: mockDb,
 }));
 
 const mockValidateSession = vi.fn();
@@ -124,7 +136,21 @@ describe("staff protobuf routes", () => {
     ]);
 
     const updateValues = vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            createdAt: "2026-05-10T00:00:00.000Z",
+            id: "staff-1",
+            isActive: true,
+            merchantId: "merchant-1",
+            name: "Owner",
+            outletId: "outlet-1",
+            pin: "pin-hash",
+            role: "owner",
+            updatedAt: "2026-05-10T00:00:00.000Z",
+          },
+        ]),
+      }),
     });
     mockUpdate.mockReturnValue({
       set: updateValues,

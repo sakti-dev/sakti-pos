@@ -23,14 +23,27 @@ const mockFrom = vi.fn();
 const mockSelect = vi.fn(() => ({ from: mockFrom }));
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
 const mockRecordLocalChange = vi.fn();
+type MockFn = ReturnType<typeof vi.fn>;
+interface MockDb {
+  delete: MockFn;
+  insert: typeof mockInsert;
+  select: typeof mockSelect;
+  transaction: (fn: (tx: MockDb) => Promise<unknown>) => Promise<unknown>;
+  update: typeof mockUpdate;
+}
+
+const mockDb: MockDb = {
+  delete: mockDelete,
+  insert: mockInsert,
+  select: mockSelect,
+  transaction: async (fn) => await fn(mockDb),
+  update: mockUpdate,
+};
 
 vi.mock("../index", () => ({
-  db: {
-    select: mockSelect,
-    insert: mockInsert,
-    update: mockUpdate,
-  },
+  db: mockDb,
 }));
 
 vi.mock("../sync-outbox", () => ({
@@ -115,13 +128,16 @@ describe("staff db", () => {
       name: "Charlie",
       role: "cashier",
     });
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "insert",
-      rowId: "staff-3",
-      scopeId: "merchant-1",
-      scopeType: "merchant",
-      tableName: "staff",
-    });
+    expect(mockRecordLocalChange).toHaveBeenCalledWith(
+      {
+        operation: "insert",
+        rowId: "staff-3",
+        scopeId: "merchant-1",
+        scopeType: "merchant",
+        tableName: "staff",
+      },
+      expect.anything()
+    );
   });
 
   test("updateStaffMember updates and returns the staff", async () => {
@@ -144,13 +160,16 @@ describe("staff db", () => {
     expect(result).toEqual(updatedStaffMember);
     expect(mockSet).toHaveBeenCalled();
     expect(mockWhere).toHaveBeenCalled();
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "update",
-      rowId: "staff-1",
-      scopeId: "merchant-1",
-      scopeType: "merchant",
-      tableName: "staff",
-    });
+    expect(mockRecordLocalChange).toHaveBeenCalledWith(
+      {
+        operation: "update",
+        rowId: "staff-1",
+        scopeId: "merchant-1",
+        scopeType: "merchant",
+        tableName: "staff",
+      },
+      expect.anything()
+    );
   });
 
   test("countActiveManagers returns count from query", async () => {

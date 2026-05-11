@@ -92,26 +92,33 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
         Date.now() + 24 * 60 * 60 * 1000
       ).toISOString();
 
-      const [register] = await db
-        .insert(registers)
-        .values({
-          outletId,
-          name,
-          shortId: generateShortId(),
-          pairingCode,
-          pairingExpiresAt,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
+      const register = await db.transaction(async (tx) => {
+        const [result] = await tx
+          .insert(registers)
+          .values({
+            outletId,
+            name,
+            shortId: generateShortId(),
+            pairingCode,
+            pairingExpiresAt,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "insert",
-        rowId: register.id,
-        scopeId: outletId,
-        scopeType: "outlet",
-        tableName: "registers",
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "insert",
+            rowId: result.id,
+            scopeId: outletId,
+            scopeType: "outlet",
+            tableName: "registers",
+          },
+          tx
+        );
+
+        return result;
       });
 
       return {
@@ -171,18 +178,23 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
       );
 
       const now = new Date().toISOString();
-      await db
-        .update(registers)
-        .set({ isActive: false, updatedAt: now })
-        .where(eq(registers.id, request.id));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(registers)
+          .set({ isActive: false, updatedAt: now })
+          .where(eq(registers.id, request.id));
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "update",
-        rowId: request.id,
-        scopeId: register.outletId,
-        scopeType: "outlet",
-        tableName: "registers",
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "update",
+            rowId: request.id,
+            scopeId: register.outletId,
+            scopeType: "outlet",
+            tableName: "registers",
+          },
+          tx
+        );
       });
 
       return { success: true };

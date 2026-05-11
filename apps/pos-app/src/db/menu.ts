@@ -41,51 +41,66 @@ export async function getCategory(id: string): Promise<Category | undefined> {
 
 export async function createCategory(data: NewCategory): Promise<Category> {
   const merchantId = currentMerchantId() ?? "";
-  const [row] = await db
-    .insert(categories)
-    .values({ ...data, isSynced: false, merchantId })
-    .returning();
-  await recordLocalChange({
-    operation: "insert",
-    rowId: row.id,
-    scopeId: row.merchantId,
-    scopeType: "merchant",
-    tableName: "categories",
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(categories)
+      .values({ ...data, isSynced: false, merchantId })
+      .returning();
+    await recordLocalChange(
+      {
+        operation: "insert",
+        rowId: row.id,
+        scopeId: row.merchantId,
+        scopeType: "merchant",
+        tableName: "categories",
+      },
+      tx
+    );
+    return row;
   });
-  return row;
 }
 
 export async function updateCategory(
   id: string,
   data: Partial<Omit<NewCategory, "id">>
 ): Promise<Category> {
-  const [row] = await db
-    .update(categories)
-    .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
-    .where(eq(categories.id, id))
-    .returning();
-  await recordLocalChange({
-    operation: "update",
-    rowId: row.id,
-    scopeId: row.merchantId,
-    scopeType: "merchant",
-    tableName: "categories",
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(categories)
+      .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
+      .where(eq(categories.id, id))
+      .returning();
+    await recordLocalChange(
+      {
+        operation: "update",
+        rowId: row.id,
+        scopeId: row.merchantId,
+        scopeType: "merchant",
+        tableName: "categories",
+      },
+      tx
+    );
+    return row;
   });
-  return row;
 }
 
 export async function deleteCategory(id: string): Promise<void> {
   const now = dayjs().toISOString();
-  await db
-    .update(categories)
-    .set({ deletedAt: now, updatedAt: now, isSynced: false })
-    .where(eq(categories.id, id));
-  await recordLocalChange({
-    operation: "delete",
-    rowId: id,
-    scopeId: currentMerchantId() ?? "",
-    scopeType: "merchant",
-    tableName: "categories",
+  await db.transaction(async (tx) => {
+    await tx
+      .update(categories)
+      .set({ deletedAt: now, updatedAt: now, isSynced: false })
+      .where(eq(categories.id, id));
+    await recordLocalChange(
+      {
+        operation: "delete",
+        rowId: id,
+        scopeId: currentMerchantId() ?? "",
+        scopeType: "merchant",
+        tableName: "categories",
+      },
+      tx
+    );
   });
 }
 
@@ -144,51 +159,66 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 
 export async function createProduct(data: NewProduct): Promise<Product> {
   const merchantId = currentMerchantId() ?? "";
-  const [row] = await db
-    .insert(products)
-    .values({ ...data, isSynced: false, merchantId })
-    .returning();
-  await recordLocalChange({
-    operation: "insert",
-    rowId: row.id,
-    scopeId: row.merchantId,
-    scopeType: "merchant",
-    tableName: "products",
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(products)
+      .values({ ...data, isSynced: false, merchantId })
+      .returning();
+    await recordLocalChange(
+      {
+        operation: "insert",
+        rowId: row.id,
+        scopeId: row.merchantId,
+        scopeType: "merchant",
+        tableName: "products",
+      },
+      tx
+    );
+    return row;
   });
-  return row;
 }
 
 export async function updateProduct(
   id: string,
   data: Partial<Omit<NewProduct, "id">>
 ): Promise<Product> {
-  const [row] = await db
-    .update(products)
-    .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
-    .where(eq(products.id, id))
-    .returning();
-  await recordLocalChange({
-    operation: "update",
-    rowId: row.id,
-    scopeId: row.merchantId,
-    scopeType: "merchant",
-    tableName: "products",
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(products)
+      .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
+      .where(eq(products.id, id))
+      .returning();
+    await recordLocalChange(
+      {
+        operation: "update",
+        rowId: row.id,
+        scopeId: row.merchantId,
+        scopeType: "merchant",
+        tableName: "products",
+      },
+      tx
+    );
+    return row;
   });
-  return row;
 }
 
 export async function deleteProduct(id: string): Promise<void> {
   const now = dayjs().toISOString();
-  await db
-    .update(products)
-    .set({ deletedAt: now, updatedAt: now, isSynced: false })
-    .where(eq(products.id, id));
-  await recordLocalChange({
-    operation: "delete",
-    rowId: id,
-    scopeId: currentMerchantId() ?? "",
-    scopeType: "merchant",
-    tableName: "products",
+  await db.transaction(async (tx) => {
+    await tx
+      .update(products)
+      .set({ deletedAt: now, updatedAt: now, isSynced: false })
+      .where(eq(products.id, id));
+    await recordLocalChange(
+      {
+        operation: "delete",
+        rowId: id,
+        scopeId: currentMerchantId() ?? "",
+        scopeType: "merchant",
+        tableName: "products",
+      },
+      tx
+    );
   });
 }
 

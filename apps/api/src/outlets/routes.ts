@@ -67,44 +67,54 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
       );
 
       const now = new Date().toISOString();
-      const [outlet] = await db
-        .insert(outlets)
-        .values({
-          merchantId,
-          name,
-          address: request.hasAddress ? request.address : null,
-          timezone: request.timezone || "Asia/Jakarta",
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
+      const { outlet, register } = await db.transaction(async (tx) => {
+        const [createdOutlet] = await tx
+          .insert(outlets)
+          .values({
+            merchantId,
+            name,
+            address: request.hasAddress ? request.address : null,
+            timezone: request.timezone || "Asia/Jakarta",
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
 
-      const [register] = await db
-        .insert(registers)
-        .values({
-          outletId: outlet.id,
-          name: "Register 1",
-          shortId: generateShortId(),
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
+        const [createdRegister] = await tx
+          .insert(registers)
+          .values({
+            outletId: createdOutlet.id,
+            name: "Register 1",
+            shortId: generateShortId(),
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "insert",
-        rowId: outlet.id,
-        scopeId: merchantId,
-        scopeType: "merchant",
-        tableName: "outlets",
-      });
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "insert",
-        rowId: register.id,
-        scopeId: outlet.id,
-        scopeType: "outlet",
-        tableName: "registers",
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "insert",
+            rowId: createdOutlet.id,
+            scopeId: merchantId,
+            scopeType: "merchant",
+            tableName: "outlets",
+          },
+          tx
+        );
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "insert",
+            rowId: createdRegister.id,
+            scopeId: createdOutlet.id,
+            scopeType: "outlet",
+            tableName: "registers",
+          },
+          tx
+        );
+
+        return { outlet: createdOutlet, register: createdRegister };
       });
 
       return {
@@ -166,26 +176,42 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
       );
 
       const now = new Date().toISOString();
-      const [updated] = await db
-        .update(outlets)
-        .set({
-          address: request.hasAddress ? request.address : outlet.address,
-          isActive: request.hasIsActive ? request.isActive : outlet.isActive,
-          name: request.hasName ? request.name : outlet.name,
-          timezone: request.hasTimezone ? request.timezone : outlet.timezone,
-          updatedAt: now,
-        })
-        .where(eq(outlets.id, request.id))
-        .returning();
+      const updated = await db.transaction(async (tx) => {
+        const [result] = await tx
+          .update(outlets)
+          .set({
+            address: request.hasAddress ? request.address : outlet.address,
+            isActive: request.hasIsActive ? request.isActive : outlet.isActive,
+            name: request.hasName ? request.name : outlet.name,
+            timezone: request.hasTimezone ? request.timezone : outlet.timezone,
+            updatedAt: now,
+          })
+          .where(eq(outlets.id, request.id))
+          .returning();
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "update",
-        rowId: updated.id,
-        scopeId: updated.merchantId,
-        scopeType: "merchant",
-        tableName: "outlets",
+        if (!result) {
+          return;
+        }
+
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "update",
+            rowId: result.id,
+            scopeId: result.merchantId,
+            scopeType: "merchant",
+            tableName: "outlets",
+          },
+          tx
+        );
+
+        return result;
       });
+
+      if (!updated) {
+        set.status = 404;
+        return { error: "Outlet not found" };
+      }
 
       return {
         outlet: encodeOutlet(updated),

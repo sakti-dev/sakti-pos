@@ -36,29 +36,36 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
       }
 
       const now = new Date().toISOString();
-      const [merchant] = await db
-        .insert(merchants)
-        .values({
-          name,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
+      const merchant = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(merchants)
+          .values({
+            name,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
 
-      await db.insert(userMerchants).values({
-        joinedAt: now,
-        merchantId: merchant.id,
-        role: "owner",
-        userId: session.userId,
-      });
+        await tx.insert(userMerchants).values({
+          joinedAt: now,
+          merchantId: created.id,
+          role: "owner",
+          userId: session.userId,
+        });
 
-      await recordSyncEvent({
-        changedAt: now,
-        operation: "insert",
-        rowId: merchant.id,
-        scopeId: merchant.id,
-        scopeType: "merchant",
-        tableName: "merchants",
+        await recordSyncEvent(
+          {
+            changedAt: now,
+            operation: "insert",
+            rowId: created.id,
+            scopeId: created.id,
+            scopeType: "merchant",
+            tableName: "merchants",
+          },
+          tx
+        );
+
+        return created;
       });
 
       return {

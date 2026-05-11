@@ -29,14 +29,27 @@ const mockFrom = vi.fn();
 const mockSelect = vi.fn(() => ({ from: mockFrom }));
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
 const mockRecordLocalChange = vi.fn();
+type MockFn = ReturnType<typeof vi.fn>;
+interface MockDb {
+  delete: MockFn;
+  insert: typeof mockInsert;
+  select: typeof mockSelect;
+  transaction: (fn: (tx: MockDb) => Promise<unknown>) => Promise<unknown>;
+  update: typeof mockUpdate;
+}
+
+const mockDb: MockDb = {
+  delete: mockDelete,
+  insert: mockInsert,
+  select: mockSelect,
+  transaction: async (fn) => await fn(mockDb),
+  update: mockUpdate,
+};
 
 vi.mock("../index", () => ({
-  db: {
-    select: mockSelect,
-    insert: mockInsert,
-    update: mockUpdate,
-  },
+  db: mockDb,
 }));
 
 vi.mock("../sync-outbox", () => ({
@@ -114,13 +127,16 @@ describe("menu db", () => {
       name: "Dessert",
       merchantId: "",
     });
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "insert",
-      rowId: "category-1",
-      scopeId: "",
-      scopeType: "merchant",
-      tableName: "categories",
-    });
+    expect(mockRecordLocalChange).toHaveBeenCalledWith(
+      {
+        operation: "insert",
+        rowId: "category-1",
+        scopeId: "",
+        scopeType: "merchant",
+        tableName: "categories",
+      },
+      expect.anything()
+    );
   });
 
   test("deleteCategory calls update with tombstone fields", async () => {
@@ -140,13 +156,16 @@ describe("menu db", () => {
         isSynced: false,
       })
     );
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "delete",
-      rowId: "category-1",
-      scopeId: "",
-      scopeType: "merchant",
-      tableName: "categories",
-    });
+    expect(mockRecordLocalChange).toHaveBeenCalledWith(
+      {
+        operation: "delete",
+        rowId: "category-1",
+        scopeId: "",
+        scopeType: "merchant",
+        tableName: "categories",
+      },
+      expect.anything()
+    );
   });
 
   test("getProductCountByCategory returns count of products", async () => {
@@ -226,13 +245,16 @@ describe("menu db", () => {
       price: 15_000,
       merchantId: "",
     });
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "insert",
-      rowId: "product-1",
-      scopeId: "",
-      scopeType: "merchant",
-      tableName: "products",
-    });
+    expect(mockRecordLocalChange).toHaveBeenCalledWith(
+      {
+        operation: "insert",
+        rowId: "product-1",
+        scopeId: "",
+        scopeType: "merchant",
+        tableName: "products",
+      },
+      expect.anything()
+    );
   });
 
   test("deleteProduct calls update with tombstone fields", async () => {
@@ -252,12 +274,15 @@ describe("menu db", () => {
         isSynced: false,
       })
     );
-    expect(mockRecordLocalChange).toHaveBeenCalledWith({
-      operation: "delete",
-      rowId: "product-1",
-      scopeId: "",
-      scopeType: "merchant",
-      tableName: "products",
-    });
+    expect(mockRecordLocalChange).toHaveBeenCalledWith(
+      {
+        operation: "delete",
+        rowId: "product-1",
+        scopeId: "",
+        scopeType: "merchant",
+        tableName: "products",
+      },
+      expect.anything()
+    );
   });
 });

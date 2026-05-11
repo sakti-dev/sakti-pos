@@ -35,28 +35,39 @@ export async function updateOutletTimezone(
   timezone: string
 ): Promise<{ id: string; name: string; timezone: string } | undefined> {
   const now = dayjs().toISOString();
-  const [row] = await db
-    .update(outlets)
-    .set({ timezone, updatedAt: now, isSynced: false })
-    .where(eq(outlets.id, outletId))
-    .returning({
-      id: outlets.id,
-      merchantId: outlets.merchantId,
-      name: outlets.name,
-      timezone: outlets.timezone,
-    });
+  const row = await db.transaction(async (tx) => {
+    const [result] = await tx
+      .update(outlets)
+      .set({ timezone, updatedAt: now, isSynced: false })
+      .where(eq(outlets.id, outletId))
+      .returning({
+        id: outlets.id,
+        merchantId: outlets.merchantId,
+        name: outlets.name,
+        timezone: outlets.timezone,
+      });
+
+    if (!result) {
+      return;
+    }
+
+    await recordLocalChange(
+      {
+        operation: "update",
+        rowId: result.id,
+        scopeId: result.merchantId,
+        scopeType: "merchant",
+        tableName: "outlets",
+      },
+      tx
+    );
+
+    return result;
+  });
 
   if (!row) {
     return;
   }
-
-  await recordLocalChange({
-    operation: "update",
-    rowId: row.id,
-    scopeId: row.merchantId,
-    scopeType: "merchant",
-    tableName: "outlets",
-  });
 
   return {
     id: row.id,

@@ -50,34 +50,44 @@ export async function getStaffByCloudUserId(
 export async function createStaffMember(
   data: NewStaffMember
 ): Promise<StaffMember> {
-  const [row] = await db.insert(staff).values(data).returning();
-  await recordLocalChange({
-    operation: "insert",
-    rowId: row.id,
-    scopeId: row.merchantId,
-    scopeType: "merchant",
-    tableName: "staff",
+  return await db.transaction(async (tx) => {
+    const [row] = await tx.insert(staff).values(data).returning();
+    await recordLocalChange(
+      {
+        operation: "insert",
+        rowId: row.id,
+        scopeId: row.merchantId,
+        scopeType: "merchant",
+        tableName: "staff",
+      },
+      tx
+    );
+    return row;
   });
-  return row;
 }
 
 export async function updateStaffMember(
   id: string,
   data: Partial<Omit<NewStaffMember, "id">>
 ): Promise<StaffMember> {
-  const [row] = await db
-    .update(staff)
-    .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
-    .where(eq(staff.id, id))
-    .returning();
-  await recordLocalChange({
-    operation: "update",
-    rowId: row.id,
-    scopeId: row.merchantId,
-    scopeType: "merchant",
-    tableName: "staff",
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(staff)
+      .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
+      .where(eq(staff.id, id))
+      .returning();
+    await recordLocalChange(
+      {
+        operation: "update",
+        rowId: row.id,
+        scopeId: row.merchantId,
+        scopeType: "merchant",
+        tableName: "staff",
+      },
+      tx
+    );
+    return row;
   });
-  return row;
 }
 
 export async function countActiveManagers(): Promise<number> {
