@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button";
 import {
   Drawer,
   DrawerContent,
+  DrawerHeader,
   DrawerOverlay,
   DrawerPortal,
   DrawerTitle,
@@ -78,16 +79,13 @@ const CartDrawer: Component<CartPanelProps> = (props) => {
         >
           <DrawerPortal>
             <DrawerOverlay />
-            <DrawerContent class="max-h-[70vh] px-4">
-              <DrawerTitle>Keranjang</DrawerTitle>
-              <div class="flex-1 overflow-y-auto pb-2">
+            <DrawerContent class="max-h-[70vh]">
+              <DrawerHeader>
+                <DrawerTitle>Keranjang</DrawerTitle>
+              </DrawerHeader>
+              <div class="overflow-y-auto pb-2">
                 <For each={cartItems()}>
-                  {(item, i) => (
-                    <CartItemRow
-                      isLast={i() === cartItems().length - 1}
-                      item={item}
-                    />
-                  )}
+                  {(item) => <CartItemRow item={item} />}
                 </For>
               </div>
               <div class="border-t py-3">
@@ -116,13 +114,10 @@ const CartDrawer: Component<CartPanelProps> = (props) => {
 };
 
 function CartItemRow(props: {
-  isLast: boolean;
   item: typeof cartItems extends () => (infer T)[] ? T : never;
 }) {
   return (
-    <div
-      class={cn("flex items-center gap-3 py-3", !props.isLast && "border-b")}
-    >
+    <div class="flex items-center gap-3 border-b py-3 first:-pt-0 last:border-b-0">
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium text-sm">{props.item.product.name}</p>
         <p class="text-muted-foreground text-xs">

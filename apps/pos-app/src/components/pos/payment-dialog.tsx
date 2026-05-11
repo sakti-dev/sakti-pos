@@ -1,7 +1,12 @@
 import type { Component } from "solid-js";
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
-import { Drawer, DrawerContent, DrawerTitle } from "~/components/ui/drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "~/components/ui/drawer";
 import { cn, formatIDR } from "~/lib/utils";
 import { cartItems, cartTotal } from "~/store/cart";
 
@@ -105,7 +110,9 @@ const PaymentDrawer: Component<PaymentDialogProps> = (props) => {
         trapFocus={false}
       >
         <DrawerContent class="max-h-[80dvh] px-4">
-          <DrawerTitle class="landscape:py-1">Pembayaran</DrawerTitle>
+          <DrawerHeader>
+            <DrawerTitle class="landscape:py-1">Pembayaran</DrawerTitle>
+          </DrawerHeader>
           <div class="min-h-0 flex-1 overflow-y-auto">
             <div class="mt-2 space-y-1 border-y py-2 landscape:hidden">
               <For each={cartItems()}>

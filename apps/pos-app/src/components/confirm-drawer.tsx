@@ -5,11 +5,11 @@ import { Button } from "~/components/ui/button";
 import {
   Drawer,
   DrawerContent,
+  DrawerHeader,
   DrawerOverlay,
   DrawerPortal,
   DrawerTitle,
 } from "~/components/ui/drawer";
-import { cn } from "~/lib/utils";
 
 interface ConfirmDrawerProps {
   class?: string;
@@ -38,9 +38,11 @@ export const ConfirmDrawer: Component<ConfirmDrawerProps> = (props) => (
     >
       <DrawerPortal>
         <DrawerOverlay />
-        <DrawerContent class={cn("px-4 pb-6", props.class)}>
-          <DrawerTitle>{props.title}</DrawerTitle>
-          <p class="mt-3 mb-6 text-muted-foreground text-sm">{props.message}</p>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{props.title}</DrawerTitle>
+          </DrawerHeader>
+          <p class="mb-6 text-muted-foreground text-sm">{props.message}</p>
           <div class="flex gap-2">
             <Button class="flex-1" onClick={props.onClose} variant="outline">
               Batal

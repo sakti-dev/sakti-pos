@@ -67,7 +67,7 @@ const DrawerContent = <T extends ValidComponent = "div">(
       <DrawerOverlay />
       <DrawerPrimitive.Content
         class={cn(
-          "fixed inset-x-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-card after:absolute after:inset-x-0 after:top-full after:h-1/2 after:bg-inherit data-[transitioning]:transition-transform data-[transitioning]:duration-300 md:select-none",
+          "fixed inset-x-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-card p-4 pt-0 after:absolute after:inset-x-0 after:top-full after:h-1/2 after:bg-inherit data-[transitioning]:transition-transform data-[transitioning]:duration-300 md:select-none",
           props.class
         )}
         style={{
@@ -86,7 +86,7 @@ const DrawerHeader: Component<ComponentProps<"div">> = (props) => {
   const [, rest] = splitProps(props, ["class"]);
   return (
     <div
-      class={cn("grid gap-1.5 p-4 text-center sm:text-left", props.class)}
+      class={cn("grid gap-1.5 p-4 pt-2 text-center md:text-left", props.class)}
       {...rest}
     />
   );

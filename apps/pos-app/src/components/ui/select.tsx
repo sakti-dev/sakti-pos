@@ -4,6 +4,7 @@ import { createMemo, For, Show } from "solid-js";
 import {
   Drawer,
   DrawerContent,
+  DrawerHeader,
   DrawerOverlay,
   DrawerPortal,
   DrawerTitle,
@@ -64,7 +65,9 @@ export const Select: Component<SelectProps> = (props) => {
                 <Show when={props.label}>
                   {(label) => (
                     <div class="border-b px-4 py-3">
-                      <DrawerTitle>{label()}</DrawerTitle>
+                      <DrawerHeader>
+                        <DrawerTitle>{label()}</DrawerTitle>
+                      </DrawerHeader>
                     </div>
                   )}
                 </Show>
