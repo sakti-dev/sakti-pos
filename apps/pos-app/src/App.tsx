@@ -1,8 +1,10 @@
 import {
+  Navigate,
   Route,
   Router,
   type RouteSectionProps,
   useNavigate,
+  useParams,
 } from "@solidjs/router";
 import { createEffect, type JSX, Show } from "solid-js";
 import { currentUserRole, isAuthenticated } from "./store/auth";
@@ -20,6 +22,8 @@ import POS from "./pages/pos/pos-shell";
 import AccountSettings from "./pages/settings/account";
 import OutletSettings from "./pages/settings/outlet";
 import PrinterSettingsPage from "./pages/settings/printer";
+import CategoryForm from "./pages/settings/product-categories/category-form";
+import ProductForm from "./pages/settings/product-categories/product-form";
 import ProductsCategoriesSettings from "./pages/settings/product-categories/products-categories";
 import SettingsHome from "./pages/settings/settings-home";
 import ResetPin from "./pages/users/reset-pin";
@@ -52,6 +56,36 @@ function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
         {props.children}
       </Show>
     </Show>
+  );
+}
+
+function MenuRootRedirect() {
+  return <Navigate href="/settings/products-categories" />;
+}
+
+function MenuCategoryAddRedirect() {
+  return <Navigate href="/settings/products-categories/categories/add" />;
+}
+
+function MenuProductAddRedirect() {
+  return <Navigate href="/settings/products-categories/products/add" />;
+}
+
+function MenuCategoryEditRedirect() {
+  const params = useParams();
+  return (
+    <Navigate
+      href={`/settings/products-categories/categories/${params.id}/edit`}
+    />
+  );
+}
+
+function MenuProductEditRedirect() {
+  const params = useParams();
+  return (
+    <Navigate
+      href={`/settings/products-categories/products/${params.id}/edit`}
+    />
   );
 }
 
@@ -114,7 +148,36 @@ function App() {
           component={ProductsCategoriesSettings}
           path="/products-categories"
         />
+        <Route
+          component={CategoryForm}
+          path="/products-categories/categories/add"
+        />
+        <Route
+          component={CategoryForm}
+          path="/products-categories/categories/:id/edit"
+        />
+        <Route
+          component={ProductForm}
+          path="/products-categories/products/add"
+        />
+        <Route
+          component={ProductForm}
+          path="/products-categories/products/:id/edit"
+        />
       </Route>
+      <Route component={MenuRootRedirect} path="/menu" />
+      <Route component={MenuRootRedirect} path="/menu/categories" />
+      <Route component={MenuCategoryAddRedirect} path="/menu/categories/add" />
+      <Route component={MenuProductAddRedirect} path="/menu/products/add" />
+      <Route component={MenuRootRedirect} path="/menu/products" />
+      <Route
+        component={MenuCategoryEditRedirect}
+        path="/menu/categories/:id/edit"
+      />
+      <Route
+        component={MenuProductEditRedirect}
+        path="/menu/products/:id/edit"
+      />
     </Router>
   );
 }

@@ -90,7 +90,7 @@ export default function ProductForm() {
           merchantId: currentMerchantId() ?? "",
         });
       }
-      navigate("/menu/products", { replace: true });
+      navigate("/settings/products-categories", { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan produk");
     }
@@ -98,7 +98,9 @@ export default function ProductForm() {
 
   return (
     <>
-      <PageHeader backHref="/menu/products">{title()}</PageHeader>
+      <PageHeader backHref="/settings/products-categories">
+        {title()}
+      </PageHeader>
       <div class="flex flex-1 flex-col p-4">
         <Show when={error()}>
           <div

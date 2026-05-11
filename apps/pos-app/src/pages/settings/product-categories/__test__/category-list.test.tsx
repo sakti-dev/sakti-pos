@@ -156,7 +156,7 @@ describe("CategoryList", () => {
     expect(screen.getByText("+ Tambah")).toBeInTheDocument();
     expect(screen.getByTestId("link")).toHaveAttribute(
       "href",
-      "/menu/categories/add"
+      "/settings/products-categories/categories/add"
     );
   });
 });

@@ -61,7 +61,7 @@ export default function CategoryForm() {
           merchantId: currentMerchantId() ?? "",
         });
       }
-      navigate("/menu/categories", { replace: true });
+      navigate("/settings/products-categories", { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan kategori");
     }
@@ -69,7 +69,9 @@ export default function CategoryForm() {
 
   return (
     <>
-      <PageHeader backHref="/menu/categories">{title()}</PageHeader>
+      <PageHeader backHref="/settings/products-categories">
+        {title()}
+      </PageHeader>
       <div class="flex flex-1 flex-col p-4">
         <Show when={error()}>
           <div
