@@ -14,19 +14,14 @@ import CloudLogin from "./pages/login/cloud-login";
 import CloudRegister from "./pages/login/cloud-register";
 import DevicePair from "./pages/login/device-pair";
 import LocalAuth from "./pages/login/local-auth";
-import CategoryForm from "./pages/menu/category-form";
-import CategoryList from "./pages/menu/category-list";
-import MenuHome from "./pages/menu/menu-home";
-import ProductForm from "./pages/menu/product-form";
-import ProductList from "./pages/menu/product-list";
 import Onboarding from "./pages/onboarding";
 import OrderHistory from "./pages/order-history";
 import POS from "./pages/pos/pos-shell";
 import AccountSettings from "./pages/settings/account";
 import OutletSettings from "./pages/settings/outlet";
 import PrinterSettingsPage from "./pages/settings/printer";
-import ProductsCategoriesSettings from "./pages/settings/products-categories";
-import Settings from "./pages/settings/settings";
+import ProductsCategoriesSettings from "./pages/settings/product-categories/products-categories";
+import SettingsHome from "./pages/settings/settings-home";
 import ResetPin from "./pages/users/reset-pin";
 import UserForm from "./pages/users/user-form";
 import UserList from "./pages/users/user-list";
@@ -85,22 +80,6 @@ function App() {
         path="/pos"
       />
       <Route
-        component={(props: RouteSectionProps) => (
-          <RequireAuth roles={["manager", "owner"]}>
-            {props.children}
-          </RequireAuth>
-        )}
-        path="/menu"
-      >
-        <Route component={MenuHome} path="/" />
-        <Route component={CategoryList} path="/categories" />
-        <Route component={CategoryForm} path="/categories/add" />
-        <Route component={CategoryForm} path="/categories/:id/edit" />
-        <Route component={ProductList} path="/products" />
-        <Route component={ProductForm} path="/products/add" />
-        <Route component={ProductForm} path="/products/:id/edit" />
-      </Route>
-      <Route
         component={() => (
           <RequireAuth>
             <OrderHistory />
@@ -127,7 +106,7 @@ function App() {
         )}
         path="/settings"
       >
-        <Route component={Settings} path="/" />
+        <Route component={SettingsHome} path="/" />
         <Route component={AccountSettings} path="/account" />
         <Route component={OutletSettings} path="/outlet" />
         <Route component={PrinterSettingsPage} path="/printer" />

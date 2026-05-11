@@ -36,7 +36,7 @@ const CARD_ROUTES: Record<string, string> = {
   "Produk & Kategori": "/settings/products-categories",
 };
 
-export default function Settings() {
+export default function SettingsHome() {
   const settings = useSettings();
   const navigate = useNavigate();
 

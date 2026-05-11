@@ -195,8 +195,8 @@ vi.mock("solid-sonner", () => ({
 import AccountSettings from "../account";
 import OutletSettings from "../outlet";
 import PrinterSettingsPage from "../printer";
-import ProductsCategoriesSettings from "../products-categories";
-import Settings from "../settings";
+import ProductsCategoriesSettings from "../product-categories/products-categories";
+import SettingsHome from "../settings-home";
 import { formatSyncSuccessMessage } from "../use-settings";
 
 const user = userEvent.setup();
@@ -207,7 +207,7 @@ describe("Settings card launcher", () => {
   });
 
   test("shows cards for Akun, Outlet, Printer, Produk & Kategori", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
 
     expect(screen.getByText("Akun")).toBeInTheDocument();
@@ -217,7 +217,7 @@ describe("Settings card launcher", () => {
   });
 
   test("shows Aplikasi section with theme toggle", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
 
     expect(screen.getByText("Aplikasi")).toBeInTheDocument();
@@ -227,73 +227,73 @@ describe("Settings card launcher", () => {
   });
 
   test("calls setTheme when theme button is clicked", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     await user.click(screen.getByText("Gelap"));
     expect(mockSetTheme).toHaveBeenCalledWith("dark");
   });
 
   test("does not show inline Ubah PIN button on home page", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     expect(screen.queryByText("Ubah PIN")).not.toBeInTheDocument();
   });
 
   test("does not show inline Sinkron Sekarang button on home page", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     expect(screen.queryByText("Sinkron Sekarang")).not.toBeInTheDocument();
   });
 
   test("does not show account details block on home page", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     expect(screen.queryByText("Admin")).not.toBeInTheDocument();
   });
 
   test("shows version and DB info in Aplikasi section", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     expect(screen.getByText("0.1.0")).toBeInTheDocument();
     expect(screen.getByText("2.4 MB")).toBeInTheDocument();
   });
 
   test("does not show Lepaskan Perangkat when cloud is not connected", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     expect(screen.queryByText("Lepaskan Perangkat")).not.toBeInTheDocument();
   });
 
   test("navigates to account screen when Akun card is clicked", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     await user.click(screen.getByText("Akun"));
     expect(mockNavigate).toHaveBeenCalledWith("/settings/account");
   });
 
   test("navigates to outlet screen when Outlet card is clicked", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     await user.click(screen.getByText("Outlet"));
     expect(mockNavigate).toHaveBeenCalledWith("/settings/outlet");
   });
 
   test("navigates to printer screen when Printer card is clicked", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     await user.click(screen.getByText("Printer"));
     expect(mockNavigate).toHaveBeenCalledWith("/settings/printer");
   });
 
   test("navigates to products-categories screen when Produk & Kategori card is clicked", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     await user.click(screen.getByText("Produk & Kategori"));
     expect(mockNavigate).toHaveBeenCalledWith("/settings/products-categories");
   });
 
   test("does not show Cloud card", async () => {
-    render(() => <Settings />);
+    render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     expect(screen.queryByText("Cloud")).not.toBeInTheDocument();
   });

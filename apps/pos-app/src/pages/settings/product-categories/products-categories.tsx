@@ -1,8 +1,8 @@
 import { clsx } from "clsx";
 import { createSignal, Show } from "solid-js";
 import { PageHeader } from "~/components/ui/page-header";
-import CategoryList from "~/pages/menu/category-list";
-import ProductList from "~/pages/menu/product-list";
+import CategoryList from "~/pages/settings/product-categories/category-list";
+import ProductList from "~/pages/settings/product-categories/product-list";
 
 export default function ProductsCategoriesSettings() {
   const [activeTab, setActiveTab] = createSignal<"kategori" | "produk">(
