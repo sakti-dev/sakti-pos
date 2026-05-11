@@ -16,6 +16,7 @@ import {
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { PageHeader } from "~/components/ui/page-header";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
@@ -74,7 +75,11 @@ export default function CategoryList(
 
   return (
     <>
-      {!props?.hideHeader && <PageHeader backHref="/menu">Kategori</PageHeader>}
+      {!props?.hideHeader && (
+        <PageHeader backHref="/settings/products-categories">
+          Kategori
+        </PageHeader>
+      )}
       <div class="p-4">
         <Show when={error()}>
           {(msg) => (
@@ -95,7 +100,7 @@ export default function CategoryList(
               {categories()?.length ?? 0} kategori
             </p>
           </Suspense>
-          <A href="/menu/categories/add">
+          <A href="/settings/products-categories/categories/add">
             <Button size="sm">+ Tambah</Button>
           </A>
         </div>
@@ -105,12 +110,12 @@ export default function CategoryList(
             <div class="space-y-2">
               <For each={[1, 2, 3]}>
                 {() => (
-                  <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+                  <Card class="flex items-center gap-2" size="sm">
                     <Skeleton class="h-4 flex-1" />
                     <Skeleton class="h-6 w-14" />
                     <Skeleton class="size-9" />
                     <Skeleton class="size-9" />
-                  </div>
+                  </Card>
                 )}
               </For>
             </div>
@@ -135,7 +140,7 @@ export default function CategoryList(
               <div class="space-y-2">
                 <For each={categories()!}>
                   {(cat) => (
-                    <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+                    <Card class="flex items-center gap-2" size="sm">
                       <div class="min-w-0 flex-1">
                         <p class="truncate font-medium">{cat.name}</p>
                         <Show
@@ -166,7 +171,9 @@ export default function CategoryList(
                       <button
                         class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
                         onClick={() =>
-                          navigate(`/menu/categories/${cat.id}/edit`)
+                          navigate(
+                            `/settings/products-categories/categories/${cat.id}/edit`
+                          )
                         }
                         type="button"
                       >
@@ -179,7 +186,7 @@ export default function CategoryList(
                       >
                         <TbOutlineTrash class="size-4" />
                       </button>
-                    </div>
+                    </Card>
                   )}
                 </For>
               </div>

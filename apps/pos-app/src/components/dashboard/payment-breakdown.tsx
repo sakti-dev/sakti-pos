@@ -1,6 +1,7 @@
 import { Doughnut } from "solid-chartjs";
 import type { Component } from "solid-js";
 import { Match, Show, Switch } from "solid-js";
+import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { PaymentBreakdown } from "~/db/dashboard";
 import "~/lib/dashboard/chart-setup";
@@ -45,7 +46,7 @@ export const PaymentBreakdownChart: Component<PaymentBreakdownChartProps> = (
   };
 
   return (
-    <div class="rounded-xl border bg-card p-4">
+    <Card>
       <h3 class="mb-3 font-medium text-sm">Metode Pembayaran</h3>
       <Show
         fallback={
@@ -118,6 +119,6 @@ export const PaymentBreakdownChart: Component<PaymentBreakdownChartProps> = (
       >
         <Skeleton class="mx-auto h-48 w-48" />
       </Show>
-    </div>
+    </Card>
   );
 };

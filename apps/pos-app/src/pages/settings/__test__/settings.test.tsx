@@ -181,6 +181,9 @@ vi.mock("~/components/ui/drawer", () => ({
   DrawerContent: (props: { children: JSX.Element; class?: string }) => (
     <div data-testid="drawer-content">{props.children}</div>
   ),
+  DrawerHeader: (props: { children: JSX.Element }) => (
+    <div>{props.children}</div>
+  ),
   DrawerOverlay: () => <div data-testid="drawer-overlay" />,
   DrawerPortal: (props: { children: JSX.Element }) => <>{props.children}</>,
   DrawerTitle: (props: { children: JSX.Element }) => (

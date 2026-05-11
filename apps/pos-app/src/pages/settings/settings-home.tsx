@@ -2,6 +2,7 @@ import { useNavigate } from "@solidjs/router";
 import { For, Show } from "solid-js";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
+import { Card, cardVariants } from "~/components/ui/card";
 import { cn } from "~/lib/utils";
 import { useSettings } from "./use-settings";
 
@@ -46,7 +47,10 @@ export default function SettingsHome() {
         <For each={SETTING_CARDS}>
           {(card) => (
             <button
-              class="flex w-full items-center justify-between rounded-xl border bg-card p-4 text-left active:bg-accent"
+              class={cn(
+                cardVariants({ interactive: "clickable" }),
+                "flex w-full items-center justify-between text-left"
+              )}
               onClick={() => navigate(CARD_ROUTES[card.title])}
               type="button"
             >
@@ -60,7 +64,7 @@ export default function SettingsHome() {
 
         <section class="space-y-2">
           <h2 class="font-medium text-muted-foreground text-sm">Aplikasi</h2>
-          <div class="rounded-xl border bg-card">
+          <Card size="none">
             <div class="flex items-center justify-between border-b p-4">
               <span>Tema</span>
               <div class="flex overflow-hidden rounded-lg border">
@@ -118,7 +122,7 @@ export default function SettingsHome() {
                 <span class="text-destructive text-sm">Lepaskan Perangkat</span>
               </button>
             </Show>
-          </div>
+          </Card>
         </section>
       </div>
 

@@ -12,6 +12,7 @@ import {
 import { toast } from "solid-sonner";
 import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import {
   getOutletReceiptDefaults,
   saveOutletReceiptHeader,
@@ -249,7 +250,7 @@ export default function PrinterSettings() {
           <h2 class="font-medium text-muted-foreground text-sm">
             Header Struk
           </h2>
-          <div class="space-y-3 rounded-xl border bg-card p-4">
+          <Card class="space-y-3">
             <p class="text-muted-foreground text-sm">
               Biarkan kosong untuk mengikuti nama merchant dan alamat outlet.
             </p>
@@ -295,7 +296,7 @@ export default function PrinterSettings() {
                 Simpan Header Struk
               </Button>
             </Form>
-          </div>
+          </Card>
         </div>
       </Show>
 
@@ -315,7 +316,7 @@ export default function PrinterSettings() {
             <span>{refreshing() ? "Menyegarkan..." : "Segarkan"}</span>
           </Button>
         </div>
-        <div class="overflow-hidden rounded-xl border bg-card">
+        <Card class="overflow-hidden" size="none">
           <Show when={loading()}>
             <div class="p-4 text-muted-foreground text-sm">Memuat...</div>
           </Show>
@@ -387,7 +388,7 @@ export default function PrinterSettings() {
               </Button>
             </div>
           </Show>
-        </div>
+        </Card>
       </div>
     </section>
   );

@@ -1,5 +1,6 @@
 import type { Component } from "solid-js";
 import { Show } from "solid-js";
+import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { DashboardSummary } from "~/db/dashboard";
 import { formatIDR } from "~/lib/utils";
@@ -55,48 +56,48 @@ export const SalesSummaryCards: Component<SalesSummaryCardsProps> = (props) => {
       <Show
         fallback={
           <>
-            <div class="rounded-xl border bg-card p-3">
+            <Card size="sm">
               <Skeleton class="mb-1 h-3 w-20" />
               <Skeleton class="h-6 w-28" />
-            </div>
-            <div class="rounded-xl border bg-card p-3">
+            </Card>
+            <Card size="sm">
               <Skeleton class="mb-1 h-3 w-20" />
               <Skeleton class="h-6 w-16" />
-            </div>
-            <div class="rounded-xl border bg-card p-3">
+            </Card>
+            <Card size="sm">
               <Skeleton class="mb-1 h-3 w-24" />
               <Skeleton class="h-6 w-24" />
-            </div>
-            <div class="rounded-xl border bg-card p-3">
+            </Card>
+            <Card size="sm">
               <Skeleton class="mb-1 h-3 w-24" />
               <Skeleton class="h-6 w-16" />
-            </div>
+            </Card>
           </>
         }
         when={!props.loading}
       >
-        <div class="rounded-xl border bg-card p-3">
+        <Card size="sm">
           <p class="text-muted-foreground text-xs">Total Pendapatan</p>
           <p class="font-bold text-lg text-primary">
             {formatIDR(props.summary?.totalRevenue)}
           </p>
-        </div>
-        <div class="rounded-xl border bg-card p-3">
+        </Card>
+        <Card size="sm">
           <p class="text-muted-foreground text-xs">Jumlah Pesanan</p>
           <p class="font-bold text-lg">{props.summary?.orderCount ?? 0}</p>
-        </div>
-        <div class="rounded-xl border bg-card p-3">
+        </Card>
+        <Card size="sm">
           <p class="text-muted-foreground text-xs">Rata-rata/Pesanan</p>
           <p class="font-bold">{formatIDR(props.summary?.avgOrderValue)}</p>
-        </div>
-        <div class="rounded-xl border bg-card p-3">
+        </Card>
+        <Card size="sm">
           <p class="text-muted-foreground text-xs">vs Periode Lalu</p>
           <p
             class={`font-bold text-lg ${deltaColor(delta()?.type ?? "neutral")}`}
           >
             {delta()?.label ?? "-"}
           </p>
-        </div>
+        </Card>
       </Show>
     </div>
   );

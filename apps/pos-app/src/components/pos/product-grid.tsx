@@ -1,7 +1,8 @@
 import type { Component } from "solid-js";
 import { For, Show } from "solid-js";
+import { cardVariants } from "~/components/ui/card";
 import type { ProductWithCategory } from "~/db/orders";
-import { formatIDR } from "~/lib/utils";
+import { cn, formatIDR } from "~/lib/utils";
 import { addToCart } from "~/store/cart";
 
 interface ProductGridProps {
@@ -22,7 +23,10 @@ export const ProductGrid: Component<ProductGridProps> = (props) => (
       <For each={props.products}>
         {(product) => (
           <button
-            class="flex min-h-[96px] flex-col items-start justify-between rounded-2xl border bg-card p-4 text-left active:scale-[0.97] active:bg-accent/80"
+            class={cn(
+              cardVariants({ radius: "lg", interactive: "pressable" }),
+              "flex min-h-[96px] flex-col items-start justify-between text-left"
+            )}
             onClick={() => addToCart(product)}
             type="button"
           >

@@ -3,6 +3,7 @@ import "dayjs/locale/id";
 import { Bar } from "solid-chartjs";
 import type { Component } from "solid-js";
 import { createMemo, Match, Show, Switch } from "solid-js";
+import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import type {
   DailyRow,
@@ -125,7 +126,7 @@ export const RevenueChart: Component<RevenueChartProps> = (props) => {
   };
 
   return (
-    <div class="rounded-xl border bg-card p-4">
+    <Card>
       <h3 class="mb-3 font-medium text-sm">{title(props.type)}</h3>
       <Show
         fallback={
@@ -186,6 +187,6 @@ export const RevenueChart: Component<RevenueChartProps> = (props) => {
       >
         <Skeleton class="h-48 w-full" />
       </Show>
-    </div>
+    </Card>
   );
 };

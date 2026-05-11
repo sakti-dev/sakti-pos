@@ -17,6 +17,7 @@ import {
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select, type SelectOption } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -93,7 +94,7 @@ export default function ProductList(
   };
 
   const productCard = (product: Product) => (
-    <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+    <Card class="flex items-center gap-2" size="sm">
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium">{product.name}</p>
         <p class="text-muted-foreground text-xs">{formatIDR(product.price)}</p>
@@ -112,7 +113,9 @@ export default function ProductList(
       </button>
       <button
         class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
-        onClick={() => navigate(`/menu/products/${product.id}/edit`)}
+        onClick={() =>
+          navigate(`/settings/products-categories/products/${product.id}/edit`)
+        }
         type="button"
       >
         <TbOutlinePencil class="size-4" />
@@ -124,12 +127,14 @@ export default function ProductList(
       >
         <TbOutlineTrash class="size-4" />
       </button>
-    </div>
+    </Card>
   );
 
   return (
     <>
-      {!props?.hideHeader && <PageHeader backHref="/menu">Produk</PageHeader>}
+      {!props?.hideHeader && (
+        <PageHeader backHref="/settings/products-categories">Produk</PageHeader>
+      )}
       <div class="p-4">
         <Show when={error()}>
           {(msg) => (
@@ -155,7 +160,7 @@ export default function ProductList(
             placeholder="Semua Kategori"
             value={filterCategoryId() ?? ""}
           />
-          <A href="/menu/products/add">
+          <A href="/settings/products-categories/products/add">
             <Button size="sm">+ Tambah</Button>
           </A>
         </div>
@@ -165,7 +170,7 @@ export default function ProductList(
             <div class="space-y-2">
               <For each={[1, 2, 3]}>
                 {() => (
-                  <div class="flex items-center gap-2 rounded-xl border bg-card p-3">
+                  <Card class="flex items-center gap-2" size="sm">
                     <div class="flex-1 space-y-2">
                       <Skeleton class="h-4 w-32" />
                       <Skeleton class="h-3 w-20" />
@@ -173,7 +178,7 @@ export default function ProductList(
                     <Skeleton class="h-6 w-14" />
                     <Skeleton class="size-9" />
                     <Skeleton class="size-9" />
-                  </div>
+                  </Card>
                 )}
               </For>
             </div>

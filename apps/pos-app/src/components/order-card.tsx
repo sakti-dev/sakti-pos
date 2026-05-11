@@ -1,5 +1,6 @@
 import type { Component } from "solid-js";
 import { createSignal, For, Show } from "solid-js";
+import { Card } from "~/components/ui/card";
 import type { OrderItemRow, OrderRow } from "~/db/orders";
 import { formatInBusinessTimezone } from "~/lib/date-time";
 import { cn, formatIDR } from "~/lib/utils";
@@ -22,7 +23,7 @@ export const OrderCard: Component<OrderCardProps> = (props) => {
     );
 
   return (
-    <div class="rounded-xl border bg-card">
+    <Card size="none">
       <button
         class="flex w-full items-center gap-3 p-3 text-left active:bg-accent/80"
         onClick={() => setExpanded(!expanded())}
@@ -113,6 +114,6 @@ export const OrderCard: Component<OrderCardProps> = (props) => {
           </Show>
         </div>
       </Show>
-    </div>
+    </Card>
   );
 };

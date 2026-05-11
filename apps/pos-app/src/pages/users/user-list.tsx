@@ -1,8 +1,8 @@
 import { A, useNavigate } from "@solidjs/router";
 import { createResource, For, Show } from "solid-js";
-
 import { AppShell } from "~/components/layout";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { getStaff } from "~/db/staff";
 import { cn } from "~/lib/utils";
@@ -40,13 +40,13 @@ export default function UserList() {
                 <div class="space-y-2">
                   <For each={[1, 2, 3]}>
                     {() => (
-                      <div class="flex items-center gap-3 rounded-xl border bg-card p-3">
+                      <Card class="flex items-center gap-3" size="sm">
                         <Skeleton class="size-10 shrink-0 rounded-full" />
                         <div class="flex-1 space-y-2">
                           <Skeleton class="h-4 w-24" />
                           <Skeleton class="h-3 w-16" />
                         </div>
-                      </div>
+                      </Card>
                     )}
                   </For>
                 </div>
@@ -66,7 +66,7 @@ export default function UserList() {
           <div class="space-y-2">
             <For each={users()}>
               {(user) => (
-                <div class="flex items-center gap-3 rounded-xl border bg-card p-3">
+                <Card class="flex items-center gap-3" size="sm">
                   <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-lg text-primary-foreground">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
@@ -93,7 +93,7 @@ export default function UserList() {
                   >
                     ✏️
                   </button>
-                </div>
+                </Card>
               )}
             </For>
           </div>

@@ -1,6 +1,7 @@
 import { Bar } from "solid-chartjs";
 import type { Component } from "solid-js";
 import { createSignal, Match, Show, Switch } from "solid-js";
+import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { TopProductRow } from "~/db/dashboard";
 import { formatRupiahAxis } from "~/lib/dashboard/chart-setup";
@@ -48,7 +49,7 @@ export const TopProductsChart: Component<TopProductsChartProps> = (props) => {
   });
 
   return (
-    <div class="rounded-xl border bg-card p-4">
+    <Card>
       <div class="mb-3 flex items-center justify-between">
         <h3 class="font-medium text-sm">Produk Terlaris</h3>
         <div class="flex overflow-hidden rounded-md border border-input">
@@ -143,6 +144,6 @@ export const TopProductsChart: Component<TopProductsChartProps> = (props) => {
       >
         <Skeleton class="h-64 w-full" />
       </Show>
-    </div>
+    </Card>
   );
 };

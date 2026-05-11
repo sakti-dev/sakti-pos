@@ -67,6 +67,6 @@ describe("CategoryTabs", () => {
       />
     ));
     const button = screen.getByText("Minuman").closest("button");
-    expect(button).toHaveClass("border-primary");
+    expect(button).toHaveClass("border-primary/50");
   });
 });

@@ -1,6 +1,7 @@
 import { Bar } from "solid-chartjs";
 import type { Component } from "solid-js";
 import { Match, Show, Switch } from "solid-js";
+import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { CategoryRevenueRow } from "~/db/dashboard";
 import { formatRupiahAxis } from "~/lib/dashboard/chart-setup";
@@ -28,7 +29,7 @@ export const CategoryChart: Component<CategoryChartProps> = (props) => {
   });
 
   return (
-    <div class="rounded-xl border bg-card p-4">
+    <Card>
       <h3 class="mb-3 font-medium text-sm">Penjualan per Kategori</h3>
       <Show
         fallback={
@@ -84,6 +85,6 @@ export const CategoryChart: Component<CategoryChartProps> = (props) => {
       >
         <Skeleton class="h-48 w-full" />
       </Show>
-    </div>
+    </Card>
   );
 };

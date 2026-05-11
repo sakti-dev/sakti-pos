@@ -11,6 +11,7 @@ import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { DailySummaryBar } from "~/components/daily-summary";
 import { AppShell } from "~/components/layout";
 import { OrderCard } from "~/components/order-card";
+import { Card } from "~/components/ui/card";
 import { DatePicker } from "~/components/ui/date-picker";
 import { Select, type SelectOption } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -152,7 +153,7 @@ export default function OrderHistory() {
                 <div class="space-y-2">
                   <For each={[1, 2, 3]}>
                     {() => (
-                      <div class="rounded-xl border bg-card p-4">
+                      <Card>
                         <div class="flex items-center justify-between">
                           <Skeleton class="h-4 w-20" />
                           <Skeleton class="h-4 w-16" />
@@ -161,7 +162,7 @@ export default function OrderHistory() {
                           <Skeleton class="h-3 w-full" />
                           <Skeleton class="h-3 w-2/3" />
                         </div>
-                      </div>
+                      </Card>
                     )}
                   </For>
                 </div>

@@ -1,7 +1,9 @@
 import { useNavigate } from "@solidjs/router";
 import { createSignal, For, onMount, Show } from "solid-js";
+import { cardVariants } from "~/components/ui/card";
 import PinPad from "~/components/ui/pinpad";
 import { isCloudAuthenticated } from "~/lib/auth/cloud";
+import { cn } from "~/lib/utils";
 import {
   type AuthUser,
   getActiveStaff,
@@ -110,7 +112,10 @@ export default function LocalAuth() {
             <For each={users()}>
               {(u) => (
                 <button
-                  class="flex flex-col items-center gap-2 rounded-xl border bg-card p-4 transition-colors hover:border-primary"
+                  class={cn(
+                    cardVariants({ interactive: "selectable" }),
+                    "flex flex-col items-center gap-2"
+                  )}
                   onClick={() => setSelectedUser(u)}
                   type="button"
                 >

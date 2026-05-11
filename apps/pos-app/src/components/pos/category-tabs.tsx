@@ -1,6 +1,7 @@
 import { TbOutlinePencil } from "solid-icons/tb";
 import type { Component } from "solid-js";
 import { For } from "solid-js";
+import { cardVariants } from "~/components/ui/card";
 import { cn } from "~/lib/utils";
 
 interface CategoryTabsProps {
@@ -37,8 +38,13 @@ interface CategoryCardProps {
 const CategoryCard: Component<CategoryCardProps> = (props) => (
   <button
     class={cn(
-      "flex w-[100px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl p-3 transition-colors",
-      props.active ? "border border-primary bg-primary/10" : "border bg-card"
+      cardVariants({
+        size: "sm",
+        radius: "lg",
+        selected: props.active,
+        interactive: "clickable",
+      }),
+      "flex w-[100px] shrink-0 flex-col items-center justify-center gap-2"
     )}
     onClick={props.onClick}
     type="button"

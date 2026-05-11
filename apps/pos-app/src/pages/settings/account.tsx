@@ -1,9 +1,11 @@
 import { createResource, createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import {
   Drawer,
   DrawerContent,
+  DrawerHeader,
   DrawerOverlay,
   DrawerPortal,
   DrawerTitle,
@@ -57,7 +59,9 @@ function ChangePinDrawer(props: { onClose: () => void }) {
       <DrawerPortal>
         <DrawerOverlay />
         <DrawerContent class="px-4 pb-6">
-          <DrawerTitle>Ubah PIN</DrawerTitle>
+          <DrawerHeader>
+            <DrawerTitle>Ubah PIN</DrawerTitle>
+          </DrawerHeader>
           <div class="space-y-3 pt-2">
             <Show when={error()}>
               {(msg) => (
@@ -134,7 +138,7 @@ export default function AccountSettings() {
     <>
       <PageHeader backHref="/settings">Akun</PageHeader>
       <div class="space-y-4 p-4">
-        <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+        <Card class="flex items-center gap-3">
           <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-lg text-primary-foreground">
             {activeUserLabel}
           </div>
@@ -147,10 +151,10 @@ export default function AccountSettings() {
               )}
             </Show>
           </div>
-        </div>
+        </Card>
 
         <section class="space-y-2">
-          <div class="rounded-xl border bg-card">
+          <Card size="none">
             <button
               class="flex w-full items-center justify-between p-4 active:bg-accent"
               onClick={() => setShowPinDrawer(true)}
@@ -158,7 +162,7 @@ export default function AccountSettings() {
             >
               <span>Ubah PIN</span>
             </button>
-          </div>
+          </Card>
         </section>
       </div>
 

@@ -1,5 +1,6 @@
 import { Show } from "solid-js";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
 import { useSettings } from "~/pages/settings/use-settings";
@@ -25,7 +26,7 @@ export default function OutletSettings() {
             <h2 class="font-medium text-muted-foreground text-sm">
               Zona Waktu Outlet
             </h2>
-            <div class="rounded-xl border bg-card p-4">
+            <Card>
               <p class="mb-3 text-muted-foreground text-sm">
                 Dipakai untuk Hari Ini, Kemarin, nomor transaksi, dan waktu
                 struk.
@@ -50,7 +51,7 @@ export default function OutletSettings() {
                     : "Simpan Zona Waktu"}
                 </Button>
               </div>
-            </div>
+            </Card>
           </section>
         </Show>
       </div>

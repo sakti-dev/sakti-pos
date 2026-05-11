@@ -1,4 +1,5 @@
 import { createSignal, For, Show } from "solid-js";
+import { Card } from "~/components/ui/card";
 import { currentOutletId } from "~/store/outlet";
 
 interface OutletOption {
@@ -54,7 +55,10 @@ export default function OutletSelector(props: OutletSelectorProps) {
           </svg>
         </button>
         <Show when={open()}>
-          <div class="absolute top-full left-0 z-50 mt-1 min-w-[200px] rounded-xl border bg-card p-1 shadow-lg">
+          <Card
+            class="absolute top-full left-0 z-50 mt-1 min-w-[200px] p-1 shadow-lg"
+            size="none"
+          >
             <For each={props.outlets}>
               {(outlet) => (
                 <button
@@ -70,7 +74,7 @@ export default function OutletSelector(props: OutletSelectorProps) {
                 </button>
               )}
             </For>
-          </div>
+          </Card>
         </Show>
       </div>
     </Show>
