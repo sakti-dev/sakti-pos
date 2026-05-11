@@ -39,6 +39,10 @@ export interface Outlet {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  receiptName: string;
+  hasReceiptName: boolean;
+  receiptAddress: string;
+  hasReceiptAddress: boolean;
 }
 
 export interface Register {
@@ -388,6 +392,10 @@ function createBaseOutlet(): Outlet {
     isActive: false,
     createdAt: "",
     updatedAt: "",
+    receiptName: "",
+    hasReceiptName: false,
+    receiptAddress: "",
+    hasReceiptAddress: false,
   };
 }
 
@@ -419,6 +427,18 @@ export const Outlet: MessageFns<Outlet> = {
     }
     if (message.updatedAt !== "") {
       writer.uint32(74).string(message.updatedAt);
+    }
+    if (message.receiptName !== "") {
+      writer.uint32(82).string(message.receiptName);
+    }
+    if (message.hasReceiptName !== false) {
+      writer.uint32(88).bool(message.hasReceiptName);
+    }
+    if (message.receiptAddress !== "") {
+      writer.uint32(98).string(message.receiptAddress);
+    }
+    if (message.hasReceiptAddress !== false) {
+      writer.uint32(104).bool(message.hasReceiptAddress);
     }
     return writer;
   },
@@ -502,6 +522,38 @@ export const Outlet: MessageFns<Outlet> = {
           message.updatedAt = reader.string();
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.receiptName = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.hasReceiptName = reader.bool();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.receiptAddress = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.hasReceiptAddress = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -542,6 +594,26 @@ export const Outlet: MessageFns<Outlet> = {
         : isSet(object.updated_at)
         ? globalThis.String(object.updated_at)
         : "",
+      receiptName: isSet(object.receiptName)
+        ? globalThis.String(object.receiptName)
+        : isSet(object.receipt_name)
+        ? globalThis.String(object.receipt_name)
+        : "",
+      hasReceiptName: isSet(object.hasReceiptName)
+        ? globalThis.Boolean(object.hasReceiptName)
+        : isSet(object.has_receipt_name)
+        ? globalThis.Boolean(object.has_receipt_name)
+        : false,
+      receiptAddress: isSet(object.receiptAddress)
+        ? globalThis.String(object.receiptAddress)
+        : isSet(object.receipt_address)
+        ? globalThis.String(object.receipt_address)
+        : "",
+      hasReceiptAddress: isSet(object.hasReceiptAddress)
+        ? globalThis.Boolean(object.hasReceiptAddress)
+        : isSet(object.has_receipt_address)
+        ? globalThis.Boolean(object.has_receipt_address)
+        : false,
     };
   },
 
@@ -574,6 +646,18 @@ export const Outlet: MessageFns<Outlet> = {
     if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
+    if (message.receiptName !== "") {
+      obj.receiptName = message.receiptName;
+    }
+    if (message.hasReceiptName !== false) {
+      obj.hasReceiptName = message.hasReceiptName;
+    }
+    if (message.receiptAddress !== "") {
+      obj.receiptAddress = message.receiptAddress;
+    }
+    if (message.hasReceiptAddress !== false) {
+      obj.hasReceiptAddress = message.hasReceiptAddress;
+    }
     return obj;
   },
 
@@ -591,6 +675,10 @@ export const Outlet: MessageFns<Outlet> = {
     message.isActive = object.isActive ?? false;
     message.createdAt = object.createdAt ?? "";
     message.updatedAt = object.updatedAt ?? "";
+    message.receiptName = object.receiptName ?? "";
+    message.hasReceiptName = object.hasReceiptName ?? false;
+    message.receiptAddress = object.receiptAddress ?? "";
+    message.hasReceiptAddress = object.hasReceiptAddress ?? false;
     return message;
   },
 };

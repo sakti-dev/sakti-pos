@@ -96,10 +96,14 @@ describe("isCloudAuthenticated", () => {
         {
           address: "Jl. Merdeka",
           hasAddress: true,
+          hasReceiptAddress: true,
+          hasReceiptName: true,
           id: "outlet-1",
           isActive: true,
           merchantId: "merchant-1",
           name: "Main",
+          receiptAddress: "Jl. Merdeka",
+          receiptName: "Warung",
           timezone: "Asia/Makassar",
         },
       ],
@@ -115,6 +119,8 @@ describe("isCloudAuthenticated", () => {
         isActive: true,
         merchantId: "merchant-1",
         name: "Main",
+        receiptAddress: "Jl. Merdeka",
+        receiptName: "Warung",
         timezone: "Asia/Makassar",
       },
     ]);
@@ -127,10 +133,14 @@ describe("isCloudAuthenticated", () => {
         address: "",
         createdAt: "2026-05-10T00:00:00.000Z",
         hasAddress: false,
+        hasReceiptAddress: true,
+        hasReceiptName: true,
         id: "outlet-1",
         isActive: true,
         merchantId: "merchant-1",
         name: "Main",
+        receiptAddress: "Jl. Merdeka",
+        receiptName: "Warung",
         timezone: "Asia/Jakarta",
         updatedAt: "2026-05-10T00:00:00.000Z",
       },
@@ -148,5 +158,7 @@ describe("isCloudAuthenticated", () => {
       timezone: "Asia/Jakarta",
     });
     expect(outlet.timezone).toBe("Asia/Jakarta");
+    expect(outlet.receiptName).toBe("Warung");
+    expect(outlet.receiptAddress).toBe("Jl. Merdeka");
   });
 });

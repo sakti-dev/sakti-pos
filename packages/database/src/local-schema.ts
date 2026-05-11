@@ -24,6 +24,8 @@ export const outlets = sqliteTable("outlets", {
   timezone: text("timezone").notNull().default("Asia/Jakarta"),
   name: text("name").notNull(),
   address: text("address"),
+  receiptName: text("receipt_name"),
+  receiptAddress: text("receipt_address"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   deletedAt: text("deleted_at"),
   isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),

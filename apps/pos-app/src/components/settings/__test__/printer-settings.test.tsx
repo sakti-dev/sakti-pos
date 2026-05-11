@@ -8,6 +8,9 @@ const mockTestPrint = vi.fn();
 const mockSaveDefaultPrinter = vi.fn();
 const mockGetDefaultPrinter = vi.fn<() => string | null>(() => null);
 const mockRequestBluetoothPermission = vi.fn();
+const mockGetOutletReceiptDefaults = vi.fn();
+const mockSaveOutletReceiptHeader = vi.fn();
+const mockCurrentOutletId = vi.fn<() => string | null>(() => null);
 const mockLogger = vi.hoisted(() => {
   const info = vi.fn();
   const error = vi.fn();
@@ -32,6 +35,13 @@ vi.mock("~/lib/printer/client", () => ({
   saveDefaultPrinter: (...args: unknown[]) => mockSaveDefaultPrinter(...args),
   getDefaultPrinter: () => mockGetDefaultPrinter(),
   requestBluetoothPermission: () => mockRequestBluetoothPermission(),
+}));
+
+vi.mock("~/db/outlets", () => ({
+  getOutletReceiptDefaults: (...args: unknown[]) =>
+    mockGetOutletReceiptDefaults(...args),
+  saveOutletReceiptHeader: (...args: unknown[]) =>
+    mockSaveOutletReceiptHeader(...args),
 }));
 
 vi.mock("~/lib/logger", () => ({
@@ -63,6 +73,10 @@ vi.mock("solid-sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
+vi.mock("~/store/outlet", () => ({
+  currentOutletId: () => mockCurrentOutletId(),
+}));
+
 import PrinterSettings from "../printer-settings";
 
 const user = userEvent.setup();
@@ -71,6 +85,7 @@ describe("PrinterSettings", () => {
   afterEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockCurrentOutletId.mockReturnValue(null);
   });
 
   test("shows paired printers returned by listPairedPrinters", async () => {
@@ -299,5 +314,57 @@ describe("PrinterSettings", () => {
 
     render(() => <PrinterSettings />);
     await screen.findByText("Tidak ada printer ditemukan");
+  });
+
+  test("shows and saves outlet receipt header fields", async () => {
+    const { toast } = await import("solid-sonner");
+    mockCurrentOutletId.mockReturnValue("outlet-1");
+    mockGetOutletReceiptDefaults.mockResolvedValue({
+      merchantName: "Warung Satu",
+      effectiveAddress: "Jl. Merdeka 1",
+      effectiveName: "Warung Satu",
+      outletAddress: "Jl. Merdeka 1",
+      outletName: "Cabang Sudirman",
+    });
+    mockSaveOutletReceiptHeader.mockResolvedValue({
+      address: "Jl. Merdeka 1",
+      id: "outlet-1",
+      merchantId: "merchant-1",
+      name: "Cabang Sudirman",
+      receiptAddress: "Jl. Merdeka 1",
+      receiptName: "Warung Satu",
+      timezone: "Asia/Jakarta",
+    });
+    mockListPairedPrinters.mockResolvedValue([]);
+
+    render(() => <PrinterSettings />);
+
+    const receiptNameInput = await screen.findByLabelText(
+      "Nama merchant di struk"
+    );
+    const receiptAddressInput = await screen.findByLabelText("Alamat di struk");
+
+    expect(receiptNameInput).toHaveValue("Warung Satu");
+    expect(receiptAddressInput).toHaveValue("Jl. Merdeka 1");
+
+    await user.click(screen.getByText("Simpan Header Struk"));
+
+    expect(mockSaveOutletReceiptHeader).toHaveBeenCalledWith(
+      "outlet-1",
+      "Warung Satu",
+      "Jl. Merdeka 1"
+    );
+    expect(toast.success).toHaveBeenCalledWith("Header struk disimpan");
+  });
+
+  test("disables save button when receipt header fields are empty", async () => {
+    mockCurrentOutletId.mockReturnValue("outlet-1");
+    mockGetOutletReceiptDefaults.mockResolvedValue(null);
+    mockListPairedPrinters.mockResolvedValue([]);
+
+    render(() => <PrinterSettings />);
+
+    const saveButton = await screen.findByText("Simpan Header Struk");
+    expect(saveButton.closest("button")).toBeDisabled();
   });
 });

@@ -1,16 +1,18 @@
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const mockNavigate = vi.fn();
-const mockLogout = vi.fn();
 const mockSetTheme = vi.fn();
-const mockChangeCurrentUserPin = vi.fn();
-const mockUpdateOutletTimezone = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
+  A: (props: { children: JSX.Element; href: string }) => (
+    <a data-testid="link" href={props.href}>
+      {props.children}
+    </a>
+  ),
   useNavigate: () => mockNavigate,
   useParams: () => ({}),
 }));
@@ -24,9 +26,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("~/store/auth", () => ({
   currentUser: vi.fn(() => ({ id: 1, name: "Admin", role: "owner" })),
   currentUserRole: vi.fn(() => "owner"),
-  logout: (...args: unknown[]) => mockLogout(...args),
-  changeCurrentUserPin: (...args: unknown[]) =>
-    mockChangeCurrentUserPin(...args),
+  logout: vi.fn(),
+  changeCurrentUserPin: vi.fn(),
 }));
 
 vi.mock("~/store/outlet", () => ({
@@ -49,8 +50,7 @@ vi.mock("~/db/outlets", () => ({
       timezone: "Asia/Jakarta",
     })
   ),
-  updateOutletTimezone: (...args: unknown[]) =>
-    mockUpdateOutletTimezone(...args),
+  updateOutletTimezone: vi.fn(),
 }));
 
 vi.mock("~/lib/auth/cloud", () => ({
@@ -116,6 +116,58 @@ vi.mock("~/components/ui/button", () => ({
   ),
 }));
 
+vi.mock("~/components/ui/page-header", () => ({
+  PageHeader: (props: { children: JSX.Element; backHref?: string }) => (
+    <div>
+      <a href={props.backHref}>Back</a>
+      <h1>{props.children}</h1>
+    </div>
+  ),
+}));
+
+vi.mock("~/components/settings/printer-settings", () => ({
+  default: () => <div data-testid="printer-settings" />,
+}));
+
+vi.mock("~/db/menu", () => ({
+  getCategories: vi.fn(() => Promise.resolve([])),
+  getProducts: vi.fn(() => Promise.resolve([])),
+  deleteCategory: vi.fn(),
+  deleteProduct: vi.fn(),
+  updateCategory: vi.fn(),
+  updateProduct: vi.fn(),
+  getProductCountByCategory: vi.fn(() => Promise.resolve(0)),
+}));
+
+vi.mock("~/components/ui/skeleton", () => ({
+  Skeleton: () => <div />,
+}));
+
+vi.mock("~/lib/utils", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  formatIDR: (n: number) => `Rp ${n}`,
+}));
+
+vi.mock("~/components/ui/select", () => ({
+  Select: (props: {
+    label: string;
+    onChange: (value: unknown) => void;
+    options: { label: string; value: string }[];
+    value: string;
+  }) => (
+    <select
+      aria-label={props.label}
+      data-testid="select"
+      onChange={(e) => props.onChange(e.currentTarget.value)}
+      value={props.value}
+    >
+      <For each={props.options}>
+        {(o) => <option value={o.value}>{o.label}</option>}
+      </For>
+    </select>
+  ),
+}));
+
 vi.mock("~/components/ui/drawer", () => ({
   Drawer: (props: {
     children: JSX.Element;
@@ -140,26 +192,35 @@ vi.mock("solid-sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
+import AccountSettings from "../account";
+import OutletSettings from "../outlet";
+import PrinterSettingsPage from "../printer";
+import ProductsCategoriesSettings from "../products-categories";
 import Settings from "../settings";
 import { formatSyncSuccessMessage } from "../use-settings";
 
 const user = userEvent.setup();
 
-describe("Settings", () => {
+describe("Settings card launcher", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  test("renders user profile with name and role", async () => {
+  test("shows cards for Akun, Outlet, Printer, Produk & Kategori", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
-    expect(screen.getByText("Admin")).toBeInTheDocument();
-    expect(screen.getByText("owner")).toBeInTheDocument();
+
+    expect(screen.getByText("Akun")).toBeInTheDocument();
+    expect(screen.getByText("Outlet")).toBeInTheDocument();
+    expect(screen.getByText("Printer")).toBeInTheDocument();
+    expect(screen.getByText("Produk & Kategori")).toBeInTheDocument();
   });
 
-  test("shows theme toggle buttons", async () => {
+  test("shows Aplikasi section with theme toggle", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
+
+    expect(screen.getByText("Aplikasi")).toBeInTheDocument();
     expect(screen.getByText("Terang")).toBeInTheDocument();
     expect(screen.getByText("Sistem")).toBeInTheDocument();
     expect(screen.getByText("Gelap")).toBeInTheDocument();
@@ -172,43 +233,69 @@ describe("Settings", () => {
     expect(mockSetTheme).toHaveBeenCalledWith("dark");
   });
 
-  test("shows 'Keluar' logout button", async () => {
+  test("does not show inline Ubah PIN button on home page", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
-    expect(screen.getByText("Keluar")).toBeInTheDocument();
+    expect(screen.queryByText("Ubah PIN")).not.toBeInTheDocument();
   });
 
-  test("opens logout confirm drawer", async () => {
+  test("does not show inline Sinkron Sekarang button on home page", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
-    await user.click(screen.getByText("Keluar"));
-    expect(screen.getByTestId("confirm-drawer")).toBeInTheDocument();
+    expect(screen.queryByText("Sinkron Sekarang")).not.toBeInTheDocument();
   });
 
-  test("opens change PIN drawer when 'Ubah PIN' is clicked", async () => {
+  test("does not show account details block on home page", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
-    await user.click(screen.getByText("Ubah PIN"));
-    expect(screen.getByTestId("drawer-title")).toHaveTextContent("Ubah PIN");
+    expect(screen.queryByText("Admin")).not.toBeInTheDocument();
   });
 
-  test("shows DB info size", async () => {
-    render(() => <Settings />);
-    await screen.findByText("Pengaturan");
-    expect(screen.getByText("2.4 MB")).toBeInTheDocument();
-  });
-
-  test("shows version info", async () => {
+  test("shows version and DB info in Aplikasi section", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
     expect(screen.getByText("0.1.0")).toBeInTheDocument();
+    expect(screen.getByText("2.4 MB")).toBeInTheDocument();
   });
 
-  test("shows outlet timezone selector", async () => {
+  test("does not show Lepaskan Perangkat when cloud is not connected", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
-    expect(screen.getByText("Zona Waktu Outlet")).toBeInTheDocument();
-    expect(screen.getByText("Simpan Zona Waktu")).toBeInTheDocument();
+    expect(screen.queryByText("Lepaskan Perangkat")).not.toBeInTheDocument();
+  });
+
+  test("navigates to account screen when Akun card is clicked", async () => {
+    render(() => <Settings />);
+    await screen.findByText("Pengaturan");
+    await user.click(screen.getByText("Akun"));
+    expect(mockNavigate).toHaveBeenCalledWith("/settings/account");
+  });
+
+  test("navigates to outlet screen when Outlet card is clicked", async () => {
+    render(() => <Settings />);
+    await screen.findByText("Pengaturan");
+    await user.click(screen.getByText("Outlet"));
+    expect(mockNavigate).toHaveBeenCalledWith("/settings/outlet");
+  });
+
+  test("navigates to printer screen when Printer card is clicked", async () => {
+    render(() => <Settings />);
+    await screen.findByText("Pengaturan");
+    await user.click(screen.getByText("Printer"));
+    expect(mockNavigate).toHaveBeenCalledWith("/settings/printer");
+  });
+
+  test("navigates to products-categories screen when Produk & Kategori card is clicked", async () => {
+    render(() => <Settings />);
+    await screen.findByText("Pengaturan");
+    await user.click(screen.getByText("Produk & Kategori"));
+    expect(mockNavigate).toHaveBeenCalledWith("/settings/products-categories");
+  });
+
+  test("does not show Cloud card", async () => {
+    render(() => <Settings />);
+    await screen.findByText("Pengaturan");
+    expect(screen.queryByText("Cloud")).not.toBeInTheDocument();
   });
 });
 
@@ -265,5 +352,70 @@ describe("formatSyncSuccessMessage", () => {
     ).toBe(
       "Sinkronisasi berhasil (4 diterima, 2 tabel dikirim, 1 dibersihkan)"
     );
+  });
+});
+
+describe("Account settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows user name, role, and Ubah PIN", async () => {
+    render(() => <AccountSettings />);
+    await screen.findByText("Akun");
+    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getByText("owner")).toBeInTheDocument();
+    expect(screen.getByText("Ubah PIN")).toBeInTheDocument();
+  });
+
+  test("shows cloud email when connected", async () => {
+    render(() => <AccountSettings />);
+    await screen.findByText("Akun");
+    expect(screen.getByText("owner")).toBeInTheDocument();
+  });
+
+  test("opens PIN drawer when Ubah PIN is clicked", async () => {
+    render(() => <AccountSettings />);
+    await screen.findByText("Akun");
+    await user.click(screen.getByText("Ubah PIN"));
+    expect(screen.getByTestId("drawer-title")).toHaveTextContent("Ubah PIN");
+  });
+});
+
+describe("Outlet settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows outlet timezone selector", async () => {
+    render(() => <OutletSettings />);
+    await screen.findByText("Outlet");
+    expect(screen.getByText("Zona Waktu Outlet")).toBeInTheDocument();
+    expect(screen.getByText("Simpan Zona Waktu")).toBeInTheDocument();
+  });
+});
+
+describe("Printer settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows printer settings component", async () => {
+    render(() => <PrinterSettingsPage />);
+    await screen.findByText("Printer");
+    expect(screen.getByTestId("printer-settings")).toBeInTheDocument();
+  });
+});
+
+describe("Products & Categories settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows Kategori and Produk tabs", async () => {
+    render(() => <ProductsCategoriesSettings />);
+    await screen.findByText("Produk & Kategori");
+    expect(screen.getByText("Kategori")).toBeInTheDocument();
+    expect(screen.getByText("Produk")).toBeInTheDocument();
   });
 });

@@ -84,11 +84,24 @@ vi.mock("~/store/cart", () => ({
 
 const mockPrintReceipt = vi.fn();
 const mockGetDefaultPrinter = vi.fn<() => string | null>(() => null);
+const mockGetOutletReceiptHeader = vi.fn();
+const mockCurrentOutletId = vi.fn<() => string | null>(() => null);
 const UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 vi.mock("~/lib/printer/client", () => ({
   printReceipt: (...args: unknown[]) => mockPrintReceipt(...args),
   getDefaultPrinter: () => mockGetDefaultPrinter(),
+}));
+
+vi.mock("~/db/outlets", () => ({
+  getAllOutlets: vi.fn(() => Promise.resolve([])),
+  getOutletReceiptHeader: (...args: unknown[]) =>
+    mockGetOutletReceiptHeader(...args),
+}));
+
+vi.mock("~/store/outlet", () => ({
+  currentOutletId: () => mockCurrentOutletId(),
+  currentOutletTimezone: () => "Asia/Jakarta",
 }));
 
 vi.mock("~/store/responsive", () => ({
@@ -248,6 +261,7 @@ describe("POS page", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    mockCurrentOutletId.mockReturnValue(null);
   });
 
   test("renders title 'Kasir'", async () => {
@@ -339,6 +353,11 @@ describe("POS page", () => {
     ]);
     vi.mocked(cartTotal).mockReturnValue(30_000);
     mockGetDefaultPrinter.mockReturnValue("00:11:22:33:44:55");
+    mockCurrentOutletId.mockReturnValue("outlet-1");
+    mockGetOutletReceiptHeader.mockResolvedValue({
+      address: "Jl. Merdeka No. 123",
+      name: "Warung Satu",
+    });
 
     render(() => <POS />);
     await screen.findByText("Kasir");
@@ -355,6 +374,11 @@ describe("POS page", () => {
             quantity: 2,
           }),
         ]),
+        business: expect.objectContaining({
+          address: "Jl. Merdeka No. 123",
+          name: "Warung Satu",
+          timezone: "Asia/Jakarta",
+        }),
         order: expect.objectContaining({
           orderNumber: "2026-05-04-001",
           cashierName: "Kasir",
@@ -389,6 +413,11 @@ describe("POS page", () => {
     ]);
     vi.mocked(cartTotal).mockReturnValue(15_000);
     mockGetDefaultPrinter.mockReturnValue("00:11:22:33:44:55");
+    mockCurrentOutletId.mockReturnValue("outlet-1");
+    mockGetOutletReceiptHeader.mockResolvedValue({
+      address: "Jl. Merdeka No. 123",
+      name: "Warung Satu",
+    });
 
     render(() => <POS />);
     await screen.findByText("Kasir");
@@ -404,6 +433,10 @@ describe("POS page", () => {
     expect(mockPrintReceipt).toHaveBeenCalledWith(
       "00:11:22:33:44:55",
       expect.objectContaining({
+        business: expect.objectContaining({
+          address: "Jl. Merdeka No. 123",
+          name: "Warung Satu",
+        }),
         order: expect.objectContaining({
           orderNumber: "2026-05-04-001",
         }),

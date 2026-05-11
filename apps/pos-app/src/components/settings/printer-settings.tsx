@@ -1,7 +1,21 @@
+import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { TbOutlinePrinter, TbOutlineRefresh } from "solid-icons/tb";
-import { createSignal, For, onMount, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  onMount,
+  Show,
+} from "solid-js";
 import { toast } from "solid-sonner";
+import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
+import {
+  getOutletReceiptDefaults,
+  saveOutletReceiptHeader,
+} from "~/db/outlets";
 import { createLogger } from "~/lib/logger";
 import {
   getDefaultPrinter,
@@ -11,6 +25,8 @@ import {
   type ThermalPrinterInfo,
   testPrint,
 } from "~/lib/printer/client";
+import { PrinterSettingsSchema } from "~/lib/schema/printer-settings-form";
+import { currentOutletId } from "~/store/outlet";
 
 const settingsPrinterLogger = createLogger({
   module: "settings",
@@ -54,6 +70,41 @@ export default function PrinterSettings() {
   const [savedAddress, setSavedAddress] = createSignal(
     getDefaultPrinter() ?? null
   );
+  const receiptForm = createForm({
+    schema: PrinterSettingsSchema,
+    initialInput: {
+      receiptAddress: "",
+      receiptName: "",
+    },
+  });
+  const canSaveReceiptHeader = createMemo(() => {
+    const input = getInput(receiptForm);
+    return !!input?.receiptName?.trim() || !!input?.receiptAddress?.trim();
+  });
+  const [receiptDefaults, { refetch: refetchReceiptDefaults }] = createResource(
+    currentOutletId,
+    async (outletId) => {
+      if (!outletId) {
+        return null;
+      }
+
+      return await getOutletReceiptDefaults(outletId);
+    }
+  );
+
+  createEffect(() => {
+    const defaults = receiptDefaults();
+    if (!defaults) {
+      return;
+    }
+
+    reset(receiptForm, {
+      initialInput: {
+        receiptAddress: defaults.effectiveAddress ?? "",
+        receiptName: defaults.effectiveName,
+      },
+    });
+  });
 
   const loadPrinters = async (options?: { notify?: boolean }) => {
     setLoading(true);
@@ -161,93 +212,182 @@ export default function PrinterSettings() {
     }
   };
 
+  const handleSaveReceiptHeader = async () => {
+    const outletId = currentOutletId();
+    if (!outletId) {
+      return;
+    }
+
+    const input = getInput(receiptForm);
+    if (!input) {
+      return;
+    }
+
+    try {
+      const updated = await saveOutletReceiptHeader(
+        outletId,
+        input.receiptName?.trim() || null,
+        input.receiptAddress?.trim() || null
+      );
+      if (!updated) {
+        toast.error("Gagal menyimpan header struk");
+        return;
+      }
+
+      toast.success("Header struk disimpan");
+      await refetchReceiptDefaults();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Gagal menyimpan header");
+      settingsPrinterLogger.error("receipt_header:failed", e, { outletId });
+    }
+  };
+
   return (
-    <section class="space-y-2">
-      <div class="flex items-center justify-between gap-2">
-        <h2 class="font-medium text-muted-foreground text-sm">Printer</h2>
-        <Button
-          disabled={loading() || refreshing()}
-          onClick={handleRefreshPrinters}
-          size="sm"
-          variant="outline"
-        >
-          <TbOutlineRefresh
-            class="size-4"
-            classList={{ "animate-spin": refreshing() }}
-          />
-          <span>{refreshing() ? "Menyegarkan..." : "Segarkan"}</span>
-        </Button>
-      </div>
-      <div class="overflow-hidden rounded-xl border bg-card">
-        <Show when={loading()}>
-          <div class="p-4 text-muted-foreground text-sm">Memuat...</div>
-        </Show>
-
-        <Show when={error()}>
-          {(msg) => <div class="p-4 text-destructive text-sm">{msg()}</div>}
-        </Show>
-
-        <Show when={needsPermission() && !loading()}>
-          <div class="space-y-2 p-4">
+    <section class="space-y-4">
+      <Show when={currentOutletId()}>
+        <div class="space-y-2">
+          <h2 class="font-medium text-muted-foreground text-sm">
+            Header Struk
+          </h2>
+          <div class="space-y-3 rounded-xl border bg-card p-4">
             <p class="text-muted-foreground text-sm">
-              Izin Bluetooth diperlukan untuk mencari printer
+              Biarkan kosong untuk mengikuti nama merchant dan alamat outlet.
             </p>
-            <Button class="w-full" onClick={handleGrantPermission} size="sm">
-              Berikan Izin Bluetooth
-            </Button>
-          </div>
-        </Show>
+            <Form of={receiptForm} onSubmit={handleSaveReceiptHeader}>
+              <Field of={receiptForm} path={["receiptName"]}>
+                {(field) => (
+                  <FormTextField
+                    {...field.props}
+                    errors={field.errors}
+                    input={field.input}
+                    label="Nama merchant di struk"
+                    placeholder={
+                      receiptDefaults()?.merchantName ?? "Nama merchant"
+                    }
+                    type="text"
+                  />
+                )}
+              </Field>
 
-        <Show
-          when={
-            printers().length === 0 &&
-            !loading() &&
-            !error() &&
-            !needsPermission()
-          }
-        >
-          <div class="p-4 text-muted-foreground text-sm">
-            Tidak ada printer ditemukan
-          </div>
-        </Show>
+              <Field of={receiptForm} path={["receiptAddress"]}>
+                {(field) => (
+                  <FormTextField
+                    {...field.props}
+                    errors={field.errors}
+                    input={field.input}
+                    label="Alamat di struk"
+                    placeholder={
+                      receiptDefaults()?.outletAddress ?? "Alamat outlet"
+                    }
+                    type="text"
+                  />
+                )}
+              </Field>
 
-        <For each={printers()}>
-          {(printer) => (
-            <button
-              class="flex w-full items-center justify-between border-b p-4 last:border-b-0 active:bg-accent"
-              classList={{
-                "bg-accent/50": savedAddress() === printer.address,
-              }}
-              onClick={() => handleSelectPrinter(printer.address)}
-              type="button"
-            >
-              <div class="flex items-center gap-3">
-                <TbOutlinePrinter class="size-5 shrink-0 text-muted-foreground" />
-                <div class="min-w-0">
-                  <p class="truncate font-medium text-sm">{printer.name}</p>
-                  <p class="text-muted-foreground text-xs">{printer.address}</p>
+              <Button
+                class="w-full"
+                disabled={!canSaveReceiptHeader()}
+                onClick={handleSaveReceiptHeader}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                Simpan Header Struk
+              </Button>
+            </Form>
+          </div>
+        </div>
+      </Show>
+
+      <div class="space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="font-medium text-muted-foreground text-sm">Printer</h2>
+          <Button
+            disabled={loading() || refreshing()}
+            onClick={handleRefreshPrinters}
+            size="sm"
+            variant="outline"
+          >
+            <TbOutlineRefresh
+              class="size-4"
+              classList={{ "animate-spin": refreshing() }}
+            />
+            <span>{refreshing() ? "Menyegarkan..." : "Segarkan"}</span>
+          </Button>
+        </div>
+        <div class="overflow-hidden rounded-xl border bg-card">
+          <Show when={loading()}>
+            <div class="p-4 text-muted-foreground text-sm">Memuat...</div>
+          </Show>
+
+          <Show when={error()}>
+            {(msg) => <div class="p-4 text-destructive text-sm">{msg()}</div>}
+          </Show>
+
+          <Show when={needsPermission() && !loading()}>
+            <div class="space-y-2 p-4">
+              <p class="text-muted-foreground text-sm">
+                Izin Bluetooth diperlukan untuk mencari printer
+              </p>
+              <Button class="w-full" onClick={handleGrantPermission} size="sm">
+                Berikan Izin Bluetooth
+              </Button>
+            </div>
+          </Show>
+
+          <Show
+            when={
+              printers().length === 0 &&
+              !loading() &&
+              !error() &&
+              !needsPermission()
+            }
+          >
+            <div class="p-4 text-muted-foreground text-sm">
+              Tidak ada printer ditemukan
+            </div>
+          </Show>
+
+          <For each={printers()}>
+            {(printer) => (
+              <button
+                class="flex w-full items-center justify-between border-b p-4 last:border-b-0 active:bg-accent"
+                classList={{
+                  "bg-accent/50": savedAddress() === printer.address,
+                }}
+                onClick={() => handleSelectPrinter(printer.address)}
+                type="button"
+              >
+                <div class="flex items-center gap-3">
+                  <TbOutlinePrinter class="size-5 shrink-0 text-muted-foreground" />
+                  <div class="min-w-0">
+                    <p class="truncate font-medium text-sm">{printer.name}</p>
+                    <p class="text-muted-foreground text-xs">
+                      {printer.address}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <Show when={savedAddress() === printer.address}>
-                <span class="text-primary text-xs">Printer tersimpan</span>
-              </Show>
-            </button>
-          )}
-        </For>
+                <Show when={savedAddress() === printer.address}>
+                  <span class="text-primary text-xs">Printer tersimpan</span>
+                </Show>
+              </button>
+            )}
+          </For>
 
-        <Show when={savedAddress()}>
-          <div class="border-t p-4">
-            <Button
-              class="w-full"
-              disabled={testing()}
-              onClick={handleTestPrint}
-              size="sm"
-              variant="outline"
-            >
-              {testing() ? "Mencetak..." : "Cetak Test"}
-            </Button>
-          </div>
-        </Show>
+          <Show when={savedAddress()}>
+            <div class="border-t p-4">
+              <Button
+                class="w-full"
+                disabled={testing()}
+                onClick={handleTestPrint}
+                size="sm"
+                variant="outline"
+              >
+                {testing() ? "Mencetak..." : "Cetak Test"}
+              </Button>
+            </div>
+          </Show>
+        </div>
       </div>
     </section>
   );

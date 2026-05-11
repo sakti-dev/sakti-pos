@@ -1,4 +1,9 @@
-import { outlets, registers, userMerchants } from "@repo/database/api-schema";
+import {
+  merchants,
+  outlets,
+  registers,
+  userMerchants,
+} from "@repo/database/api-schema";
 import {
   OutletCreateRequest,
   OutletCreateResponse,
@@ -66,6 +71,12 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
         new ForbiddenRequestError()
       );
 
+      const [merchant] = await db
+        .select({ name: merchants.name })
+        .from(merchants)
+        .where(eq(merchants.id, merchantId))
+        .limit(1);
+
       const now = new Date().toISOString();
       const { outlet, register } = await db.transaction(async (tx) => {
         const [createdOutlet] = await tx
@@ -74,6 +85,8 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
             merchantId,
             name,
             address: request.hasAddress ? request.address : null,
+            receiptAddress: request.hasAddress ? request.address : null,
+            receiptName: merchant?.name ?? name,
             timezone: request.timezone || "Asia/Jakarta",
             createdAt: now,
             updatedAt: now,
@@ -183,6 +196,12 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
             address: request.hasAddress ? request.address : outlet.address,
             isActive: request.hasIsActive ? request.isActive : outlet.isActive,
             name: request.hasName ? request.name : outlet.name,
+            receiptAddress: request.hasReceiptAddress
+              ? request.receiptAddress
+              : outlet.receiptAddress,
+            receiptName: request.hasReceiptName
+              ? request.receiptName
+              : outlet.receiptName,
             timezone: request.hasTimezone ? request.timezone : outlet.timezone,
             updatedAt: now,
           })

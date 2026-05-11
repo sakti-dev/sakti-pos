@@ -5,14 +5,14 @@ import {
   getActiveProductsByCategory,
   type ProductWithCategory,
 } from "~/db/orders";
-import { getAllOutlets } from "~/db/outlets";
+import { getAllOutlets, getOutletReceiptHeader } from "~/db/outlets";
 import { formatUtcTimestamp } from "~/lib/date-time";
 import { createLogger } from "~/lib/logger";
 import { getDefaultPrinter, printReceipt } from "~/lib/printer/client";
 import type { ReceiptData } from "~/lib/receipt/types";
 import { currentUser, currentUserRole } from "~/store/auth";
 import { cartItems, cartTotal, clearCart } from "~/store/cart";
-import { currentOutletTimezone } from "~/store/outlet";
+import { currentOutletId, currentOutletTimezone } from "~/store/outlet";
 import { useIsPhone } from "~/store/responsive";
 import { getCategoryNames, getVisibleProducts } from "./pos-utils";
 
@@ -101,7 +101,17 @@ export function usePos(): PosState {
 
       setPaymentOpen(false);
 
+      const outletId = currentOutletId();
+      const receiptHeader = outletId
+        ? await getOutletReceiptHeader(outletId)
+        : { address: null, name: "SAKTI POS" };
+
       const receiptData: ReceiptData = {
+        business: {
+          address: receiptHeader.address ?? undefined,
+          name: receiptHeader.name || "SAKTI POS",
+          timezone: outletTimezone(),
+        },
         items: items.map((item) => ({
           name: item.product.name,
           quantity: item.quantity,
@@ -119,10 +129,6 @@ export function usePos(): PosState {
           method: data.paymentMethod,
         },
         totals: { total },
-        business: {
-          name: "SAKTI POS",
-          timezone: outletTimezone(),
-        },
       };
 
       clearCart();

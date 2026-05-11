@@ -1,4 +1,9 @@
-import { Route, Router, useNavigate } from "@solidjs/router";
+import {
+  Route,
+  Router,
+  type RouteSectionProps,
+  useNavigate,
+} from "@solidjs/router";
 import { createEffect, type JSX, Show } from "solid-js";
 import { currentUserRole, isAuthenticated } from "./store/auth";
 import { isDevicePaired } from "./store/outlet";
@@ -17,6 +22,10 @@ import ProductList from "./pages/menu/product-list";
 import Onboarding from "./pages/onboarding";
 import OrderHistory from "./pages/order-history";
 import POS from "./pages/pos/pos-shell";
+import AccountSettings from "./pages/settings/account";
+import OutletSettings from "./pages/settings/outlet";
+import PrinterSettingsPage from "./pages/settings/printer";
+import ProductsCategoriesSettings from "./pages/settings/products-categories";
 import Settings from "./pages/settings/settings";
 import ResetPin from "./pages/users/reset-pin";
 import UserForm from "./pages/users/user-form";
@@ -76,7 +85,7 @@ function App() {
         path="/pos"
       />
       <Route
-        component={(props) => (
+        component={(props: RouteSectionProps) => (
           <RequireAuth roles={["manager", "owner"]}>
             {props.children}
           </RequireAuth>
@@ -113,13 +122,20 @@ function App() {
         <Route component={ResetPin} path="/:id/reset-pin" />
       </Route>
       <Route
-        component={() => (
-          <RequireAuth>
-            <Settings />
-          </RequireAuth>
+        component={(props: RouteSectionProps) => (
+          <RequireAuth>{props.children}</RequireAuth>
         )}
         path="/settings"
-      />
+      >
+        <Route component={Settings} path="/" />
+        <Route component={AccountSettings} path="/account" />
+        <Route component={OutletSettings} path="/outlet" />
+        <Route component={PrinterSettingsPage} path="/printer" />
+        <Route
+          component={ProductsCategoriesSettings}
+          path="/products-categories"
+        />
+      </Route>
     </Router>
   );
 }
