@@ -29,7 +29,7 @@ import {
 } from "~/db/menu";
 import { cn, formatIDR } from "~/lib/utils";
 
-export default function ProductList() {
+export default function ProductList(props?: { hideHeader?: boolean }) {
   const navigate = useNavigate();
   const [categories] = createResource(getCategories);
   const [filterCategoryId, setFilterCategoryId] = createSignal<
@@ -127,7 +127,7 @@ export default function ProductList() {
 
   return (
     <>
-      <PageHeader backHref="/menu">Produk</PageHeader>
+      {!props?.hideHeader && <PageHeader backHref="/menu">Produk</PageHeader>}
       <div class="p-4">
         <Show when={error()}>
           {(msg) => (

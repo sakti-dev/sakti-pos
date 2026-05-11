@@ -8,6 +8,11 @@ const mockNavigate = vi.fn();
 const mockSetTheme = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
+  A: (props: { children: JSX.Element; href: string }) => (
+    <a data-testid="link" href={props.href}>
+      {props.children}
+    </a>
+  ),
   useNavigate: () => mockNavigate,
   useParams: () => ({}),
 }));
@@ -122,6 +127,25 @@ vi.mock("~/components/ui/page-header", () => ({
 
 vi.mock("~/components/settings/printer-settings", () => ({
   default: () => <div data-testid="printer-settings" />,
+}));
+
+vi.mock("~/db/menu", () => ({
+  getCategories: vi.fn(() => Promise.resolve([])),
+  getProducts: vi.fn(() => Promise.resolve([])),
+  deleteCategory: vi.fn(),
+  deleteProduct: vi.fn(),
+  updateCategory: vi.fn(),
+  updateProduct: vi.fn(),
+  getProductCountByCategory: vi.fn(() => Promise.resolve(0)),
+}));
+
+vi.mock("~/components/ui/skeleton", () => ({
+  Skeleton: () => <div />,
+}));
+
+vi.mock("~/lib/utils", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  formatIDR: (n: number) => `Rp ${n}`,
 }));
 
 vi.mock("~/components/ui/select", () => ({

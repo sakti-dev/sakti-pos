@@ -27,7 +27,7 @@ import {
 } from "~/db/menu";
 import { cn } from "~/lib/utils";
 
-export default function CategoryList() {
+export default function CategoryList(props?: { hideHeader?: boolean }) {
   const navigate = useNavigate();
   const [categories, { refetch }] = createResource(getCategories);
   const [deleteTarget, setDeleteTarget] = createSignal<Category | undefined>();
@@ -72,7 +72,7 @@ export default function CategoryList() {
 
   return (
     <>
-      <PageHeader backHref="/menu">Kategori</PageHeader>
+      {!props?.hideHeader && <PageHeader backHref="/menu">Kategori</PageHeader>}
       <div class="p-4">
         <Show when={error()}>
           {(msg) => (
