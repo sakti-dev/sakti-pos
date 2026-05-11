@@ -1,7 +1,7 @@
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const mockNavigate = vi.fn();
@@ -111,10 +111,68 @@ vi.mock("~/components/ui/button", () => ({
   ),
 }));
 
+vi.mock("~/components/ui/page-header", () => ({
+  PageHeader: (props: { children: JSX.Element; backHref?: string }) => (
+    <div>
+      <a href={props.backHref}>Back</a>
+      <h1>{props.children}</h1>
+    </div>
+  ),
+}));
+
+vi.mock("~/components/settings/printer-settings", () => ({
+  default: () => <div data-testid="printer-settings" />,
+}));
+
+vi.mock("~/components/ui/select", () => ({
+  Select: (props: {
+    label: string;
+    onChange: (value: unknown) => void;
+    options: { label: string; value: string }[];
+    value: string;
+  }) => (
+    <select
+      aria-label={props.label}
+      data-testid="select"
+      onChange={(e) => props.onChange(e.currentTarget.value)}
+      value={props.value}
+    >
+      <For each={props.options}>
+        {(o) => <option value={o.value}>{o.label}</option>}
+      </For>
+    </select>
+  ),
+}));
+
+vi.mock("~/components/ui/drawer", () => ({
+  Drawer: (props: {
+    children: JSX.Element;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) => (
+    <Show when={props.open}>
+      <div data-testid="drawer">{props.children}</div>
+    </Show>
+  ),
+  DrawerContent: (props: { children: JSX.Element; class?: string }) => (
+    <div data-testid="drawer-content">{props.children}</div>
+  ),
+  DrawerOverlay: () => <div data-testid="drawer-overlay" />,
+  DrawerPortal: (props: { children: JSX.Element }) => <>{props.children}</>,
+  DrawerTitle: (props: { children: JSX.Element }) => (
+    <h2 data-testid="drawer-title">{props.children}</h2>
+  ),
+}));
+
 vi.mock("solid-sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
+import AccountSettings from "../account";
+import CloudSettings from "../cloud";
+import OutletSettings from "../outlet";
+import PrinterSettingsPage from "../printer";
+import ProductsCategoriesSettings from "../products-categories";
 import Settings from "../settings";
 import { formatSyncSuccessMessage } from "../use-settings";
 
@@ -267,5 +325,82 @@ describe("formatSyncSuccessMessage", () => {
     ).toBe(
       "Sinkronisasi berhasil (4 diterima, 2 tabel dikirim, 1 dibersihkan)"
     );
+  });
+});
+
+describe("Account settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows user name, role, and Ubah PIN", async () => {
+    render(() => <AccountSettings />);
+    await screen.findByText("Akun");
+    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getByText("owner")).toBeInTheDocument();
+    expect(screen.getByText("Ubah PIN")).toBeInTheDocument();
+  });
+
+  test("opens PIN drawer when Ubah PIN is clicked", async () => {
+    render(() => <AccountSettings />);
+    await screen.findByText("Akun");
+    await user.click(screen.getByText("Ubah PIN"));
+    expect(screen.getByTestId("drawer-title")).toHaveTextContent("Ubah PIN");
+  });
+});
+
+describe("Outlet settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows outlet timezone selector", async () => {
+    render(() => <OutletSettings />);
+    await screen.findByText("Outlet");
+    expect(screen.getByText("Zona Waktu Outlet")).toBeInTheDocument();
+    expect(screen.getByText("Simpan Zona Waktu")).toBeInTheDocument();
+  });
+});
+
+describe("Printer settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows printer settings component", async () => {
+    render(() => <PrinterSettingsPage />);
+    await screen.findByText("Printer");
+    expect(screen.getByTestId("printer-settings")).toBeInTheDocument();
+  });
+});
+
+describe("Products & Categories settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows Kategori and Produk tabs", async () => {
+    render(() => <ProductsCategoriesSettings />);
+    await screen.findByText("Produk & Kategori");
+    expect(screen.getByText("Kategori")).toBeInTheDocument();
+    expect(screen.getByText("Produk")).toBeInTheDocument();
+  });
+});
+
+describe("Cloud settings screen", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("shows cloud connect button when not connected", async () => {
+    render(() => <CloudSettings />);
+    await screen.findByText("Cloud");
+    expect(screen.getByText("Hubungkan akun cloud")).toBeInTheDocument();
+  });
+
+  test("does not show Sinkron Sekarang button", async () => {
+    render(() => <CloudSettings />);
+    await screen.findByText("Cloud");
+    expect(screen.queryByText("Sinkron Sekarang")).not.toBeInTheDocument();
   });
 });

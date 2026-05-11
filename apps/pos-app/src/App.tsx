@@ -17,6 +17,11 @@ import ProductList from "./pages/menu/product-list";
 import Onboarding from "./pages/onboarding";
 import OrderHistory from "./pages/order-history";
 import POS from "./pages/pos/pos-shell";
+import AccountSettings from "./pages/settings/account";
+import CloudSettings from "./pages/settings/cloud";
+import OutletSettings from "./pages/settings/outlet";
+import PrinterSettingsPage from "./pages/settings/printer";
+import ProductsCategoriesSettings from "./pages/settings/products-categories";
 import Settings from "./pages/settings/settings";
 import ResetPin from "./pages/users/reset-pin";
 import UserForm from "./pages/users/user-form";
@@ -113,13 +118,19 @@ function App() {
         <Route component={ResetPin} path="/:id/reset-pin" />
       </Route>
       <Route
-        component={() => (
-          <RequireAuth>
-            <Settings />
-          </RequireAuth>
-        )}
+        component={(props) => <RequireAuth>{props.children}</RequireAuth>}
         path="/settings"
-      />
+      >
+        <Route component={Settings} path="/" />
+        <Route component={AccountSettings} path="/account" />
+        <Route component={OutletSettings} path="/outlet" />
+        <Route component={PrinterSettingsPage} path="/printer" />
+        <Route
+          component={ProductsCategoriesSettings}
+          path="/products-categories"
+        />
+        <Route component={CloudSettings} path="/cloud" />
+      </Route>
     </Router>
   );
 }
