@@ -10,9 +10,7 @@ import {
   TbOutlineClipboard,
   TbOutlineDeviceDesktop,
   TbOutlineMenu2,
-  TbOutlinePencil,
   TbOutlineSettings,
-  TbOutlineUserPlus,
 } from "solid-icons/tb";
 import type { JSX } from "solid-js";
 import {
@@ -35,7 +33,7 @@ const navItems = [
     href: "/",
     icon: TbOutlineChartBar,
     label: "Dashboard",
-    roles: ["manager", "owner"] as string[],
+    roles: ["owner"] as string[],
   },
   {
     href: "/pos",
@@ -48,18 +46,6 @@ const navItems = [
     icon: TbOutlineClipboard,
     label: "Pesanan",
     roles: undefined,
-  },
-  {
-    href: "/menu",
-    icon: TbOutlinePencil,
-    label: "Menu",
-    roles: ["manager", "owner"] as string[],
-  },
-  {
-    href: "/users",
-    icon: TbOutlineUserPlus,
-    label: "Pengguna",
-    roles: ["manager", "owner"] as string[],
   },
   {
     href: "/settings",
