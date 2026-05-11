@@ -4,10 +4,12 @@ import { describe, expect, test, vi } from "vitest";
 
 const mockCurrentUserRole = vi.fn(() => "owner");
 const mockCurrentOutletId = vi.fn(() => "outlet-1");
+const mockLogout = vi.fn();
+const mockNavigate = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
   useLocation: () => ({ pathname: "/settings" }),
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
 }));
 
 vi.mock("solid-icons/tb", () => ({
@@ -18,6 +20,7 @@ vi.mock("solid-icons/tb", () => ({
   TbOutlineMenu2: () => <span data-testid="icon-menu" />,
   TbOutlinePencil: () => <span data-testid="icon-pencil" />,
   TbOutlineUserPlus: () => <span data-testid="icon-user-plus" />,
+  TbOutlineLogout: () => <span data-testid="icon-logout" />,
 }));
 
 vi.mock("@solid-primitives/presence", () => ({
@@ -32,6 +35,7 @@ vi.mock("@solid-primitives/presence", () => ({
 vi.mock("~/store/auth", () => ({
   currentUserRole: () => mockCurrentUserRole(),
   isAuthenticated: () => true,
+  logout: (...args: unknown[]) => mockLogout(...args),
 }));
 
 vi.mock("~/store/outlet", () => ({
@@ -94,5 +98,22 @@ describe("AppShell sidebar", () => {
     expect(screen.getByText("Kasir")).toBeInTheDocument();
     expect(screen.getByText("Pesanan")).toBeInTheDocument();
     expect(screen.getByText("Pengaturan")).toBeInTheDocument();
+  });
+
+  test("shows Keluar button in sidebar footer", async () => {
+    mockCurrentUserRole.mockReturnValue("owner");
+    await renderWithSidebar();
+
+    expect(screen.getByText("Keluar")).toBeInTheDocument();
+  });
+
+  test("clicking Keluar logs out and navigates to login", async () => {
+    mockCurrentUserRole.mockReturnValue("owner");
+    await renderWithSidebar();
+
+    await user.click(screen.getByText("Keluar"));
+
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
   });
 });

@@ -9,6 +9,7 @@ import {
   TbOutlineChartBar,
   TbOutlineClipboard,
   TbOutlineDeviceDesktop,
+  TbOutlineLogout,
   TbOutlineMenu2,
   TbOutlineSettings,
 } from "solid-icons/tb";
@@ -24,7 +25,7 @@ import {
 import { Toaster } from "solid-sonner";
 import { SyncStatusIndicator } from "~/components/sync-status";
 import { OfflineBanner } from "~/components/ui/offline-banner";
-import { currentUserRole, isAuthenticated } from "~/store/auth";
+import { currentUserRole, isAuthenticated, logout } from "~/store/auth";
 import { currentOutletId, isDevicePaired } from "~/store/outlet";
 import { startSyncScheduler, stopSyncScheduler } from "~/store/sync";
 
@@ -229,6 +230,23 @@ export function AppShell(props: AppShellProps) {
                 );
               }}
             </For>
+          </div>
+          <div
+            class="mt-auto border-t p-3"
+            style={{ ...(presence.isExiting() && { visibility: "hidden" }) }}
+          >
+            <button
+              class="flex w-full items-center gap-3 rounded-xl px-3 py-3 font-medium text-destructive text-sm transition-colors hover:bg-destructive/10"
+              onClick={() => {
+                setSidebarOpen(false);
+                logout();
+                navigate("/login", { replace: true });
+              }}
+              type="button"
+            >
+              <TbOutlineLogout class="h-5 w-5" />
+              <span>Keluar</span>
+            </button>
           </div>
         </nav>
       </Show>
