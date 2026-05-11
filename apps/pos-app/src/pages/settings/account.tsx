@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createResource, createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { Button } from "~/components/ui/button";
 import {
@@ -9,6 +9,7 @@ import {
   DrawerTitle,
 } from "~/components/ui/drawer";
 import { PageHeader } from "~/components/ui/page-header";
+import { getSession } from "~/lib/auth/cloud";
 import { changeCurrentUserPin, currentUser } from "~/store/auth";
 
 function ChangePinDrawer(props: { onClose: () => void }) {
@@ -126,6 +127,7 @@ function ChangePinDrawer(props: { onClose: () => void }) {
 export default function AccountSettings() {
   const user = currentUser();
   const [showPinDrawer, setShowPinDrawer] = createSignal(false);
+  const [cloudSession] = createResource(() => getSession().catch(() => null));
   const activeUserLabel = user?.name.charAt(0).toUpperCase() ?? "?";
 
   return (
@@ -139,6 +141,11 @@ export default function AccountSettings() {
           <div class="min-w-0 flex-1">
             <p class="truncate font-semibold text-lg">{user?.name}</p>
             <p class="text-muted-foreground text-sm capitalize">{user?.role}</p>
+            <Show when={user?.role === "owner" && cloudSession()?.user?.email}>
+              {(email) => (
+                <p class="text-muted-foreground text-xs">{email()}</p>
+              )}
+            </Show>
           </div>
         </div>
 

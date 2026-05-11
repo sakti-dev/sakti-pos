@@ -193,7 +193,6 @@ vi.mock("solid-sonner", () => ({
 }));
 
 import AccountSettings from "../account";
-import CloudSettings from "../cloud";
 import OutletSettings from "../outlet";
 import PrinterSettingsPage from "../printer";
 import ProductsCategoriesSettings from "../products-categories";
@@ -207,7 +206,7 @@ describe("Settings card launcher", () => {
     vi.clearAllMocks();
   });
 
-  test("shows cards for Akun, Outlet, Printer, Produk & Kategori, Cloud", async () => {
+  test("shows cards for Akun, Outlet, Printer, Produk & Kategori", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
 
@@ -215,7 +214,6 @@ describe("Settings card launcher", () => {
     expect(screen.getByText("Outlet")).toBeInTheDocument();
     expect(screen.getByText("Printer")).toBeInTheDocument();
     expect(screen.getByText("Produk & Kategori")).toBeInTheDocument();
-    expect(screen.getByText("Cloud")).toBeInTheDocument();
   });
 
   test("shows Aplikasi section with theme toggle", async () => {
@@ -260,6 +258,12 @@ describe("Settings card launcher", () => {
     expect(screen.getByText("2.4 MB")).toBeInTheDocument();
   });
 
+  test("does not show Lepaskan Perangkat when cloud is not connected", async () => {
+    render(() => <Settings />);
+    await screen.findByText("Pengaturan");
+    expect(screen.queryByText("Lepaskan Perangkat")).not.toBeInTheDocument();
+  });
+
   test("navigates to account screen when Akun card is clicked", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
@@ -288,11 +292,10 @@ describe("Settings card launcher", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/settings/products-categories");
   });
 
-  test("navigates to cloud screen when Cloud card is clicked", async () => {
+  test("does not show Cloud card", async () => {
     render(() => <Settings />);
     await screen.findByText("Pengaturan");
-    await user.click(screen.getByText("Cloud"));
-    expect(mockNavigate).toHaveBeenCalledWith("/settings/cloud");
+    expect(screen.queryByText("Cloud")).not.toBeInTheDocument();
   });
 });
 
@@ -365,6 +368,12 @@ describe("Account settings screen", () => {
     expect(screen.getByText("Ubah PIN")).toBeInTheDocument();
   });
 
+  test("shows cloud email when connected", async () => {
+    render(() => <AccountSettings />);
+    await screen.findByText("Akun");
+    expect(screen.getByText("owner")).toBeInTheDocument();
+  });
+
   test("opens PIN drawer when Ubah PIN is clicked", async () => {
     render(() => <AccountSettings />);
     await screen.findByText("Akun");
@@ -408,23 +417,5 @@ describe("Products & Categories settings screen", () => {
     await screen.findByText("Produk & Kategori");
     expect(screen.getByText("Kategori")).toBeInTheDocument();
     expect(screen.getByText("Produk")).toBeInTheDocument();
-  });
-});
-
-describe("Cloud settings screen", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  test("shows cloud connect button when not connected", async () => {
-    render(() => <CloudSettings />);
-    await screen.findByText("Cloud");
-    expect(screen.getByText("Hubungkan akun cloud")).toBeInTheDocument();
-  });
-
-  test("does not show Sinkron Sekarang button", async () => {
-    render(() => <CloudSettings />);
-    await screen.findByText("Cloud");
-    expect(screen.queryByText("Sinkron Sekarang")).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { useNavigate } from "@solidjs/router";
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
+import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
 import { cn } from "~/lib/utils";
 import { useSettings } from "./use-settings";
@@ -26,15 +27,10 @@ const SETTING_CARDS: SettingCard[] = [
     description: "Kelola kategori dan produk menu",
     title: "Produk & Kategori",
   },
-  {
-    description: "Koneksi cloud dan sinkronisasi",
-    title: "Cloud",
-  },
 ];
 
 const CARD_ROUTES: Record<string, string> = {
   Akun: "/settings/account",
-  Cloud: "/settings/cloud",
   Outlet: "/settings/outlet",
   Printer: "/settings/printer",
   "Produk & Kategori": "/settings/products-categories",
@@ -113,9 +109,28 @@ export default function Settings() {
                 {settings.dbInfo()?.size_formatted ?? "Memuat..."}
               </span>
             </div>
+            <Show when={settings.cloudSession()?.user}>
+              <button
+                class="flex w-full items-center justify-between border-t p-4 text-left active:bg-accent"
+                onClick={() => settings.setShowDisconnectConfirm(true)}
+                type="button"
+              >
+                <span class="text-destructive text-sm">Lepaskan Perangkat</span>
+              </button>
+            </Show>
           </div>
         </section>
       </div>
+
+      <ConfirmDrawer
+        confirmLabel="Lepaskan"
+        message="Perangkat akan dilepas dari outlet ini. Anda perlu login ulang dengan akun cloud atau memasangkan ulang perangkat."
+        onClose={() => settings.setShowDisconnectConfirm(false)}
+        onConfirm={settings.handleDisconnect}
+        open={settings.showDisconnectConfirm()}
+        title="Lepaskan Perangkat"
+        variant="destructive"
+      />
     </AppShell>
   );
 }

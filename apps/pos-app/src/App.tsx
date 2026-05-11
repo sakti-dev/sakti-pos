@@ -18,7 +18,6 @@ import Onboarding from "./pages/onboarding";
 import OrderHistory from "./pages/order-history";
 import POS from "./pages/pos/pos-shell";
 import AccountSettings from "./pages/settings/account";
-import CloudSettings from "./pages/settings/cloud";
 import OutletSettings from "./pages/settings/outlet";
 import PrinterSettingsPage from "./pages/settings/printer";
 import ProductsCategoriesSettings from "./pages/settings/products-categories";
@@ -129,7 +128,6 @@ function App() {
           component={ProductsCategoriesSettings}
           path="/products-categories"
         />
-        <Route component={CloudSettings} path="/cloud" />
       </Route>
     </Router>
   );
