@@ -2,7 +2,6 @@ import {
   finite,
   type InferOutput,
   integer,
-  literal,
   minValue,
   nonEmpty,
   number,
@@ -10,8 +9,6 @@ import {
   pipe,
   string,
   transform,
-  union,
-  url,
 } from "valibot";
 
 export const ProductSchema = object({
@@ -32,7 +29,6 @@ export const ProductSchema = object({
     integer("Harga harus bilangan bulat"),
     minValue(0, "Harga tidak boleh negatif")
   ),
-  imageUrl: union([literal(""), pipe(string(), url("URL gambar tidak valid"))]),
 });
 
 export type ProductFormValues = InferOutput<typeof ProductSchema>;

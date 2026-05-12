@@ -1,5 +1,7 @@
 import {
+  assets,
   categories,
+  localAssetCache,
   merchants,
   orderItems,
   orders,
@@ -17,7 +19,9 @@ import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { createLogger } from "~/lib/logger";
 
 const schema = {
+  assets,
   categories,
+  localAssetCache,
   merchants,
   orderItems,
   orders,
