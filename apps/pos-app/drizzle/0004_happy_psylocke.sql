@@ -1,1 +1,0 @@
-ALTER TABLE `staff` ADD `cloud_user_id` text;
