@@ -130,6 +130,30 @@ export const categories = sqliteTable("categories", {
   deletedAt: text("deleted_at"),
 });
 
+export const assets = sqliteTable("assets", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  merchantId: text("merchant_id")
+    .notNull()
+    .references(() => merchants.id),
+  objectKey: text("object_key").notNull().unique(),
+  originalFilename: text("original_filename"),
+  contentType: text("content_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  contentHash: text("content_hash").notNull(),
+  kind: text("kind").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  status: text("status", {
+    enum: ["pending_upload", "ready", "failed"],
+  }).notNull(),
+  createdByUserId: text("created_by_user_id").references(() => users.id),
+  deletedAt: text("deleted_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const products = sqliteTable("products", {
   id: text("id")
     .primaryKey()
@@ -141,6 +165,7 @@ export const products = sqliteTable("products", {
   name: text("name").notNull(),
   price: integer("price").notNull(),
   imageUrl: text("image_url"),
+  imageAssetId: text("image_asset_id").references(() => assets.id),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: text("created_at").notNull(),

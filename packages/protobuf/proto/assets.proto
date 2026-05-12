@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package sakti.assets.v1;
+
+message Asset {
+  string id = 1;
+  string merchant_id = 2;
+  string object_key = 3;
+  string original_filename = 4;
+  string content_type = 5;
+  int64 byte_size = 6;
+  string content_hash = 7;
+  string kind = 8;
+  int32 width = 9;
+  int32 height = 10;
+  string status = 11;
+  string created_by_user_id = 12;
+  string deleted_at = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+message AssetHeader {
+  string name = 1;
+  string value = 2;
+}
+
+message AssetPresignUploadRequest {
+  string merchant_id = 1;
+  string content_hash = 2;
+  int64 byte_size = 3;
+  string content_type = 4;
+  string kind = 5;
+  string original_filename = 6;
+  int32 width = 7;
+  int32 height = 8;
+  string asset_id = 16;
+  string object_key = 17;
+}
+
+message AssetPresignUploadResponse {
+  Asset asset = 1;
+  string upload_url = 2;
+  repeated AssetHeader required_headers = 3;
+}
+
+message AssetCompleteUploadRequest {
+  string asset_id = 1;
+  string object_key = 2;
+  string content_hash = 3;
+  int64 byte_size = 4;
+}
+
+message AssetCompleteUploadResponse {
+  Asset asset = 1;
+}
+
+message AssetPresignDownloadRequest {
+  string asset_id = 1;
+}
+
+message AssetPresignDownloadResponse {
+  string download_url = 1;
+}

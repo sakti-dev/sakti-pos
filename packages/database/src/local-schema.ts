@@ -130,6 +130,52 @@ export const categories = sqliteTable("categories", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+export const assets = sqliteTable("assets", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  merchantId: text("merchant_id").notNull(),
+  objectKey: text("object_key").notNull().unique(),
+  originalFilename: text("original_filename"),
+  contentType: text("content_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  contentHash: text("content_hash").notNull(),
+  kind: text("kind").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  status: text("status")
+    .notNull()
+    .default("pending_upload"),
+  createdByUserId: text("created_by_user_id"),
+  deletedAt: text("deleted_at"),
+  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const localAssetCache = sqliteTable("local_asset_cache", {
+  assetId: text("asset_id").primaryKey(),
+  merchantId: text("merchant_id").notNull(),
+  objectKey: text("object_key").notNull().unique(),
+  localPath: text("local_path").notNull(),
+  contentHash: text("content_hash").notNull(),
+  status: text("status").notNull().default("pending_upload"),
+  uploadAttempts: integer("upload_attempts").notNull().default(0),
+  downloadAttempts: integer("download_attempts").notNull().default(0),
+  lastError: text("last_error"),
+  cachedAt: text("cached_at"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 export const products = sqliteTable("products", {
   id: text("id")
     .primaryKey()
@@ -139,6 +185,7 @@ export const products = sqliteTable("products", {
   name: text("name").notNull(),
   price: integer("price").notNull(),
   imageUrl: text("image_url"),
+  imageAssetId: text("image_asset_id"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   deletedAt: text("deleted_at"),
