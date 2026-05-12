@@ -3,6 +3,8 @@ set -euo pipefail
 
 TURSO_PORT=8080
 DB_FILE=".turso/local.db"
+LOG_DIR=".logs"
+LOG_FILE="$LOG_DIR/api.log"
 
 cleanup() {
 	echo "Shutting down..."
@@ -14,6 +16,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 mkdir -p .turso
+mkdir -p "$LOG_DIR"
+: > "$LOG_FILE"
 
 turso dev --port "$TURSO_PORT" --db-file "./$DB_FILE" &
 TURSO_PID=$!
@@ -32,7 +36,7 @@ echo "Turso ready, pushing schema..."
 bunx drizzle-kit push
 
 echo "Starting wrangler..."
-npx wrangler dev &
+	npx wrangler dev > >(tee "$LOG_FILE") 2>&1 &
 WRANGLER_PID=$!
 
 echo "Starting drizzle-kit studio..."

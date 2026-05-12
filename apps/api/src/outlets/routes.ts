@@ -49,12 +49,12 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
   .post(
     "/create",
     async ({ body, session, set }) => {
-      const request = body as OutletCreateRequest;
+      const payload = body as OutletCreateRequest;
       let merchantId: string;
       let name: string;
       try {
-        merchantId = requireNonEmptyString(request.merchantId, "merchantId");
-        name = requireNonEmptyString(request.name, "name", {
+        merchantId = requireNonEmptyString(payload.merchantId, "merchantId");
+        name = requireNonEmptyString(payload.name, "name", {
           minLength: 1,
           maxLength: 100,
         });
@@ -84,10 +84,10 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
           .values({
             merchantId,
             name,
-            address: request.hasAddress ? request.address : null,
-            receiptAddress: request.hasAddress ? request.address : null,
+            address: payload.hasAddress ? payload.address : null,
+            receiptAddress: payload.hasAddress ? payload.address : null,
             receiptName: merchant?.name ?? name,
-            timezone: request.timezone || "Asia/Jakarta",
+            timezone: payload.timezone || "Asia/Jakarta",
             createdAt: now,
             updatedAt: now,
           })
@@ -146,16 +146,16 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
   .post(
     "/list",
     async ({ body, session }) => {
-      const request = body as OutletListRequest;
+      const payload = body as OutletListRequest;
       throwIfFalse(
-        await verifyMerchantAccess(session.userId, request.merchantId),
+        await verifyMerchantAccess(session.userId, payload.merchantId),
         new ForbiddenRequestError()
       );
 
       const results = await db
         .select()
         .from(outlets)
-        .where(eq(outlets.merchantId, request.merchantId));
+        .where(eq(outlets.merchantId, payload.merchantId));
 
       return {
         outlets: results.map(encodeOutlet),
@@ -171,11 +171,11 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
   .post(
     "/update",
     async ({ body, session, set }) => {
-      const request = body as OutletUpdateRequest;
+      const payload = body as OutletUpdateRequest;
       const [outlet] = await db
         .select()
         .from(outlets)
-        .where(eq(outlets.id, request.id))
+        .where(eq(outlets.id, payload.id))
         .limit(1);
 
       if (!outlet) {
@@ -193,19 +193,19 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
         const [result] = await tx
           .update(outlets)
           .set({
-            address: request.hasAddress ? request.address : outlet.address,
-            isActive: request.hasIsActive ? request.isActive : outlet.isActive,
-            name: request.hasName ? request.name : outlet.name,
-            receiptAddress: request.hasReceiptAddress
-              ? request.receiptAddress
+            address: payload.hasAddress ? payload.address : outlet.address,
+            isActive: payload.hasIsActive ? payload.isActive : outlet.isActive,
+            name: payload.hasName ? payload.name : outlet.name,
+            receiptAddress: payload.hasReceiptAddress
+              ? payload.receiptAddress
               : outlet.receiptAddress,
-            receiptName: request.hasReceiptName
-              ? request.receiptName
+            receiptName: payload.hasReceiptName
+              ? payload.receiptName
               : outlet.receiptName,
-            timezone: request.hasTimezone ? request.timezone : outlet.timezone,
+            timezone: payload.hasTimezone ? payload.timezone : outlet.timezone,
             updatedAt: now,
           })
-          .where(eq(outlets.id, request.id))
+          .where(eq(outlets.id, payload.id))
           .returning();
 
         if (!result) {

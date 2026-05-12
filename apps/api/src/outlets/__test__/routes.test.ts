@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "bun:test";
+import { beforeEach, describe, expect, test, vi } from "bun:test";
 import {
   OutletCreateRequest,
   OutletCreateResponse,
@@ -81,8 +81,12 @@ function makeProtoRequest(
 }
 
 describe("outlets protobuf routes", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
+    mockInsert.mockReset();
+    mockSelect.mockReset();
+    mockUpdate.mockReset();
+    mockValidateSession.mockReset();
   });
 
   test("returns 401 when no session", async () => {
@@ -281,6 +285,15 @@ describe("outlets protobuf routes", () => {
             },
           ]),
         }),
+      }),
+    });
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            id: "sync-event-1",
+          },
+        ]),
       }),
     });
 

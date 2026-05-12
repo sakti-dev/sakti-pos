@@ -2,6 +2,7 @@ import { logger } from "@bogeychan/elysia-logger";
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
+import { assetsRoutes } from "./assets/routes";
 import { authRoutes } from "./auth/routes";
 import { merchantsRoutes } from "./merchants/routes";
 import { outletsRoutes } from "./outlets/routes";
@@ -29,6 +30,7 @@ export default new Elysia({ adapter: CloudflareAdapter })
     })
   )
   .use(authRoutes)
+  .use(assetsRoutes)
   .use(merchantsRoutes)
   .use(outletsRoutes)
   .use(registersRoutes)

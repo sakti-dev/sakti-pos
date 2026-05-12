@@ -1,4 +1,5 @@
 import {
+  assets,
   categories,
   merchants,
   orderItems,
@@ -23,6 +24,7 @@ const ALL_SYNC_TABLE_NAMES = [
   "outlets",
   "registers",
   "categories",
+  "assets",
   "products",
   "outlet_products",
   "staff",
@@ -36,6 +38,7 @@ const PUSH_TABLE_ORDER = [
   "registers",
   "staff",
   "categories",
+  "assets",
   "products",
   "outlet_products",
   "orders",
@@ -205,6 +208,13 @@ async function upsertRowForTableName(input: {
         input.row,
         input.merchantId
       );
+    case "assets":
+      return await upsertMerchantRow(
+        input.tx,
+        assets,
+        input.row,
+        input.merchantId
+      );
     case "products":
       return await upsertMerchantRow(
         input.tx,
@@ -232,7 +242,7 @@ async function upsertRowForTableName(input: {
 
 async function upsertMerchantRow(
   tx: TransactionTx,
-  table: typeof categories | typeof products | typeof merchants,
+  table: typeof assets | typeof categories | typeof products | typeof merchants,
   row: Record<string, unknown>,
   merchantId: string
 ): Promise<UpsertResult> {
@@ -470,6 +480,15 @@ export async function handlePull(
           );
         break;
       }
+      case "assets": {
+        result.assets = await db
+          .select()
+          .from(assets)
+          .where(
+            and(eq(assets.merchantId, merchantId), gt(assets.updatedAt, since))
+          );
+        break;
+      }
       case "products": {
         result.products = await db
           .select()
@@ -642,6 +661,16 @@ async function selectSnapshotsForEvents(input: {
           and(
             eq(categories.merchantId, input.merchantId),
             inArray(categories.id, input.rowIds)
+          )
+        );
+    case "assets":
+      return await db
+        .select()
+        .from(assets)
+        .where(
+          and(
+            eq(assets.merchantId, input.merchantId),
+            inArray(assets.id, input.rowIds)
           )
         );
     case "products":

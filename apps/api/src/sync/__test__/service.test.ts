@@ -46,6 +46,7 @@ const {
   handleEventPull,
   handleSyncStatus,
   verifyOutletAccess,
+  ALL_SYNC_TABLE_NAMES,
 } = await import("../service");
 
 describe("verifyOutletAccess", () => {
@@ -840,6 +841,7 @@ describe("handlePull", () => {
       "merchant-1",
       [
         "categories",
+        "assets",
         "products",
         "orders",
         "order_items",
@@ -850,12 +852,17 @@ describe("handlePull", () => {
     )) as Record<string, unknown>;
 
     expect(result.categories).toEqual([]);
+    expect(result.assets).toEqual([]);
     expect(result.products).toEqual([]);
     expect(result.orders).toEqual([]);
     expect(result.order_items).toEqual([]);
     expect(result.outlet_products).toEqual([]);
     expect(result.staff).toEqual([]);
     expect(result.serverTime).toBeDefined();
+  });
+
+  test("includes assets in the sync table list", () => {
+    expect(ALL_SYNC_TABLE_NAMES).toContain("assets");
   });
 
   test("categories and products are scoped by merchantId", async () => {

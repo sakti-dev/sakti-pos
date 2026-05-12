@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import {
+  assets,
   categories,
   merchants,
   orderItems,
@@ -17,6 +18,7 @@ import {
 import { drizzle } from "drizzle-orm/libsql";
 
 const schema = {
+  assets,
   categories,
   merchants,
   orderItems,

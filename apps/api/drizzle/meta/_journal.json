@@ -36,6 +36,13 @@
 			"when": 1778436169871,
 			"tag": "0005_productive_spyke",
 			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "6",
+			"when": 1778436169872,
+			"tag": "0007_assets",
+			"breakpoints": true
 		}
   ]
 }
