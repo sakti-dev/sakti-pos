@@ -1,5 +1,7 @@
+mod assets;
 mod db_utils;
 mod drizzle_proxy;
+mod photo_picker;
 mod printer;
 mod sync;
 
@@ -10,6 +12,7 @@ use tauri_plugin_stronghold::Builder;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(photo_picker::init())
         .plugin(printer::init())
         .setup(|app| {
             let handle = app.handle().clone();
@@ -44,6 +47,15 @@ pub fn run() {
             .build(),
         )
         .invoke_handler(tauri::generate_handler![
+            assets::process_image_to_webp,
+            assets::cache_asset_webp,
+            assets::prepare_local_product_image_asset,
+            assets::prepare_local_product_image_asset_from_path,
+            assets::read_cached_asset_data,
+            photo_picker::pick_product_photo,
+            photo_picker::delete_temp_product_photo,
+            assets::upload_pending_product_images,
+            assets::hydrate_product_images,
             drizzle_proxy::run_sql,
             drizzle_proxy::run_sql_batch,
             drizzle_proxy::get_db_info,

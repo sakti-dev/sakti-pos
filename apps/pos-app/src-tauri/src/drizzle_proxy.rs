@@ -20,6 +20,8 @@ pub struct AppState {
     pub db_pool: SqlitePool,
 }
 
+const SQLITE_POOL_MAX_CONNECTIONS: u32 = 1;
+
 #[derive(Debug, Deserialize)]
 pub struct SqlQuery {
     pub sql: String,
@@ -45,7 +47,9 @@ pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
         .pragma("foreign_keys", "ON");
 
     let pool = SqlitePoolOptions::new()
-        .max_connections(5)
+        // Drizzle sqlite-proxy transaction commands must stay on one SQLite
+        // connection or BEGIN/COMMIT/ROLLBACK can land on different sessions.
+        .max_connections(SQLITE_POOL_MAX_CONNECTIONS)
         .acquire_timeout(Duration::from_secs(3))
         .connect_with(options)
         .await
@@ -270,5 +274,15 @@ fn bind_value<'q>(
         }
         Value::String(s) => query.bind(s),
         _ => query,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SQLITE_POOL_MAX_CONNECTIONS;
+
+    #[test]
+    fn sqlite_proxy_uses_a_single_connection() {
+        assert_eq!(SQLITE_POOL_MAX_CONNECTIONS, 1);
     }
 }

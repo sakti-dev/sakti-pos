@@ -21,6 +21,7 @@ const SYNC_TABLES: &[&str] = &[
     "outlets",
     "registers",
     "categories",
+    "assets",
     "products",
     "orders",
     "order_items",
@@ -46,7 +47,7 @@ fn build_client(session_token: &str) -> Result<reqwest::Client, String> {
 fn get_table_filter_column(table: &str) -> &'static str {
     match table {
         "merchants" => "id",
-        "categories" | "products" | "staff" | "outlets" => "merchant_id",
+        "categories" | "assets" | "products" | "staff" | "outlets" => "merchant_id",
         _ => "outlet_id",
     }
 }
