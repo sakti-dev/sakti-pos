@@ -63,7 +63,7 @@ export function PosShell(props: PosShellProps) {
               />
             </Show>
             <TextField
-              class="gap-0"
+              class="ml-2 gap-0"
               onChange={props.state.setSearch}
               value={props.state.search()}
             >

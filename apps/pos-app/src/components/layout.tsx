@@ -199,7 +199,7 @@ export function AppShell(props: AppShellProps) {
             class="flex h-12 items-center gap-3 border-b px-6"
             style={{ ...(presence.isExiting() && { visibility: "hidden" }) }}
           >
-            <span class="font-bold text-lg text-primary">Sakti POS</span>
+            <h1 class="font-bold text-lg text-primary">Sakti POS</h1>
           </div>
           <div
             class="flex flex-col gap-2 overflow-y-auto p-3"

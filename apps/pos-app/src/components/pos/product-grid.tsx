@@ -1,5 +1,6 @@
 import type { Component } from "solid-js";
 import { For, Show } from "solid-js";
+import { ProductImage } from "~/components/product-image";
 import { cardVariants } from "~/components/ui/card";
 import type { ProductWithCategory } from "~/db/orders";
 import { cn, formatIDR } from "~/lib/utils";
@@ -25,11 +26,16 @@ export const ProductGrid: Component<ProductGridProps> = (props) => (
           <button
             class={cn(
               cardVariants({ radius: "lg", interactive: "pressable" }),
-              "flex min-h-[96px] flex-col items-start justify-between text-left"
+              "flex min-h-[96px] flex-col items-start justify-between gap-2 text-left"
             )}
             onClick={() => addToCart(product)}
             type="button"
           >
+            <ProductImage
+              alt={product.name}
+              class="h-16 w-full rounded-md"
+              imageAssetId={product.imageAssetId ?? null}
+            />
             <span class="line-clamp-2 w-full font-medium leading-snug">
               {product.name}
             </span>

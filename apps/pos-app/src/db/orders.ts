@@ -186,6 +186,7 @@ export async function getActiveProductsByCategory(): Promise<
       createdAt: products.createdAt,
       deletedAt: products.deletedAt,
       id: products.id,
+      imageAssetId: products.imageAssetId,
       imageUrl: products.imageUrl,
       isActive: products.isActive,
       isSynced: products.isSynced,

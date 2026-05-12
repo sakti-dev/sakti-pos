@@ -2,13 +2,18 @@ import { useParams } from "@solidjs/router";
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockNavigate = vi.fn();
 const mockCreateProduct = vi.fn();
 const mockUpdateProduct = vi.fn();
-
-const URL_GAMBAR = /URL Gambar/;
+const mockPickProductPhoto = vi.fn();
+const mockDeleteTempProductPhoto = vi.fn();
+const mockPrepareLocalProductImageAssetFromPath = vi.fn();
+const mockResolveCachedProductImageUrl = vi.fn();
+const mockToastSuccess = vi.fn();
+const mockSyncNow = vi.fn();
+let mockMerchantId: string | null = "merchant-1";
 
 const mockCategories = [
   {
@@ -42,6 +47,7 @@ vi.mock("~/db/menu", () => ({
       name: "Kopi Susu",
       price: 15_000,
       categoryId: "category-1",
+      imageAssetId: "asset-existing",
       imageUrl: null,
       isActive: true,
       createdAt: "",
@@ -50,6 +56,32 @@ vi.mock("~/db/menu", () => ({
   ),
   createProduct: (...args: unknown[]) => mockCreateProduct(...args),
   updateProduct: (...args: unknown[]) => mockUpdateProduct(...args),
+}));
+
+vi.mock("~/store/outlet", () => ({
+  currentMerchantId: () => mockMerchantId,
+}));
+
+vi.mock("~/store/sync", () => ({
+  syncNow: (...args: unknown[]) => mockSyncNow(...args),
+}));
+
+vi.mock("~/lib/assets", () => ({
+  createWebpPreviewUrl: () => "blob:preview-url",
+  deleteTempProductPhoto: (...args: unknown[]) =>
+    mockDeleteTempProductPhoto(...args),
+  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
+  prepareLocalProductImageAssetFromPath: (...args: unknown[]) =>
+    mockPrepareLocalProductImageAssetFromPath(...args),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: (path: string) => `asset://${path}`,
+}));
+
+vi.mock("~/lib/product-images/cache", () => ({
+  resolveCachedProductImageUrl: (...args: unknown[]) =>
+    mockResolveCachedProductImageUrl(...args),
 }));
 
 vi.mock("~/components/ui/page-header", () => ({
@@ -72,7 +104,7 @@ vi.mock("~/components/ui/button", () => ({
   }) => (
     <button
       class={props.class}
-      data-testid="save-btn"
+      data-testid={props.type === "submit" ? "save-btn" : "action-btn"}
       disabled={props.disabled}
       onClick={props.onClick}
       type={props.type ?? "button"}
@@ -104,13 +136,30 @@ vi.mock("~/components/ui/select", () => ({
   ),
 }));
 
+vi.mock("solid-sonner", () => ({
+  toast: {
+    success: (...args: unknown[]) => mockToastSuccess(...args),
+  },
+}));
+
 import ProductForm from "../product-form";
 
 const user = userEvent.setup();
 
 describe("ProductForm (create mode)", () => {
+  beforeEach(() => {
+    mockResolveCachedProductImageUrl.mockResolvedValue(null);
+    mockSyncNow.mockResolvedValue({
+      mode: "skipped",
+      pull: { rows_received: 0, server_time: "" },
+      purged: 0,
+      push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+    });
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
+    mockMerchantId = "merchant-1";
   });
 
   test("shows 'Tambah Produk' title", () => {
@@ -118,14 +167,14 @@ describe("ProductForm (create mode)", () => {
     expect(screen.getByText("Tambah Produk")).toBeInTheDocument();
   });
 
-  test("shows name, category, price, and image URL inputs", () => {
+  test("shows name, category, price, and photo picker", () => {
     render(() => <ProductForm />);
     expect(
       screen.getByPlaceholderText("Contoh: Kopi Susu")
     ).toBeInTheDocument();
     expect(screen.getByTestId("category-select")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("0")).toBeInTheDocument();
-    expect(screen.getByText(URL_GAMBAR)).toBeInTheDocument();
+    expect(screen.getAllByText("Pilih Foto").length).toBeGreaterThan(0);
   });
 
   test("submit is disabled when required fields are empty", () => {
@@ -152,7 +201,7 @@ describe("ProductForm (create mode)", () => {
     expect(options[2]).toHaveTextContent("Makanan");
   });
 
-  test("submit calls createProduct with imageUrl: null when no image is set", async () => {
+  test("submit calls createProduct with imageAssetId: null when no image is set", async () => {
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
     await user.selectOptions(
@@ -162,19 +211,145 @@ describe("ProductForm (create mode)", () => {
     await user.type(screen.getByPlaceholderText("0"), "10000");
     await user.click(screen.getByTestId("save-btn"));
     expect(mockCreateProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ imageUrl: null })
+      expect.objectContaining({ imageAssetId: null })
     );
+    expect(mockSyncNow).not.toHaveBeenCalled();
   });
 
   test("shows required asterisk on required fields", () => {
     render(() => <ProductForm />);
     expect(screen.getAllByText("*")).toHaveLength(3);
   });
+
+  test("opens the photo source drawer when pilih foto is clicked", async () => {
+    render(() => <ProductForm />);
+
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+
+    expect(screen.getAllByText("Pilih Foto").length).toBeGreaterThan(0);
+    expect(screen.getByText("Ambil Foto")).toBeInTheDocument();
+    expect(screen.getByText("Pilih dari Galeri")).toBeInTheDocument();
+  });
+
+  test("choosing camera stages a temp photo without preparing a local asset", async () => {
+    mockPickProductPhoto.mockResolvedValue({
+      path: "/tmp/product_photo_inputs/photo_1.jpg",
+      originalFilename: "photo_1.jpg",
+      mimeType: "image/jpeg",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      source: "camera",
+    });
+
+    render(() => <ProductForm />);
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+    await user.click(screen.getByText("Ambil Foto"));
+
+    expect(mockPickProductPhoto).toHaveBeenCalledWith("camera");
+    expect(mockPrepareLocalProductImageAssetFromPath).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Foto akan diproses saat disimpan.")
+    ).toBeInTheDocument();
+    expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
+      "src",
+      "data:image/jpeg;base64,cHJldmlldw=="
+    );
+  });
+
+  test("choosing gallery stages a temp photo without preparing a local asset", async () => {
+    mockPickProductPhoto.mockResolvedValue({
+      path: "/tmp/product_photo_inputs/gallery_1.png",
+      originalFilename: "menu.png",
+      mimeType: "image/png",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      source: "gallery",
+    });
+
+    render(() => <ProductForm />);
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+    await user.click(screen.getByText("Pilih dari Galeri"));
+
+    expect(mockPickProductPhoto).toHaveBeenCalledWith("gallery");
+    expect(mockPrepareLocalProductImageAssetFromPath).not.toHaveBeenCalled();
+  });
+
+  test("submit compresses a staged native photo before saving the product", async () => {
+    mockPickProductPhoto.mockResolvedValue({
+      path: "/tmp/product_photo_inputs/gallery_1.png",
+      originalFilename: "menu.png",
+      mimeType: "image/png",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      source: "gallery",
+    });
+    mockPrepareLocalProductImageAssetFromPath.mockResolvedValue({
+      asset: { id: "asset-2", objectKey: "merchant-1/assets/asset-2" },
+      dataBase64: "d2VicA==",
+      localPath: "/tmp/cache/asset-2.webp",
+    });
+
+    render(() => <ProductForm />);
+    await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
+    await user.selectOptions(
+      screen.getByTestId("category-select"),
+      "category-1"
+    );
+    await user.type(screen.getByPlaceholderText("0"), "10000");
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+    await user.click(screen.getByText("Pilih dari Galeri"));
+    await user.click(screen.getByTestId("save-btn"));
+
+    expect(mockPrepareLocalProductImageAssetFromPath).toHaveBeenCalledWith({
+      kind: "product_photo",
+      merchantId: "merchant-1",
+      originalFilename: "menu.png",
+      path: "/tmp/product_photo_inputs/gallery_1.png",
+    });
+    expect(mockCreateProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ imageAssetId: "asset-2" })
+    );
+    expect(mockToastSuccess).toHaveBeenCalledWith(
+      "Foto akan diupload saat online"
+    );
+    expect(mockSyncNow).toHaveBeenCalledTimes(1);
+  });
+
+  test("removing a staged native photo deletes its temp file", async () => {
+    mockPickProductPhoto.mockResolvedValue({
+      path: "/tmp/product_photo_inputs/photo_1.jpg",
+      originalFilename: "photo_1.jpg",
+      mimeType: "image/jpeg",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      source: "camera",
+    });
+
+    render(() => <ProductForm />);
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+    await user.click(screen.getByText("Ambil Foto"));
+    await user.click(screen.getByText("Hapus"));
+
+    expect(mockDeleteTempProductPhoto).toHaveBeenCalledWith(
+      "/tmp/product_photo_inputs/photo_1.jpg"
+    );
+  });
 });
 
 describe("ProductForm (edit mode)", () => {
+  beforeEach(() => {
+    mockResolveCachedProductImageUrl.mockResolvedValue(null);
+    mockSyncNow.mockResolvedValue({
+      mode: "skipped",
+      pull: { rows_received: 0, server_time: "" },
+      purged: 0,
+      push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+    });
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
+    mockMerchantId = "merchant-1";
   });
 
   test("shows 'Edit Produk' title", async () => {
@@ -185,5 +360,40 @@ describe("ProductForm (edit mode)", () => {
     expect(await screen.findByDisplayValue("Kopi Susu")).toBeInTheDocument();
     expect(screen.getByTestId("category-select")).toHaveValue("category-1");
     expect(screen.getByDisplayValue("15000")).toBeInTheDocument();
+  });
+
+  test("shows the existing product photo preview", async () => {
+    vi.mocked(useParams).mockReturnValue({ id: "1" });
+    mockResolveCachedProductImageUrl.mockResolvedValue(
+      "data:image/webp;base64,d2VicA=="
+    );
+
+    render(() => <ProductForm />);
+
+    expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
+      "src",
+      "data:image/webp;base64,d2VicA=="
+    );
+    expect(screen.getByText("Ganti Foto")).toBeInTheDocument();
+  });
+
+  test("staging a photo after edit data loads does not delete the temp file", async () => {
+    vi.mocked(useParams).mockReturnValue({ id: "1" });
+    mockPickProductPhoto.mockResolvedValue({
+      path: "/tmp/product_photo_inputs/edit_photo.jpg",
+      originalFilename: "edit_photo.jpg",
+      mimeType: "image/jpeg",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      source: "gallery",
+    });
+
+    render(() => <ProductForm />);
+    await screen.findByDisplayValue("Kopi Susu");
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+    await user.click(screen.getByText("Pilih dari Galeri"));
+    await screen.findByText("Foto akan diproses saat disimpan.");
+
+    expect(mockDeleteTempProductPhoto).not.toHaveBeenCalled();
   });
 });

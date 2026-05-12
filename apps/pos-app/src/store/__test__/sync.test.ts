@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
 const mockGetSyncStatus = vi.fn();
+const mockRequestUploadPendingProductImages = vi.fn();
 let mockOutletId: string | null = "outlet-1";
+let mockMerchantId: string | null = "merchant-1";
 let mockToken: string | null = "test-session-token";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -10,6 +12,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("~/store/outlet", () => ({
+  currentMerchantId: () => mockMerchantId,
   currentOutletId: () => mockOutletId,
 }));
 
@@ -21,6 +24,15 @@ vi.mock("~/lib/auth/storage", () => ({
 
 vi.mock("~/lib/api/sync", () => ({
   getSyncStatus: (...args: unknown[]) => mockGetSyncStatus(...args),
+}));
+
+vi.mock("~/lib/product-images/cache", () => ({
+  hydrateMissingProductImages: vi.fn(() => Promise.resolve(0)),
+}));
+
+vi.mock("~/lib/product-images/upload-queue", () => ({
+  requestUploadPendingProductImages: (...args: unknown[]) =>
+    mockRequestUploadPendingProductImages(...args),
 }));
 
 vi.mock("~/store/sync", async () => {
@@ -44,6 +56,7 @@ describe("syncNow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockOutletId = "outlet-1";
+    mockMerchantId = "merchant-1";
     mockToken = "test-session-token";
     mockGetSyncStatus.mockResolvedValue({
       changedTables: [],
@@ -56,6 +69,7 @@ describe("syncNow", () => {
 
   test("returns empty result when no outletId", async () => {
     mockOutletId = null;
+    mockMerchantId = null;
 
     const result = await syncNow();
     expect(result).toEqual({
@@ -81,9 +95,15 @@ describe("syncNow", () => {
       last_server_event_id: 10,
       local_dirty_count: 0,
     });
+    mockRequestUploadPendingProductImages.mockResolvedValueOnce(0);
 
     const result = await syncNow();
 
+    expect(mockRequestUploadPendingProductImages).toHaveBeenCalledWith({
+      apiUrl: expect.any(String),
+      merchantId: "merchant-1",
+      sessionToken: "test-session-token",
+    });
     expect(mockInvoke).toHaveBeenCalledTimes(1);
     expect(mockInvoke).toHaveBeenCalledWith("get_sync_local_state", {
       outletId: "outlet-1",
@@ -94,6 +114,37 @@ describe("syncNow", () => {
     });
     expect(result.mode).toBe("skipped");
     expect(result.pull.rows_received).toBe(0);
+  });
+
+  test("continues sync when queued image uploads fail", async () => {
+    const syncResult = {
+      mode: "push_only",
+      pull: { rows_received: 1, server_time: "2025-01-01T00:00:00.000Z" },
+      push: {
+        tables_synced: ["products"],
+        server_wins_count: 0,
+        server_time: "2025-01-01T00:00:00.000Z",
+      },
+      purged: 0,
+    };
+    mockRequestUploadPendingProductImages.mockRejectedValueOnce(
+      new Error("upload queue failed")
+    );
+    mockInvoke.mockResolvedValueOnce({
+      last_server_event_id: 10,
+      local_dirty_count: 1,
+    });
+    mockInvoke.mockResolvedValueOnce(syncResult);
+
+    const result = await syncNow();
+
+    expect(result.mode).toBe("push_only");
+    expect(mockRequestUploadPendingProductImages).toHaveBeenCalledWith({
+      apiUrl: expect.any(String),
+      merchantId: "merchant-1",
+      sessionToken: "test-session-token",
+    });
+    expect(syncStatus()).toBe("idle");
   });
 
   test("runs push only when local has changes and server has none", async () => {
@@ -354,11 +405,13 @@ describe("runStartupSync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockOutletId = "outlet-1";
+    mockMerchantId = "merchant-1";
     mockToken = "test-session-token";
   });
 
   test("does nothing when no outletId", async () => {
     mockOutletId = null;
+    mockMerchantId = null;
 
     await runStartupSync();
     expect(mockInvoke).not.toHaveBeenCalled();
@@ -409,6 +462,7 @@ describe("startSyncScheduler / stopSyncScheduler", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     mockOutletId = "outlet-1";
+    mockMerchantId = "merchant-1";
     mockToken = "test-session-token";
     mockInvoke.mockResolvedValue({
       pull: { rows_received: 0, server_time: "" },

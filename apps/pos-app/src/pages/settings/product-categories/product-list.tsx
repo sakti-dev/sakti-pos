@@ -16,6 +16,7 @@ import {
 } from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
+import { ProductImage } from "~/components/product-image";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { PageHeader } from "~/components/ui/page-header";
@@ -95,6 +96,11 @@ export default function ProductList(
 
   const productCard = (product: Product) => (
     <Card class="flex items-center gap-2" size="sm">
+      <ProductImage
+        alt={product.name}
+        class="size-12 shrink-0 rounded-md"
+        imageAssetId={product.imageAssetId ?? null}
+      />
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium">{product.name}</p>
         <p class="text-muted-foreground text-xs">{formatIDR(product.price)}</p>

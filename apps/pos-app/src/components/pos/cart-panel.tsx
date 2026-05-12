@@ -162,8 +162,8 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
 
   return (
     <div class="hidden h-full flex-col border-l bg-card landscape:flex">
-      <div class="flex h-12 shrink-0 items-center justify-between border-b">
-        <span class="font-semibold text-lg">Keranjang</span>
+      <div class="flex h-12 shrink-0 items-center justify-between border-b px-4">
+        <h2 class="font-semibold text-lg">Keranjang</h2>
         <Show when={cartCount() > 0}>
           <span class="text-muted-foreground text-sm">{cartCount()} item</span>
         </Show>

@@ -9,6 +9,10 @@ vi.mock("~/store/cart", () => ({
   addToCart: vi.fn(),
 }));
 
+vi.mock("~/lib/product-images/cache", () => ({
+  resolveCachedProductImageUrl: vi.fn(() => Promise.resolve(null)),
+}));
+
 const user = userEvent.setup();
 
 const mockProducts: ProductWithCategory[] = [

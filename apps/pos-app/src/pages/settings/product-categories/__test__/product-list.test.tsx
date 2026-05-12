@@ -4,6 +4,10 @@ import { Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { Category, Product } from "~/db/menu";
 
+vi.mock("~/lib/product-images/cache", () => ({
+  resolveCachedProductImageUrl: vi.fn(() => Promise.resolve(null)),
+}));
+
 const mockCategories: Category[] = [
   {
     id: "category-1",

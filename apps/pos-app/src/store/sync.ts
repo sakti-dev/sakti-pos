@@ -3,17 +3,20 @@ import { createSignal } from "solid-js";
 import { getSyncStatus } from "~/lib/api/sync";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
+import { hydrateMissingProductImages } from "~/lib/product-images/cache";
+import { requestUploadPendingProductImages } from "~/lib/product-images/upload-queue";
 import { describeError } from "~/lib/utils";
-import { currentOutletId } from "./outlet";
+import { currentMerchantId, currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";
 export type SyncMode = "skipped" | "push_only" | "pull_only" | "full";
 
 const [syncStatus, setSyncStatus] = createSignal<SyncStatus>("idle");
 const [lastSyncTime, setLastSyncTime] = createSignal<string | null>(null);
+const [lastAssetQueueCount, setLastAssetQueueCount] = createSignal(0);
 const syncLogger = createLogger({ module: "sync" });
 
-export { lastSyncTime, syncStatus };
+export { lastAssetQueueCount, lastSyncTime, syncStatus };
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -68,6 +71,28 @@ function withMode(
   return { ...result, mode };
 }
 
+async function uploadPendingProductImages(
+  merchantId: string,
+  sessionToken: string
+): Promise<void> {
+  try {
+    syncLogger.info("asset_upload_queue_started", { merchantId });
+    const queuedCount = await requestUploadPendingProductImages({
+      apiUrl: API_URL,
+      merchantId,
+      sessionToken,
+    });
+    setLastAssetQueueCount(queuedCount);
+    syncLogger.info("asset_upload_queue_finished", {
+      merchantId,
+      uploadedCount: queuedCount,
+    });
+  } catch (error) {
+    setLastAssetQueueCount(0);
+    syncLogger.error("asset_upload_queue_failed", error, { merchantId });
+  }
+}
+
 async function invokeSyncTransfer(
   command:
     | "sync_full_resync"
@@ -97,6 +122,11 @@ export async function syncNow(): Promise<SyncNowResult> {
 
   setSyncStatus("syncing");
   try {
+    const merchantId = currentMerchantId();
+    if (merchantId) {
+      await uploadPendingProductImages(merchantId, sessionToken);
+    }
+
     const localState = await invoke<LocalSyncState>("get_sync_local_state", {
       outletId,
     });
@@ -159,6 +189,24 @@ export async function syncNow(): Promise<SyncNowResult> {
       tablesSynced: result.push.tables_synced,
     });
     setLastSyncTime(result.pull.server_time);
+    if (merchantId) {
+      try {
+        syncLogger.info("asset_hydration_started", { merchantId });
+        const hydratedCount = await hydrateMissingProductImages({
+          apiUrl: API_URL,
+          merchantId,
+          sessionToken,
+        });
+        syncLogger.info("asset_hydration_finished", {
+          hydratedCount,
+          merchantId,
+        });
+      } catch (hydrateError) {
+        syncLogger.error("asset_hydration_failed", hydrateError, {
+          merchantId,
+        });
+      }
+    }
     setSyncStatus("idle");
     return result;
   } catch (err) {

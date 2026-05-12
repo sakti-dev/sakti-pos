@@ -7,7 +7,9 @@ import { recordLocalChange } from "./sync-outbox";
 
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
-export type Product = typeof products.$inferSelect;
+export type Product = Omit<typeof products.$inferSelect, "imageAssetId"> & {
+  imageAssetId?: string | null;
+};
 export type NewProduct = typeof products.$inferInsert;
 export type OutletProduct = typeof outletProducts.$inferSelect;
 
