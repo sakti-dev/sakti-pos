@@ -98,7 +98,13 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
                 if let Err(e) = sqlx::query(stmt).execute(&mut *tx).await {
                     let msg = e.to_string();
                     if msg.contains("already exists") || msg.contains("duplicate column") {
-                        eprintln!("Migration statement skipped: {}", msg);
+                        crate::pos_log!(
+                            info,
+                            "DB",
+                            "MIGRATION:SKIP",
+                            "Migration statement skipped",
+                            "reason" => msg
+                        );
                     } else {
                         return Err(format!("Migration {} failed: {}", name, e));
                     }

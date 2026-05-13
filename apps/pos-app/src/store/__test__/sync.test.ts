@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
 const mockGetSyncStatus = vi.fn();
-const mockProcessPendingProductPhotoJobs = vi.fn();
+const mockProcessPendingAssetJobs = vi.fn();
 const mockRequestUploadPendingProductImages = vi.fn();
+const mockHydrateMissingProductImages = vi.fn();
 let mockOutletId: string | null = "outlet-1";
 let mockMerchantId: string | null = "merchant-1";
 let mockToken: string | null = "test-session-token";
@@ -28,12 +29,13 @@ vi.mock("~/lib/api/sync", () => ({
 }));
 
 vi.mock("~/lib/assets", () => ({
-  processPendingProductPhotoJobs: (...args: unknown[]) =>
-    mockProcessPendingProductPhotoJobs(...args),
+  processPendingAssetJobs: (...args: unknown[]) =>
+    mockProcessPendingAssetJobs(...args),
 }));
 
 vi.mock("~/lib/product-images/cache", () => ({
-  hydrateMissingProductImages: vi.fn(() => Promise.resolve(0)),
+  hydrateMissingProductImages: (...args: unknown[]) =>
+    mockHydrateMissingProductImages(...args),
 }));
 
 vi.mock("~/lib/product-images/upload-queue", () => ({
@@ -64,7 +66,8 @@ describe("syncNow", () => {
     mockOutletId = "outlet-1";
     mockMerchantId = "merchant-1";
     mockToken = "test-session-token";
-    mockProcessPendingProductPhotoJobs.mockResolvedValue(0);
+    mockProcessPendingAssetJobs.mockResolvedValue(0);
+    mockHydrateMissingProductImages.mockResolvedValue(0);
     mockGetSyncStatus.mockResolvedValue({
       changedTables: [],
       hasChanges: false,
@@ -86,7 +89,7 @@ describe("syncNow", () => {
       purged: 0,
     });
     expect(mockInvoke).not.toHaveBeenCalled();
-    expect(mockProcessPendingProductPhotoJobs).not.toHaveBeenCalled();
+    expect(mockProcessPendingAssetJobs).not.toHaveBeenCalled();
   });
 
   test("throws when no session token", async () => {
@@ -112,7 +115,7 @@ describe("syncNow", () => {
       merchantId: "merchant-1",
       sessionToken: "test-session-token",
     });
-    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledWith({
+    expect(mockProcessPendingAssetJobs).toHaveBeenCalledWith({
       limit: 20,
     });
     expect(mockInvoke).toHaveBeenCalledTimes(1);
@@ -129,13 +132,13 @@ describe("syncNow", () => {
 
   test("runs a follow-up sync when another sync is requested during an active run", async () => {
     let finishPhotoJobs: ((value: number) => void) | undefined;
-    mockProcessPendingProductPhotoJobs.mockImplementationOnce(
+    mockProcessPendingAssetJobs.mockImplementationOnce(
       () =>
         new Promise<number>((resolve) => {
           finishPhotoJobs = resolve;
         })
     );
-    mockProcessPendingProductPhotoJobs.mockResolvedValueOnce(0);
+    mockProcessPendingAssetJobs.mockResolvedValueOnce(0);
     mockRequestUploadPendingProductImages.mockResolvedValue(0);
     mockInvoke
       .mockResolvedValueOnce({
@@ -160,7 +163,7 @@ describe("syncNow", () => {
     const secondSync = syncNow();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledTimes(1);
+    expect(mockProcessPendingAssetJobs).toHaveBeenCalledTimes(1);
     expect(mockRequestUploadPendingProductImages).not.toHaveBeenCalled();
 
     finishPhotoJobs?.(1);
@@ -171,7 +174,7 @@ describe("syncNow", () => {
 
     expect(firstResult).toBe(secondResult);
     expect(secondResult.mode).toBe("skipped");
-    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledTimes(2);
+    expect(mockProcessPendingAssetJobs).toHaveBeenCalledTimes(2);
     expect(mockRequestUploadPendingProductImages).toHaveBeenCalledTimes(2);
     expect(mockInvoke).toHaveBeenNthCalledWith(1, "get_sync_local_state", {
       outletId: "outlet-1",
@@ -214,9 +217,86 @@ describe("syncNow", () => {
       merchantId: "merchant-1",
       sessionToken: "test-session-token",
     });
-    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledWith({
+    expect(mockProcessPendingAssetJobs).toHaveBeenCalledWith({
       limit: 20,
     });
+    expect(syncStatus()).toBe("idle");
+  });
+
+  test("resolves sync without waiting for asset hydration", async () => {
+    let finishHydration: ((value: number) => void) | undefined;
+    mockRequestUploadPendingProductImages.mockResolvedValueOnce(0);
+    mockHydrateMissingProductImages.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          finishHydration = resolve;
+        })
+    );
+    mockInvoke.mockResolvedValueOnce({
+      last_server_event_id: 10,
+      local_dirty_count: 0,
+    });
+
+    const result = await syncNow();
+
+    expect(result.mode).toBe("skipped");
+    expect(mockHydrateMissingProductImages).toHaveBeenCalledWith({
+      apiUrl: expect.any(String),
+      merchantId: "merchant-1",
+      sessionToken: "test-session-token",
+    });
+    expect(syncStatus()).toBe("idle");
+
+    finishHydration?.(0);
+  });
+
+  test("does not start overlapping asset hydration", async () => {
+    let finishHydration: ((value: number) => void) | undefined;
+    mockRequestUploadPendingProductImages.mockResolvedValue(0);
+    mockHydrateMissingProductImages.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          finishHydration = resolve;
+        })
+    );
+    mockHydrateMissingProductImages.mockResolvedValueOnce(0);
+    mockInvoke
+      .mockResolvedValueOnce({
+        last_server_event_id: 10,
+        local_dirty_count: 0,
+      })
+      .mockResolvedValueOnce({
+        last_server_event_id: 10,
+        local_dirty_count: 0,
+      });
+
+    await syncNow();
+    await syncNow();
+
+    expect(mockHydrateMissingProductImages).toHaveBeenCalledTimes(1);
+
+    finishHydration?.(1);
+    await vi.waitFor(() =>
+      expect(mockHydrateMissingProductImages).toHaveBeenCalledTimes(2)
+    );
+  });
+
+  test("keeps sync successful when background asset hydration fails", async () => {
+    mockRequestUploadPendingProductImages.mockResolvedValueOnce(0);
+    mockHydrateMissingProductImages.mockRejectedValueOnce(
+      new Error("hydrate failed")
+    );
+    mockInvoke.mockResolvedValueOnce({
+      last_server_event_id: 10,
+      local_dirty_count: 0,
+    });
+
+    const result = await syncNow();
+
+    expect(result.mode).toBe("skipped");
+    await vi.waitFor(() =>
+      expect(mockHydrateMissingProductImages).toHaveBeenCalledOnce()
+    );
     expect(syncStatus()).toBe("idle");
   });
 

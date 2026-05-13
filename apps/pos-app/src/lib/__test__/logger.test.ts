@@ -1,47 +1,57 @@
+import {
+  error as pluginError,
+  info as pluginInfo,
+  warn as pluginWarn,
+} from "@tauri-apps/plugin-log";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createLogger, logger } from "../logger";
 
+vi.mock("@tauri-apps/plugin-log", () => ({
+  debug: vi.fn(() => Promise.resolve()),
+  error: vi.fn(() => Promise.resolve()),
+  info: vi.fn(() => Promise.resolve()),
+  warn: vi.fn(() => Promise.resolve()),
+}));
+
 afterEach(() => {
-  vi.restoreAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("logger", () => {
   test("formats info logs with context", () => {
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
-
     logger.info("cloud-auth:request", {
       method: "POST",
       path: "/api/auth/login",
     });
 
-    expect(info).toHaveBeenCalledWith(
-      '[INFO] cloud-auth:request {"method":"POST","path":"/api/auth/login"}'
+    expect(pluginInfo).toHaveBeenCalledWith(
+      "[JS] [UI:CLOUD_AUTH_REQUEST] cloud-auth:request method=POST path=/api/auth/login"
     );
   });
 
   test("merges child context and formats errors", () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const scoped = createLogger({ module: "printer" }).child({
-      scope: "settings",
-    });
+    const scoped = createLogger({ domain: "PRINTER", module: "printer" }).child(
+      {
+        scope: "settings",
+      }
+    );
 
     scoped.error("test:failed", new Error("Bluetooth is off"), {
       address: "00:11:22:33:44:55",
     });
 
-    expect(error).toHaveBeenCalledWith(
-      '[ERROR] test:failed {"module":"printer","scope":"settings","address":"00:11:22:33:44:55","error":"Error: Bluetooth is off"}'
+    expect(pluginError).toHaveBeenCalledWith(
+      '[JS] [PRINTER:TEST_FAILED] test:failed address=00:11:22:33:44:55 error="Error: Bluetooth is off"'
     );
   });
 
-  test("applies module defaults without repeating them at the call site", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const authLogger = createLogger({ module: "auth" });
+  test("applies domain defaults without repeating them at the call site", () => {
+    const authLogger = createLogger({ domain: "AUTH", module: "auth" });
 
     authLogger.warn("session:missing");
 
-    expect(warn).toHaveBeenCalledWith(
-      '[WARN] session:missing {"module":"auth"}'
+    expect(pluginWarn).toHaveBeenCalledWith(
+      "[JS] [AUTH:SESSION_MISSING] session:missing"
     );
   });
 });

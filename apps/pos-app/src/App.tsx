@@ -11,6 +11,7 @@ import { currentUserRole, isAuthenticated } from "./store/auth";
 import { isDevicePaired } from "./store/outlet";
 import "./index.css";
 import Layout from "./components/layout";
+import { createLogger } from "./lib/logger";
 import Dashboard from "./pages/dashboard/dashboard";
 import CloudLogin from "./pages/login/cloud-login";
 import CloudRegister from "./pages/login/cloud-register";
@@ -31,13 +32,19 @@ import UserForm from "./pages/users/user-form";
 import UserList from "./pages/users/user-list";
 import UserManagement from "./pages/users/user-management";
 
+const appLogger = createLogger({
+  domain: "UI",
+  module: "ui",
+  scope: "auth-guard",
+});
+
 function RequireAuth(props: { children: JSX.Element; roles?: string[] }) {
   const navigate = useNavigate();
 
   createEffect(() => {
     const authed = isAuthenticated();
     const paired = isDevicePaired();
-    console.log("[SYNC-DEBUG] RequireAuth guard", { authed, paired });
+    appLogger.debug("require_auth_guard", { authed, paired });
     if (!authed) {
       navigate(paired ? "/login" : "/cloud-login");
     }

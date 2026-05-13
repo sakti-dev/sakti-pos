@@ -1,8 +1,12 @@
-import { render, screen } from "@solidjs/testing-library";
+import { render, screen, waitFor } from "@solidjs/testing-library";
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { Category, Product } from "~/db/menu";
+import {
+  notifyAssetAttachmentReady,
+  resetDomainCatalogVersionsForTest,
+} from "~/store/domain-catalog";
 
 vi.mock("~/lib/product-images/cache", () => ({
   resolveCachedProductImageUrl: vi.fn(() => Promise.resolve(null)),
@@ -179,6 +183,7 @@ import ProductList from "../product-list";
 describe("ProductList", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    resetDomainCatalogVersionsForTest();
   });
 
   test("renders products grouped by category", async () => {
@@ -214,6 +219,23 @@ describe("ProductList", () => {
     await screen.findByText("Produk");
     expect(screen.getByTestId("category-filter")).toBeInTheDocument();
     expect(screen.getByText("+ Tambah")).toBeInTheDocument();
+  });
+
+  test("refetches products when product asset attachment is ready", async () => {
+    const { getProducts } = await import("~/db/menu");
+
+    render(() => <ProductList />);
+    await screen.findByText("Kopi Susu");
+    expect(getProducts).toHaveBeenCalledTimes(1);
+
+    notifyAssetAttachmentReady({
+      assetId: "asset-1",
+      entityId: "product-1",
+      entityType: "product",
+      field: "image_asset_id",
+    });
+
+    await waitFor(() => expect(getProducts).toHaveBeenCalledTimes(2));
   });
 
   test("shows product count grouped correctly", async () => {

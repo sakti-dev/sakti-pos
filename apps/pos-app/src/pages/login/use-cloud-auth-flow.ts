@@ -15,7 +15,10 @@ import { getActiveStaff, loginWithCloudStaff } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
-const cloudLoginLogger = createLogger({ module: "cloud-login" });
+const cloudLoginLogger = createLogger({
+  domain: "AUTH",
+  module: "cloud-login",
+});
 
 export type CloudAuthStep = "auth" | "merchant-picker" | "outlet-picker";
 

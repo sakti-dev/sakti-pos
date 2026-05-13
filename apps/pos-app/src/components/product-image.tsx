@@ -1,6 +1,7 @@
 import { createResource, Show } from "solid-js";
 import { resolveCachedProductImageUrl } from "~/lib/product-images/cache";
 import { getPendingProductPhotoPreviewUrl } from "~/lib/product-images/pending";
+import { getAssetCacheVersion } from "~/store/asset-cache";
 
 interface ProductImageProps {
   alt: string;
@@ -11,8 +12,11 @@ interface ProductImageProps {
 
 export function ProductImage(props: ProductImageProps) {
   const [cachedImageUrl] = createResource(
-    () => props.imageAssetId,
-    resolveCachedProductImageUrl
+    () => ({
+      assetId: props.imageAssetId,
+      version: getAssetCacheVersion(props.imageAssetId),
+    }),
+    ({ assetId }) => resolveCachedProductImageUrl(assetId)
   );
   const [pendingImageUrl] = createResource(
     () => ({

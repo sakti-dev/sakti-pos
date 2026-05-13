@@ -2,6 +2,7 @@ mod android_fs;
 mod assets;
 mod db_utils;
 mod drizzle_proxy;
+mod logging;
 mod photo_picker;
 mod printer;
 mod sync;
@@ -9,11 +10,30 @@ mod time_utils;
 
 use argon2::{hash_raw, Config, Variant, Version};
 use tauri::Manager;
+use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_stronghold::Builder;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .clear_targets()
+                .target(Target::new(TargetKind::Stdout))
+                .target(Target::new(TargetKind::LogDir { file_name: None }))
+                .target(Target::new(TargetKind::Webview))
+                .level(if cfg!(debug_assertions) {
+                    log::LevelFilter::Debug
+                } else {
+                    log::LevelFilter::Info
+                })
+                .level_for("h2", log::LevelFilter::Info)
+                .level_for("hyper", log::LevelFilter::Info)
+                .level_for("hyper_util", log::LevelFilter::Info)
+                .level_for("reqwest", log::LevelFilter::Info)
+                .level_for("rustls", log::LevelFilter::Info)
+                .build(),
+        )
         .plugin(tauri_plugin_android_fs::init())
         .plugin(photo_picker::init())
         .plugin(printer::init())
@@ -26,19 +46,30 @@ pub fn run() {
                         handle.manage(drizzle_proxy::AppState { db_pool: pool });
                         tauri::async_runtime::spawn(async move {
                             if let Err(error) =
-                                assets::reset_incomplete_pending_product_photo_jobs(&pool_for_jobs)
-                                    .await
+                                assets::reset_incomplete_pending_asset_processing_jobs(
+                                    &pool_for_jobs,
+                                )
+                                .await
                             {
-                                eprintln!(
-                                    "[PHOTO-DEBUG] product_photo_jobs:startup_reset_failed error={}",
-                                    error
+                                crate::pos_log!(
+                                    error,
+                                    "ASSET",
+                                    "JOB:RESET:FAIL",
+                                    "Failed to reset incomplete asset jobs",
+                                    "error" => error
                                 );
                                 return;
                             }
                         });
                     }
                     Err(e) => {
-                        eprintln!("CRITICAL: Failed to initialize database: {}", e);
+                        crate::pos_log!(
+                            error,
+                            "DB",
+                            "INIT:FAIL",
+                            "Failed to initialize database",
+                            "error" => e
+                        );
                     }
                 }
             });
@@ -68,9 +99,9 @@ pub fn run() {
             assets::prepare_local_product_image_asset,
             assets::prepare_local_product_image_asset_from_path,
             assets::read_cached_asset_data,
-            assets::enqueue_product_photo_processing,
+            assets::enqueue_asset_processing,
             assets::get_pending_product_photo_preview,
-            assets::process_pending_product_photo_jobs,
+            assets::process_pending_asset_jobs,
             photo_picker::pick_product_photo,
             photo_picker::delete_temp_product_photo,
             assets::upload_pending_product_images,

@@ -1,12 +1,14 @@
 /* @refresh reload */
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
+import { startAppEventListeners } from "./lib/app/listeners";
 import { loadOutletContext } from "./store/outlet";
 import { runStartupSync } from "./store/sync";
 import "./index.css";
 import App from "./App";
 
 loadOutletContext();
+startAppEventListeners();
 
 const [booted, setBooted] = createSignal(false);
 const [bootError, setBootError] = createSignal<string | null>(null);

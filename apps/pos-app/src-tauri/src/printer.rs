@@ -24,8 +24,8 @@ pub struct PrintThermalReceiptArgs {
 #[cfg(target_os = "android")]
 fn log_printer_error(event: &str, details: Option<&str>) {
     match details {
-        Some(details) => eprintln!("[PRINTER] {} {}", event, details),
-        None => eprintln!("[PRINTER] {}", event),
+        Some(details) => log::info!("[RUST] [PRINTER:TRACE] {} {}", event, details),
+        None => log::info!("[RUST] [PRINTER:TRACE] {}", event),
     }
 }
 

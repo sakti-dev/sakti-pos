@@ -5,6 +5,12 @@ import {
 } from "@repo/protobuf/assets";
 import { invoke } from "@tauri-apps/api/core";
 import { protoFetch } from "~/lib/api/client";
+import { createLogger } from "~/lib/logger";
+
+const assetLogger = createLogger({
+  domain: "ASSET",
+  module: "assets",
+});
 
 export interface ProcessedImageAsset {
   byteSize: number;
@@ -25,17 +31,25 @@ export interface PreparedLocalAsset {
   localPath: string;
 }
 
-export interface EnqueueProductPhotoProcessingInput {
-  kind: string;
-  merchantId: string;
-  originalFilename: string;
-  path: string;
-  previewBase64?: string;
-  previewMimeType?: string;
-  productId: string;
+export type AssetProcessingKind = "image:webp-thumbnail";
+export type AssetEntityType = "product";
+export type AssetAttachmentField = "image_asset_id";
+
+export interface AssetProcessingTarget {
+  entityId: string;
+  entityType: AssetEntityType;
+  field: AssetAttachmentField;
 }
 
-export interface EnqueueProductPhotoProcessingResponse {
+export interface EnqueueAssetProcessingInput {
+  originalFilename: string;
+  processingKind: AssetProcessingKind;
+  sourceMimeType?: string | null;
+  sourcePath: string;
+  target: AssetProcessingTarget;
+}
+
+export interface EnqueueAssetProcessingResult {
   jobId: string;
 }
 
@@ -205,29 +219,52 @@ export async function prepareLocalProductImageAssetFromPath(input: {
   );
 }
 
-export async function enqueueProductPhotoProcessing(
-  input: EnqueueProductPhotoProcessingInput
-): Promise<EnqueueProductPhotoProcessingResponse> {
-  return await invoke<EnqueueProductPhotoProcessingResponse>(
-    "enqueue_product_photo_processing",
-    {
-      kind: input.kind,
-      merchantId: input.merchantId,
-      originalFilename: input.originalFilename,
-      path: input.path,
-      previewBase64: input.previewBase64,
-      previewMimeType: input.previewMimeType,
-      productId: input.productId,
-    }
-  );
+export async function enqueueAssetProcessing(
+  input: EnqueueAssetProcessingInput
+): Promise<EnqueueAssetProcessingResult> {
+  assetLogger.info("enqueue_asset_processing_invoke", {
+    entityId: input.target.entityId,
+    entityType: input.target.entityType,
+    field: input.target.field,
+    originalFilename: input.originalFilename,
+    processingKind: input.processingKind,
+    sourceMimeType: input.sourceMimeType ?? null,
+    sourcePath: input.sourcePath,
+  });
+  try {
+    const result = await invoke<EnqueueAssetProcessingResult>(
+      "enqueue_asset_processing",
+      { request: input }
+    );
+    assetLogger.info("enqueue_asset_processing_result", {
+      entityId: input.target.entityId,
+      jobId: result.jobId,
+    });
+    return result;
+  } catch (error) {
+    assetLogger.error("enqueue_asset_processing_failed", error, {
+      entityId: input.target.entityId,
+      sourcePath: input.sourcePath,
+    });
+    throw error;
+  }
 }
 
-export async function processPendingProductPhotoJobs(input: {
-  limit?: number;
-}): Promise<number> {
-  return await invoke<number>("process_pending_product_photo_jobs", {
-    limit: input.limit ?? 20,
-  });
+export async function processPendingAssetJobs(
+  input: { limit?: number } = {}
+): Promise<number> {
+  const limit = input.limit ?? 20;
+  assetLogger.info("process_pending_asset_jobs_invoke", { limit });
+  try {
+    const processedCount = await invoke<number>("process_pending_asset_jobs", {
+      limit,
+    });
+    assetLogger.info("process_pending_asset_jobs_result", { processedCount });
+    return processedCount;
+  } catch (error) {
+    assetLogger.error("process_pending_asset_jobs_failed", error, { limit });
+    throw error;
+  }
 }
 
 export function createWebpPreviewUrl(dataBase64: string): string {

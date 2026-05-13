@@ -12,11 +12,12 @@ import { getDefaultPrinter, printReceipt } from "~/lib/printer/client";
 import type { ReceiptData } from "~/lib/receipt/types";
 import { currentUser, currentUserRole } from "~/store/auth";
 import { cartItems, cartTotal, clearCart } from "~/store/cart";
+import { getDomainCatalogVersion } from "~/store/domain-catalog";
 import { currentOutletId, currentOutletTimezone } from "~/store/outlet";
 import { useIsPhone } from "~/store/responsive";
 import { getCategoryNames, getVisibleProducts } from "./pos-utils";
 
-const posLogger = createLogger({ module: "pos" });
+const posLogger = createLogger({ domain: "POS", module: "pos" });
 
 interface OutletOption {
   id: string;
@@ -49,7 +50,10 @@ export interface PosState {
 
 export function usePos(): PosState {
   const isPhone = useIsPhone();
-  const [groupedData] = createResource(getActiveProductsByCategory);
+  const [groupedData] = createResource(
+    () => getDomainCatalogVersion("product"),
+    () => getActiveProductsByCategory()
+  );
   const [outletsData] = createResource(getAllOutlets);
   const role = currentUserRole();
   const [selectedCategory, setSelectedCategory] = createSignal<string | null>(

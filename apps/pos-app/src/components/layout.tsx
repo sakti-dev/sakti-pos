@@ -25,9 +25,16 @@ import {
 import { Toaster } from "solid-sonner";
 import { SyncStatusIndicator } from "~/components/sync-status";
 import { OfflineBanner } from "~/components/ui/offline-banner";
+import { createLogger } from "~/lib/logger";
 import { currentUserRole, isAuthenticated, logout } from "~/store/auth";
 import { currentOutletId, isDevicePaired } from "~/store/outlet";
 import { startSyncScheduler, stopSyncScheduler } from "~/store/sync";
+
+const layoutLogger = createLogger({
+  domain: "UI",
+  module: "ui",
+  scope: "layout",
+});
 
 const navItems = [
   {
@@ -72,7 +79,7 @@ export default function Layout(props: RouteSectionProps) {
     const authed = isAuthenticated();
     const paired = isDevicePaired();
     const publicRoute = isPublicRoute();
-    console.log("[SYNC-DEBUG] Layout guard", {
+    layoutLogger.debug("layout_guard", {
       pathname: location.pathname,
       authed,
       paired,

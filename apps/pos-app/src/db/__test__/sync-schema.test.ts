@@ -1,6 +1,7 @@
 import {
   assets,
   localAssetCache,
+  pendingAssetProcessingJobs,
   pendingProductPhotoJobs,
   syncCursors,
   syncOutbox,
@@ -11,6 +12,7 @@ describe("local smart sync schema", () => {
   test("defines asset registry and compact outbox/cursor tables", () => {
     expect(assets).toBeDefined();
     expect(localAssetCache).toBeDefined();
+    expect(pendingAssetProcessingJobs).toBeDefined();
     expect(pendingProductPhotoJobs).toBeDefined();
     expect(syncOutbox).toBeDefined();
     expect(syncCursors).toBeDefined();

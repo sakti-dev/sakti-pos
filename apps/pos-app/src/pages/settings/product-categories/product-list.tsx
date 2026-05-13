@@ -30,6 +30,7 @@ import {
   updateProduct,
 } from "~/db/menu";
 import { cn, formatIDR } from "~/lib/utils";
+import { getDomainCatalogVersion } from "~/store/domain-catalog";
 
 export default function ProductList(
   props: Partial<RouteSectionProps> & { hideHeader?: boolean } = {}
@@ -40,7 +41,10 @@ export default function ProductList(
     string | undefined
   >(undefined);
   const [products, { refetch }] = createResource(
-    () => ({ filter: filterCategoryId() }),
+    () => ({
+      filter: filterCategoryId(),
+      version: getDomainCatalogVersion("product"),
+    }),
     ({ filter }) => getProducts(filter)
   );
 

@@ -6,6 +6,7 @@
   "permissions": [
     "android-fs:default",
     "core:default",
+    "log:default",
     "opener:default",
     "stronghold:default",
     "stronghold:allow-initialize",

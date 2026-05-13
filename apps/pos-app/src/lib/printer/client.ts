@@ -3,7 +3,7 @@ import { createLogger } from "~/lib/logger";
 import { formatReceiptForAndroid } from "~/lib/receipt/format-receipt";
 import type { ReceiptData } from "~/lib/receipt/types";
 
-const printerLogger = createLogger({ module: "printer" });
+const printerLogger = createLogger({ domain: "PRINTER", module: "printer" });
 
 const DEFAULT_PRINTER_KEY = "sakti.defaultPrinterAddress";
 

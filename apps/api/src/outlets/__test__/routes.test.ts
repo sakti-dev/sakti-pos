@@ -11,6 +11,7 @@ import {
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
+const mockGetSessionFromRequest = vi.fn();
 type MockFn = ReturnType<typeof vi.fn>;
 interface MockDb {
   delete: MockFn;
@@ -32,18 +33,9 @@ vi.mock("../../db", () => ({
   db: mockDb,
 }));
 
-const mockValidateSession = vi.fn();
-vi.mock("../../lib/auth", () => ({
-  narvik: {
-    createSession: vi.fn(),
-    invalidateSession: vi.fn(),
-    cookieName: "narvik_session",
-    validateSession: (...args: unknown[]) => mockValidateSession(...args),
-    createCookie: vi.fn(() => ({ serialize: () => "narvik_session=test" })),
-    createBlankCookie: vi.fn(() => ({
-      serialize: () => "narvik_session=; Max-Age=0",
-    })),
-  },
+vi.mock("../../lib/session", () => ({
+  getSessionFromRequest: (...args: unknown[]) =>
+    mockGetSessionFromRequest(...args),
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -86,7 +78,7 @@ describe("outlets protobuf routes", () => {
     mockInsert.mockReset();
     mockSelect.mockReset();
     mockUpdate.mockReset();
-    mockValidateSession.mockReset();
+    mockGetSessionFromRequest.mockReset();
   });
 
   test("returns 401 when no session", async () => {
@@ -107,7 +99,7 @@ describe("outlets protobuf routes", () => {
   });
 
   test("creates outlet and default register", async () => {
-    mockValidateSession.mockResolvedValue({
+    mockGetSessionFromRequest.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
     });
@@ -189,7 +181,7 @@ describe("outlets protobuf routes", () => {
   });
 
   test("lists merchant outlets", async () => {
-    mockValidateSession.mockResolvedValue({
+    mockGetSessionFromRequest.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
     });
@@ -235,7 +227,7 @@ describe("outlets protobuf routes", () => {
   });
 
   test("updates an outlet", async () => {
-    mockValidateSession.mockResolvedValue({
+    mockGetSessionFromRequest.mockResolvedValue({
       id: "session-1",
       userId: "user-1",
     });

@@ -6,7 +6,7 @@ import type { AuthUser } from "~/lib/auth/provider";
 import { changePin, verifyPin } from "~/lib/auth/provider";
 import { createLogger } from "~/lib/logger";
 
-const authLogger = createLogger({ module: "auth" });
+const authLogger = createLogger({ domain: "AUTH", module: "auth" });
 
 export type { StaffRole } from "~/lib/auth/provider";
 export type { AuthUser };

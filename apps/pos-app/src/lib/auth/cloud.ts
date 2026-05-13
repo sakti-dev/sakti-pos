@@ -9,7 +9,11 @@ import { API_URL, getApiErrorMessage } from "~/lib/http";
 import { createLogger } from "~/lib/logger";
 import { AuthStorage } from "./storage";
 
-const cloudAuthLogger = createLogger({ module: "auth", scope: "cloud" });
+const cloudAuthLogger = createLogger({
+  domain: "AUTH",
+  module: "auth",
+  scope: "cloud",
+});
 
 interface ApiUser {
   email: string;

@@ -1,123 +1,75 @@
-# Ultracite Code Standards
+# Agent Instructions
 
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
+Detailed project instructions live in `.agents/instructions/`. This file is the compact root summary.
 
-## Quick Reference
+## Code Standards
 
-- **Format code**: `bun x ultracite fix`
-- **Check for issues**: `bun x ultracite check`
-- **Diagnose setup**: `bun x ultracite doctor`
+- Use Ultracite/Biome for formatting and linting:
+  - `bun x ultracite check`
+  - `bun x ultracite fix`
+  - `bun x ultracite doctor`
+- Write accessible, performant, type-safe, maintainable code. Prefer clear, explicit logic over clever shortcuts.
+- TypeScript: prefer `unknown` over `any`, type narrowing over assertions, `const` by default, top-level regex literals, specific imports, and `for...of` over `.forEach()`.
+- Async: use `async`/`await`, handle errors intentionally, and do not use async Promise executors.
+- UI: use semantic HTML, stable keys, correct hook usage, and Solid conventions (`class`, `for`).
+- Keep functions focused, extract complex conditions, prefer early returns, and avoid unrelated refactors.
 
-Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
+## Logging And Debugging
 
----
+- Do not leave raw `console.log`, `debugger`, or `alert` in production code.
+- Do not delete operational logs just to satisfy web-style production habits. Sakti POS is an offline-first Android hardware app; `info`, `warn`, and `error` logs are support evidence.
+- TypeScript logs must use `apps/pos-app/src/lib/logger.ts`.
+- Rust logs should use the `log` crate routed through `tauri-plugin-log`; use the project Rust helper/macro when available.
+- Use stable `[ORIGIN] [DOMAIN:ACTION]` prefixes and include matching `adb logcat` commands when adding investigation logs.
+- Before suggesting log filters or investigation commands, read `docs/knowledge/APP-LOGGING-DOCS.md` so the prefixes match the documented app logs for the issue being investigated.
+- Prefer PID-scoped logcat for app debugging. The useful boundary is the app process, not Android tags; JS logs often appear under a blank tag and Rust logs may appear under module tags, so grep the structured message prefix.
+- Use two standard patterns:
+  - Normal app investigation: `PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image'`
+  - Crash or native investigation: add `AndroidRuntime|libc|fatal|exception|crash` to the same PID-scoped command.
+- When implementing a feature or fix that adds a new log prefix, update `docs/knowledge/APP-LOGGING-DOCS.md` in the same change so future investigations can find it.
+- Current prefix taxonomy: `docs/knowledge/APP-LOGGING-DOCS.md`.
+- Throw descriptive `Error` objects, do not catch only to rethrow, and prefer early returns over nested error handling.
 
-## Core Principles
+## ADR Rules
 
-Write code that is **accessible, performant, type-safe, and maintainable**. Focus on clarity and explicit intent over brevity.
+- Architecture decisions live in `docs/adr/` as a flat chronological list. Do not create domain folders for ADRs.
+- When instructed to write an ADR, check `docs/adr/` for the next available number and create `000N-short-kebab-title.md`.
+- Every ADR must include Markdown frontmatter with `id`, `title`, `date`, `status`, and `domains`.
+- Use the standard sections: `Context`, `Decision`, and `Consequences`.
+- Use `status: accepted` for active decisions unless the user says otherwise. Do not delete old ADRs; mark them `deprecated` or `superseded`.
+- Keep operational references such as log prefix inventories in `docs/knowledge/`, and link them from ADRs when relevant.
 
-### Type Safety & Explicitness
+## Cloudflare Workers
 
-- Use explicit types for function parameters and return values when they enhance clarity
-- Prefer `unknown` over `any` when the type is genuinely unknown
-- Use const assertions (`as const`) for immutable values and literal types
-- Leverage TypeScript's type narrowing instead of type assertions
-- Use meaningful variable names instead of magic numbers - extract constants with descriptive names
+- For Workers, KV, R2, D1, Durable Objects, Queues, Vectorize, Workers AI, or Agents SDK work, fetch current Cloudflare docs first. Local knowledge may be stale.
+- Use product-specific docs and `/platform/limits/` pages for limits and quotas.
+- Common commands:
+  - `npx wrangler dev`
+  - `npx wrangler deploy`
+  - `npx wrangler types`
+- Run `wrangler types` after changing bindings in `wrangler.jsonc`.
+- For CPU/memory errors such as 1102, verify current limits from Cloudflare docs.
 
-### Modern JavaScript/TypeScript
+## Verification Definition Of Done
 
-- Use arrow functions for callbacks and short functions
-- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
-- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
-- Prefer template literals over string concatenation
-- Use destructuring for object and array assignments
-- Use `const` by default, `let` only when reassignment is needed, never `var`
+When completing a feature, bug fix, or refactor, include a concise Verification Guide with:
 
-### Async & Promises
+- Manual UI steps: exact screens and actions to exercise the change.
+- Log checks: exact `adb logcat` or `grep` commands for relevant `[DOMAIN:ACTION]` prefixes from `docs/DOCUMENTED-LOG-PREFIX.md`.
+- State/database checks: SQLite, Turso, or MCP commands when state changes.
+- Automated tests: specific scoped `bun test`, `cargo test`, or other commands for touched behavior.
+- Edge cases: one or two realistic production failure modes and how to simulate them locally.
 
-- Always `await` promises in async functions - don't forget to use the return value
-- Use `async/await` syntax instead of promise chains for better readability
-- Handle errors appropriately in async code with try-catch blocks
-- Don't use async functions as Promise executors
+Useful command examples:
 
-### React & JSX
+```bash
+PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image'
+PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|AndroidRuntime|libc|fatal|exception|crash|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image'
+adb logcat -c && adb logcat -v color "*:E"
+bun test apps/api/src/registers/__test__/routes.test.ts
+cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib
+```
 
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-  - Provide meaningful alt text for images
-  - Use proper heading hierarchy
-  - Add labels for form inputs
-  - Include keyboard event handlers alongside mouse events
-  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
+## Review Focus
 
-### Error Handling & Debugging
-
-- Remove `console.log`, `debugger`, and `alert` statements from production code
-- Throw `Error` objects with descriptive messages, not strings or other values
-- Use `try-catch` blocks meaningfully - don't catch errors just to rethrow them
-- Prefer early returns over nested conditionals for error cases
-
-### Code Organization
-
-- Keep functions focused and under reasonable cognitive complexity limits
-- Extract complex conditions into well-named boolean variables
-- Use early returns to reduce nesting
-- Prefer simple conditionals over nested ternary operators
-- Group related code together and separate concerns
-
-### Security
-
-- Add `rel="noopener"` when using `target="_blank"` on links
-- Avoid `dangerouslySetInnerHTML` unless absolutely necessary
-- Don't use `eval()` or assign directly to `document.cookie`
-- Validate and sanitize user input
-
-### Performance
-
-- Avoid spread syntax in accumulators within loops
-- Use top-level regex literals instead of creating them in loops
-- Prefer specific imports over namespace imports
-- Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
-
-### Framework-Specific Guidance
-
-**Next.js:**
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
-
-**React 19+:**
-- Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
-
----
-
-## Testing
-
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
-
-## When Biome Can't Help
-
-Biome's linter will catch most issues automatically. Focus your attention on:
-
-1. **Business logic correctness** - Biome can't validate your algorithms
-2. **Meaningful naming** - Use descriptive names for functions, variables, and types
-3. **Architecture decisions** - Component structure, data flow, and API design
-4. **Edge cases** - Handle boundary conditions and error states
-5. **User experience** - Accessibility, performance, and usability considerations
-6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
-
----
-
-Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+Biome/Ultracite handle formatting. Human review should focus on business correctness, naming, architecture, edge cases, UX/accessibility/performance, and useful documentation.

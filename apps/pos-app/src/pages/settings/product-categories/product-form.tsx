@@ -23,7 +23,7 @@ import {
 } from "~/db/menu";
 import {
   deleteTempProductPhoto,
-  enqueueProductPhotoProcessing,
+  enqueueAssetProcessing,
   type PickedProductPhoto,
   type ProductPhotoSource,
   pickProductPhoto,
@@ -75,7 +75,10 @@ export default function ProductForm() {
     () => (pendingPhoto() ? null : imageAssetId()),
     resolveCachedProductImageUrl
   );
-  const photoLogger = createLogger({ module: "product-photo" });
+  const photoLogger = createLogger({
+    domain: "PHOTO",
+    module: "product-photo",
+  });
   const revokePreviewUrl = (previewUrl: string | null) => {
     if (previewUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
@@ -240,35 +243,57 @@ export default function ProductForm() {
         price: values.price,
         imageAssetId: nextImageAssetId,
       };
+      photoLogger.info("submit_started", {
+        hasExistingAsset: !!nextImageAssetId,
+        hasStagedPhoto: !!stagedPhoto,
+        isEdit: isEdit(),
+        merchantId,
+        productId: params.id ?? null,
+        stagedPhotoMimeType: stagedPhoto?.mimeType ?? null,
+        stagedPhotoPath: stagedPhoto?.path ?? null,
+        stagedPhotoSource: stagedPhoto?.source ?? null,
+      });
 
       let savedProductId: string;
       let shouldTriggerPhotoSync = false;
       if (isEdit()) {
         const updatedProduct = await updateProduct(params.id ?? "", data);
         savedProductId = updatedProduct.id;
+        photoLogger.info("product_updated", {
+          imageAssetId: data.imageAssetId,
+          productId: savedProductId,
+        });
       } else {
         const createdProduct = await createProduct({
           ...data,
           merchantId,
         });
         savedProductId = createdProduct.id;
+        photoLogger.info("product_created", {
+          imageAssetId: data.imageAssetId,
+          productId: savedProductId,
+        });
       }
 
       if (stagedPhoto) {
         photoLogger.info("path_processing_started", {
           name: stagedPhoto.originalFilename,
+          productId: savedProductId,
           source: stagedPhoto.source,
+          sourceMimeType: stagedPhoto.mimeType,
+          sourcePath: stagedPhoto.path,
         });
         try {
-          const { jobId } = await enqueueProductPhotoProcessing({
-            kind: "product_photo",
-            merchantId,
+          const { jobId } = await enqueueAssetProcessing({
             originalFilename: stagedPhoto.originalFilename,
-            path: stagedPhoto.path,
-            previewBase64: stagedPhoto.previewBase64,
-            previewMimeType:
-              stagedPhoto.previewMimeType ?? stagedPhoto.mimeType,
-            productId: savedProductId,
+            processingKind: "image:webp-thumbnail",
+            sourceMimeType: stagedPhoto.mimeType,
+            sourcePath: stagedPhoto.path,
+            target: {
+              entityId: savedProductId,
+              entityType: "product",
+              field: "image_asset_id",
+            },
           });
 
           photoLogger.info("pending_photo_job_enqueued", {
@@ -285,11 +310,21 @@ export default function ProductForm() {
           toast.error("Foto tersimpan, tapi job background gagal dijadwalkan");
         }
       }
+      photoLogger.info("navigate_to_product_list", {
+        productId: savedProductId,
+        shouldTriggerPhotoSync,
+      });
       navigate("/settings/products-categories", { replace: true });
       if (shouldTriggerPhotoSync) {
+        photoLogger.info("background_sync_triggered", {
+          productId: savedProductId,
+        });
         triggerBackgroundPhotoSync(savedProductId);
       }
     } catch (e) {
+      photoLogger.error("submit_failed", e, {
+        productId: params.id ?? null,
+      });
       setError(e instanceof Error ? e.message : "Gagal menyimpan produk");
     }
   };

@@ -14,12 +14,12 @@ const { AssetPresignDownloadRequest } = await import("@repo/protobuf/assets");
 
 const {
   base64ToUint8Array,
-  enqueueProductPhotoProcessing,
+  enqueueAssetProcessing,
   persistCachedAsset,
   pickProductPhoto,
   presignAssetDownload,
   processImageFile,
-  processPendingProductPhotoJobs,
+  processPendingAssetJobs,
   prepareLocalProductImageAsset,
   prepareLocalProductImageAssetFromPath,
   readCachedAssetData,
@@ -204,49 +204,46 @@ describe("assets helpers", () => {
     });
   });
 
-  test("enqueueProductPhotoProcessing sends the staged photo job to Rust", async () => {
-    mockInvoke.mockResolvedValue({
-      jobId: "job-1",
-    });
+  test("enqueueAssetProcessing invokes the generic asset processing command", async () => {
+    mockInvoke.mockResolvedValueOnce({ jobId: "job-1" });
 
-    const result = await enqueueProductPhotoProcessing({
-      kind: "product_photo",
-      merchantId: "merchant-1",
-      originalFilename: "menu.png",
-      path: "/tmp/product_photo_inputs/menu.png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
-      productId: "product-1",
+    const result = await enqueueAssetProcessing({
+      originalFilename: "nasi.jpg",
+      processingKind: "image:webp-thumbnail",
+      sourceMimeType: "image/jpeg",
+      sourcePath: "/tmp/nasi.jpg",
+      target: {
+        entityId: "product-1",
+        entityType: "product",
+        field: "image_asset_id",
+      },
     });
 
     expect(result).toEqual({ jobId: "job-1" });
-    expect(mockInvoke).toHaveBeenCalledWith(
-      "enqueue_product_photo_processing",
-      {
-        kind: "product_photo",
-        merchantId: "merchant-1",
-        originalFilename: "menu.png",
-        path: "/tmp/product_photo_inputs/menu.png",
-        previewBase64: "cHJldmlldw==",
-        previewMimeType: "image/jpeg",
-        productId: "product-1",
-      }
-    );
+    expect(mockInvoke).toHaveBeenCalledWith("enqueue_asset_processing", {
+      request: {
+        originalFilename: "nasi.jpg",
+        processingKind: "image:webp-thumbnail",
+        sourceMimeType: "image/jpeg",
+        sourcePath: "/tmp/nasi.jpg",
+        target: {
+          entityId: "product-1",
+          entityType: "product",
+          field: "image_asset_id",
+        },
+      },
+    });
   });
 
-  test("processPendingProductPhotoJobs asks Rust to resume pending jobs", async () => {
-    mockInvoke.mockResolvedValue(2);
+  test("processPendingAssetJobs invokes generic processor", async () => {
+    mockInvoke.mockResolvedValueOnce(1);
 
-    await expect(processPendingProductPhotoJobs({ limit: 20 })).resolves.toBe(
-      2
-    );
+    const result = await processPendingAssetJobs({ limit: 20 });
 
-    expect(mockInvoke).toHaveBeenCalledWith(
-      "process_pending_product_photo_jobs",
-      {
-        limit: 20,
-      }
-    );
+    expect(result).toBe(1);
+    expect(mockInvoke).toHaveBeenCalledWith("process_pending_asset_jobs", {
+      limit: 20,
+    });
   });
 
   test("presignAssetDownload requests a signed download url", async () => {

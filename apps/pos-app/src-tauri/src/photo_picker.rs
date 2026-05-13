@@ -43,7 +43,7 @@ impl<R: Runtime> ProductPhotoPicker<R> {
                 .mobile_plugin_handle
                 .run_mobile_plugin("pickPhoto", serde_json::json!({ "source": source }))
                 .map_err(|error| {
-                    eprintln!("[PHOTO-DEBUG] pick_product_photo:failed {}", error);
+                    log::info!("[RUST] [PHOTO:TRACE] pick_product_photo:failed {}", error);
                     error.to_string()
                 });
         }
@@ -110,20 +110,23 @@ pub async fn pick_product_photo<R: Runtime>(
     app: tauri::AppHandle<R>,
     source: ProductPhotoSource,
 ) -> Result<PickedProductPhoto, String> {
-    eprintln!("[PHOTO-DEBUG] pick_product_photo:start source={source:?}");
+    log::info!("[RUST] [PHOTO:TRACE] pick_product_photo:start source={source:?}");
     if uses_android_fs_picker(&source) {
         let result = crate::android_fs::pick_gallery_to_product_photo_input(&app).await?;
-        eprintln!(
-            "[PHOTO-DEBUG] pick_product_photo:done source={:?} path={} filename={} mime_type={}",
+        log::info!(
+            "[RUST] [PHOTO:TRACE] pick_product_photo:done source={:?} path={} filename={} mime_type={}",
             result.source, result.path, result.original_filename, result.mime_type
         );
         return Ok(result);
     }
 
     let result = app.state::<ProductPhotoPicker<R>>().pick_photo(source)?;
-    eprintln!(
-        "[PHOTO-DEBUG] pick_product_photo:done source={:?} path={} filename={} mime_type={}",
-        result.source, result.path, result.original_filename, result.mime_type
+    log::info!(
+        "[RUST] [PHOTO:TRACE] pick_product_photo:done source={:?} path={} filename={} mime_type={}",
+        result.source,
+        result.path,
+        result.original_filename,
+        result.mime_type
     );
     Ok(result)
 }
@@ -152,7 +155,7 @@ pub async fn delete_temp_product_photo(path: String) -> Result<(), String> {
 
     match tokio::fs::remove_file(&path_buf).await {
         Ok(()) => {
-            eprintln!("[PHOTO-DEBUG] delete_temp_product_photo:done path={path}");
+            log::info!("[RUST] [PHOTO:TRACE] delete_temp_product_photo:done path={path}");
             Ok(())
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),

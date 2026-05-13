@@ -10,7 +10,7 @@ const mockUpdateProduct = vi.fn();
 const mockPickProductPhoto = vi.fn();
 const mockDeleteTempProductPhoto = vi.fn();
 const mockPrepareLocalProductImageAssetFromPath = vi.fn();
-const mockEnqueueProductPhotoProcessing = vi.fn();
+const mockEnqueueAssetProcessing = vi.fn();
 const mockResolveCachedProductImageUrl = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockSyncNow = vi.fn();
@@ -71,8 +71,8 @@ vi.mock("~/lib/assets", () => ({
   createWebpPreviewUrl: () => "blob:preview-url",
   deleteTempProductPhoto: (...args: unknown[]) =>
     mockDeleteTempProductPhoto(...args),
-  enqueueProductPhotoProcessing: (...args: unknown[]) =>
-    mockEnqueueProductPhotoProcessing(...args),
+  enqueueAssetProcessing: (...args: unknown[]) =>
+    mockEnqueueAssetProcessing(...args),
   pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
   prepareLocalProductImageAssetFromPath: (...args: unknown[]) =>
     mockPrepareLocalProductImageAssetFromPath(...args),
@@ -295,7 +295,7 @@ describe("ProductForm (create mode)", () => {
       price: "10000",
       imageAssetId: null,
     });
-    mockEnqueueProductPhotoProcessing.mockResolvedValue({ jobId: "job-1" });
+    mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
 
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
@@ -312,14 +312,16 @@ describe("ProductForm (create mode)", () => {
     expect(mockCreateProduct).toHaveBeenCalledWith(
       expect.objectContaining({ imageAssetId: null })
     );
-    expect(mockEnqueueProductPhotoProcessing).toHaveBeenCalledWith({
-      kind: "product_photo",
-      merchantId: "merchant-1",
+    expect(mockEnqueueAssetProcessing).toHaveBeenCalledWith({
       originalFilename: "menu.png",
-      path: "/tmp/product_photo_inputs/gallery_1.png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
-      productId: "product-2",
+      processingKind: "image:webp-thumbnail",
+      sourceMimeType: "image/png",
+      sourcePath: "/tmp/product_photo_inputs/gallery_1.png",
+      target: {
+        entityId: "product-2",
+        entityType: "product",
+        field: "image_asset_id",
+      },
     });
     expect(mockToastSuccess).toHaveBeenCalledWith(
       "Foto akan diproses di background"
@@ -357,7 +359,7 @@ describe("ProductForm (create mode)", () => {
       price: "10000",
       imageAssetId: null,
     });
-    mockEnqueueProductPhotoProcessing.mockResolvedValue({ jobId: "job-1" });
+    mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
 
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
@@ -478,7 +480,7 @@ describe("ProductForm (edit mode)", () => {
       price: "15000",
       imageAssetId: "asset-existing",
     });
-    mockEnqueueProductPhotoProcessing.mockResolvedValue({ jobId: "job-1" });
+    mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
 
     render(() => <ProductForm />);
     await screen.findByDisplayValue("Kopi Susu");
@@ -490,8 +492,10 @@ describe("ProductForm (edit mode)", () => {
       "1",
       expect.objectContaining({ imageAssetId: "asset-existing" })
     );
-    expect(mockEnqueueProductPhotoProcessing).toHaveBeenCalledWith(
-      expect.objectContaining({ productId: "1" })
+    expect(mockEnqueueAssetProcessing).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ entityId: "1" }),
+      })
     );
     await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });

@@ -30,6 +30,7 @@ import { PrinterSettingsSchema } from "~/lib/schema/printer-settings-form";
 import { currentOutletId } from "~/store/outlet";
 
 const settingsPrinterLogger = createLogger({
+  domain: "PRINTER",
   module: "settings",
   scope: "printer",
 });

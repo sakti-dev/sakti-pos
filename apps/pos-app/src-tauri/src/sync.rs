@@ -538,8 +538,8 @@ async fn debug_local_table_state(
         })
         .collect::<Vec<_>>();
 
-    println!(
-        "[SYNC-DEBUG] local state: stage={}, table={}, filter_col={}, filter_value={}, rows={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] local state: stage={}, table={}, filter_col={}, filter_value={}, rows={}",
         stage,
         table,
         filter_col,
@@ -566,8 +566,8 @@ async fn upsert_row(conn: &mut SqliteConnection, table: &str, row: &Value) -> Re
     if columns.is_empty() {
         return Ok(());
     }
-    println!(
-        "[SYNC-DEBUG] upsert_row: table={}, source={}, local={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] upsert_row: table={}, source={}, local={}",
         table,
         debug_row_summary(row),
         serde_json::to_string(&redact_debug_value(&Value::Object(local_obj.clone())))
@@ -599,16 +599,16 @@ async fn upsert_row(conn: &mut SqliteConnection, table: &str, row: &Value) -> Re
     }
 
     q.execute(conn).await.map_err(|e| {
-        println!(
-            "[SYNC-DEBUG] upsert_row FAILED: table={}, columns={}, error={}",
+        log::info!(
+            "[RUST] [SYNC:TRACE] upsert_row FAILED: table={}, columns={}, error={}",
             table,
             columns.join(","),
             e
         );
         format!("Failed to upsert into {}: {}", table, e)
     })?;
-    println!(
-        "[SYNC-DEBUG] upsert_row OK: table={}, id={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] upsert_row OK: table={}, id={}",
         table,
         local_obj
             .get("id")
@@ -641,23 +641,24 @@ async fn sync_push_inner(
             .await
             .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
     };
-    println!(
-        "[SYNC-DEBUG] push: outlet_id={}, merchant_id={:?}",
-        outlet_id, merchant_id
+    log::info!(
+        "[RUST] [SYNC:TRACE] push: outlet_id={}, merchant_id={:?}",
+        outlet_id,
+        merchant_id
     );
 
     let mut tables_json = serde_json::Map::new();
     for table in SYNC_TABLES {
         let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
         let rows = read_unsynced_rows(pool, table, filter_value).await?;
-        println!(
-            "[SYNC-DEBUG] push: table={}, unsynced_rows={}",
+        log::info!(
+            "[RUST] [SYNC:TRACE] push: table={}, unsynced_rows={}",
             table,
             rows.len()
         );
         for row in &rows {
-            println!(
-                "[SYNC-DEBUG] push row: table={}, row={}",
+            log::info!(
+                "[RUST] [SYNC:TRACE] push row: table={}, row={}",
                 table,
                 debug_row_summary(row)
             );
@@ -665,7 +666,10 @@ async fn sync_push_inner(
         tables_json.insert(table.to_string(), Value::Array(rows));
     }
 
-    println!("[SYNC-DEBUG] push: sending to {}/api/sync/push", api_url);
+    log::info!(
+        "[RUST] [SYNC:TRACE] push: sending to {}/api/sync/push",
+        api_url
+    );
     let request = build_sync_push_request(outlet_id, Value::Object(tables_json));
     let request_body = request.encode_to_vec();
 
@@ -681,7 +685,11 @@ async fn sync_push_inner(
     let status = response.status();
     if !status.is_success() {
         let text = response.text().await.unwrap_or_default();
-        println!("[SYNC-DEBUG] push FAILED: status={}, body={}", status, text);
+        log::info!(
+            "[RUST] [SYNC:TRACE] push FAILED: status={}, body={}",
+            status,
+            text
+        );
         return Err(format!("Sync push failed ({}): {}", status, text));
     }
 
@@ -691,8 +699,8 @@ async fn sync_push_inner(
         .map_err(|e| format!("Failed to read push response: {}", e))?;
     let result = SyncPushResponse::decode(response_body)
         .map_err(|e| format!("Failed to decode push response: {}", e))?;
-    println!(
-        "[SYNC-DEBUG] push response: server_wins={}, server_time={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] push response: server_wins={}, server_time={}",
         result.server_wins.len(),
         result.server_time
     );
@@ -720,7 +728,10 @@ async fn sync_push_inner(
         server_time.clone()
     };
     let marked_outbox = mark_outbox_synced_tx(&mut tx, outlet_id, &merchant_id, &synced_at).await?;
-    println!("[SYNC-DEBUG] push: marked_outbox_synced={}", marked_outbox);
+    log::info!(
+        "[RUST] [SYNC:TRACE] push: marked_outbox_synced={}",
+        marked_outbox
+    );
     tx.commit()
         .await
         .map_err(|e| format!("Failed to commit push transaction: {}", e))?;
@@ -749,8 +760,8 @@ pub async fn get_sync_local_state(
     let local_dirty_count = outbox_dirty_count.max(legacy_dirty_count);
     let last_server_event_id = get_last_server_event_id(pool, &outlet_id).await?;
 
-    println!(
-        "[SYNC-DEBUG] local_state: outlet_id={}, merchant_id={:?}, needs_baseline_sync={}, outbox_dirty_count={}, legacy_dirty_count={}, dirty_count={}, last_server_event_id={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] local_state: outlet_id={}, merchant_id={:?}, needs_baseline_sync={}, outbox_dirty_count={}, legacy_dirty_count={}, dirty_count={}, last_server_event_id={}",
         outlet_id,
         merchant_id,
         needs_baseline_sync,
@@ -800,13 +811,14 @@ async fn sync_pull_inner(
         );
     }
     let since = choose_pull_since(timestamps);
-    println!(
-        "[SYNC-DEBUG] pull: outlet_id={}, since={}",
-        outlet_id, since
+    log::info!(
+        "[RUST] [SYNC:TRACE] pull: outlet_id={}, since={}",
+        outlet_id,
+        since
     );
 
     let url = format!("{}/api/sync/pull", api_url);
-    println!("[SYNC-DEBUG] pull: POST {}", url);
+    log::info!("[RUST] [SYNC:TRACE] pull: POST {}", url);
     let request = build_sync_pull_request(outlet_id, &since);
     let request_body = request.encode_to_vec();
 
@@ -822,7 +834,11 @@ async fn sync_pull_inner(
     let status = response.status();
     if !status.is_success() {
         let text = response.text().await.unwrap_or_default();
-        println!("[SYNC-DEBUG] pull FAILED: status={}, body={}", status, text);
+        log::info!(
+            "[RUST] [SYNC:TRACE] pull FAILED: status={}, body={}",
+            status,
+            text
+        );
         return Err(format!("Sync pull failed ({}): {}", status, text));
     }
 
@@ -844,14 +860,14 @@ async fn sync_pull_inner(
 
     for table in SYNC_TABLES {
         if let Some(rows) = result.get(table).and_then(|v| v.as_array()) {
-            println!(
-                "[SYNC-DEBUG] pull: table={}, rows_from_server={}",
+            log::info!(
+                "[RUST] [SYNC:TRACE] pull: table={}, rows_from_server={}",
                 table,
                 rows.len()
             );
             for row in rows {
-                println!(
-                    "[SYNC-DEBUG] pull row: table={}, row={}",
+                log::info!(
+                    "[RUST] [SYNC:TRACE] pull row: table={}, row={}",
                     table,
                     debug_row_summary(row)
                 );
@@ -859,10 +875,16 @@ async fn sync_pull_inner(
                 total_rows += 1;
             }
         } else {
-            println!("[SYNC-DEBUG] pull: table={}, no key in response", table);
+            log::info!(
+                "[RUST] [SYNC:TRACE] pull: table={}, no key in response",
+                table
+            );
         }
     }
-    println!("[SYNC-DEBUG] pull: total_rows_upserted={}", total_rows);
+    log::info!(
+        "[RUST] [SYNC:TRACE] pull: total_rows_upserted={}",
+        total_rows
+    );
 
     for table in SYNC_TABLES {
         set_last_sync_at_tx(&mut tx, table, outlet_id, &server_time).await?;
@@ -903,9 +925,10 @@ pub async fn run_garbage_collection(
             .await
             .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
     };
-    println!(
-        "[SYNC-DEBUG] GC: outlet_id={}, merchant_id={:?}",
-        outlet_id, merchant_id
+    log::info!(
+        "[RUST] [SYNC:TRACE] GC: outlet_id={}, merchant_id={:?}",
+        outlet_id,
+        merchant_id
     );
 
     let mut tx = pool
@@ -927,8 +950,8 @@ pub async fn run_garbage_collection(
             .execute(&mut *tx)
             .await
             .map_err(|e| format!("GC failed for {}: {}", table, e))?;
-        println!(
-            "[SYNC-DEBUG] GC table: table={}, filter_col={}, filter_value={}, rows_purged={}",
+        log::info!(
+            "[RUST] [SYNC:TRACE] GC table: table={}, filter_col={}, filter_value={}, rows_purged={}",
             table,
             filter_col,
             filter_value,
@@ -973,9 +996,10 @@ pub async fn sync_push_outbox(
     session_token: String,
     state: State<'_, AppState>,
 ) -> Result<SyncNowResult, String> {
-    println!(
-        "[SYNC-DEBUG] sync_push_outbox: outlet_id={}, api_url={}",
-        outlet_id, api_url
+    log::info!(
+        "[RUST] [SYNC:TRACE] sync_push_outbox: outlet_id={}, api_url={}",
+        outlet_id,
+        api_url
     );
     let pool = &state.db_pool;
     let merchant_id = resolve_merchant_id(pool, &outlet_id).await?;
@@ -994,8 +1018,8 @@ pub async fn sync_push_outbox(
     tx.commit()
         .await
         .map_err(|e| format!("Failed to commit outbox transaction: {}", e))?;
-    println!(
-        "[SYNC-DEBUG] sync_push_outbox: marked_outbox_synced={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] sync_push_outbox: marked_outbox_synced={}",
         marked
     );
 
@@ -1014,15 +1038,17 @@ pub async fn sync_pull_events(
     latest_event_id: i64,
     state: State<'_, AppState>,
 ) -> Result<SyncNowResult, String> {
-    println!(
-        "[SYNC-DEBUG] sync_pull_events: outlet_id={}, api_url={}, latest_event_id={}",
-        outlet_id, api_url, latest_event_id
+    log::info!(
+        "[RUST] [SYNC:TRACE] sync_pull_events: outlet_id={}, api_url={}, latest_event_id={}",
+        outlet_id,
+        api_url,
+        latest_event_id
     );
     let pool = &state.db_pool;
     let client = build_client(&session_token)?;
     let after_event_id = get_last_server_event_id(pool, &outlet_id).await?;
     let url = format!("{}/api/sync/pull-events", api_url);
-    println!("[SYNC-DEBUG] sync_pull_events: POST {}", url);
+    log::info!("[RUST] [SYNC:TRACE] sync_pull_events: POST {}", url);
     let request = build_sync_pull_events_request(&outlet_id, after_event_id);
     let request_body = request.encode_to_vec();
 
@@ -1037,9 +1063,10 @@ pub async fn sync_pull_events(
     let status = response.status();
     if !status.is_success() {
         let text = response.text().await.unwrap_or_default();
-        println!(
-            "[SYNC-DEBUG] sync_pull_events FAILED: status={}, body={}",
-            status, text
+        log::info!(
+            "[RUST] [SYNC:TRACE] sync_pull_events FAILED: status={}, body={}",
+            status,
+            text
         );
         return Err(format!("Sync event pull failed ({}): {}", status, text));
     }
@@ -1068,14 +1095,14 @@ pub async fn sync_pull_events(
         .map_err(|e| format!("Failed to begin event pull transaction: {}", e))?;
     for table in SYNC_TABLES {
         if let Some(rows) = result.get(table).and_then(|value| value.as_array()) {
-            println!(
-                "[SYNC-DEBUG] sync_pull_events: table={}, rows_from_server={}",
+            log::info!(
+                "[RUST] [SYNC:TRACE] sync_pull_events: table={}, rows_from_server={}",
                 table,
                 rows.len()
             );
             for row in rows {
-                println!(
-                    "[SYNC-DEBUG] sync_pull_events row: table={}, row={}",
+                log::info!(
+                    "[RUST] [SYNC:TRACE] sync_pull_events row: table={}, row={}",
                     table,
                     debug_row_summary(row)
                 );
@@ -1133,8 +1160,8 @@ pub async fn purge_synced_outbox(
             .await
             .map_err(|e| format!("Failed to purge synced outbox: {}", e))?;
 
-    println!(
-        "[SYNC-DEBUG] purge_synced_outbox: older_than={}, rows_purged={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] purge_synced_outbox: older_than={}, rows_purged={}",
         older_than,
         result.rows_affected()
     );
@@ -1148,19 +1175,20 @@ pub async fn sync_now(
     session_token: String,
     state: State<'_, AppState>,
 ) -> Result<SyncNowResult, String> {
-    println!(
-        "[SYNC-DEBUG] sync_now: outlet_id={}, api_url={}",
-        outlet_id, api_url
+    log::info!(
+        "[RUST] [SYNC:TRACE] sync_now: outlet_id={}, api_url={}",
+        outlet_id,
+        api_url
     );
     let pool = &state.db_pool;
     let pull = sync_pull_inner(pool, &outlet_id, &api_url, &session_token).await?;
-    println!(
-        "[SYNC-DEBUG] sync_now: pull done, rows_received={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] sync_now: pull done, rows_received={}",
         pull.rows_received
     );
     let push = sync_push_inner(pool, &outlet_id, &api_url, &session_token).await?;
-    println!(
-        "[SYNC-DEBUG] sync_now: push done, server_wins={}",
+    log::info!(
+        "[RUST] [SYNC:TRACE] sync_now: push done, server_wins={}",
         push.server_wins_count
     );
 
@@ -1198,8 +1226,8 @@ pub async fn sync_now(
             .execute(&mut *tx)
             .await
             .map_err(|e| format!("GC failed for {}: {}", table, e))?;
-        println!(
-            "[SYNC-DEBUG] sync_now GC table: table={}, filter_col={}, filter_value={}, rows_purged={}",
+        log::info!(
+            "[RUST] [SYNC:TRACE] sync_now GC table: table={}, filter_col={}, filter_value={}, rows_purged={}",
             table,
             filter_col,
             filter_value,

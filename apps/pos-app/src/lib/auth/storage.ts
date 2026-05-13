@@ -2,7 +2,11 @@ import { appDataDir, join } from "@tauri-apps/api/path";
 import { Stronghold } from "@tauri-apps/plugin-stronghold";
 import { createLogger } from "~/lib/logger";
 
-const storageLogger = createLogger({ module: "auth", scope: "storage" });
+const storageLogger = createLogger({
+  domain: "AUTH",
+  module: "auth",
+  scope: "storage",
+});
 
 const VAULT_NAME = "sakti-pos-vault.hold";
 const CLIENT_NAME = "auth_client";

@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createSignal } from "solid-js";
 import { getSyncStatus } from "~/lib/api/sync";
-import { processPendingProductPhotoJobs } from "~/lib/assets";
+import { processPendingAssetJobs } from "~/lib/assets";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
 import { hydrateMissingProductImages } from "~/lib/product-images/cache";
@@ -15,7 +15,10 @@ export type SyncMode = "skipped" | "push_only" | "pull_only" | "full";
 const [syncStatus, setSyncStatus] = createSignal<SyncStatus>("idle");
 const [lastSyncTime, setLastSyncTime] = createSignal<string | null>(null);
 const [lastAssetQueueCount, setLastAssetQueueCount] = createSignal(0);
-const syncLogger = createLogger({ module: "sync" });
+const syncLogger = createLogger({
+  domain: "SYNC",
+  module: "sync",
+});
 
 export { lastAssetQueueCount, lastSyncTime, syncStatus };
 
@@ -24,6 +27,8 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 let inFlightSync: Promise<SyncNowResult> | null = null;
 let followUpSyncRequested = false;
+let inFlightAssetHydration: Promise<void> | null = null;
+let followUpAssetHydrationRequested = false;
 
 export function startSyncScheduler() {
   if (syncInterval) {
@@ -96,13 +101,62 @@ async function uploadPendingProductImages(
   }
 }
 
-async function processPendingPhotoJobs(): Promise<void> {
+async function processPendingAssetProcessingJobs(): Promise<void> {
   try {
-    syncLogger.info("product_photo_jobs_started", {});
-    const processedCount = await processPendingProductPhotoJobs({ limit: 20 });
-    syncLogger.info("product_photo_jobs_finished", { processedCount });
+    syncLogger.info("asset_processing_jobs_started", {});
+    const processedCount = await processPendingAssetJobs({ limit: 20 });
+    syncLogger.info("asset_processing_jobs_finished", { processedCount });
   } catch (error) {
-    syncLogger.error("product_photo_jobs_failed", error, {});
+    syncLogger.error("asset_processing_jobs_failed", error, {});
+  }
+}
+
+function hydrateProductImagesInBackground(
+  merchantId: string,
+  sessionToken: string
+): void {
+  if (inFlightAssetHydration) {
+    followUpAssetHydrationRequested = true;
+    return;
+  }
+
+  inFlightAssetHydration = drainAssetHydrationRequests(
+    merchantId,
+    sessionToken
+  ).finally(() => {
+    inFlightAssetHydration = null;
+  });
+}
+
+async function drainAssetHydrationRequests(
+  merchantId: string,
+  sessionToken: string
+): Promise<void> {
+  do {
+    followUpAssetHydrationRequested = false;
+    await hydrateProductImagesOnce(merchantId, sessionToken);
+  } while (followUpAssetHydrationRequested);
+}
+
+async function hydrateProductImagesOnce(
+  merchantId: string,
+  sessionToken: string
+): Promise<void> {
+  try {
+    syncLogger.info("asset_hydration_started", { merchantId });
+    const hydratedCount = await hydrateMissingProductImages({
+      apiUrl: API_URL,
+      merchantId,
+      sessionToken,
+    });
+    syncLogger.info("asset_hydration_finished", {
+      hydratedCount,
+      merchantId,
+    });
+  } catch (hydrateError) {
+    syncLogger.error("asset_hydration_failed", hydrateError, {
+      merchantId,
+    });
   }
 }
 
@@ -158,7 +212,7 @@ async function syncNowInner(): Promise<SyncNowResult> {
   try {
     const merchantId = currentMerchantId();
     if (merchantId) {
-      await processPendingPhotoJobs();
+      await processPendingAssetProcessingJobs();
       await uploadPendingProductImages(merchantId, sessionToken);
     }
 
@@ -225,22 +279,7 @@ async function syncNowInner(): Promise<SyncNowResult> {
     });
     setLastSyncTime(result.pull.server_time);
     if (merchantId) {
-      try {
-        syncLogger.info("asset_hydration_started", { merchantId });
-        const hydratedCount = await hydrateMissingProductImages({
-          apiUrl: API_URL,
-          merchantId,
-          sessionToken,
-        });
-        syncLogger.info("asset_hydration_finished", {
-          hydratedCount,
-          merchantId,
-        });
-      } catch (hydrateError) {
-        syncLogger.error("asset_hydration_failed", hydrateError, {
-          merchantId,
-        });
-      }
+      hydrateProductImagesInBackground(merchantId, sessionToken);
     }
     setSyncStatus("idle");
     return result;

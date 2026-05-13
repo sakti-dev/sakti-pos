@@ -7,6 +7,7 @@ import {
   orders,
   outletProducts,
   outlets,
+  pendingAssetProcessingJobs,
   pendingProductPhotoJobs,
   products,
   registers,
@@ -23,6 +24,7 @@ const schema = {
   assets,
   categories,
   localAssetCache,
+  pendingAssetProcessingJobs,
   pendingProductPhotoJobs,
   merchants,
   orderItems,
@@ -37,7 +39,7 @@ const schema = {
   syncOutbox,
 };
 
-const dbLogger = createLogger({ module: "db" });
+const dbLogger = createLogger({ domain: "DB", module: "db" });
 
 interface SqlRow {
   columns: string[];
