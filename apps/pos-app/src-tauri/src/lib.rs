@@ -1,9 +1,11 @@
+mod android_fs;
 mod assets;
 mod db_utils;
 mod drizzle_proxy;
 mod photo_picker;
 mod printer;
 mod sync;
+mod time_utils;
 
 use argon2::{hash_raw, Config, Variant, Version};
 use tauri::Manager;
@@ -12,6 +14,7 @@ use tauri_plugin_stronghold::Builder;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_android_fs::init())
         .plugin(photo_picker::init())
         .plugin(printer::init())
         .setup(|app| {

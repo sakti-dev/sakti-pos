@@ -123,6 +123,19 @@ The form should not wait for compression before navigating.
 
 The form should not delete the temp file after the job is accepted. Ownership of that temp file moves to Rust once the job is persisted.
 
+## Android Picker Ownership
+
+Product photo picking has two Android paths:
+
+- Gallery uses `tauri-plugin-android-fs`, called from Rust.
+- Camera uses the custom Android photo plugin, called from Rust.
+
+Frontend product code should only call `pickProductPhoto(source)` from `apps/pos-app/src/lib/assets.ts`. It should not import Android-FS directly, call custom plugin commands directly, or know which native implementation handles each source.
+
+The reason is durability. Both picker paths must return a real app-private file path under `product_photo_inputs` so `pending_product_photo_jobs` can safely reference it after form submission. The selected file is not just a transient preview.
+
+Startup cleanup must not delete `product_photo_inputs`. Those files may be referenced by persisted photo jobs. Startup cleanup may only delete explicitly transient picker files that cannot be referenced by SQLite jobs.
+
 ## Product List Preview Behavior
 
 The product image component resolves images in this priority order:
@@ -350,4 +363,3 @@ Main schema files:
 
 - `packages/database/src/local-schema.ts`
 - `apps/pos-app/drizzle/*pending_product_photo_jobs*.sql`
-

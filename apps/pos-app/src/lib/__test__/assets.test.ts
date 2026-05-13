@@ -127,6 +127,23 @@ describe("assets helpers", () => {
     });
   });
 
+  test("pickProductPhoto keeps gallery routing behind the Rust command", async () => {
+    mockInvoke.mockResolvedValue({
+      path: "/data/user/0/com.sakti_dev.sakti_pos/cache/product_photo_inputs/gallery_1.jpg",
+      originalFilename: "gallery_1.jpg",
+      mimeType: "image/jpeg",
+      source: "gallery",
+    });
+
+    const result = await pickProductPhoto("gallery");
+
+    expect(result.source).toBe("gallery");
+    expect(result.path).toContain("product_photo_inputs");
+    expect(mockInvoke).toHaveBeenCalledWith("pick_product_photo", {
+      source: "gallery",
+    });
+  });
+
   test("prepareLocalProductImageAssetFromPath sends only path metadata to Rust", async () => {
     mockInvoke.mockResolvedValue({
       asset: { id: "asset-1", objectKey: "merchant-1/assets/asset-1" },

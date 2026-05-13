@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+#[cfg(target_os = "android")]
+use std::path::PathBuf;
 use tauri::{plugin::TauriPlugin, Manager, Runtime};
 
 #[cfg(target_os = "android")]
@@ -54,6 +56,25 @@ impl<R: Runtime> ProductPhotoPicker<R> {
     }
 }
 
+#[cfg(target_os = "android")]
+pub fn picked_product_photo_from_path(
+    path: PathBuf,
+    original_filename: String,
+    mime_type: String,
+    preview_base64: Option<String>,
+    preview_mime_type: Option<String>,
+    source: ProductPhotoSource,
+) -> PickedProductPhoto {
+    PickedProductPhoto {
+        path: path.to_string_lossy().to_string(),
+        original_filename,
+        mime_type,
+        preview_base64,
+        preview_mime_type,
+        source,
+    }
+}
+
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     tauri::plugin::Builder::new("product-photo-picker")
         .setup(|app, api| {
@@ -90,6 +111,15 @@ pub async fn pick_product_photo<R: Runtime>(
     source: ProductPhotoSource,
 ) -> Result<PickedProductPhoto, String> {
     eprintln!("[PHOTO-DEBUG] pick_product_photo:start source={source:?}");
+    if uses_android_fs_picker(&source) {
+        let result = crate::android_fs::pick_gallery_to_product_photo_input(&app).await?;
+        eprintln!(
+            "[PHOTO-DEBUG] pick_product_photo:done source={:?} path={} filename={} mime_type={}",
+            result.source, result.path, result.original_filename, result.mime_type
+        );
+        return Ok(result);
+    }
+
     let result = app.state::<ProductPhotoPicker<R>>().pick_photo(source)?;
     eprintln!(
         "[PHOTO-DEBUG] pick_product_photo:done source={:?} path={} filename={} mime_type={}",
@@ -98,9 +128,19 @@ pub async fn pick_product_photo<R: Runtime>(
     Ok(result)
 }
 
+fn uses_android_fs_picker(source: &ProductPhotoSource) -> bool {
+    matches!(source, ProductPhotoSource::Gallery)
+}
+
 fn is_deletable_temp_photo_path(path: &Path) -> bool {
     path.components()
         .any(|component| component.as_os_str() == "product_photo_inputs")
+}
+
+#[cfg(test)]
+fn is_stale_picker_temp_path(path: &Path) -> bool {
+    path.components()
+        .any(|component| component.as_os_str() == "product_photo_transient")
 }
 
 #[tauri::command]
@@ -153,5 +193,29 @@ mod tests {
         assert!(!super::is_deletable_temp_photo_path(Path::new(
             "/tmp/asset-cache/photo.webp"
         )));
+    }
+
+    #[test]
+    fn stale_temp_cleanup_never_targets_product_photo_inputs() {
+        assert!(!super::is_stale_picker_temp_path(Path::new(
+            "/data/user/0/com.sakti_dev.sakti_pos/cache/product_photo_inputs/gallery_123.jpg"
+        )));
+    }
+
+    #[test]
+    fn stale_temp_cleanup_may_target_plugin_private_transient_files() {
+        assert!(super::is_stale_picker_temp_path(Path::new(
+            "/data/user/0/com.sakti_dev.sakti_pos/cache/product_photo_transient/photo_123.jpg"
+        )));
+    }
+
+    #[test]
+    fn gallery_source_is_routed_to_android_fs() {
+        assert!(super::uses_android_fs_picker(
+            &super::ProductPhotoSource::Gallery
+        ));
+        assert!(!super::uses_android_fs_picker(
+            &super::ProductPhotoSource::Camera
+        ));
     }
 }

@@ -116,6 +116,23 @@ export default function ProductForm() {
   };
   const visibleImagePreviewUrl = () =>
     imagePreviewUrl() ?? savedImagePreviewUrl();
+  const triggerBackgroundPhotoSync = (productId: string) => {
+    window.setTimeout(() => {
+      syncNow()
+        .then((result) => {
+          photoLogger.info("asset_sync_finished", {
+            assetId: productId,
+            mode: result.mode,
+            pushTables: result.push.tables_synced,
+          });
+        })
+        .catch((syncError: unknown) => {
+          photoLogger.error("asset_sync_failed", syncError, {
+            assetId: productId,
+          });
+        });
+    }, 0);
+  };
 
   onCleanup(() => {
     clearPendingPhoto();
@@ -225,6 +242,7 @@ export default function ProductForm() {
       };
 
       let savedProductId: string;
+      let shouldTriggerPhotoSync = false;
       if (isEdit()) {
         const updatedProduct = await updateProduct(params.id ?? "", data);
         savedProductId = updatedProduct.id;
@@ -259,19 +277,7 @@ export default function ProductForm() {
           });
           setPendingPhoto(null);
           toast.success("Foto akan diproses di background");
-          syncNow()
-            .then((result) => {
-              photoLogger.info("asset_sync_finished", {
-                assetId: savedProductId,
-                mode: result.mode,
-                pushTables: result.push.tables_synced,
-              });
-            })
-            .catch((syncError: unknown) => {
-              photoLogger.error("asset_sync_failed", syncError, {
-                assetId: savedProductId,
-              });
-            });
+          shouldTriggerPhotoSync = true;
         } catch (enqueueError) {
           photoLogger.error("photo_job_enqueue_failed", enqueueError, {
             productId: savedProductId,
@@ -280,6 +286,9 @@ export default function ProductForm() {
         }
       }
       navigate("/settings/products-categories", { replace: true });
+      if (shouldTriggerPhotoSync) {
+        triggerBackgroundPhotoSync(savedProductId);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan produk");
     }
@@ -396,7 +405,7 @@ export default function ProductForm() {
                       "Pilih foto untuk diunggah sebagai WebP"}
                   </p>
                   <p class="text-muted-foreground text-xs">
-                    JPG/PNG, akan diproses menjadi WebP 800px.
+                    JPG/PNG, akan diproses menjadi WebP 400px.
                   </p>
                   <Show when={pendingPhoto()}>
                     <p class="text-muted-foreground text-xs">

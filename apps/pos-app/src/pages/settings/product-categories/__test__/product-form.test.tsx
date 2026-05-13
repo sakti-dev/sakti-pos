@@ -1,5 +1,5 @@
 import { useParams } from "@solidjs/router";
-import { render, screen } from "@solidjs/testing-library";
+import { render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -160,7 +160,8 @@ describe("ProductForm (create mode)", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
     vi.clearAllMocks();
     mockMerchantId = "merchant-1";
   });
@@ -323,7 +324,57 @@ describe("ProductForm (create mode)", () => {
     expect(mockToastSuccess).toHaveBeenCalledWith(
       "Foto akan diproses di background"
     );
-    expect(mockSyncNow).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
+  });
+
+  test("submit navigates before starting background photo sync", async () => {
+    const callOrder: string[] = [];
+    mockNavigate.mockImplementation(() => {
+      callOrder.push("navigate");
+    });
+    mockSyncNow.mockImplementation(() => {
+      callOrder.push("sync");
+      return Promise.resolve({
+        mode: "skipped",
+        pull: { rows_received: 0, server_time: "" },
+        purged: 0,
+        push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+      });
+    });
+    mockPickProductPhoto.mockResolvedValue({
+      path: "/tmp/product_photo_inputs/gallery_1.png",
+      originalFilename: "menu.png",
+      mimeType: "image/png",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      source: "gallery",
+    });
+    mockCreateProduct.mockResolvedValue({
+      id: "product-2",
+      merchantId: "merchant-1",
+      name: "Es Teh",
+      categoryId: "category-1",
+      price: "10000",
+      imageAssetId: null,
+    });
+    mockEnqueueProductPhotoProcessing.mockResolvedValue({ jobId: "job-1" });
+
+    render(() => <ProductForm />);
+    await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
+    await user.selectOptions(
+      screen.getByTestId("category-select"),
+      "category-1"
+    );
+    await user.type(screen.getByPlaceholderText("0"), "10000");
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+    await user.click(screen.getByText("Pilih dari Galeri"));
+    await user.click(screen.getByTestId("save-btn"));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/settings/products-categories", {
+      replace: true,
+    });
+    await waitFor(() => expect(callOrder).toContain("sync"));
+    expect(callOrder[0]).toBe("navigate");
   });
 
   test("removing a staged native photo deletes its temp file", async () => {
@@ -358,7 +409,8 @@ describe("ProductForm (edit mode)", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
     vi.clearAllMocks();
     mockMerchantId = "merchant-1";
   });
@@ -441,5 +493,6 @@ describe("ProductForm (edit mode)", () => {
     expect(mockEnqueueProductPhotoProcessing).toHaveBeenCalledWith(
       expect.objectContaining({ productId: "1" })
     );
+    await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });
 });

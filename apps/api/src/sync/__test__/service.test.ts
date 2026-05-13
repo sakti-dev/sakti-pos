@@ -520,6 +520,63 @@ describe("handlePush", () => {
     );
   });
 
+  test("accepts millisecond updatedAt timestamps for product updates with imageAssetId", async () => {
+    const setValues = vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue(undefined),
+    });
+    const serverUpdatedAt = "2026-05-10T00:00:00.000Z";
+    const clientUpdatedAt = String(
+      new Date("2026-05-10T00:00:01.000Z").getTime()
+    );
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi
+                  .fn()
+                  .mockResolvedValue([
+                    { id: "prod-1", updatedAt: serverUpdatedAt },
+                  ]),
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockResolvedValue(undefined),
+          }),
+          update: vi.fn().mockReturnValue({
+            set: setValues,
+          }),
+        };
+        await fn(tx);
+      }
+    );
+
+    const result = await handlePush("outlet-1", "merchant-1", {
+      products: [
+        {
+          createdAt: "2026-05-10T00:00:00.000Z",
+          id: "prod-1",
+          imageAssetId: "asset-1",
+          merchantId: "merchant-1",
+          name: "Nasi Goreng",
+          price: 15_000,
+          updatedAt: clientUpdatedAt,
+        },
+      ],
+    });
+
+    expect(result.serverWins).toEqual([]);
+    expect(setValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageAssetId: "asset-1",
+        updatedAt: clientUpdatedAt,
+      })
+    );
+  });
+
   test("normalizes empty strings across orders and order_items in a single push", async () => {
     const insertedValues: Record<string, unknown>[] = [];
     mockTransaction.mockImplementation(

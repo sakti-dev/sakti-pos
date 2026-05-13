@@ -45,6 +45,8 @@ const PUSH_TABLE_ORDER = [
   "order_items",
 ];
 
+const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
+
 export async function verifyOutletAccess(
   sessionUserId: string,
   requestedOutletId: string
@@ -95,6 +97,27 @@ function normalizeEmptyToNull(
       typeof value === "string" && value.length === 0 ? null : value;
   }
   return result;
+}
+
+function parseTimestampMs(value: unknown): number {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return Number.NaN;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return Number.NaN;
+  }
+
+  if (INTEGER_TIMESTAMP_PATTERN.test(trimmed)) {
+    return Number(trimmed);
+  }
+
+  return Date.parse(trimmed);
 }
 
 export async function handlePush(
@@ -253,10 +276,10 @@ async function upsertMerchantRow(
     .limit(1);
 
   if (existing.length > 0) {
-    const serverUpdated = new Date(
-      (existing[0] as Record<string, unknown>).updatedAt as string
-    ).getTime();
-    const clientUpdated = new Date(row.updatedAt as string).getTime();
+    const serverUpdated = parseTimestampMs(
+      (existing[0] as Record<string, unknown>).updatedAt
+    );
+    const clientUpdated = parseTimestampMs(row.updatedAt);
 
     if (clientUpdated >= serverUpdated) {
       await tx
@@ -295,10 +318,10 @@ async function upsertOutletRow(
     .limit(1);
 
   if (existing.length > 0) {
-    const serverUpdated = new Date(
-      (existing[0] as Record<string, unknown>).updatedAt as string
-    ).getTime();
-    const clientUpdated = new Date(row.updatedAt as string).getTime();
+    const serverUpdated = parseTimestampMs(
+      (existing[0] as Record<string, unknown>).updatedAt
+    );
+    const clientUpdated = parseTimestampMs(row.updatedAt);
 
     if (clientUpdated >= serverUpdated) {
       await tx
@@ -332,10 +355,10 @@ async function upsertStaffRow(
     .limit(1);
 
   if (existing.length > 0) {
-    const serverUpdated = new Date(
-      (existing[0] as Record<string, unknown>).updatedAt as string
-    ).getTime();
-    const clientUpdated = new Date(row.updatedAt as string).getTime();
+    const serverUpdated = parseTimestampMs(
+      (existing[0] as Record<string, unknown>).updatedAt
+    );
+    const clientUpdated = parseTimestampMs(row.updatedAt);
 
     if (clientUpdated >= serverUpdated) {
       await tx
@@ -369,10 +392,10 @@ async function upsertOrderItem(
     .limit(1);
 
   if (existing.length > 0) {
-    const serverCreated = new Date(
-      (existing[0] as Record<string, unknown>).createdAt as string
-    ).getTime();
-    const clientCreated = new Date(row.createdAt as string).getTime();
+    const serverCreated = parseTimestampMs(
+      (existing[0] as Record<string, unknown>).createdAt
+    );
+    const clientCreated = parseTimestampMs(row.createdAt);
 
     if (clientCreated >= serverCreated) {
       const normalizedRow = normalizeOrderItemRow(row);

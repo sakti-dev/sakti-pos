@@ -16,6 +16,8 @@ use sync_proto::{
     SyncPushRequest, SyncPushResponse, SyncServerWin, SyncTableRows,
 };
 
+use crate::time_utils::current_time_iso_string;
+
 const SYNC_TABLES: &[&str] = &[
     "merchants",
     "outlets",
@@ -186,7 +188,7 @@ async fn set_last_server_event_id_tx(
     outlet_id: &str,
     last_server_event_id: i64,
 ) -> Result<(), String> {
-    let now = current_time_millis_string();
+    let now = current_time_iso_string();
     let existing = sqlx::query_scalar::<_, i64>(
         "SELECT last_server_event_id FROM sync_cursors WHERE scope_type = 'outlet' AND scope_id = ?1 LIMIT 1",
     )
@@ -217,13 +219,6 @@ async fn set_last_server_event_id_tx(
         .map_err(|e| format!("Failed to insert sync cursor: {}", e))?;
     }
     Ok(())
-}
-
-fn current_time_millis_string() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| duration.as_millis().to_string())
-        .unwrap_or_else(|_| "0".to_string())
 }
 
 async fn count_pending_outbox(
@@ -720,7 +715,7 @@ async fn sync_push_inner(
         mark_rows_synced_tx(&mut tx, table, filter_col, filter_value, &skip_ids).await?;
     }
     let synced_at = if server_time.is_empty() {
-        current_time_millis_string()
+        current_time_iso_string()
     } else {
         server_time.clone()
     };
@@ -986,7 +981,7 @@ pub async fn sync_push_outbox(
     let merchant_id = resolve_merchant_id(pool, &outlet_id).await?;
     let push = sync_push_inner(pool, &outlet_id, &api_url, &session_token).await?;
     let synced_at = if push.server_time.is_empty() {
-        current_time_millis_string()
+        current_time_iso_string()
     } else {
         push.server_time.clone()
     };

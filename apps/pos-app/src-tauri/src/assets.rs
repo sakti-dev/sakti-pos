@@ -1,5 +1,7 @@
 use base64::engine::general_purpose;
 use base64::Engine;
+use exif::{In, Reader as ExifReader, Tag};
+use image::codecs::jpeg::JpegEncoder;
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageReader};
 use prost::Message;
@@ -14,6 +16,7 @@ use tokio::fs;
 use zenwebp::{EncodeRequest, LossyConfig, PixelLayout};
 
 use crate::drizzle_proxy::AppState;
+use crate::time_utils::{current_job_id_string, current_time_iso_string};
 
 #[allow(dead_code)]
 mod asset_proto {
@@ -21,6 +24,8 @@ mod asset_proto {
 }
 
 const MAX_LONG_EDGE: u32 = 400;
+const PREVIEW_MAX_LONG_EDGE: u32 = 320;
+pub(crate) const PRODUCT_PHOTO_PREVIEW_MIME_TYPE: &str = "image/jpeg";
 const WEBP_QUALITY: f32 = 75.0;
 const WEBP_METHOD: u8 = 6;
 
@@ -90,6 +95,12 @@ pub struct PendingProductPhotoPreviewResponse {
     pub preview_mime_type: String,
 }
 
+#[derive(Debug)]
+pub(crate) struct ProductPhotoPreview {
+    pub preview_base64: String,
+    pub preview_mime_type: String,
+}
+
 struct PreparedImageInput {
     byte_size: i64,
     content_hash: String,
@@ -139,11 +150,51 @@ fn decode_image_bytes(data: &[u8], original_filename: &str) -> Result<DynamicIma
         .map_err(|error| format!("Failed to decode image {}: {}", original_filename, error))
 }
 
+fn read_exif_orientation(data: &[u8]) -> Option<u16> {
+    let mut cursor = Cursor::new(data);
+    ExifReader::new()
+        .read_from_container(&mut cursor)
+        .ok()
+        .and_then(|exif| {
+            exif.get_field(Tag::Orientation, In::PRIMARY)
+                .and_then(|field| field.value.get_uint(0))
+                .and_then(|value| u16::try_from(value).ok())
+        })
+}
+
+fn apply_exif_orientation(image: DynamicImage, orientation: Option<u16>) -> DynamicImage {
+    let Some(orientation) = orientation else {
+        return image;
+    };
+
+    let rgba = image.to_rgba8();
+    let transformed = match orientation {
+        2 => image::imageops::flip_horizontal(&rgba),
+        3 => image::imageops::rotate180(&rgba),
+        4 => image::imageops::flip_vertical(&rgba),
+        5 => image::imageops::rotate90(&image::imageops::flip_horizontal(&rgba)),
+        6 => image::imageops::rotate90(&rgba),
+        7 => image::imageops::rotate270(&image::imageops::flip_horizontal(&rgba)),
+        8 => image::imageops::rotate270(&rgba),
+        _ => rgba,
+    };
+
+    DynamicImage::ImageRgba8(transformed)
+}
+
+fn decode_oriented_image_bytes(
+    data: &[u8],
+    original_filename: &str,
+) -> Result<DynamicImage, String> {
+    let decoded = decode_image_bytes(data, original_filename)?;
+    Ok(apply_exif_orientation(decoded, read_exif_orientation(data)))
+}
+
 fn process_image_bytes(
     data: &[u8],
     original_filename: &str,
 ) -> Result<ProcessedImageResponse, String> {
-    let decoded = decode_image_bytes(data, original_filename)?;
+    let decoded = decode_oriented_image_bytes(data, original_filename)?;
     let rgba = decoded.to_rgba8();
     let (source_width, source_height) = rgba.dimensions();
     let (target_width, target_height) =
@@ -181,6 +232,44 @@ fn process_image_bytes(
         data_base64: general_purpose::STANDARD.encode(webp_bytes),
         height: target_height,
         width: target_width,
+    })
+}
+
+pub(crate) fn product_photo_preview_from_bytes(
+    data: &[u8],
+    original_filename: &str,
+) -> Result<ProductPhotoPreview, String> {
+    let decoded = decode_oriented_image_bytes(data, original_filename)?;
+    let rgba = decoded.to_rgba8();
+    let (source_width, source_height) = rgba.dimensions();
+    let (target_width, target_height) =
+        fit_within_max_edge(source_width, source_height, PREVIEW_MAX_LONG_EDGE);
+
+    let processed = if target_width == source_width && target_height == source_height {
+        rgba
+    } else {
+        image::imageops::resize(&rgba, target_width, target_height, FilterType::Triangle)
+    };
+
+    let preview_rgb = DynamicImage::ImageRgba8(processed).to_rgb8();
+    let mut preview_bytes = Vec::new();
+    JpegEncoder::new_with_quality(&mut preview_bytes, 75)
+        .encode(
+            preview_rgb.as_raw(),
+            target_width,
+            target_height,
+            image::ExtendedColorType::Rgb8,
+        )
+        .map_err(|error| {
+            format!(
+                "Failed to encode preview for {}: {}",
+                original_filename, error
+            )
+        })?;
+
+    Ok(ProductPhotoPreview {
+        preview_base64: general_purpose::STANDARD.encode(preview_bytes),
+        preview_mime_type: PRODUCT_PHOTO_PREVIEW_MIME_TYPE.to_string(),
     })
 }
 
@@ -247,14 +336,6 @@ fn asset_cache_root(app: &AppHandle) -> Result<PathBuf, String> {
         .app_config_dir()
         .map(|path| path.join("asset-cache"))
         .map_err(|_| "Could not resolve app config directory".to_string())
-}
-
-fn current_time_millis_string() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
-        .to_string()
 }
 
 fn build_api_client(session_token: &str) -> Result<reqwest::Client, String> {
@@ -591,7 +672,7 @@ async fn load_ready_assets(
 pub(crate) async fn reset_incomplete_pending_product_photo_jobs(
     pool: &SqlitePool,
 ) -> Result<(), String> {
-    let now = current_time_millis_string();
+    let now = current_time_iso_string();
     sqlx::query(
         "UPDATE pending_product_photo_jobs SET status = 'pending', last_error = NULL, updated_at = ?2 WHERE status = 'processing'",
     )
@@ -666,7 +747,7 @@ async fn claim_pending_product_photo_job(
     pool: &SqlitePool,
     job_id: &str,
 ) -> Result<Option<PendingProductPhotoJobRecord>, String> {
-    let now = current_time_millis_string();
+    let now = current_time_iso_string();
     let row = sqlx::query(
         r#"
         UPDATE pending_product_photo_jobs
@@ -733,7 +814,7 @@ async fn clear_pending_product_photo_job_preview(
         "UPDATE pending_product_photo_jobs SET preview_base64 = NULL, preview_mime_type = NULL, updated_at = ?2 WHERE id = ?1",
     )
     .bind(job_id)
-    .bind(current_time_millis_string())
+    .bind(current_time_iso_string())
     .execute(pool)
     .await
     .map_err(|error| format!("Failed to clear pending product photo job preview: {}", error))?;
@@ -750,7 +831,7 @@ async fn mark_pending_product_photo_job_failed(
     )
     .bind(job_id)
     .bind(error_message)
-    .bind(current_time_millis_string())
+    .bind(current_time_iso_string())
     .execute(pool)
     .await
     .map_err(|error| format!("Failed to mark pending product photo job failed: {}", error))?;
@@ -772,7 +853,7 @@ async fn update_product_image_asset_id(
     merchant_id: &str,
     asset_id: &str,
 ) -> Result<(), String> {
-    let now = current_time_millis_string();
+    let now = current_time_iso_string();
     let result = sqlx::query(
         "UPDATE products SET image_asset_id = ?2, is_synced = 0, updated_at = ?3 WHERE id = ?1 AND merchant_id = ?4 AND deleted_at IS NULL",
     )
@@ -807,7 +888,7 @@ async fn mark_asset_uploading(pool: &SqlitePool, asset_id: &str) -> Result<(), S
         "UPDATE local_asset_cache SET status = 'uploading', upload_attempts = upload_attempts + 1, last_error = NULL, updated_at = ?2 WHERE asset_id = ?1",
     )
     .bind(asset_id)
-    .bind(current_time_millis_string())
+    .bind(current_time_iso_string())
     .execute(pool)
     .await
     .map_err(|error| format!("Failed to mark asset uploading: {}", error))?;
@@ -825,7 +906,7 @@ async fn mark_asset_upload_failed(
     )
     .bind(asset_id)
     .bind(error_message)
-    .bind(current_time_millis_string())
+    .bind(current_time_iso_string())
     .execute(pool)
     .await
     .map_err(|error| format!("Failed to mark asset failed: {}", error))?;
@@ -833,7 +914,7 @@ async fn mark_asset_upload_failed(
         "UPDATE assets SET status = 'failed', is_synced = 0, updated_at = ?2 WHERE id = ?1",
     )
     .bind(asset_id)
-    .bind(current_time_millis_string())
+    .bind(current_time_iso_string())
     .execute(pool)
     .await
     .map_err(|error| format!("Failed to mark asset failed: {}", error))?;
@@ -846,7 +927,7 @@ async fn mark_asset_ready(
     asset_id: &str,
     merchant_id: &str,
 ) -> Result<(), String> {
-    let now = current_time_millis_string();
+    let now = current_time_iso_string();
     sqlx::query(
         "UPDATE local_asset_cache SET status = 'ready', last_error = NULL, cached_at = ?2, updated_at = ?2 WHERE asset_id = ?1",
     )
@@ -871,7 +952,7 @@ async fn mark_reused_asset_ready(
     merchant_id: &str,
 ) -> Result<(), String> {
     let state = resolve_reused_asset_ready_state(None);
-    let now = current_time_millis_string();
+    let now = current_time_iso_string();
     sqlx::query(
         "UPDATE local_asset_cache SET status = ?2, last_error = NULL, cached_at = ?3, updated_at = ?3 WHERE asset_id = ?1",
     )
@@ -903,7 +984,7 @@ async fn insert_sync_outbox(
     table_name: &str,
     operation: &str,
 ) -> Result<(), String> {
-    let changed_at = current_time_millis_string();
+    let changed_at = current_time_iso_string();
     let id = format!("{row_id}-{changed_at}");
     sqlx::query(
         "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -972,7 +1053,7 @@ async fn prepare_local_product_image_asset_inner(
 
     let object_key = asset_object_key(&input.merchant_id, &input.content_hash);
     let local_path = write_cached_asset(&app, &object_key, &bytes).await?;
-    let now = current_time_millis_string();
+    let now = current_time_iso_string();
     let asset_id = input.content_hash.clone();
     let normalized_original_filename = if input.original_filename.trim().is_empty() {
         None
@@ -1466,7 +1547,7 @@ pub(crate) async fn process_pending_product_photo_jobs_inner(
             "UPDATE pending_product_photo_jobs SET status = 'done', last_error = NULL, updated_at = ?2 WHERE id = ?1",
         )
         .bind(&claimed_job.id)
-        .bind(current_time_millis_string())
+        .bind(current_time_iso_string())
         .execute(pool)
         .await
         {
@@ -1535,8 +1616,8 @@ pub async fn enqueue_product_photo_processing(
     }
 
     let preview_mime_type = preview_mime_type.unwrap_or_else(|| "image/jpeg".to_string());
-    let now = current_time_millis_string();
-    let job_id = current_time_millis_string();
+    let now = current_time_iso_string();
+    let job_id = current_job_id_string();
     let returned_job_id = sqlx::query_scalar::<_, String>(
         r#"
         INSERT INTO pending_product_photo_jobs (
@@ -1804,7 +1885,7 @@ pub async fn hydrate_product_images(
             "UPDATE local_asset_cache SET status = 'pending_download', download_attempts = download_attempts + 1, last_error = NULL, updated_at = ?2 WHERE asset_id = ?1",
         )
         .bind(&asset.asset_id)
-        .bind(current_time_millis_string())
+        .bind(current_time_iso_string())
         .execute(pool)
         .await
         .map_err(|error| format!("Failed to mark asset pending download: {}", error))?;
@@ -1835,7 +1916,7 @@ pub async fn hydrate_product_images(
                     )
                     .bind(&asset.asset_id)
                     .bind(&error)
-                    .bind(current_time_millis_string())
+                    .bind(current_time_iso_string())
                     .execute(pool)
                     .await
                     .map_err(|db_error| format!("Failed to mark cache failed: {}", db_error))?;
@@ -1868,7 +1949,7 @@ pub async fn hydrate_product_images(
             )
             .bind(&asset.asset_id)
             .bind(&message)
-            .bind(current_time_millis_string())
+            .bind(current_time_iso_string())
             .execute(pool)
             .await
             .map_err(|db_error| format!("Failed to mark cache failed: {}", db_error))?;
@@ -1890,7 +1971,7 @@ pub async fn hydrate_product_images(
             )
             .bind(&asset.asset_id)
             .bind(&message)
-            .bind(current_time_millis_string())
+            .bind(current_time_iso_string())
             .execute(pool)
             .await
             .map_err(|db_error| format!("Failed to mark cache failed: {}", db_error))?;
@@ -1910,7 +1991,7 @@ pub async fn hydrate_product_images(
         .bind(&asset.object_key)
         .bind(&path)
         .bind(&asset.content_hash)
-        .bind(current_time_millis_string())
+        .bind(current_time_iso_string())
         .execute(pool)
         .await
         .map_err(|error| format!("Failed to save hydrated asset: {}", error))?;
@@ -1942,6 +2023,52 @@ mod tests {
             .write_to(&mut cursor, ImageFormat::Png)
             .expect("png encoding should succeed");
         cursor.into_inner()
+    }
+
+    fn create_exif_oriented_jpeg_bytes(orientation: u16) -> Vec<u8> {
+        let image = ImageBuffer::from_fn(2, 1, |x, _| {
+            if x == 0 {
+                image::Rgb([255, 0, 0])
+            } else {
+                image::Rgb([0, 255, 0])
+            }
+        });
+        let dynamic = DynamicImage::ImageRgb8(image);
+        let mut cursor = Cursor::new(Vec::new());
+        dynamic
+            .write_to(&mut cursor, ImageFormat::Jpeg)
+            .expect("jpeg encoding should succeed");
+
+        let jpeg_bytes = cursor.into_inner();
+        let exif_segment = build_exif_orientation_segment(orientation);
+        let mut oriented = Vec::with_capacity(jpeg_bytes.len() + exif_segment.len());
+        oriented.extend_from_slice(&jpeg_bytes[..2]);
+        oriented.extend_from_slice(&exif_segment);
+        oriented.extend_from_slice(&jpeg_bytes[2..]);
+        oriented
+    }
+
+    fn build_exif_orientation_segment(orientation: u16) -> Vec<u8> {
+        let mut payload = Vec::with_capacity(32);
+        payload.extend_from_slice(b"Exif\0\0");
+        payload.extend_from_slice(b"II");
+        payload.extend_from_slice(&42u16.to_le_bytes());
+        payload.extend_from_slice(&8u32.to_le_bytes());
+        payload.extend_from_slice(&1u16.to_le_bytes());
+        payload.extend_from_slice(&0x0112u16.to_le_bytes());
+        payload.extend_from_slice(&3u16.to_le_bytes());
+        payload.extend_from_slice(&1u32.to_le_bytes());
+        payload.extend_from_slice(&orientation.to_le_bytes());
+        payload.extend_from_slice(&0u16.to_le_bytes());
+        payload.extend_from_slice(&0u32.to_le_bytes());
+
+        let mut segment = Vec::with_capacity(payload.len() + 4);
+        segment.push(0xFF);
+        segment.push(0xE1);
+        let length = (payload.len() + 2) as u16;
+        segment.extend_from_slice(&length.to_be_bytes());
+        segment.extend_from_slice(&payload);
+        segment
     }
 
     #[test]
@@ -1979,6 +2106,40 @@ mod tests {
             decoded_pixels.len(),
             (decoded_width * decoded_height * 4) as usize
         );
+    }
+
+    #[test]
+    fn process_image_bytes_respects_exif_orientation() {
+        let jpeg_bytes = create_exif_oriented_jpeg_bytes(6);
+
+        let result = process_image_bytes(&jpeg_bytes, "rotated-camera.jpg")
+            .expect("image processing should succeed");
+
+        assert_eq!(result.width, 1);
+        assert_eq!(result.height, 2);
+    }
+
+    #[test]
+    fn product_photo_preview_resizes_and_encodes_jpeg() {
+        let png_bytes = create_png_bytes(1600, 1000);
+
+        let result = product_photo_preview_from_bytes(&png_bytes, "coffee.png")
+            .expect("preview generation should succeed");
+
+        assert_eq!(result.preview_mime_type, PRODUCT_PHOTO_PREVIEW_MIME_TYPE);
+        assert!(!result.preview_base64.is_empty());
+
+        let preview_bytes = general_purpose::STANDARD
+            .decode(result.preview_base64)
+            .expect("preview bytes should decode");
+        let decoded = ImageReader::new(Cursor::new(preview_bytes))
+            .with_guessed_format()
+            .expect("preview format should be detected")
+            .decode()
+            .expect("preview should decode");
+
+        assert_eq!(decoded.width(), 320);
+        assert_eq!(decoded.height(), 200);
     }
 
     #[test]
