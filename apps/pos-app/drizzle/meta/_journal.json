@@ -8,6 +8,13 @@
       "when": 1778585300061,
       "tag": "0000_green_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1778610000000,
+      "tag": "0001_pending_product_photo_jobs",
+      "breakpoints": true
     }
   ]
 }

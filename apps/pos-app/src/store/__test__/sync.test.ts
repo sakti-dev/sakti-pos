@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
 const mockGetSyncStatus = vi.fn();
+const mockProcessPendingProductPhotoJobs = vi.fn();
 const mockRequestUploadPendingProductImages = vi.fn();
 let mockOutletId: string | null = "outlet-1";
 let mockMerchantId: string | null = "merchant-1";
@@ -24,6 +25,11 @@ vi.mock("~/lib/auth/storage", () => ({
 
 vi.mock("~/lib/api/sync", () => ({
   getSyncStatus: (...args: unknown[]) => mockGetSyncStatus(...args),
+}));
+
+vi.mock("~/lib/assets", () => ({
+  processPendingProductPhotoJobs: (...args: unknown[]) =>
+    mockProcessPendingProductPhotoJobs(...args),
 }));
 
 vi.mock("~/lib/product-images/cache", () => ({
@@ -58,6 +64,7 @@ describe("syncNow", () => {
     mockOutletId = "outlet-1";
     mockMerchantId = "merchant-1";
     mockToken = "test-session-token";
+    mockProcessPendingProductPhotoJobs.mockResolvedValue(0);
     mockGetSyncStatus.mockResolvedValue({
       changedTables: [],
       hasChanges: false,
@@ -79,6 +86,7 @@ describe("syncNow", () => {
       purged: 0,
     });
     expect(mockInvoke).not.toHaveBeenCalled();
+    expect(mockProcessPendingProductPhotoJobs).not.toHaveBeenCalled();
   });
 
   test("throws when no session token", async () => {
@@ -104,6 +112,9 @@ describe("syncNow", () => {
       merchantId: "merchant-1",
       sessionToken: "test-session-token",
     });
+    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledWith({
+      limit: 20,
+    });
     expect(mockInvoke).toHaveBeenCalledTimes(1);
     expect(mockInvoke).toHaveBeenCalledWith("get_sync_local_state", {
       outletId: "outlet-1",
@@ -114,6 +125,65 @@ describe("syncNow", () => {
     });
     expect(result.mode).toBe("skipped");
     expect(result.pull.rows_received).toBe(0);
+  });
+
+  test("runs a follow-up sync when another sync is requested during an active run", async () => {
+    let finishPhotoJobs: ((value: number) => void) | undefined;
+    mockProcessPendingProductPhotoJobs.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          finishPhotoJobs = resolve;
+        })
+    );
+    mockProcessPendingProductPhotoJobs.mockResolvedValueOnce(0);
+    mockRequestUploadPendingProductImages.mockResolvedValue(0);
+    mockInvoke
+      .mockResolvedValueOnce({
+        last_server_event_id: 10,
+        local_dirty_count: 1,
+      })
+      .mockResolvedValueOnce({
+        pull: { rows_received: 0, server_time: "2026-05-13T00:00:00.000Z" },
+        purged: 0,
+        push: {
+          server_time: "2026-05-13T00:00:00.000Z",
+          server_wins_count: 0,
+          tables_synced: ["products"],
+        },
+      })
+      .mockResolvedValueOnce({
+        last_server_event_id: 10,
+        local_dirty_count: 0,
+      });
+
+    const firstSync = syncNow();
+    const secondSync = syncNow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledTimes(1);
+    expect(mockRequestUploadPendingProductImages).not.toHaveBeenCalled();
+
+    finishPhotoJobs?.(1);
+    const [firstResult, secondResult] = await Promise.all([
+      firstSync,
+      secondSync,
+    ]);
+
+    expect(firstResult).toBe(secondResult);
+    expect(secondResult.mode).toBe("skipped");
+    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledTimes(2);
+    expect(mockRequestUploadPendingProductImages).toHaveBeenCalledTimes(2);
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, "get_sync_local_state", {
+      outletId: "outlet-1",
+    });
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, "sync_push_outbox", {
+      apiUrl: expect.any(String),
+      outletId: "outlet-1",
+      sessionToken: "test-session-token",
+    });
+    expect(mockInvoke).toHaveBeenNthCalledWith(3, "get_sync_local_state", {
+      outletId: "outlet-1",
+    });
   });
 
   test("continues sync when queued image uploads fail", async () => {
@@ -143,6 +213,9 @@ describe("syncNow", () => {
       apiUrl: expect.any(String),
       merchantId: "merchant-1",
       sessionToken: "test-session-token",
+    });
+    expect(mockProcessPendingProductPhotoJobs).toHaveBeenCalledWith({
+      limit: 20,
     });
     expect(syncStatus()).toBe("idle");
   });

@@ -35,6 +35,7 @@ export const ProductGrid: Component<ProductGridProps> = (props) => (
               alt={product.name}
               class="h-16 w-full rounded-md"
               imageAssetId={product.imageAssetId ?? null}
+              productId={product.id}
             />
             <span class="line-clamp-2 w-full font-medium leading-snug">
               {product.name}

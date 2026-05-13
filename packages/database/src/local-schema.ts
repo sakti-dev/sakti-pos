@@ -143,9 +143,7 @@ export const assets = sqliteTable("assets", {
   kind: text("kind").notNull(),
   width: integer("width"),
   height: integer("height"),
-  status: text("status")
-    .notNull()
-    .default("pending_upload"),
+  status: text("status").notNull().default("pending_upload"),
   createdByUserId: text("created_by_user_id"),
   deletedAt: text("deleted_at"),
   isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
@@ -175,6 +173,31 @@ export const localAssetCache = sqliteTable("local_asset_cache", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
+
+export const pendingProductPhotoJobs = sqliteTable(
+  "pending_product_photo_jobs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    productId: text("product_id").notNull().unique(),
+    merchantId: text("merchant_id").notNull(),
+    tempPath: text("temp_path").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    kind: text("kind").notNull().default("product_photo"),
+    previewMimeType: text("preview_mime_type"),
+    previewBase64: text("preview_base64"),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  }
+);
 
 export const products = sqliteTable("products", {
   id: text("id")

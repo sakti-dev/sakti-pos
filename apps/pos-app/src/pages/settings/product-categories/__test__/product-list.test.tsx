@@ -8,6 +8,10 @@ vi.mock("~/lib/product-images/cache", () => ({
   resolveCachedProductImageUrl: vi.fn(() => Promise.resolve(null)),
 }));
 
+vi.mock("~/lib/product-images/pending", () => ({
+  getPendingProductPhotoPreviewUrl: vi.fn(() => Promise.resolve(null)),
+}));
+
 const mockCategories: Category[] = [
   {
     id: "category-1",
@@ -180,6 +184,7 @@ describe("ProductList", () => {
   test("renders products grouped by category", async () => {
     render(() => <ProductList />);
     await screen.findByText("Produk");
+    await screen.findByText("Kopi Susu");
     expect(screen.getAllByText("Minuman").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Makanan").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Kopi Susu")).toBeInTheDocument();
@@ -190,6 +195,7 @@ describe("ProductList", () => {
   test("shows active/inactive status for products", async () => {
     render(() => <ProductList />);
     await screen.findByText("Produk");
+    await screen.findByText("Kopi Susu");
     const activeButtons = screen.getAllByText("Aktif");
     expect(activeButtons.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Nonaktif")).toBeInTheDocument();
@@ -213,9 +219,8 @@ describe("ProductList", () => {
   test("shows product count grouped correctly", async () => {
     render(() => <ProductList />);
     await screen.findByText("Produk");
-    const minumanCount = screen
-      .getAllByText("Kopi Susu")
-      .concat(screen.getAllByText("Teh Manis"));
-    expect(minumanCount.length).toBe(2);
+    await screen.findByText("Teh Manis");
+    expect(screen.getAllByText("Kopi Susu").length).toBe(1);
+    expect(screen.getAllByText("Teh Manis").length).toBe(1);
   });
 });

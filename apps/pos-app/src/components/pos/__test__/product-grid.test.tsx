@@ -13,6 +13,10 @@ vi.mock("~/lib/product-images/cache", () => ({
   resolveCachedProductImageUrl: vi.fn(() => Promise.resolve(null)),
 }));
 
+vi.mock("~/lib/product-images/pending", () => ({
+  getPendingProductPhotoPreviewUrl: vi.fn(() => Promise.resolve(null)),
+}));
+
 const user = userEvent.setup();
 
 const mockProducts: ProductWithCategory[] = [

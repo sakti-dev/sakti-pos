@@ -77,6 +77,19 @@ pub struct PreparedLocalAssetResponse {
     pub local_path: String,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnqueueProductPhotoProcessingResponse {
+    pub job_id: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PendingProductPhotoPreviewResponse {
+    pub preview_base64: String,
+    pub preview_mime_type: String,
+}
+
 struct PreparedImageInput {
     byte_size: i64,
     content_hash: String,
@@ -87,6 +100,18 @@ struct PreparedImageInput {
     merchant_id: String,
     original_filename: String,
     width: i32,
+}
+
+#[derive(Debug)]
+struct PendingProductPhotoJobRecord {
+    id: String,
+    product_id: String,
+    merchant_id: String,
+    temp_path: String,
+    original_filename: String,
+    kind: String,
+    status: String,
+    attempts: i64,
 }
 
 fn fit_within_max_edge(width: u32, height: u32, max_edge: u32) -> (u32, u32) {
@@ -179,6 +204,11 @@ fn is_valid_asset_status(status: &str) -> bool {
         status,
         "pending_upload" | "uploading" | "ready" | "pending_download" | "downloading" | "failed"
     )
+}
+
+#[cfg(test)]
+fn is_valid_pending_product_photo_job_status(status: &str) -> bool {
+    matches!(status, "pending" | "processing" | "done" | "failed")
 }
 
 #[cfg(test)]
@@ -558,6 +588,220 @@ async fn load_ready_assets(
     Ok(assets)
 }
 
+pub(crate) async fn reset_incomplete_pending_product_photo_jobs(
+    pool: &SqlitePool,
+) -> Result<(), String> {
+    let now = current_time_millis_string();
+    sqlx::query(
+        "UPDATE pending_product_photo_jobs SET status = 'pending', last_error = NULL, updated_at = ?2 WHERE status = 'processing'",
+    )
+    .bind(&now)
+    .bind(&now)
+    .execute(pool)
+    .await
+    .map_err(|error| format!("Failed to reset pending product photo jobs: {}", error))?;
+    Ok(())
+}
+
+async fn load_pending_product_photo_jobs(
+    pool: &SqlitePool,
+    limit: i64,
+) -> Result<Vec<PendingProductPhotoJobRecord>, String> {
+    let rows = sqlx::query(
+        r#"
+        SELECT
+          id,
+          product_id,
+          merchant_id,
+          temp_path,
+          original_filename,
+          kind,
+          status,
+          attempts
+        FROM pending_product_photo_jobs
+        WHERE status IN ('pending', 'failed')
+        ORDER BY created_at ASC, updated_at ASC
+        LIMIT ?1
+        "#,
+    )
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+    .map_err(|error| format!("Failed to load pending product photo jobs: {}", error))?;
+
+    let mut jobs = Vec::with_capacity(rows.len());
+    for row in rows {
+        jobs.push(PendingProductPhotoJobRecord {
+            id: row
+                .try_get("id")
+                .map_err(|error| format!("Failed to read job id: {}", error))?,
+            product_id: row
+                .try_get("product_id")
+                .map_err(|error| format!("Failed to read job product_id: {}", error))?,
+            merchant_id: row
+                .try_get("merchant_id")
+                .map_err(|error| format!("Failed to read job merchant_id: {}", error))?,
+            temp_path: row
+                .try_get("temp_path")
+                .map_err(|error| format!("Failed to read job temp_path: {}", error))?,
+            original_filename: row
+                .try_get("original_filename")
+                .map_err(|error| format!("Failed to read job original_filename: {}", error))?,
+            kind: row
+                .try_get("kind")
+                .map_err(|error| format!("Failed to read job kind: {}", error))?,
+            status: row
+                .try_get("status")
+                .map_err(|error| format!("Failed to read job status: {}", error))?,
+            attempts: row
+                .try_get("attempts")
+                .map_err(|error| format!("Failed to read job attempts: {}", error))?,
+        });
+    }
+
+    Ok(jobs)
+}
+
+async fn claim_pending_product_photo_job(
+    pool: &SqlitePool,
+    job_id: &str,
+) -> Result<Option<PendingProductPhotoJobRecord>, String> {
+    let now = current_time_millis_string();
+    let row = sqlx::query(
+        r#"
+        UPDATE pending_product_photo_jobs
+        SET status = 'processing',
+            attempts = attempts + 1,
+            last_error = NULL,
+            updated_at = ?2
+        WHERE id = ?1
+          AND status IN ('pending', 'failed')
+        RETURNING
+          id,
+          product_id,
+          merchant_id,
+          temp_path,
+          original_filename,
+          kind,
+          status,
+          attempts
+        "#,
+    )
+    .bind(job_id)
+    .bind(now)
+    .fetch_optional(pool)
+    .await
+    .map_err(|error| format!("Failed to claim pending product photo job: {}", error))?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    Ok(Some(PendingProductPhotoJobRecord {
+        id: row
+            .try_get("id")
+            .map_err(|error| format!("Failed to read job id: {}", error))?,
+        product_id: row
+            .try_get("product_id")
+            .map_err(|error| format!("Failed to read job product_id: {}", error))?,
+        merchant_id: row
+            .try_get("merchant_id")
+            .map_err(|error| format!("Failed to read job merchant_id: {}", error))?,
+        temp_path: row
+            .try_get("temp_path")
+            .map_err(|error| format!("Failed to read job temp_path: {}", error))?,
+        original_filename: row
+            .try_get("original_filename")
+            .map_err(|error| format!("Failed to read job original_filename: {}", error))?,
+        kind: row
+            .try_get("kind")
+            .map_err(|error| format!("Failed to read job kind: {}", error))?,
+        status: row
+            .try_get("status")
+            .map_err(|error| format!("Failed to read job status: {}", error))?,
+        attempts: row
+            .try_get("attempts")
+            .map_err(|error| format!("Failed to read job attempts: {}", error))?,
+    }))
+}
+
+async fn clear_pending_product_photo_job_preview(
+    pool: &SqlitePool,
+    job_id: &str,
+) -> Result<(), String> {
+    sqlx::query(
+        "UPDATE pending_product_photo_jobs SET preview_base64 = NULL, preview_mime_type = NULL, updated_at = ?2 WHERE id = ?1",
+    )
+    .bind(job_id)
+    .bind(current_time_millis_string())
+    .execute(pool)
+    .await
+    .map_err(|error| format!("Failed to clear pending product photo job preview: {}", error))?;
+    Ok(())
+}
+
+async fn mark_pending_product_photo_job_failed(
+    pool: &SqlitePool,
+    job_id: &str,
+    error_message: &str,
+) -> Result<(), String> {
+    sqlx::query(
+        "UPDATE pending_product_photo_jobs SET status = 'failed', preview_base64 = NULL, preview_mime_type = NULL, last_error = ?2, updated_at = ?3 WHERE id = ?1",
+    )
+    .bind(job_id)
+    .bind(error_message)
+    .bind(current_time_millis_string())
+    .execute(pool)
+    .await
+    .map_err(|error| format!("Failed to mark pending product photo job failed: {}", error))?;
+    Ok(())
+}
+
+async fn delete_pending_product_photo_job(pool: &SqlitePool, job_id: &str) -> Result<(), String> {
+    sqlx::query("DELETE FROM pending_product_photo_jobs WHERE id = ?1")
+        .bind(job_id)
+        .execute(pool)
+        .await
+        .map_err(|error| format!("Failed to delete pending product photo job: {}", error))?;
+    Ok(())
+}
+
+async fn update_product_image_asset_id(
+    pool: &SqlitePool,
+    product_id: &str,
+    merchant_id: &str,
+    asset_id: &str,
+) -> Result<(), String> {
+    let now = current_time_millis_string();
+    let result = sqlx::query(
+        "UPDATE products SET image_asset_id = ?2, is_synced = 0, updated_at = ?3 WHERE id = ?1 AND merchant_id = ?4 AND deleted_at IS NULL",
+    )
+    .bind(product_id)
+    .bind(asset_id)
+    .bind(&now)
+    .bind(merchant_id)
+    .execute(pool)
+    .await
+    .map_err(|error| format!("Failed to update product image asset: {}", error))?;
+
+    if result.rows_affected() == 0 {
+        return Err(format!(
+            "Product {} was not found while linking photo asset",
+            product_id
+        ));
+    }
+
+    insert_sync_outbox(
+        pool,
+        product_id,
+        "merchant",
+        merchant_id,
+        "products",
+        "update",
+    )
+    .await
+}
+
 async fn mark_asset_uploading(pool: &SqlitePool, asset_id: &str) -> Result<(), String> {
     sqlx::query(
         "UPDATE local_asset_cache SET status = 'uploading', upload_attempts = upload_attempts + 1, last_error = NULL, updated_at = ?2 WHERE asset_id = ?1",
@@ -932,14 +1176,14 @@ pub async fn prepare_local_product_image_asset(
     .await
 }
 
-#[command]
-pub async fn prepare_local_product_image_asset_from_path(
-    app: AppHandle,
-    state: State<'_, AppState>,
+async fn prepare_local_product_image_asset_from_path_inner(
+    app: &AppHandle,
+    pool: &SqlitePool,
     merchant_id: String,
     original_filename: String,
     kind: String,
     path: String,
+    delete_original: bool,
 ) -> Result<PreparedLocalAssetResponse, String> {
     let path_buf = PathBuf::from(&path);
     eprintln!(
@@ -960,8 +1204,8 @@ pub async fn prepare_local_product_image_asset_from_path(
     .map_err(|error| format!("Failed to process image path on blocking thread: {}", error))??;
 
     let result = prepare_local_product_image_asset_inner(
-        &app,
-        &state.db_pool,
+        app,
+        pool,
         PreparedImageInput {
             byte_size: processed.byte_size as i64,
             content_hash: processed.content_hash,
@@ -976,7 +1220,7 @@ pub async fn prepare_local_product_image_asset_from_path(
     )
     .await;
 
-    if result.is_ok() && is_deletable_photo_input_path(&path_buf) {
+    if result.is_ok() && delete_original && is_deletable_photo_input_path(&path_buf) {
         match fs::remove_file(&path_buf).await {
             Ok(()) => eprintln!("[PHOTO-DEBUG] process_image_path:delete_original path={path}"),
             Err(error) => eprintln!(
@@ -994,6 +1238,27 @@ pub async fn prepare_local_product_image_asset_from_path(
     }
 
     result
+}
+
+#[command]
+pub async fn prepare_local_product_image_asset_from_path(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    merchant_id: String,
+    original_filename: String,
+    kind: String,
+    path: String,
+) -> Result<PreparedLocalAssetResponse, String> {
+    prepare_local_product_image_asset_from_path_inner(
+        &app,
+        &state.db_pool,
+        merchant_id,
+        original_filename,
+        kind,
+        path,
+        true,
+    )
+    .await
 }
 
 #[command]
@@ -1078,6 +1343,255 @@ pub async fn read_cached_asset_data(
         }
         Err(error) => Err(format!("Failed to read cached asset data: {}", error)),
     }
+}
+
+async fn get_pending_product_photo_preview_inner(
+    pool: &SqlitePool,
+    product_id: &str,
+) -> Result<Option<PendingProductPhotoPreviewResponse>, String> {
+    let row = sqlx::query(
+        r#"
+        SELECT preview_base64, preview_mime_type
+        FROM pending_product_photo_jobs
+        WHERE product_id = ?1
+          AND status IN ('pending', 'processing')
+          AND preview_base64 IS NOT NULL
+          AND preview_mime_type IS NOT NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+        "#,
+    )
+    .bind(product_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|error| format!("Failed to inspect pending product photo preview: {}", error))?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    Ok(Some(PendingProductPhotoPreviewResponse {
+        preview_base64: row
+            .try_get("preview_base64")
+            .map_err(|error| format!("Failed to read preview_base64: {}", error))?,
+        preview_mime_type: row
+            .try_get("preview_mime_type")
+            .map_err(|error| format!("Failed to read preview_mime_type: {}", error))?,
+    }))
+}
+
+#[command]
+pub async fn get_pending_product_photo_preview(
+    product_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<PendingProductPhotoPreviewResponse>, String> {
+    get_pending_product_photo_preview_inner(&state.db_pool, &product_id).await
+}
+
+pub(crate) async fn process_pending_product_photo_jobs_inner(
+    app: &AppHandle,
+    pool: &SqlitePool,
+    limit: i64,
+) -> Result<i64, String> {
+    let limit = limit.max(1);
+    eprintln!("[PHOTO-DEBUG] product_photo_jobs:start limit={}", limit);
+    let pending_jobs = load_pending_product_photo_jobs(pool, limit).await?;
+    eprintln!(
+        "[PHOTO-DEBUG] product_photo_jobs:pending count={}",
+        pending_jobs.len()
+    );
+
+    let mut processed = 0i64;
+    for job in pending_jobs {
+        eprintln!(
+            "[PHOTO-DEBUG] product_photo_job:start job_id={} product_id={} attempts={} status={}",
+            job.id, job.product_id, job.attempts, job.status
+        );
+        let Some(claimed_job) = claim_pending_product_photo_job(pool, &job.id).await? else {
+            eprintln!(
+                "[PHOTO-DEBUG] product_photo_job:skip job_id={} reason=already_claimed",
+                job.id
+            );
+            continue;
+        };
+
+        let result = prepare_local_product_image_asset_from_path_inner(
+            app,
+            pool,
+            claimed_job.merchant_id.clone(),
+            claimed_job.original_filename.clone(),
+            claimed_job.kind.clone(),
+            claimed_job.temp_path.clone(),
+            false,
+        )
+        .await;
+
+        let prepared = match result {
+            Ok(response) => response,
+            Err(error) => {
+                eprintln!(
+                    "[PHOTO-DEBUG] product_photo_job:failed job_id={} stage=process error={}",
+                    claimed_job.id, error
+                );
+                mark_pending_product_photo_job_failed(pool, &claimed_job.id, &error).await?;
+                continue;
+            }
+        };
+
+        let asset_id = prepared.asset.id.clone();
+        if let Err(error) = update_product_image_asset_id(
+            pool,
+            &claimed_job.product_id,
+            &claimed_job.merchant_id,
+            &asset_id,
+        )
+        .await
+        {
+            eprintln!(
+                "[PHOTO-DEBUG] product_photo_job:failed job_id={} stage=link error={}",
+                claimed_job.id, error
+            );
+            mark_pending_product_photo_job_failed(pool, &claimed_job.id, &error).await?;
+            continue;
+        }
+
+        if let Err(error) = clear_pending_product_photo_job_preview(pool, &claimed_job.id).await {
+            eprintln!(
+                "[PHOTO-DEBUG] product_photo_job:preview_clear_failed job_id={} error={}",
+                claimed_job.id, error
+            );
+        }
+
+        if let Err(error) = sqlx::query(
+            "UPDATE pending_product_photo_jobs SET status = 'done', last_error = NULL, updated_at = ?2 WHERE id = ?1",
+        )
+        .bind(&claimed_job.id)
+        .bind(current_time_millis_string())
+        .execute(pool)
+        .await
+        {
+            let message = format!("Failed to mark pending product photo job done: {}", error);
+            eprintln!(
+                "[PHOTO-DEBUG] product_photo_job:failed job_id={} stage=done error={}",
+                claimed_job.id, message
+            );
+            mark_pending_product_photo_job_failed(pool, &claimed_job.id, &message).await?;
+            continue;
+        }
+
+        if is_deletable_photo_input_path(Path::new(&claimed_job.temp_path)) {
+            if let Err(error) = fs::remove_file(&claimed_job.temp_path).await {
+                eprintln!(
+                    "[PHOTO-DEBUG] product_photo_job:cleanup_failed job_id={} path={} error={}",
+                    claimed_job.id, claimed_job.temp_path, error
+                );
+            }
+        }
+
+        if let Err(error) = delete_pending_product_photo_job(pool, &claimed_job.id).await {
+            eprintln!(
+                "[PHOTO-DEBUG] product_photo_job:cleanup_row_failed job_id={} error={}",
+                claimed_job.id, error
+            );
+        }
+
+        eprintln!(
+            "[PHOTO-DEBUG] product_photo_job:done job_id={} product_id={} asset_id={}",
+            claimed_job.id, claimed_job.product_id, asset_id
+        );
+        processed += 1;
+    }
+
+    eprintln!(
+        "[PHOTO-DEBUG] product_photo_jobs:done processed={}",
+        processed
+    );
+    Ok(processed)
+}
+
+#[command]
+pub async fn process_pending_product_photo_jobs(
+    limit: Option<i64>,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<i64, String> {
+    process_pending_product_photo_jobs_inner(&app, &state.db_pool, limit.unwrap_or(20)).await
+}
+
+#[command]
+pub async fn enqueue_product_photo_processing(
+    state: State<'_, AppState>,
+    product_id: String,
+    merchant_id: String,
+    path: String,
+    original_filename: String,
+    kind: String,
+    preview_base64: Option<String>,
+    preview_mime_type: Option<String>,
+) -> Result<EnqueueProductPhotoProcessingResponse, String> {
+    let path_buf = PathBuf::from(&path);
+    if !is_deletable_photo_input_path(&path_buf) {
+        return Err("Refusing to enqueue non product photo temp path".to_string());
+    }
+
+    let preview_mime_type = preview_mime_type.unwrap_or_else(|| "image/jpeg".to_string());
+    let now = current_time_millis_string();
+    let job_id = current_time_millis_string();
+    let returned_job_id = sqlx::query_scalar::<_, String>(
+        r#"
+        INSERT INTO pending_product_photo_jobs (
+          id,
+          product_id,
+          merchant_id,
+          temp_path,
+          original_filename,
+          kind,
+          preview_mime_type,
+          preview_base64,
+          status,
+          attempts,
+          last_error,
+          created_at,
+          updated_at
+        ) VALUES (
+          ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'pending', 0, NULL, ?9, ?9
+        )
+        ON CONFLICT(product_id) DO UPDATE SET
+          id = excluded.id,
+          merchant_id = excluded.merchant_id,
+          temp_path = excluded.temp_path,
+          original_filename = excluded.original_filename,
+          kind = excluded.kind,
+          preview_mime_type = excluded.preview_mime_type,
+          preview_base64 = excluded.preview_base64,
+          status = 'pending',
+          attempts = 0,
+          last_error = NULL,
+          updated_at = excluded.updated_at
+        RETURNING id
+        "#,
+    )
+    .bind(&job_id)
+    .bind(&product_id)
+    .bind(&merchant_id)
+    .bind(&path)
+    .bind(&original_filename)
+    .bind(&kind)
+    .bind(&preview_mime_type)
+    .bind(preview_base64.as_deref())
+    .bind(&now)
+    .fetch_one(&state.db_pool)
+    .await
+    .map_err(|error| format!("Failed to enqueue pending product photo job: {}", error))?;
+
+    eprintln!(
+        "[PHOTO-DEBUG] product_photo_job:enqueued job_id={} product_id={} path={}",
+        returned_job_id, product_id, path
+    );
+
+    Ok(EnqueueProductPhotoProcessingResponse {
+        job_id: returned_job_id,
+    })
 }
 
 #[command]
@@ -1492,6 +2006,15 @@ mod tests {
         assert!(is_valid_asset_status("pending_download"));
         assert!(is_valid_asset_status("downloading"));
         assert!(!is_valid_asset_status("invalid"));
+    }
+
+    #[test]
+    fn pending_product_photo_job_status_validator_accepts_known_states() {
+        assert!(is_valid_pending_product_photo_job_status("pending"));
+        assert!(is_valid_pending_product_photo_job_status("processing"));
+        assert!(is_valid_pending_product_photo_job_status("done"));
+        assert!(is_valid_pending_product_photo_job_status("failed"));
+        assert!(!is_valid_pending_product_photo_job_status("invalid"));
     }
 
     #[test]

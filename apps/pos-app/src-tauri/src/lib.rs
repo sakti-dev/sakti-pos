@@ -19,7 +19,20 @@ pub fn run() {
             tauri::async_runtime::block_on(async move {
                 match drizzle_proxy::init_db(&handle).await {
                     Ok(pool) => {
+                        let pool_for_jobs = pool.clone();
                         handle.manage(drizzle_proxy::AppState { db_pool: pool });
+                        tauri::async_runtime::spawn(async move {
+                            if let Err(error) =
+                                assets::reset_incomplete_pending_product_photo_jobs(&pool_for_jobs)
+                                    .await
+                            {
+                                eprintln!(
+                                    "[PHOTO-DEBUG] product_photo_jobs:startup_reset_failed error={}",
+                                    error
+                                );
+                                return;
+                            }
+                        });
                     }
                     Err(e) => {
                         eprintln!("CRITICAL: Failed to initialize database: {}", e);
@@ -52,6 +65,9 @@ pub fn run() {
             assets::prepare_local_product_image_asset,
             assets::prepare_local_product_image_asset_from_path,
             assets::read_cached_asset_data,
+            assets::enqueue_product_photo_processing,
+            assets::get_pending_product_photo_preview,
+            assets::process_pending_product_photo_jobs,
             photo_picker::pick_product_photo,
             photo_picker::delete_temp_product_photo,
             assets::upload_pending_product_images,

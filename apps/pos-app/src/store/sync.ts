@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createSignal } from "solid-js";
 import { getSyncStatus } from "~/lib/api/sync";
+import { processPendingProductPhotoJobs } from "~/lib/assets";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
 import { hydrateMissingProductImages } from "~/lib/product-images/cache";
@@ -21,6 +22,8 @@ export { lastAssetQueueCount, lastSyncTime, syncStatus };
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 let syncInterval: ReturnType<typeof setInterval> | null = null;
+let inFlightSync: Promise<SyncNowResult> | null = null;
+let followUpSyncRequested = false;
 
 export function startSyncScheduler() {
   if (syncInterval) {
@@ -93,6 +96,16 @@ async function uploadPendingProductImages(
   }
 }
 
+async function processPendingPhotoJobs(): Promise<void> {
+  try {
+    syncLogger.info("product_photo_jobs_started", {});
+    const processedCount = await processPendingProductPhotoJobs({ limit: 20 });
+    syncLogger.info("product_photo_jobs_finished", { processedCount });
+  } catch (error) {
+    syncLogger.error("product_photo_jobs_failed", error, {});
+  }
+}
+
 async function invokeSyncTransfer(
   command:
     | "sync_full_resync"
@@ -110,6 +123,27 @@ async function invokeSyncTransfer(
 }
 
 export async function syncNow(): Promise<SyncNowResult> {
+  if (inFlightSync) {
+    followUpSyncRequested = true;
+    return await inFlightSync;
+  }
+
+  inFlightSync = drainSyncRequests().finally(() => {
+    inFlightSync = null;
+  });
+  return await inFlightSync;
+}
+
+async function drainSyncRequests(): Promise<SyncNowResult> {
+  let result = await syncNowInner();
+  while (followUpSyncRequested) {
+    followUpSyncRequested = false;
+    result = await syncNowInner();
+  }
+  return result;
+}
+
+async function syncNowInner(): Promise<SyncNowResult> {
   const outletId = currentOutletId();
   if (!outletId) {
     return emptySyncResult("skipped");
@@ -124,6 +158,7 @@ export async function syncNow(): Promise<SyncNowResult> {
   try {
     const merchantId = currentMerchantId();
     if (merchantId) {
+      await processPendingPhotoJobs();
       await uploadPendingProductImages(merchantId, sessionToken);
     }
 

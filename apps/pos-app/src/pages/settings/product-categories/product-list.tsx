@@ -100,6 +100,7 @@ export default function ProductList(
         alt={product.name}
         class="size-12 shrink-0 rounded-md"
         imageAssetId={product.imageAssetId ?? null}
+        productId={product.id}
       />
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium">{product.name}</p>

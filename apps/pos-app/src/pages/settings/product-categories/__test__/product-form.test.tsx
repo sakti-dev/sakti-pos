@@ -10,6 +10,7 @@ const mockUpdateProduct = vi.fn();
 const mockPickProductPhoto = vi.fn();
 const mockDeleteTempProductPhoto = vi.fn();
 const mockPrepareLocalProductImageAssetFromPath = vi.fn();
+const mockEnqueueProductPhotoProcessing = vi.fn();
 const mockResolveCachedProductImageUrl = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockSyncNow = vi.fn();
@@ -70,6 +71,8 @@ vi.mock("~/lib/assets", () => ({
   createWebpPreviewUrl: () => "blob:preview-url",
   deleteTempProductPhoto: (...args: unknown[]) =>
     mockDeleteTempProductPhoto(...args),
+  enqueueProductPhotoProcessing: (...args: unknown[]) =>
+    mockEnqueueProductPhotoProcessing(...args),
   pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
   prepareLocalProductImageAssetFromPath: (...args: unknown[]) =>
     mockPrepareLocalProductImageAssetFromPath(...args),
@@ -274,7 +277,7 @@ describe("ProductForm (create mode)", () => {
     expect(mockPrepareLocalProductImageAssetFromPath).not.toHaveBeenCalled();
   });
 
-  test("submit compresses a staged native photo before saving the product", async () => {
+  test("submit saves the product immediately and enqueues staged photo processing", async () => {
     mockPickProductPhoto.mockResolvedValue({
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
@@ -283,11 +286,15 @@ describe("ProductForm (create mode)", () => {
       previewMimeType: "image/jpeg",
       source: "gallery",
     });
-    mockPrepareLocalProductImageAssetFromPath.mockResolvedValue({
-      asset: { id: "asset-2", objectKey: "merchant-1/assets/asset-2" },
-      dataBase64: "d2VicA==",
-      localPath: "/tmp/cache/asset-2.webp",
+    mockCreateProduct.mockResolvedValue({
+      id: "product-2",
+      merchantId: "merchant-1",
+      name: "Es Teh",
+      categoryId: "category-1",
+      price: "10000",
+      imageAssetId: null,
     });
+    mockEnqueueProductPhotoProcessing.mockResolvedValue({ jobId: "job-1" });
 
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
@@ -300,17 +307,21 @@ describe("ProductForm (create mode)", () => {
     await user.click(screen.getByText("Pilih dari Galeri"));
     await user.click(screen.getByTestId("save-btn"));
 
-    expect(mockPrepareLocalProductImageAssetFromPath).toHaveBeenCalledWith({
+    expect(mockPrepareLocalProductImageAssetFromPath).not.toHaveBeenCalled();
+    expect(mockCreateProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ imageAssetId: null })
+    );
+    expect(mockEnqueueProductPhotoProcessing).toHaveBeenCalledWith({
       kind: "product_photo",
       merchantId: "merchant-1",
       originalFilename: "menu.png",
       path: "/tmp/product_photo_inputs/gallery_1.png",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      productId: "product-2",
     });
-    expect(mockCreateProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ imageAssetId: "asset-2" })
-    );
     expect(mockToastSuccess).toHaveBeenCalledWith(
-      "Foto akan diupload saat online"
+      "Foto akan diproses di background"
     );
     expect(mockSyncNow).toHaveBeenCalledTimes(1);
   });
@@ -395,5 +406,40 @@ describe("ProductForm (edit mode)", () => {
     await screen.findByText("Foto akan diproses saat disimpan.");
 
     expect(mockDeleteTempProductPhoto).not.toHaveBeenCalled();
+  });
+
+  test("edit submit preserves the current asset and enqueues replacement processing", async () => {
+    vi.mocked(useParams).mockReturnValue({ id: "1" });
+    mockPickProductPhoto.mockResolvedValue({
+      path: "/tmp/product_photo_inputs/edit_photo.jpg",
+      originalFilename: "edit_photo.jpg",
+      mimeType: "image/jpeg",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      source: "gallery",
+    });
+    mockUpdateProduct.mockResolvedValue({
+      id: "1",
+      merchantId: "merchant-1",
+      name: "Kopi Susu",
+      categoryId: "category-1",
+      price: "15000",
+      imageAssetId: "asset-existing",
+    });
+    mockEnqueueProductPhotoProcessing.mockResolvedValue({ jobId: "job-1" });
+
+    render(() => <ProductForm />);
+    await screen.findByDisplayValue("Kopi Susu");
+    await user.click(screen.getAllByTestId("action-btn")[0]);
+    await user.click(screen.getByText("Pilih dari Galeri"));
+    await user.click(screen.getByTestId("save-btn"));
+
+    expect(mockUpdateProduct).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({ imageAssetId: "asset-existing" })
+    );
+    expect(mockEnqueueProductPhotoProcessing).toHaveBeenCalledWith(
+      expect.objectContaining({ productId: "1" })
+    );
   });
 });

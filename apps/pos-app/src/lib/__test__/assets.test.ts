@@ -14,10 +14,12 @@ const { AssetPresignDownloadRequest } = await import("@repo/protobuf/assets");
 
 const {
   base64ToUint8Array,
+  enqueueProductPhotoProcessing,
   persistCachedAsset,
   pickProductPhoto,
   presignAssetDownload,
   processImageFile,
+  processPendingProductPhotoJobs,
   prepareLocalProductImageAsset,
   prepareLocalProductImageAssetFromPath,
   readCachedAssetData,
@@ -183,6 +185,51 @@ describe("assets helpers", () => {
     expect(mockInvoke).toHaveBeenCalledWith("read_cached_asset_data", {
       assetId: "asset-1",
     });
+  });
+
+  test("enqueueProductPhotoProcessing sends the staged photo job to Rust", async () => {
+    mockInvoke.mockResolvedValue({
+      jobId: "job-1",
+    });
+
+    const result = await enqueueProductPhotoProcessing({
+      kind: "product_photo",
+      merchantId: "merchant-1",
+      originalFilename: "menu.png",
+      path: "/tmp/product_photo_inputs/menu.png",
+      previewBase64: "cHJldmlldw==",
+      previewMimeType: "image/jpeg",
+      productId: "product-1",
+    });
+
+    expect(result).toEqual({ jobId: "job-1" });
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "enqueue_product_photo_processing",
+      {
+        kind: "product_photo",
+        merchantId: "merchant-1",
+        originalFilename: "menu.png",
+        path: "/tmp/product_photo_inputs/menu.png",
+        previewBase64: "cHJldmlldw==",
+        previewMimeType: "image/jpeg",
+        productId: "product-1",
+      }
+    );
+  });
+
+  test("processPendingProductPhotoJobs asks Rust to resume pending jobs", async () => {
+    mockInvoke.mockResolvedValue(2);
+
+    await expect(processPendingProductPhotoJobs({ limit: 20 })).resolves.toBe(
+      2
+    );
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "process_pending_product_photo_jobs",
+      {
+        limit: 20,
+      }
+    );
   });
 
   test("presignAssetDownload requests a signed download url", async () => {

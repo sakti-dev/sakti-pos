@@ -25,6 +25,20 @@ export interface PreparedLocalAsset {
   localPath: string;
 }
 
+export interface EnqueueProductPhotoProcessingInput {
+  kind: string;
+  merchantId: string;
+  originalFilename: string;
+  path: string;
+  previewBase64?: string;
+  previewMimeType?: string;
+  productId: string;
+}
+
+export interface EnqueueProductPhotoProcessingResponse {
+  jobId: string;
+}
+
 export interface CachedAssetData {
   contentType: string;
   dataBase64: string;
@@ -189,6 +203,31 @@ export async function prepareLocalProductImageAssetFromPath(input: {
       path: input.path,
     }
   );
+}
+
+export async function enqueueProductPhotoProcessing(
+  input: EnqueueProductPhotoProcessingInput
+): Promise<EnqueueProductPhotoProcessingResponse> {
+  return await invoke<EnqueueProductPhotoProcessingResponse>(
+    "enqueue_product_photo_processing",
+    {
+      kind: input.kind,
+      merchantId: input.merchantId,
+      originalFilename: input.originalFilename,
+      path: input.path,
+      previewBase64: input.previewBase64,
+      previewMimeType: input.previewMimeType,
+      productId: input.productId,
+    }
+  );
+}
+
+export async function processPendingProductPhotoJobs(input: {
+  limit?: number;
+}): Promise<number> {
+  return await invoke<number>("process_pending_product_photo_jobs", {
+    limit: input.limit ?? 20,
+  });
 }
 
 export function createWebpPreviewUrl(dataBase64: string): string {

@@ -22,12 +22,11 @@ import {
   updateProduct,
 } from "~/db/menu";
 import {
-  createWebpPreviewUrl,
   deleteTempProductPhoto,
+  enqueueProductPhotoProcessing,
   type PickedProductPhoto,
   type ProductPhotoSource,
   pickProductPhoto,
-  prepareLocalProductImageAssetFromPath,
 } from "~/lib/assets";
 import { createLogger } from "~/lib/logger";
 import { resolveCachedProductImageUrl } from "~/lib/product-images/cache";
@@ -109,20 +108,6 @@ export default function ProductForm() {
     setImagePreviewUrl(null);
     setImageFileName("");
   };
-  const queueProductPhotoUpload = (assetId: string) => {
-    photoLogger.info("asset_sync_triggered", { assetId });
-    syncNow()
-      .then((result) => {
-        photoLogger.info("asset_sync_finished", {
-          assetId,
-          mode: result.mode,
-          pushTables: result.push.tables_synced,
-        });
-      })
-      .catch((syncError: unknown) => {
-        photoLogger.error("asset_sync_failed", syncError, { assetId });
-      });
-  };
   const photoButtonLabel = () => {
     if (isUploadingImage()) {
       return "Memproses...";
@@ -199,7 +184,6 @@ export default function ProductForm() {
       clearPendingPhoto();
       revokePreviewUrl(imagePreviewUrl());
       setPendingPhoto(picked);
-      setImageAssetId(null);
       setImageFileName(picked.originalFilename);
       setImagePreviewUrl(
         picked.previewBase64
@@ -215,7 +199,6 @@ export default function ProductForm() {
           ? uploadError.message
           : "Gagal memproses foto"
       );
-      setImageAssetId(null);
       setPendingPhoto(null);
       revokePreviewUrl(imagePreviewUrl());
       setImagePreviewUrl(null);
@@ -227,47 +210,13 @@ export default function ProductForm() {
 
   const handleSave = async (values: ProductFormValues) => {
     try {
-      let nextImageAssetId = imageAssetId();
-      let preparedImageAssetId: string | null = null;
-      const stagedPhoto = pendingPhoto();
-      if (stagedPhoto) {
-        const merchantId = currentMerchantId();
-        if (!merchantId) {
-          throw new Error("Merchant belum dipilih");
-        }
-
-        photoLogger.info("path_processing_started", {
-          name: stagedPhoto.originalFilename,
-          source: stagedPhoto.source,
-        });
-
-        const { asset, dataBase64, localPath } =
-          await prepareLocalProductImageAssetFromPath({
-            kind: "product_photo",
-            merchantId,
-            originalFilename: stagedPhoto.originalFilename,
-            path: stagedPhoto.path,
-          });
-
-        photoLogger.info("path_processing_finished", {
-          assetId: asset.id,
-          localPath,
-        });
-        photoLogger.info("local_asset_prepared", {
-          assetId: asset.id,
-          localPath,
-        });
-
-        nextImageAssetId = asset.id;
-        preparedImageAssetId = asset.id;
-        setImageAssetId(asset.id);
-        setPendingPhoto(null);
-        if (dataBase64) {
-          revokePreviewUrl(imagePreviewUrl());
-          setImagePreviewUrl(createWebpPreviewUrl(dataBase64));
-        }
+      const merchantId = currentMerchantId();
+      if (!merchantId) {
+        throw new Error("Merchant belum dipilih");
       }
 
+      const nextImageAssetId = imageAssetId();
+      const stagedPhoto = pendingPhoto();
       const data = {
         name: values.name,
         categoryId: values.categoryId,
@@ -275,19 +224,60 @@ export default function ProductForm() {
         imageAssetId: nextImageAssetId,
       };
 
+      let savedProductId: string;
       if (isEdit()) {
-        await updateProduct(params.id ?? "", data);
+        const updatedProduct = await updateProduct(params.id ?? "", data);
+        savedProductId = updatedProduct.id;
       } else {
-        await createProduct({
+        const createdProduct = await createProduct({
           ...data,
-          merchantId: currentMerchantId() ?? "",
+          merchantId,
         });
+        savedProductId = createdProduct.id;
       }
-      if (preparedImageAssetId) {
-        toast.success("Foto akan diupload saat online");
-      }
-      if (preparedImageAssetId) {
-        queueProductPhotoUpload(preparedImageAssetId);
+
+      if (stagedPhoto) {
+        photoLogger.info("path_processing_started", {
+          name: stagedPhoto.originalFilename,
+          source: stagedPhoto.source,
+        });
+        try {
+          const { jobId } = await enqueueProductPhotoProcessing({
+            kind: "product_photo",
+            merchantId,
+            originalFilename: stagedPhoto.originalFilename,
+            path: stagedPhoto.path,
+            previewBase64: stagedPhoto.previewBase64,
+            previewMimeType:
+              stagedPhoto.previewMimeType ?? stagedPhoto.mimeType,
+            productId: savedProductId,
+          });
+
+          photoLogger.info("pending_photo_job_enqueued", {
+            jobId,
+            productId: savedProductId,
+          });
+          setPendingPhoto(null);
+          toast.success("Foto akan diproses di background");
+          syncNow()
+            .then((result) => {
+              photoLogger.info("asset_sync_finished", {
+                assetId: savedProductId,
+                mode: result.mode,
+                pushTables: result.push.tables_synced,
+              });
+            })
+            .catch((syncError: unknown) => {
+              photoLogger.error("asset_sync_failed", syncError, {
+                assetId: savedProductId,
+              });
+            });
+        } catch (enqueueError) {
+          photoLogger.error("photo_job_enqueue_failed", enqueueError, {
+            productId: savedProductId,
+          });
+          toast.error("Foto tersimpan, tapi job background gagal dijadwalkan");
+        }
       }
       navigate("/settings/products-categories", { replace: true });
     } catch (e) {
