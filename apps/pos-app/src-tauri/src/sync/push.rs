@@ -10,7 +10,8 @@ use super::schema::{
     camel_to_snake, get_filter_value, get_table_filter_column, mark_rows_synced_tx,
     read_unsynced_rows,
 };
-use super::{SyncPushResponse, SYNC_TABLES};
+use super::sync_proto::SyncPushResponse;
+use super::SYNC_TABLES;
 
 #[derive(Debug, serde::Serialize)]
 pub struct PushResult {

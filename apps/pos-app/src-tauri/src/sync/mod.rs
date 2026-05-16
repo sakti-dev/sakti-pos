@@ -1,16 +1,7 @@
-use serde_json::Value;
 #[allow(dead_code)]
 mod sync_proto {
     include!(concat!(env!("OUT_DIR"), "/sakti.sync.v1.rs"));
 }
-
-use sync_proto::{SyncPullEventsResponse, SyncPushResponse, SyncServerWin, SyncTableRows};
-
-use self::local_state::choose_pull_since;
-use self::protobuf::{
-    build_sync_pull_events_request, build_sync_pull_request, build_sync_push_request,
-    cursor_gap_requires_full_resync, protobuf_tables_to_json_map, server_wins_to_skip_map,
-};
 
 pub use self::pull::PullResult;
 pub use self::push::PushResult;
@@ -41,8 +32,14 @@ const SYNC_TABLES: &[&str] = &[
 const LOCAL_ONLY_COLUMNS: &[&str] = &["is_synced"];
 #[cfg(test)]
 mod tests {
+    use super::local_state::choose_pull_since;
+    use super::protobuf::{
+        build_sync_pull_events_request, build_sync_pull_request, build_sync_push_request,
+        cursor_gap_requires_full_resync, protobuf_tables_to_json_map, server_wins_to_skip_map,
+    };
     use super::push::build_upsert_query;
-    use super::*;
+    use super::sync_proto::{SyncPushResponse, SyncServerWin, SyncTableRows};
+    use serde_json::Value;
 
     #[test]
     fn chooses_oldest_existing_last_sync_timestamp() {

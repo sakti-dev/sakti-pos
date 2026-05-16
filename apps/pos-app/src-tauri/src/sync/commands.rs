@@ -13,7 +13,8 @@ use super::protobuf::{build_sync_pull_events_request, protobuf_tables_to_json_ma
 use super::pull::{sync_pull_inner, PullResult};
 use super::push::{debug_local_table_state, sync_push_inner, upsert_row, PushResult};
 use super::schema::{get_filter_value, get_table_filter_column};
-use super::{SyncPullEventsResponse, SYNC_TABLES};
+use super::sync_proto::SyncPullEventsResponse;
+use super::SYNC_TABLES;
 
 #[command]
 pub async fn get_sync_local_state(

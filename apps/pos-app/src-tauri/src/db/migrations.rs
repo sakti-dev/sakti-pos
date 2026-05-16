@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MigrationFile {
     pub name: String,
@@ -8,6 +9,7 @@ pub struct MigrationFile {
     pub path: PathBuf,
 }
 
+#[allow(dead_code)]
 pub fn collect_migration_files(dir: impl AsRef<Path>) -> Result<Vec<MigrationFile>, String> {
     let mut migrations = Vec::new();
 

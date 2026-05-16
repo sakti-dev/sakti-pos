@@ -2,7 +2,6 @@ use base64::engine::general_purpose;
 use base64::Engine;
 use prost::Message;
 use sqlx::{Row, SqlitePool};
-use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, State};
 
 pub(crate) mod cache;
@@ -17,14 +16,14 @@ pub(crate) mod targets;
 pub(crate) mod upload_queue;
 
 use self::cache::{
-    asset_cache_file_path_from_root, asset_object_key, asset_relative_path,
-    is_deletable_photo_input_path, normalize_original_filename, sha256_hex, write_cached_asset,
+    asset_object_key, is_deletable_photo_input_path, normalize_original_filename, sha256_hex,
+    write_cached_asset,
 };
 use self::dto::*;
-use self::image::{asset_image_preview_from_bytes, process_image_bytes};
+use self::image::process_image_bytes;
 use self::targets::{resolve_asset_target_merchant_id, validate_asset_attachment_target};
 use crate::app::state::AppState;
-use crate::time_utils::{current_job_id_string, current_time_iso_string};
+use crate::time_utils::current_time_iso_string;
 
 #[allow(dead_code)]
 mod asset_proto {
@@ -568,10 +567,16 @@ pub async fn prepare_local_image_asset_from_path(
 
 #[cfg(test)]
 mod tests {
-    use super::image::fit_within_max_edge;
+    use super::cache::{
+        asset_cache_file_path_from_root, asset_relative_path, is_deletable_photo_input_path,
+        normalize_original_filename,
+    };
+    use super::image::{asset_image_preview_from_bytes, fit_within_max_edge, process_image_bytes};
     use super::*;
+    use crate::time_utils::{current_job_id_string, current_time_iso_string};
     use ::image::{DynamicImage, ImageBuffer, ImageFormat, ImageReader, Rgb, Rgba};
     use std::io::Cursor;
+    use std::path::{Path, PathBuf};
     use zenwebp::DecodeRequest;
 
     fn create_png_bytes(width: u32, height: u32) -> Vec<u8> {
