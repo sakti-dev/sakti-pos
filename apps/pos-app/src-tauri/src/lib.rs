@@ -43,6 +43,7 @@ pub fn run() {
             assets::commands::prepare_local_image_asset,
             assets::commands::prepare_local_image_asset_from_path,
             assets::commands::read_cached_asset_data,
+            assets::commands::get_cached_asset_path,
             assets::commands::enqueue_asset_processing,
             assets::commands::get_pending_asset_preview,
             assets::commands::process_pending_asset_jobs,

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 use tokio::fs;
 
-use super::{CachedAssetDataResponse, CachedAssetResponse};
+use super::{CachedAssetDataResponse, CachedAssetPathResponse, CachedAssetResponse};
 
 fn validate_object_key(object_key: &str) -> Result<(), String> {
     if object_key.is_empty() || object_key.starts_with('/') {
@@ -156,5 +156,51 @@ pub async fn read_cached_asset_data(
             Ok(None)
         }
         Err(error) => Err(format!("Failed to read cached asset data: {}", error)),
+    }
+}
+
+pub async fn get_cached_asset_path(
+    asset_id: String,
+    pool: &sqlx::SqlitePool,
+) -> Result<Option<CachedAssetPathResponse>, String> {
+    let row = sqlx::query(
+        r#"
+        SELECT c.local_path, COALESCE(a.content_type, 'image/webp') AS content_type
+        FROM local_asset_cache c
+        LEFT JOIN assets a ON a.id = c.asset_id
+        WHERE c.asset_id = ?1
+        LIMIT 1
+        "#,
+    )
+    .bind(&asset_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|error| format!("Failed to inspect cached asset: {}", error))?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    let local_path: String = row
+        .try_get("local_path")
+        .map_err(|error| format!("Failed to read cached asset path: {}", error))?;
+    let content_type: String = row
+        .try_get("content_type")
+        .map_err(|error| format!("Failed to read cached asset content type: {}", error))?;
+
+    match fs::try_exists(&local_path).await {
+        Ok(true) => Ok(Some(CachedAssetPathResponse {
+            local_path,
+            content_type,
+        })),
+        Ok(false) => {
+            log::info!(
+                "[RUST] [PHOTO:TRACE] get_cached_asset_path:missing asset_id={} local_path={}",
+                asset_id,
+                local_path
+            );
+            Ok(None)
+        }
+        Err(error) => Err(format!("Failed to check cached asset file: {}", error)),
     }
 }

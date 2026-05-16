@@ -801,6 +801,116 @@ mod tests {
     }
 
     #[test]
+    fn get_cached_asset_path_returns_path_for_existing_asset() {
+        tauri::async_runtime::block_on(async {
+            let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .max_connections(1)
+                .connect("sqlite::memory:")
+                .await
+                .expect("sqlite pool should connect");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE assets (
+                    id TEXT PRIMARY KEY,
+                    content_type TEXT
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("assets table should be created");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE local_asset_cache (
+                    asset_id TEXT PRIMARY KEY,
+                    local_path TEXT NOT NULL
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("local_asset_cache table should be created");
+
+            let local_path = std::env::temp_dir().join(format!(
+                "sakti-pos-cache-path-test-{}.webp",
+                current_job_id_string()
+            ));
+            std::fs::write(&local_path, b"webp-bytes").expect("cache file should be written");
+
+            sqlx::query(
+                "INSERT INTO assets (id, content_type) VALUES ('asset-1', 'image/webp')",
+            )
+            .execute(&pool)
+            .await
+            .expect("asset row should be inserted");
+
+            sqlx::query("INSERT INTO local_asset_cache (asset_id, local_path) VALUES ('asset-1', ?1)")
+                .bind(local_path.to_string_lossy().as_ref())
+                .execute(&pool)
+                .await
+                .expect("cache row should be inserted");
+
+            let result = cache::get_cached_asset_path("asset-1".to_string(), &pool)
+                .await
+                .expect("path lookup should succeed")
+                .expect("cached asset path should be returned");
+
+            assert_eq!(result.local_path, local_path.to_string_lossy().as_ref());
+            assert_eq!(result.content_type, "image/webp");
+
+            std::fs::remove_file(&local_path).expect("cache file should be cleaned up");
+        });
+    }
+
+    #[test]
+    fn get_cached_asset_path_returns_none_for_missing_file() {
+        tauri::async_runtime::block_on(async {
+            let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .max_connections(1)
+                .connect("sqlite::memory:")
+                .await
+                .expect("sqlite pool should connect");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE assets (
+                    id TEXT PRIMARY KEY,
+                    content_type TEXT
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("assets table should be created");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE local_asset_cache (
+                    asset_id TEXT PRIMARY KEY,
+                    local_path TEXT NOT NULL
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("local_asset_cache table should be created");
+
+            sqlx::query("INSERT INTO local_asset_cache (asset_id, local_path) VALUES ('asset-1', '/nonexistent/path.webp')")
+                .execute(&pool)
+                .await
+                .expect("cache row should be inserted");
+
+            let result = cache::get_cached_asset_path("asset-1".to_string(), &pool)
+                .await
+                .expect("path lookup should succeed");
+
+            assert!(result.is_none());
+        });
+    }
+
+    #[test]
     fn asset_cache_path_appends_webp_extension() {
         let root = Path::new("/tmp/cache");
         let path = asset_cache_file_path_from_root(root, "merchant-1/assets/asset-1")

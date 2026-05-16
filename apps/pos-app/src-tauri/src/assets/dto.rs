@@ -97,6 +97,20 @@ pub struct PendingProductPhotoPreviewResponse {
     pub preview_mime_type: String,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CachedAssetPathResponse {
+    pub local_path: String,
+    pub content_type: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PendingPreviewPathResponse {
+    pub preview_path: String,
+    pub preview_mime_type: String,
+}
+
 #[derive(Debug)]
 pub(super) struct PreparedImageInput {
     pub(super) byte_size: i64,
