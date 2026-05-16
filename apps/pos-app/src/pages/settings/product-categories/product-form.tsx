@@ -19,10 +19,10 @@ import {
   getProduct,
   updateProduct,
 } from "~/db/menu";
-import { createAssetProcessingTarget } from "~/lib/asset-targets";
+import { createAssetProcessingTarget } from "~/lib/assets/targets";
 import { createImageUpload } from "~/lib/image-upload";
 import { createLogger } from "~/lib/logger";
-import { resolveCachedProductImageUrl } from "~/lib/product-images/cache";
+import { productImageAdapter } from "~/lib/assets/adapters/product-images";
 import {
   type ProductFormValues,
   ProductSchema,
@@ -57,7 +57,7 @@ export default function ProductForm() {
   >(null);
   const [savedImagePreviewUrl] = createResource(
     () => imageAssetId(),
-    resolveCachedProductImageUrl
+    (assetId) => productImageAdapter.resolveCachedImageUrl(assetId)
   );
   const upload = createImageUpload({
     existingAssetId: imageAssetId,
