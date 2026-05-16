@@ -18,12 +18,9 @@ describe("pending product photo previews", () => {
     await expect(getPendingProductPhotoPreviewUrl("product-1")).resolves.toBe(
       "data:image/jpeg;base64,cHJldmlldw=="
     );
-    expect(mockInvoke).toHaveBeenCalledWith(
-      "get_pending_product_photo_preview",
-      {
-        productId: "product-1",
-      }
-    );
+    expect(mockInvoke).toHaveBeenCalledWith("get_pending_asset_preview", {
+      productId: "product-1",
+    });
   });
 
   test("returns null when no pending preview exists", async () => {

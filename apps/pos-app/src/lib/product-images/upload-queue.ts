@@ -5,7 +5,7 @@ export async function requestUploadPendingProductImages(input: {
   merchantId: string;
   sessionToken: string;
 }): Promise<number> {
-  return await invoke<number>("upload_pending_product_images", {
+  return await invoke<number>("upload_pending_assets", {
     apiUrl: input.apiUrl,
     merchantId: input.merchantId,
     sessionToken: input.sessionToken,

@@ -45,6 +45,9 @@ log.txt
 # External docs (reference material, not tracked)
 docs/external/
 
+# Local git worktrees
+.worktrees/
+
 .turso
 .opencode
 graphify-out

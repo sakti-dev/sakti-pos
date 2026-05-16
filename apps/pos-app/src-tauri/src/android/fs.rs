@@ -62,7 +62,7 @@ fn current_time_millis() -> u128 {
 #[cfg(target_os = "android")]
 pub async fn pick_gallery_to_product_photo_input<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
-) -> Result<crate::photo_picker::PickedProductPhoto, String> {
+) -> Result<crate::android::photo_picker::PickedProductPhoto, String> {
     use tauri_plugin_android_fs::AndroidFsExt;
 
     let api = app.android_fs_async();
@@ -104,27 +104,30 @@ pub async fn pick_gallery_to_product_photo_input<R: tauri::Runtime>(
         .read(&uri)
         .await
         .map_err(|error| format!("Failed to read gallery image: {error}"))?;
-    let preview = crate::assets::product_photo_preview_from_bytes(&bytes, &original_filename).ok();
+    let preview =
+        crate::assets::image::asset_image_preview_from_bytes(&bytes, &original_filename).ok();
     tokio::fs::write(&target_path, bytes)
         .await
         .map_err(|error| format!("Failed to stage gallery image: {error}"))?;
 
-    Ok(crate::photo_picker::picked_product_photo_from_path(
-        target_path,
-        original_filename,
-        mime_type,
-        preview
-            .as_ref()
-            .map(|preview| preview.preview_base64.clone()),
-        preview.map(|preview| preview.preview_mime_type),
-        crate::photo_picker::ProductPhotoSource::Gallery,
-    ))
+    Ok(
+        crate::android::photo_picker::picked_product_photo_from_path(
+            target_path,
+            original_filename,
+            mime_type,
+            preview
+                .as_ref()
+                .map(|preview| preview.preview_base64.clone()),
+            preview.map(|preview| preview.preview_mime_type),
+            crate::android::photo_picker::ProductPhotoSource::Gallery,
+        ),
+    )
 }
 
 #[cfg(not(target_os = "android"))]
 pub async fn pick_gallery_to_product_photo_input<R: tauri::Runtime>(
     _app: &tauri::AppHandle<R>,
-) -> Result<crate::photo_picker::PickedProductPhoto, String> {
+) -> Result<crate::android::photo_picker::PickedProductPhoto, String> {
     Err(ANDROID_FS_UNSUPPORTED_ERROR.to_string())
 }
 

@@ -121,7 +121,7 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [ASSET:JOB:RESET:FAIL]` | startup reset of incomplete asset jobs |
 | `[RUST] [DB:INIT:FAIL]` | database initialization failure |
 | `[RUST] [DB:MIGRATION:SKIP]` | idempotent migration statements skipped because they already exist |
-| `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `delete_temp_product_photo`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `pick_product_photo`, `prepare_local_product_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
+| `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `delete_temp_product_photo`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `pick_product_photo`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
 | `[RUST] [PRINTER:TRACE]` | Android printer bridge failures, including list, test print, print receipt, and permission calls |
 | `[RUST] [SYNC:TRACE]` | local state, row upsert, push, pull, sync outbox push, sync event pull, garbage collection, and `sync_now` diagnostics |
 

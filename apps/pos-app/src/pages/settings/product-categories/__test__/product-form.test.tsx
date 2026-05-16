@@ -9,7 +9,6 @@ const mockCreateProduct = vi.fn();
 const mockUpdateProduct = vi.fn();
 const mockPickProductPhoto = vi.fn();
 const mockDeleteTempProductPhoto = vi.fn();
-const mockPrepareLocalProductImageAssetFromPath = vi.fn();
 const mockEnqueueAssetProcessing = vi.fn();
 const mockResolveCachedProductImageUrl = vi.fn();
 const mockToastSuccess = vi.fn();
@@ -74,8 +73,6 @@ vi.mock("~/lib/assets", () => ({
   enqueueAssetProcessing: (...args: unknown[]) =>
     mockEnqueueAssetProcessing(...args),
   pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
-  prepareLocalProductImageAssetFromPath: (...args: unknown[]) =>
-    mockPrepareLocalProductImageAssetFromPath(...args),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -250,7 +247,6 @@ describe("ProductForm (create mode)", () => {
     await user.click(screen.getByText("Ambil Foto"));
 
     expect(mockPickProductPhoto).toHaveBeenCalledWith("camera");
-    expect(mockPrepareLocalProductImageAssetFromPath).not.toHaveBeenCalled();
     expect(
       await screen.findByText("Foto akan diproses saat disimpan.")
     ).toBeInTheDocument();
@@ -275,7 +271,6 @@ describe("ProductForm (create mode)", () => {
     await user.click(screen.getByText("Pilih dari Galeri"));
 
     expect(mockPickProductPhoto).toHaveBeenCalledWith("gallery");
-    expect(mockPrepareLocalProductImageAssetFromPath).not.toHaveBeenCalled();
   });
 
   test("submit saves the product immediately and enqueues staged photo processing", async () => {
@@ -308,7 +303,6 @@ describe("ProductForm (create mode)", () => {
     await user.click(screen.getByText("Pilih dari Galeri"));
     await user.click(screen.getByTestId("save-btn"));
 
-    expect(mockPrepareLocalProductImageAssetFromPath).not.toHaveBeenCalled();
     expect(mockCreateProduct).toHaveBeenCalledWith(
       expect.objectContaining({ imageAssetId: null })
     );

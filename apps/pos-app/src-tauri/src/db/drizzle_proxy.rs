@@ -13,12 +13,9 @@ use std::time::Duration;
 use tauri::{command, AppHandle, State};
 use tokio::fs;
 
-use crate::db_utils;
+use crate::app::state::AppState;
+use crate::db::sqlite;
 include!(concat!(env!("OUT_DIR"), "/drizzle_migrations.rs"));
-
-pub struct AppState {
-    pub db_pool: SqlitePool,
-}
 
 const SQLITE_POOL_MAX_CONNECTIONS: u32 = 1;
 
@@ -36,7 +33,7 @@ pub struct SqlRow {
 }
 
 pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
-    let db_path = db_utils::get_app_db_path(app)?;
+    let db_path = sqlite::get_app_db_path(app)?;
 
     let options = SqliteConnectOptions::from_str(&format!("sqlite:{}", db_path.display()))
         .map_err(|e| format!("Invalid DB URI: {}", e))?
@@ -166,7 +163,7 @@ pub async fn run_sql(query: SqlQuery, state: State<'_, AppState>) -> Result<Vec<
 
             let values = (0..row.len())
                 .map(|i| match row.try_get_raw(i) {
-                    Ok(_) => db_utils::sqlx_value_to_json(row, i),
+                    Ok(_) => sqlite::sqlx_value_to_json(row, i),
                     Err(_) => Value::Null,
                 })
                 .collect::<Vec<_>>();
@@ -249,7 +246,7 @@ pub struct DbInfo {
 
 #[command]
 pub async fn get_db_info(app: AppHandle) -> Result<DbInfo, String> {
-    let db_path = db_utils::get_app_db_path(&app)?;
+    let db_path = sqlite::get_app_db_path(&app)?;
     let metadata = fs::metadata(&db_path)
         .await
         .map_err(|e| format!("Failed to get DB file info: {}", e))?;

@@ -5,6 +5,11 @@ import {
 } from "@repo/protobuf/assets";
 import { invoke } from "@tauri-apps/api/core";
 import { protoFetch } from "~/lib/api/client";
+import type {
+  AssetAttachmentField,
+  AssetEntityType,
+  AssetProcessingTarget,
+} from "~/lib/asset-targets";
 import { createLogger } from "~/lib/logger";
 
 const assetLogger = createLogger({
@@ -32,14 +37,7 @@ export interface PreparedLocalAsset {
 }
 
 export type AssetProcessingKind = "image:webp-thumbnail";
-export type AssetEntityType = "product";
-export type AssetAttachmentField = "image_asset_id";
-
-export interface AssetProcessingTarget {
-  entityId: string;
-  entityType: AssetEntityType;
-  field: AssetAttachmentField;
-}
+export type { AssetAttachmentField, AssetEntityType, AssetProcessingTarget };
 
 export interface EnqueueAssetProcessingInput {
   originalFilename: string;
@@ -178,7 +176,7 @@ export async function readCachedAssetData(
   });
 }
 
-export async function prepareLocalProductImageAsset(input: {
+export async function prepareLocalImageAsset(input: {
   byteSize: number;
   contentHash: string;
   contentType: string;
@@ -189,7 +187,7 @@ export async function prepareLocalProductImageAsset(input: {
   originalFilename: string;
   width: number;
 }): Promise<PreparedLocalAsset> {
-  return await invoke<PreparedLocalAsset>("prepare_local_product_image_asset", {
+  return await invoke<PreparedLocalAsset>("prepare_local_image_asset", {
     byteSize: input.byteSize,
     contentHash: input.contentHash,
     contentType: input.contentType,
@@ -202,14 +200,14 @@ export async function prepareLocalProductImageAsset(input: {
   });
 }
 
-export async function prepareLocalProductImageAssetFromPath(input: {
+export async function prepareLocalImageAssetFromPath(input: {
   kind: string;
   merchantId: string;
   originalFilename: string;
   path: string;
 }): Promise<PreparedLocalAsset> {
   return await invoke<PreparedLocalAsset>(
-    "prepare_local_product_image_asset_from_path",
+    "prepare_local_image_asset_from_path",
     {
       kind: input.kind,
       merchantId: input.merchantId,

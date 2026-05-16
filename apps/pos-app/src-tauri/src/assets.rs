@@ -1,21 +1,29 @@
 use base64::engine::general_purpose;
 use base64::Engine;
-use exif::{In, Reader as ExifReader, Tag};
-use image::codecs::jpeg::JpegEncoder;
-use image::imageops::FilterType;
-use image::{DynamicImage, ImageReader};
 use prost::Message;
-use serde::Serialize;
-use sha2::{Digest, Sha256};
 use sqlx::{Row, SqlitePool};
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
-use tauri::{command, AppHandle, Emitter, Manager, State};
-use tokio::fs;
-use zenwebp::{EncodeRequest, LossyConfig, PixelLayout};
+use tauri::{AppHandle, Emitter, State};
 
-use crate::drizzle_proxy::AppState;
+pub(crate) mod cache;
+pub(crate) mod commands;
+mod dto;
+pub(crate) mod http;
+pub(crate) mod hydration;
+pub(crate) mod image;
+pub(crate) mod local;
+pub(crate) mod processing_jobs;
+pub(crate) mod targets;
+pub(crate) mod upload_queue;
+
+use self::cache::{
+    asset_cache_file_path_from_root, asset_object_key, asset_relative_path,
+    is_deletable_photo_input_path, normalize_original_filename, sha256_hex, write_cached_asset,
+};
+use self::dto::*;
+use self::image::{asset_image_preview_from_bytes, process_image_bytes};
+use self::targets::{resolve_asset_target_merchant_id, validate_asset_attachment_target};
+use crate::app::state::AppState;
 use crate::time_utils::{current_job_id_string, current_time_iso_string};
 
 #[allow(dead_code)]
@@ -23,363 +31,9 @@ mod asset_proto {
     include!(concat!(env!("OUT_DIR"), "/sakti.assets.v1.rs"));
 }
 
-const MAX_LONG_EDGE: u32 = 400;
-const PREVIEW_MAX_LONG_EDGE: u32 = 320;
-pub(crate) const PRODUCT_PHOTO_PREVIEW_MIME_TYPE: &str = "image/jpeg";
-const WEBP_QUALITY: f32 = 75.0;
-const WEBP_METHOD: u8 = 6;
 const PHOTO_PIPELINE_LOG_PREFIX: &str = "RUST] [PHOTO:TRACE";
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProcessedImageResponse {
-    pub byte_size: usize,
-    pub content_hash: String,
-    pub content_type: String,
-    pub data_base64: String,
-    pub height: u32,
-    pub width: u32,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CachedAssetResponse {
-    pub local_path: String,
-    pub object_key: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CachedAssetDataResponse {
-    pub content_type: String,
-    pub data_base64: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PreparedAssetRecord {
-    pub id: String,
-    pub merchant_id: String,
-    pub object_key: String,
-    pub original_filename: String,
-    pub content_type: String,
-    pub byte_size: i64,
-    pub content_hash: String,
-    pub kind: String,
-    pub width: i32,
-    pub height: i32,
-    pub status: String,
-    pub created_by_user_id: String,
-    pub deleted_at: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PreparedLocalAssetResponse {
-    pub asset: PreparedAssetRecord,
-    pub data_base64: String,
-    pub local_path: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EnqueueAssetProcessingRequest {
-    original_filename: String,
-    processing_kind: String,
-    source_mime_type: Option<String>,
-    source_path: String,
-    target: AssetAttachmentTarget,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EnqueueAssetProcessingResponse {
-    pub job_id: String,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AssetAttachmentTarget {
-    entity_type: String,
-    entity_id: String,
-    field: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-struct AssetAttachmentReadyPayload {
-    asset_id: String,
-    entity_id: String,
-    entity_type: String,
-    field: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-struct AssetCacheReadyPayload {
-    asset_id: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PendingProductPhotoPreviewResponse {
-    pub preview_base64: String,
-    pub preview_mime_type: String,
-}
-
-#[derive(Debug)]
-pub(crate) struct ProductPhotoPreview {
-    pub preview_base64: String,
-    pub preview_mime_type: String,
-}
-
-struct PreparedImageInput {
-    byte_size: i64,
-    content_hash: String,
-    content_type: String,
-    data_base64: String,
-    height: i32,
-    kind: String,
-    merchant_id: String,
-    original_filename: String,
-    width: i32,
-}
-
-#[derive(Debug)]
-struct PendingAssetProcessingJobRecord {
-    id: String,
-    merchant_id: String,
-    source_path: String,
-    original_filename: String,
-    source_mime_type: Option<String>,
-    processing_kind: String,
-    entity_type: String,
-    entity_id: String,
-    attachment_field: String,
-    preview_path: Option<String>,
-    preview_mime_type: Option<String>,
-    status: String,
-    attempts: i64,
-}
-
-fn validate_asset_attachment_target(target: &AssetAttachmentTarget) -> Result<(), String> {
-    match (target.entity_type.as_str(), target.field.as_str()) {
-        ("product", "image_asset_id") => Ok(()),
-        _ => Err(format!(
-            "Unsupported asset attachment target {}.{}",
-            target.entity_type, target.field
-        )),
-    }
-}
-
-fn validate_asset_processing_kind(processing_kind: &str) -> Result<(), String> {
-    match processing_kind {
-        "image:webp-thumbnail" => Ok(()),
-        _ => Err(format!(
-            "Unsupported asset processing kind {}",
-            processing_kind
-        )),
-    }
-}
-
-fn fit_within_max_edge(width: u32, height: u32, max_edge: u32) -> (u32, u32) {
-    if width <= max_edge && height <= max_edge {
-        return (width, height);
-    }
-
-    let longest_side = width.max(height) as f64;
-    let scale = max_edge as f64 / longest_side;
-    let scaled_width = (width as f64 * scale).round().max(1.0) as u32;
-    let scaled_height = (height as f64 * scale).round().max(1.0) as u32;
-    (scaled_width, scaled_height)
-}
-
-fn decode_image_bytes(data: &[u8], original_filename: &str) -> Result<DynamicImage, String> {
-    ImageReader::new(Cursor::new(data))
-        .with_guessed_format()
-        .map_err(|error| {
-            format!(
-                "Failed to detect image format for {}: {}",
-                original_filename, error
-            )
-        })?
-        .decode()
-        .map_err(|error| format!("Failed to decode image {}: {}", original_filename, error))
-}
-
-fn read_exif_orientation(data: &[u8]) -> Option<u16> {
-    let mut cursor = Cursor::new(data);
-    ExifReader::new()
-        .read_from_container(&mut cursor)
-        .ok()
-        .and_then(|exif| {
-            exif.get_field(Tag::Orientation, In::PRIMARY)
-                .and_then(|field| field.value.get_uint(0))
-                .and_then(|value| u16::try_from(value).ok())
-        })
-}
-
-fn apply_exif_orientation(image: DynamicImage, orientation: Option<u16>) -> DynamicImage {
-    let Some(orientation) = orientation else {
-        return image;
-    };
-
-    let rgba = image.to_rgba8();
-    let transformed = match orientation {
-        2 => image::imageops::flip_horizontal(&rgba),
-        3 => image::imageops::rotate180(&rgba),
-        4 => image::imageops::flip_vertical(&rgba),
-        5 => image::imageops::rotate90(&image::imageops::flip_horizontal(&rgba)),
-        6 => image::imageops::rotate90(&rgba),
-        7 => image::imageops::rotate270(&image::imageops::flip_horizontal(&rgba)),
-        8 => image::imageops::rotate270(&rgba),
-        _ => rgba,
-    };
-
-    DynamicImage::ImageRgba8(transformed)
-}
-
-fn decode_oriented_image_bytes(
-    data: &[u8],
-    original_filename: &str,
-) -> Result<DynamicImage, String> {
-    let decoded = decode_image_bytes(data, original_filename)?;
-    Ok(apply_exif_orientation(decoded, read_exif_orientation(data)))
-}
-
-fn process_image_bytes(
-    data: &[u8],
-    original_filename: &str,
-) -> Result<ProcessedImageResponse, String> {
-    let decoded = decode_oriented_image_bytes(data, original_filename)?;
-    let rgba = decoded.to_rgba8();
-    let (source_width, source_height) = rgba.dimensions();
-    let (target_width, target_height) =
-        fit_within_max_edge(source_width, source_height, MAX_LONG_EDGE);
-
-    let processed = if target_width == source_width && target_height == source_height {
-        rgba
-    } else {
-        image::imageops::resize(&rgba, target_width, target_height, FilterType::Triangle)
-    };
-
-    let encoder_config = LossyConfig::new()
-        .with_quality(WEBP_QUALITY)
-        .with_method(WEBP_METHOD);
-    let webp_bytes = EncodeRequest::lossy(
-        &encoder_config,
-        processed.as_raw(),
-        PixelLayout::Rgba8,
-        target_width,
-        target_height,
-    )
-    .encode()
-    .map_err(|error| format!("Failed to encode {} to WebP: {}", original_filename, error))?;
-
-    let content_hash = {
-        let mut hasher = Sha256::new();
-        hasher.update(&webp_bytes);
-        format!("{:x}", hasher.finalize())
-    };
-
-    Ok(ProcessedImageResponse {
-        byte_size: webp_bytes.len(),
-        content_hash,
-        content_type: "image/webp".to_string(),
-        data_base64: general_purpose::STANDARD.encode(webp_bytes),
-        height: target_height,
-        width: target_width,
-    })
-}
-
-pub(crate) fn product_photo_preview_from_bytes(
-    data: &[u8],
-    original_filename: &str,
-) -> Result<ProductPhotoPreview, String> {
-    let decoded = decode_oriented_image_bytes(data, original_filename)?;
-    let rgba = decoded.to_rgba8();
-    let (source_width, source_height) = rgba.dimensions();
-    let (target_width, target_height) =
-        fit_within_max_edge(source_width, source_height, PREVIEW_MAX_LONG_EDGE);
-
-    let processed = if target_width == source_width && target_height == source_height {
-        rgba
-    } else {
-        image::imageops::resize(&rgba, target_width, target_height, FilterType::Triangle)
-    };
-
-    let preview_rgb = DynamicImage::ImageRgba8(processed).to_rgb8();
-    let mut preview_bytes = Vec::new();
-    JpegEncoder::new_with_quality(&mut preview_bytes, 75)
-        .encode(
-            preview_rgb.as_raw(),
-            target_width,
-            target_height,
-            image::ExtendedColorType::Rgb8,
-        )
-        .map_err(|error| {
-            format!(
-                "Failed to encode preview for {}: {}",
-                original_filename, error
-            )
-        })?;
-
-    Ok(ProductPhotoPreview {
-        preview_base64: general_purpose::STANDARD.encode(preview_bytes),
-        preview_mime_type: PRODUCT_PHOTO_PREVIEW_MIME_TYPE.to_string(),
-    })
-}
-
-fn pending_asset_preview_file_path(source_path: &Path, job_id: &str) -> Result<PathBuf, String> {
-    let parent = source_path
-        .parent()
-        .ok_or_else(|| "Product photo source path has no parent directory".to_string())?;
-    Ok(parent.join(format!("pending_preview_{job_id}.jpg")))
-}
-
-async fn write_pending_asset_processing_preview(
-    source_path: &str,
-    original_filename: &str,
-    job_id: &str,
-) -> Result<(String, String), String> {
-    let source_path_buf = PathBuf::from(source_path);
-    let preview_path = pending_asset_preview_file_path(&source_path_buf, job_id)?;
-    let source_bytes = fs::read(&source_path_buf)
-        .await
-        .map_err(|error| format!("Failed to read product photo source for preview: {}", error))?;
-    let original_filename = original_filename.to_string();
-    let preview = tauri::async_runtime::spawn_blocking(move || {
-        product_photo_preview_from_bytes(&source_bytes, &original_filename)
-    })
-    .await
-    .map_err(|error| format!("Failed to join pending asset preview worker: {}", error))??;
-    let preview_bytes = general_purpose::STANDARD
-        .decode(&preview.preview_base64)
-        .map_err(|error| format!("Failed to decode pending asset preview bytes: {}", error))?;
-
-    fs::write(&preview_path, preview_bytes)
-        .await
-        .map_err(|error| format!("Failed to write pending asset preview: {}", error))?;
-
-    Ok((
-        preview_path.to_string_lossy().to_string(),
-        preview.preview_mime_type,
-    ))
-}
-
-fn validate_object_key(object_key: &str) -> Result<(), String> {
-    if object_key.is_empty() || object_key.starts_with('/') {
-        return Err("Invalid asset object key".to_string());
-    }
-
-    for component in Path::new(object_key).components() {
-        if matches!(component, std::path::Component::ParentDir) {
-            return Err("Invalid asset object key".to_string());
-        }
-    }
-
-    Ok(())
-}
+// DTOs live in `assets/dto.rs`.
 
 #[cfg(test)]
 fn is_valid_asset_status(status: &str) -> bool {
@@ -394,63 +48,18 @@ fn is_valid_pending_product_photo_job_status(status: &str) -> bool {
     matches!(status, "pending" | "processing" | "done" | "failed")
 }
 
-#[cfg(test)]
-fn asset_relative_path(merchant_id: &str, content_hash: &str) -> PathBuf {
-    PathBuf::from(format!("{merchant_id}/assets/{content_hash}"))
-}
-
-fn asset_object_key(merchant_id: &str, content_hash: &str) -> String {
-    format!("{merchant_id}/assets/{content_hash}")
-}
-
-fn is_deletable_photo_input_path(path: &Path) -> bool {
-    path.components()
-        .any(|component| component.as_os_str() == "product_photo_inputs")
-}
-
-fn normalize_original_filename(original_filename: &str, path: &Path) -> String {
-    let trimmed = original_filename.trim();
-    if !trimmed.is_empty() {
-        return trimmed.to_string();
-    }
-
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("product-photo")
-        .to_string()
-}
-
-fn asset_cache_file_path_from_root(root: &Path, object_key: &str) -> Result<PathBuf, String> {
-    validate_object_key(object_key)?;
-    Ok(root.join(format!("{object_key}.webp")))
-}
-
-fn asset_cache_root(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_config_dir()
-        .map(|path| path.join("asset-cache"))
-        .map_err(|_| "Could not resolve app config directory".to_string())
+fn presign_response_means_already_ready(
+    response: &asset_proto::AssetPresignUploadResponse,
+) -> bool {
+    self::http::presign_response_means_already_ready(response)
 }
 
 fn build_api_client(session_token: &str) -> Result<reqwest::Client, String> {
-    let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(
-        reqwest::header::AUTHORIZATION,
-        reqwest::header::HeaderValue::from_str(&format!("Bearer {session_token}"))
-            .map_err(|error| format!("Invalid token: {}", error))?,
-    );
-    reqwest::Client::builder()
-        .default_headers(headers)
-        .timeout(Duration::from_secs(60))
-        .build()
-        .map_err(|error| format!("Failed to build HTTP client: {}", error))
+    self::http::build_api_client(session_token)
 }
 
 fn build_signed_url_client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(60))
-        .build()
-        .map_err(|error| format!("Failed to build signed URL client: {}", error))
+    self::http::build_signed_url_client()
 }
 
 async fn post_protobuf<Req, Res>(
@@ -462,33 +71,16 @@ where
     Req: Message,
     Res: Message + Default,
 {
-    let request_body = request.encode_to_vec();
-    let response = client
-        .post(url)
-        .header(reqwest::header::CONTENT_TYPE, "application/x-protobuf")
-        .header(reqwest::header::ACCEPT, "application/x-protobuf")
-        .body(request_body)
-        .send()
-        .await
-        .map_err(|error| format!("Request to {} failed: {}", url, error))?;
-
-    let status = response.status();
-    if !status.is_success() {
-        let text = response.text().await.unwrap_or_default();
-        return Err(format!("Request to {} failed ({}): {}", url, status, text));
-    }
-
-    let body = response
-        .bytes()
-        .await
-        .map_err(|error| format!("Failed to read response from {}: {}", url, error))?;
-    Res::decode(body.as_ref()).map_err(|error| format!("Failed to decode response: {}", error))
+    self::http::post_protobuf(client, url, request).await
 }
 
-fn presign_response_means_already_ready(
-    response: &asset_proto::AssetPresignUploadResponse,
-) -> bool {
-    response.upload_url.trim().is_empty()
+async fn put_bytes_to_signed_url(
+    client: &reqwest::Client,
+    url: &str,
+    headers: &[asset_proto::AssetHeader],
+    bytes: &[u8],
+) -> Result<(), String> {
+    self::http::put_bytes_to_signed_url(client, url, headers, bytes).await
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -527,74 +119,6 @@ fn resolve_reused_asset_ready_state(existing_status: Option<&str>) -> LocalAsset
     }
 }
 
-fn asset_headers_to_map(
-    headers: &[asset_proto::AssetHeader],
-) -> Result<reqwest::header::HeaderMap, String> {
-    let mut header_map = reqwest::header::HeaderMap::new();
-    for header in headers {
-        let name = reqwest::header::HeaderName::from_bytes(header.name.as_bytes())
-            .map_err(|error| format!("Invalid header name {}: {}", header.name, error))?;
-        let value = reqwest::header::HeaderValue::from_str(&header.value)
-            .map_err(|error| format!("Invalid header value for {}: {}", header.name, error))?;
-        header_map.insert(name, value);
-    }
-    Ok(header_map)
-}
-
-async fn put_bytes_to_signed_url(
-    client: &reqwest::Client,
-    url: &str,
-    headers: &[asset_proto::AssetHeader],
-    bytes: &[u8],
-) -> Result<(), String> {
-    let header_map = asset_headers_to_map(headers)?;
-    let response = client
-        .put(url)
-        .headers(header_map)
-        .body(bytes.to_vec())
-        .send()
-        .await
-        .map_err(|error| format!("Signed upload request failed: {}", error))?;
-
-    let status = response.status();
-    if !status.is_success() {
-        let text = response.text().await.unwrap_or_default();
-        return Err(format!(
-            "Signed upload request failed ({}): {}",
-            status, text
-        ));
-    }
-
-    Ok(())
-}
-
-async fn write_cached_asset(
-    app: &AppHandle,
-    object_key: &str,
-    bytes: &[u8],
-) -> Result<String, String> {
-    let root = asset_cache_root(app)?;
-    let path = asset_cache_file_path_from_root(&root, object_key)?;
-    let path_for_write = path.clone();
-    fs::create_dir_all(
-        path_for_write
-            .parent()
-            .ok_or_else(|| "Invalid asset cache path".to_string())?,
-    )
-    .await
-    .map_err(|error| format!("Failed to create asset cache directory: {}", error))?;
-    fs::write(&path_for_write, bytes)
-        .await
-        .map_err(|error| format!("Failed to write asset cache file: {}", error))?;
-    Ok(path.to_string_lossy().to_string())
-}
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
-}
-
 #[derive(Debug)]
 struct PendingUploadAsset {
     asset_id: String,
@@ -615,75 +139,7 @@ async fn load_pending_upload_assets(
     merchant_id: &str,
     limit: i64,
 ) -> Result<Vec<PendingUploadAsset>, String> {
-    let rows = sqlx::query(
-        r#"
-        SELECT
-          a.id AS asset_id,
-          a.merchant_id,
-          a.object_key,
-          a.original_filename,
-          a.content_type,
-          a.byte_size,
-          a.content_hash,
-          a.kind,
-          a.width,
-          a.height,
-          c.local_path
-        FROM assets a
-        INNER JOIN local_asset_cache c ON c.asset_id = a.id
-        WHERE a.merchant_id = ?1
-          AND a.status = 'pending_upload'
-          AND c.status = 'pending_upload'
-        ORDER BY a.created_at ASC
-        LIMIT ?2
-        "#,
-    )
-    .bind(merchant_id)
-    .bind(limit)
-    .fetch_all(pool)
-    .await
-    .map_err(|error| format!("Failed to load pending uploads: {}", error))?;
-
-    let mut assets = Vec::with_capacity(rows.len());
-    for row in rows {
-        assets.push(PendingUploadAsset {
-            asset_id: row
-                .try_get("asset_id")
-                .map_err(|error| format!("Failed to read asset_id: {}", error))?,
-            merchant_id: row
-                .try_get("merchant_id")
-                .map_err(|error| format!("Failed to read merchant_id: {}", error))?,
-            object_key: row
-                .try_get("object_key")
-                .map_err(|error| format!("Failed to read object_key: {}", error))?,
-            original_filename: row
-                .try_get::<Option<String>, _>("original_filename")
-                .map_err(|error| format!("Failed to read original_filename: {}", error))?,
-            content_type: row
-                .try_get("content_type")
-                .map_err(|error| format!("Failed to read content_type: {}", error))?,
-            byte_size: row
-                .try_get("byte_size")
-                .map_err(|error| format!("Failed to read byte_size: {}", error))?,
-            content_hash: row
-                .try_get("content_hash")
-                .map_err(|error| format!("Failed to read content_hash: {}", error))?,
-            kind: row
-                .try_get("kind")
-                .map_err(|error| format!("Failed to read kind: {}", error))?,
-            width: row
-                .try_get::<Option<i64>, _>("width")
-                .map_err(|error| format!("Failed to read width: {}", error))?,
-            height: row
-                .try_get::<Option<i64>, _>("height")
-                .map_err(|error| format!("Failed to read height: {}", error))?,
-            local_path: row
-                .try_get("local_path")
-                .map_err(|error| format!("Failed to read local_path: {}", error))?,
-        });
-    }
-
-    Ok(assets)
+    self::local::load_pending_upload_assets(pool, merchant_id, limit).await
 }
 
 async fn load_ready_assets(
@@ -691,76 +147,7 @@ async fn load_ready_assets(
     merchant_id: &str,
     limit: i64,
 ) -> Result<Vec<PendingUploadAsset>, String> {
-    let rows = sqlx::query(
-        r#"
-        SELECT
-          a.id AS asset_id,
-          a.merchant_id,
-          a.object_key,
-          a.original_filename,
-          a.content_type,
-          a.byte_size,
-          a.content_hash,
-          a.kind,
-          a.width,
-          a.height,
-          c.local_path
-        FROM assets a
-        LEFT JOIN local_asset_cache c ON c.asset_id = a.id
-        WHERE a.merchant_id = ?1
-          AND a.status = 'ready'
-        ORDER BY a.created_at ASC
-        LIMIT ?2
-        "#,
-    )
-    .bind(merchant_id)
-    .bind(limit)
-    .fetch_all(pool)
-    .await
-    .map_err(|error| format!("Failed to load ready assets: {}", error))?;
-
-    let mut assets = Vec::with_capacity(rows.len());
-    for row in rows {
-        let local_path = row
-            .try_get::<Option<String>, _>("local_path")
-            .map_err(|error| format!("Failed to read local_path: {}", error))?
-            .unwrap_or_default();
-        assets.push(PendingUploadAsset {
-            asset_id: row
-                .try_get("asset_id")
-                .map_err(|error| format!("Failed to read asset_id: {}", error))?,
-            merchant_id: row
-                .try_get("merchant_id")
-                .map_err(|error| format!("Failed to read merchant_id: {}", error))?,
-            object_key: row
-                .try_get("object_key")
-                .map_err(|error| format!("Failed to read object_key: {}", error))?,
-            original_filename: row
-                .try_get::<Option<String>, _>("original_filename")
-                .map_err(|error| format!("Failed to read original_filename: {}", error))?,
-            content_type: row
-                .try_get("content_type")
-                .map_err(|error| format!("Failed to read content_type: {}", error))?,
-            byte_size: row
-                .try_get("byte_size")
-                .map_err(|error| format!("Failed to read byte_size: {}", error))?,
-            content_hash: row
-                .try_get("content_hash")
-                .map_err(|error| format!("Failed to read content_hash: {}", error))?,
-            kind: row
-                .try_get("kind")
-                .map_err(|error| format!("Failed to read kind: {}", error))?,
-            width: row
-                .try_get::<Option<i64>, _>("width")
-                .map_err(|error| format!("Failed to read width: {}", error))?,
-            height: row
-                .try_get::<Option<i64>, _>("height")
-                .map_err(|error| format!("Failed to read height: {}", error))?,
-            local_path,
-        });
-    }
-
-    Ok(assets)
+    self::local::load_ready_assets(pool, merchant_id, limit).await
 }
 
 pub(crate) async fn reset_incomplete_pending_asset_processing_jobs(
@@ -968,122 +355,6 @@ async fn delete_pending_asset_processing_job(
     Ok(())
 }
 
-async fn update_product_image_asset_id(
-    pool: &SqlitePool,
-    product_id: &str,
-    merchant_id: &str,
-    asset_id: &str,
-) -> Result<(), String> {
-    let now = current_time_iso_string();
-    log::info!(
-        "[{}] product_image_link:start product_id={} merchant_id={} asset_id={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        product_id,
-        merchant_id,
-        asset_id
-    );
-    let result = sqlx::query(
-        "UPDATE products SET image_asset_id = ?2, is_synced = 0, updated_at = ?3 WHERE id = ?1 AND merchant_id = ?4 AND deleted_at IS NULL",
-    )
-    .bind(product_id)
-    .bind(asset_id)
-    .bind(&now)
-    .bind(merchant_id)
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to update product image asset: {}", error))?;
-
-    if result.rows_affected() == 0 {
-        log::info!(
-            "[{}] product_image_link:not_found product_id={} merchant_id={} asset_id={}",
-            PHOTO_PIPELINE_LOG_PREFIX,
-            product_id,
-            merchant_id,
-            asset_id
-        );
-        return Err(format!(
-            "Product {} was not found while linking photo asset",
-            product_id
-        ));
-    }
-
-    log::info!(
-        "[{}] product_image_link:updated product_id={} merchant_id={} asset_id={} rows_affected={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        product_id,
-        merchant_id,
-        asset_id,
-        result.rows_affected()
-    );
-    insert_sync_outbox(
-        pool,
-        product_id,
-        "merchant",
-        merchant_id,
-        "products",
-        "update",
-    )
-    .await
-}
-
-async fn resolve_asset_target_merchant_id(
-    pool: &SqlitePool,
-    target: &AssetAttachmentTarget,
-) -> Result<String, String> {
-    match (target.entity_type.as_str(), target.field.as_str()) {
-        ("product", "image_asset_id") => {
-            let merchant_id = sqlx::query_scalar::<_, String>(
-                "SELECT merchant_id FROM products WHERE id = ?1 AND deleted_at IS NULL",
-            )
-            .bind(&target.entity_id)
-            .fetch_optional(pool)
-            .await
-            .map_err(|error| format!("Failed to resolve product merchant: {}", error))?;
-
-            merchant_id.ok_or_else(|| {
-                format!(
-                    "Product {} was not found while enqueueing asset processing",
-                    target.entity_id
-                )
-            })
-        }
-        _ => Err(format!(
-            "Unsupported asset attachment target {}.{}",
-            target.entity_type, target.field
-        )),
-    }
-}
-
-async fn link_asset_to_attachment_target(
-    pool: &SqlitePool,
-    target: &AssetAttachmentTarget,
-    merchant_id: &str,
-    asset_id: &str,
-) -> Result<(), String> {
-    match (target.entity_type.as_str(), target.field.as_str()) {
-        ("product", "image_asset_id") => {
-            update_product_image_asset_id(pool, &target.entity_id, merchant_id, asset_id).await
-        }
-        _ => Err(format!(
-            "Unsupported asset attachment target {}.{}",
-            target.entity_type, target.field
-        )),
-    }
-}
-
-fn asset_kind_for_processing_job(
-    job: &PendingAssetProcessingJobRecord,
-) -> Result<&'static str, String> {
-    validate_asset_processing_kind(&job.processing_kind)?;
-    match (job.entity_type.as_str(), job.attachment_field.as_str()) {
-        ("product", "image_asset_id") => Ok("product_photo"),
-        _ => Err(format!(
-            "Unsupported asset attachment target {}.{}",
-            job.entity_type, job.attachment_field
-        )),
-    }
-}
-
 fn emit_asset_cache_ready(app: &AppHandle, asset_id: &str) {
     log::info!(
         "[{}] asset_cache_ready:emit asset_id={}",
@@ -1122,15 +393,7 @@ fn emit_asset_attachment_ready(app: &AppHandle, payload: AssetAttachmentReadyPay
 }
 
 async fn mark_asset_uploading(pool: &SqlitePool, asset_id: &str) -> Result<(), String> {
-    sqlx::query(
-        "UPDATE local_asset_cache SET status = 'uploading', upload_attempts = upload_attempts + 1, last_error = NULL, updated_at = ?2 WHERE asset_id = ?1",
-    )
-    .bind(asset_id)
-    .bind(current_time_iso_string())
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to mark asset uploading: {}", error))?;
-    Ok(())
+    self::local::mark_asset_uploading(pool, asset_id).await
 }
 
 async fn mark_asset_upload_failed(
@@ -1139,25 +402,7 @@ async fn mark_asset_upload_failed(
     merchant_id: &str,
     error_message: &str,
 ) -> Result<(), String> {
-    sqlx::query(
-        "UPDATE local_asset_cache SET status = 'failed', last_error = ?2, updated_at = ?3 WHERE asset_id = ?1",
-    )
-    .bind(asset_id)
-    .bind(error_message)
-    .bind(current_time_iso_string())
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to mark asset failed: {}", error))?;
-    sqlx::query(
-        "UPDATE assets SET status = 'failed', is_synced = 0, updated_at = ?2 WHERE id = ?1",
-    )
-    .bind(asset_id)
-    .bind(current_time_iso_string())
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to mark asset failed: {}", error))?;
-    insert_sync_outbox(pool, asset_id, "merchant", merchant_id, "assets", "update").await?;
-    Ok(())
+    self::local::mark_asset_upload_failed(pool, asset_id, merchant_id, error_message).await
 }
 
 async fn mark_asset_ready(
@@ -1165,23 +410,7 @@ async fn mark_asset_ready(
     asset_id: &str,
     merchant_id: &str,
 ) -> Result<(), String> {
-    let now = current_time_iso_string();
-    sqlx::query(
-        "UPDATE local_asset_cache SET status = 'ready', last_error = NULL, cached_at = ?2, updated_at = ?2 WHERE asset_id = ?1",
-    )
-    .bind(asset_id)
-    .bind(&now)
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to mark local cache ready: {}", error))?;
-    sqlx::query("UPDATE assets SET status = 'ready', is_synced = 0, updated_at = ?2 WHERE id = ?1")
-        .bind(asset_id)
-        .bind(&now)
-        .execute(pool)
-        .await
-        .map_err(|error| format!("Failed to mark asset ready: {}", error))?;
-    insert_sync_outbox(pool, asset_id, "merchant", merchant_id, "assets", "update").await?;
-    Ok(())
+    self::local::mark_asset_ready(pool, asset_id, merchant_id).await
 }
 
 async fn mark_reused_asset_ready(
@@ -1189,29 +418,7 @@ async fn mark_reused_asset_ready(
     asset_id: &str,
     merchant_id: &str,
 ) -> Result<(), String> {
-    let state = resolve_reused_asset_ready_state(None);
-    let now = current_time_iso_string();
-    sqlx::query(
-        "UPDATE local_asset_cache SET status = ?2, last_error = NULL, cached_at = ?3, updated_at = ?3 WHERE asset_id = ?1",
-    )
-    .bind(asset_id)
-    .bind(state.cache_status)
-    .bind(&now)
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to mark local cache ready: {}", error))?;
-    sqlx::query("UPDATE assets SET status = ?2, is_synced = ?3, updated_at = ?4 WHERE id = ?1")
-        .bind(asset_id)
-        .bind(state.asset_status)
-        .bind(state.is_synced)
-        .bind(&now)
-        .execute(pool)
-        .await
-        .map_err(|error| format!("Failed to mark reused asset ready: {}", error))?;
-    if state.should_insert_sync_outbox {
-        insert_sync_outbox(pool, asset_id, "merchant", merchant_id, "assets", "update").await?;
-    }
-    Ok(())
+    self::local::mark_reused_asset_ready(pool, asset_id, merchant_id).await
 }
 
 async fn insert_sync_outbox(
@@ -1240,7 +447,6 @@ async fn insert_sync_outbox(
     Ok(())
 }
 
-#[command]
 pub async fn process_image_to_webp(
     data_base64: String,
     mime_type: String,
@@ -1275,191 +481,15 @@ pub async fn process_image_to_webp(
     .map_err(|error| format!("Failed to process image on blocking thread: {}", error))?
 }
 
-async fn prepare_local_product_image_asset_inner(
+async fn prepare_local_image_asset_inner(
     app: &AppHandle,
     pool: &SqlitePool,
     input: PreparedImageInput,
 ) -> Result<PreparedLocalAssetResponse, String> {
-    let data_base64 = input.data_base64;
-    let bytes = general_purpose::STANDARD
-        .decode(&data_base64)
-        .map_err(|error| format!("Failed to decode asset payload: {}", error))?;
-
-    if sha256_hex(&bytes) != input.content_hash {
-        return Err("Compressed asset hash mismatch".to_string());
-    }
-
-    let object_key = asset_object_key(&input.merchant_id, &input.content_hash);
-    let local_path = write_cached_asset(&app, &object_key, &bytes).await?;
-    let now = current_time_iso_string();
-    let asset_id = input.content_hash.clone();
-    let normalized_original_filename = if input.original_filename.trim().is_empty() {
-        None
-    } else {
-        Some(input.original_filename.clone())
-    };
-    let existing_status = sqlx::query(
-        r#"
-        SELECT status
-        FROM assets
-        WHERE id = ?1
-        LIMIT 1
-        "#,
-    )
-    .bind(&asset_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|error| format!("Failed to inspect existing local asset: {}", error))?
-    .map(|row| row.try_get::<String, _>(0))
-    .transpose()
-    .map_err(|error| format!("Failed to inspect existing local asset: {}", error))?;
-    let persist_state = resolve_local_asset_persist_state(existing_status.as_deref());
-
-    sqlx::query(
-        r#"
-        INSERT INTO assets (
-          id,
-          merchant_id,
-          object_key,
-          original_filename,
-          content_type,
-          byte_size,
-          content_hash,
-          kind,
-          width,
-          height,
-          status,
-          created_by_user_id,
-          deleted_at,
-          is_synced,
-          created_at,
-          updated_at
-        ) VALUES (
-          ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, NULL, ?12, ?13, ?13
-        )
-        ON CONFLICT(id) DO UPDATE SET
-          merchant_id = excluded.merchant_id,
-          object_key = excluded.object_key,
-          original_filename = excluded.original_filename,
-          content_type = excluded.content_type,
-          byte_size = excluded.byte_size,
-          content_hash = excluded.content_hash,
-          kind = excluded.kind,
-          width = excluded.width,
-          height = excluded.height,
-          status = excluded.status,
-          deleted_at = NULL,
-          is_synced = excluded.is_synced,
-          updated_at = excluded.updated_at
-        "#,
-    )
-    .bind(&asset_id)
-    .bind(&input.merchant_id)
-    .bind(&object_key)
-    .bind(normalized_original_filename.as_deref())
-    .bind(&input.content_type)
-    .bind(input.byte_size)
-    .bind(&input.content_hash)
-    .bind(&input.kind)
-    .bind(input.width)
-    .bind(input.height)
-    .bind(persist_state.asset_status)
-    .bind(persist_state.is_synced)
-    .bind(&now)
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to save local asset: {}", error))?;
-
-    let cache_cached_at = if persist_state.cache_status == "ready" {
-        Some(now.clone())
-    } else {
-        None
-    };
-
-    sqlx::query(
-        r#"
-        INSERT INTO local_asset_cache (
-          asset_id,
-          merchant_id,
-          object_key,
-          local_path,
-          content_hash,
-          status,
-          upload_attempts,
-          download_attempts,
-          last_error,
-          cached_at,
-          created_at,
-          updated_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 0, NULL, ?7, ?8, ?8)
-        ON CONFLICT(asset_id) DO UPDATE SET
-          merchant_id = excluded.merchant_id,
-          object_key = excluded.object_key,
-          local_path = excluded.local_path,
-          content_hash = excluded.content_hash,
-          status = excluded.status,
-          last_error = NULL,
-          cached_at = excluded.cached_at,
-          updated_at = excluded.updated_at
-        "#,
-    )
-    .bind(&asset_id)
-    .bind(&input.merchant_id)
-    .bind(&object_key)
-    .bind(&local_path)
-    .bind(&input.content_hash)
-    .bind(persist_state.cache_status)
-    .bind(cache_cached_at)
-    .bind(&now)
-    .execute(pool)
-    .await
-    .map_err(|error| format!("Failed to save local asset cache: {}", error))?;
-
-    if persist_state.should_insert_sync_outbox {
-        insert_sync_outbox(
-            pool,
-            &asset_id,
-            "merchant",
-            &input.merchant_id,
-            "assets",
-            "insert",
-        )
-        .await?;
-    }
-    log::info!(
-        "[RUST] [PHOTO:TRACE] prepare_local_product_image_asset:done asset_id={} object_key={} local_path={}",
-        asset_id,
-        object_key,
-        local_path
-    );
-
-    let asset = PreparedAssetRecord {
-        id: asset_id,
-        merchant_id: input.merchant_id,
-        object_key,
-        original_filename: input.original_filename,
-        content_type: input.content_type,
-        byte_size: input.byte_size,
-        content_hash: input.content_hash,
-        kind: input.kind,
-        width: input.width,
-        height: input.height,
-        status: persist_state.asset_status.to_string(),
-        created_by_user_id: String::new(),
-        deleted_at: String::new(),
-        created_at: now.clone(),
-        updated_at: now,
-    };
-
-    Ok(PreparedLocalAssetResponse {
-        asset,
-        data_base64,
-        local_path,
-    })
+    self::local::prepare_local_image_asset_inner(app, pool, input).await
 }
 
-#[command]
-pub async fn prepare_local_product_image_asset(
+pub async fn prepare_local_image_asset(
     app: AppHandle,
     state: State<'_, AppState>,
     merchant_id: String,
@@ -1473,11 +503,11 @@ pub async fn prepare_local_product_image_asset(
     data_base64: String,
 ) -> Result<PreparedLocalAssetResponse, String> {
     log::info!(
-        "[RUST] [PHOTO:TRACE] prepare_local_product_image_asset:start merchant_id={} filename={} kind={} byte_size={}",
+        "[RUST] [PHOTO:TRACE] prepare_local_image_asset:start merchant_id={} filename={} kind={} byte_size={}",
         merchant_id, original_filename, kind, byte_size
     );
 
-    prepare_local_product_image_asset_inner(
+    prepare_local_image_asset_inner(
         &app,
         &state.db_pool,
         PreparedImageInput {
@@ -1495,7 +525,7 @@ pub async fn prepare_local_product_image_asset(
     .await
 }
 
-async fn prepare_local_product_image_asset_from_path_inner(
+async fn prepare_local_image_asset_from_path_inner(
     app: &AppHandle,
     pool: &SqlitePool,
     merchant_id: String,
@@ -1504,69 +534,19 @@ async fn prepare_local_product_image_asset_from_path_inner(
     path: String,
     delete_original: bool,
 ) -> Result<PreparedLocalAssetResponse, String> {
-    let path_buf = PathBuf::from(&path);
-    log::info!(
-        "[RUST] [PHOTO:TRACE] process_image_path:start path={} filename={} kind={}",
-        path,
-        original_filename,
-        kind
-    );
-
-    let normalized_filename = normalize_original_filename(&original_filename, &path_buf);
-    let data = fs::read(&path_buf)
-        .await
-        .map_err(|error| format!("Failed to read selected image path: {}", error))?;
-
-    let processed = tauri::async_runtime::spawn_blocking({
-        let normalized_filename = normalized_filename.clone();
-        move || process_image_bytes(&data, &normalized_filename)
-    })
-    .await
-    .map_err(|error| format!("Failed to process image path on blocking thread: {}", error))??;
-
-    let result = prepare_local_product_image_asset_inner(
+    self::local::prepare_local_image_asset_from_path_inner(
         app,
         pool,
-        PreparedImageInput {
-            byte_size: processed.byte_size as i64,
-            content_hash: processed.content_hash,
-            content_type: processed.content_type,
-            data_base64: processed.data_base64,
-            height: processed.height as i32,
-            kind,
-            merchant_id,
-            original_filename: normalized_filename,
-            width: processed.width as i32,
-        },
+        merchant_id,
+        original_filename,
+        kind,
+        path,
+        delete_original,
     )
-    .await;
-
-    if result.is_ok() && delete_original && is_deletable_photo_input_path(&path_buf) {
-        match fs::remove_file(&path_buf).await {
-            Ok(()) => {
-                log::info!("[RUST] [PHOTO:TRACE] process_image_path:delete_original path={path}")
-            }
-            Err(error) => log::info!(
-                "[RUST] [PHOTO:TRACE] process_image_path:delete_original_failed path={} error={}",
-                path,
-                error
-            ),
-        }
-    }
-
-    if let Ok(response) = &result {
-        log::info!(
-            "[RUST] [PHOTO:TRACE] process_image_path:done asset_id={} local_path={}",
-            response.asset.id,
-            response.local_path
-        );
-    }
-
-    result
+    .await
 }
 
-#[command]
-pub async fn prepare_local_product_image_asset_from_path(
+pub async fn prepare_local_image_asset_from_path(
     app: AppHandle,
     state: State<'_, AppState>,
     merchant_id: String,
@@ -1574,7 +554,7 @@ pub async fn prepare_local_product_image_asset_from_path(
     kind: String,
     path: String,
 ) -> Result<PreparedLocalAssetResponse, String> {
-    prepare_local_product_image_asset_from_path_inner(
+    prepare_local_image_asset_from_path_inner(
         &app,
         &state.db_pool,
         merchant_id,
@@ -1586,838 +566,18 @@ pub async fn prepare_local_product_image_asset_from_path(
     .await
 }
 
-#[command]
-pub async fn cache_asset_webp(
-    app: AppHandle,
-    object_key: String,
-    data_base64: String,
-) -> Result<CachedAssetResponse, String> {
-    log::info!(
-        "[RUST] [PHOTO:TRACE] cache_asset_webp:start object_key={}",
-        object_key
-    );
-    let root = asset_cache_root(&app)?;
-    let path = asset_cache_file_path_from_root(&root, &object_key)?;
-    let bytes = general_purpose::STANDARD
-        .decode(data_base64)
-        .map_err(|error| format!("Failed to decode asset payload: {}", error))?;
-
-    let path_for_write = path.clone();
-    fs::create_dir_all(
-        path_for_write
-            .parent()
-            .ok_or_else(|| "Invalid asset cache path".to_string())?,
-    )
-    .await
-    .map_err(|error| format!("Failed to create asset cache directory: {}", error))?;
-    fs::write(&path_for_write, bytes)
-        .await
-        .map_err(|error| format!("Failed to write asset cache file: {}", error))?;
-    log::info!(
-        "[RUST] [PHOTO:TRACE] cache_asset_webp:done object_key={} local_path={}",
-        object_key,
-        path.to_string_lossy()
-    );
-
-    Ok(CachedAssetResponse {
-        local_path: path.to_string_lossy().to_string(),
-        object_key,
-    })
-}
-
-#[command]
-pub async fn read_cached_asset_data(
-    asset_id: String,
-    state: State<'_, AppState>,
-) -> Result<Option<CachedAssetDataResponse>, String> {
-    let row = sqlx::query(
-        r#"
-        SELECT c.local_path, COALESCE(a.content_type, 'image/webp') AS content_type
-        FROM local_asset_cache c
-        LEFT JOIN assets a ON a.id = c.asset_id
-        WHERE c.asset_id = ?1
-        LIMIT 1
-        "#,
-    )
-    .bind(&asset_id)
-    .fetch_optional(&state.db_pool)
-    .await
-    .map_err(|error| format!("Failed to inspect cached asset: {}", error))?;
-
-    let Some(row) = row else {
-        return Ok(None);
-    };
-    let local_path: String = row
-        .try_get("local_path")
-        .map_err(|error| format!("Failed to read cached asset path: {}", error))?;
-    let content_type: String = row
-        .try_get("content_type")
-        .map_err(|error| format!("Failed to read cached asset content type: {}", error))?;
-
-    match fs::read(&local_path).await {
-        Ok(bytes) => Ok(Some(CachedAssetDataResponse {
-            content_type,
-            data_base64: general_purpose::STANDARD.encode(bytes),
-        })),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            log::info!(
-                "[RUST] [PHOTO:TRACE] read_cached_asset_data:missing asset_id={} local_path={}",
-                asset_id,
-                local_path
-            );
-            Ok(None)
-        }
-        Err(error) => Err(format!("Failed to read cached asset data: {}", error)),
-    }
-}
-
-async fn get_pending_product_photo_preview_inner(
-    pool: &SqlitePool,
-    product_id: &str,
-) -> Result<Option<PendingProductPhotoPreviewResponse>, String> {
-    let legacy_row = sqlx::query(
-        r#"
-        SELECT preview_base64, preview_mime_type
-        FROM pending_product_photo_jobs
-        WHERE product_id = ?1
-          AND status IN ('pending', 'processing')
-          AND preview_base64 IS NOT NULL
-          AND preview_mime_type IS NOT NULL
-        ORDER BY updated_at DESC
-        LIMIT 1
-        "#,
-    )
-    .bind(product_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|error| format!("Failed to inspect pending product photo preview: {}", error))?;
-
-    if let Some(row) = legacy_row {
-        return Ok(Some(PendingProductPhotoPreviewResponse {
-            preview_base64: row
-                .try_get("preview_base64")
-                .map_err(|error| format!("Failed to read preview_base64: {}", error))?,
-            preview_mime_type: row
-                .try_get("preview_mime_type")
-                .map_err(|error| format!("Failed to read preview_mime_type: {}", error))?,
-        }));
-    }
-
-    let generic_row = sqlx::query(
-        r#"
-        SELECT preview_path, preview_mime_type
-        FROM pending_asset_processing_jobs
-        WHERE entity_type = 'product'
-          AND entity_id = ?1
-          AND attachment_field = 'image_asset_id'
-          AND status IN ('pending', 'processing')
-          AND preview_path IS NOT NULL
-          AND preview_mime_type IS NOT NULL
-        ORDER BY updated_at DESC
-        LIMIT 1
-        "#,
-    )
-    .bind(product_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|error| {
-        format!(
-            "Failed to inspect pending asset processing preview: {}",
-            error
-        )
-    })?;
-
-    let Some(row) = generic_row else {
-        return Ok(None);
-    };
-
-    let preview_path: String = row
-        .try_get("preview_path")
-        .map_err(|error| format!("Failed to read pending asset preview_path: {}", error))?;
-    let preview_mime_type: String = row
-        .try_get("preview_mime_type")
-        .map_err(|error| format!("Failed to read pending asset preview_mime_type: {}", error))?;
-
-    match fs::read(&preview_path).await {
-        Ok(preview_bytes) => Ok(Some(PendingProductPhotoPreviewResponse {
-            preview_base64: general_purpose::STANDARD.encode(preview_bytes),
-            preview_mime_type,
-        })),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            log::info!(
-                "[RUST] [PHOTO:TRACE] pending_asset_preview:missing product_id={} path={}",
-                product_id,
-                preview_path
-            );
-            Ok(None)
-        }
-        Err(error) => Err(format!("Failed to read pending asset preview: {}", error)),
-    }
-}
-
-#[command]
-pub async fn get_pending_product_photo_preview(
-    product_id: String,
-    state: State<'_, AppState>,
-) -> Result<Option<PendingProductPhotoPreviewResponse>, String> {
-    get_pending_product_photo_preview_inner(&state.db_pool, &product_id).await
-}
-
-pub(crate) async fn process_pending_asset_jobs_inner(
-    app: &AppHandle,
-    pool: &SqlitePool,
-    limit: i64,
-) -> Result<i64, String> {
-    let limit = limit.max(1);
-    log::info!(
-        "[{}] asset_processing_jobs:start limit={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        limit
-    );
-    let pending_jobs = load_pending_asset_processing_jobs(pool, limit).await?;
-    log::info!(
-        "[{}] asset_processing_jobs:pending count={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        pending_jobs.len()
-    );
-
-    let mut processed = 0i64;
-    for job in pending_jobs {
-        log::info!(
-            "[{}] asset_processing_job:loaded job_id={} entity_type={} entity_id={} field={} attempts={} status={} mime_type={} source_path={}",
-            PHOTO_PIPELINE_LOG_PREFIX,
-            job.id,
-            job.entity_type,
-            job.entity_id,
-            job.attachment_field,
-            job.attempts,
-            job.status,
-            job.source_mime_type.as_deref().unwrap_or(""),
-            job.source_path
-        );
-
-        let Some(claimed_job) = claim_pending_asset_processing_job(pool, &job.id).await? else {
-            log::info!(
-                "[{}] asset_processing_job:skip job_id={} reason=already_claimed",
-                PHOTO_PIPELINE_LOG_PREFIX,
-                job.id
-            );
-            continue;
-        };
-
-        let target = AssetAttachmentTarget {
-            entity_type: claimed_job.entity_type.clone(),
-            entity_id: claimed_job.entity_id.clone(),
-            field: claimed_job.attachment_field.clone(),
-        };
-
-        let asset_kind = match asset_kind_for_processing_job(&claimed_job) {
-            Ok(kind) => kind,
-            Err(error) => {
-                log::info!(
-                    "[{}] asset_processing_job:failed job_id={} stage=validate error={}",
-                    PHOTO_PIPELINE_LOG_PREFIX,
-                    claimed_job.id,
-                    error
-                );
-                mark_pending_asset_processing_job_failed(pool, &claimed_job.id, &error).await?;
-                continue;
-            }
-        };
-
-        let result = prepare_local_product_image_asset_from_path_inner(
-            app,
-            pool,
-            claimed_job.merchant_id.clone(),
-            claimed_job.original_filename.clone(),
-            asset_kind.to_string(),
-            claimed_job.source_path.clone(),
-            false,
-        )
-        .await;
-
-        let prepared = match result {
-            Ok(response) => response,
-            Err(error) => {
-                log::info!(
-                    "[{}] asset_processing_job:failed job_id={} stage=process error={}",
-                    PHOTO_PIPELINE_LOG_PREFIX,
-                    claimed_job.id,
-                    error
-                );
-                mark_pending_asset_processing_job_failed(pool, &claimed_job.id, &error).await?;
-                continue;
-            }
-        };
-
-        let asset_id = prepared.asset.id.clone();
-        log::info!(
-            "[{}] asset_processing_job:processed job_id={} asset_id={} local_path={}",
-            PHOTO_PIPELINE_LOG_PREFIX,
-            claimed_job.id,
-            asset_id,
-            prepared.local_path
-        );
-        if let Err(error) =
-            link_asset_to_attachment_target(pool, &target, &claimed_job.merchant_id, &asset_id)
-                .await
-        {
-            log::info!(
-                "[{}] asset_processing_job:failed job_id={} stage=link asset_id={} error={}",
-                PHOTO_PIPELINE_LOG_PREFIX,
-                claimed_job.id,
-                asset_id,
-                error
-            );
-            mark_pending_asset_processing_job_failed(pool, &claimed_job.id, &error).await?;
-            continue;
-        }
-
-        if is_deletable_photo_input_path(Path::new(&claimed_job.source_path)) {
-            if let Err(error) = fs::remove_file(&claimed_job.source_path).await {
-                log::info!(
-                    "[RUST] [PHOTO:TRACE] asset_processing_job:cleanup_failed job_id={} path={} error={}",
-                    claimed_job.id, claimed_job.source_path, error
-                );
-            }
-        }
-
-        if let Some(preview_path) = &claimed_job.preview_path {
-            if is_deletable_photo_input_path(Path::new(preview_path)) {
-                if let Err(error) = fs::remove_file(preview_path).await {
-                    log::info!(
-                        "[RUST] [PHOTO:TRACE] asset_processing_job:preview_cleanup_failed job_id={} path={} mime_type={} error={}",
-                        claimed_job.id,
-                        preview_path,
-                        claimed_job.preview_mime_type.as_deref().unwrap_or(""),
-                        error
-                    );
-                }
-            }
-        }
-
-        if let Err(error) = delete_pending_asset_processing_job(pool, &claimed_job.id).await {
-            log::info!(
-                "[RUST] [PHOTO:TRACE] asset_processing_job:cleanup_row_failed job_id={} error={}",
-                claimed_job.id,
-                error
-            );
-        }
-
-        emit_asset_cache_ready(app, &asset_id);
-        emit_asset_attachment_ready(
-            app,
-            AssetAttachmentReadyPayload {
-                asset_id: asset_id.clone(),
-                entity_id: target.entity_id,
-                entity_type: target.entity_type,
-                field: target.field,
-            },
-        );
-
-        log::info!(
-            "[{}] asset_processing_job:done job_id={} entity_id={} asset_id={}",
-            PHOTO_PIPELINE_LOG_PREFIX,
-            claimed_job.id,
-            claimed_job.entity_id,
-            asset_id
-        );
-        processed += 1;
-    }
-
-    log::info!(
-        "[{}] asset_processing_jobs:done processed={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        processed
-    );
-    Ok(processed)
-}
-
-#[command]
-pub async fn process_pending_asset_jobs(
-    limit: Option<i64>,
-    state: State<'_, AppState>,
-    app: AppHandle,
-) -> Result<i64, String> {
-    process_pending_asset_jobs_inner(&app, &state.db_pool, limit.unwrap_or(20)).await
-}
-
-#[command]
-pub async fn enqueue_asset_processing(
-    state: State<'_, AppState>,
-    request: EnqueueAssetProcessingRequest,
-) -> Result<EnqueueAssetProcessingResponse, String> {
-    log::info!(
-        "[{}] enqueue_asset_processing:start entity_type={} entity_id={} field={} processing_kind={} source_path={} mime_type={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        request.target.entity_type,
-        request.target.entity_id,
-        request.target.field,
-        request.processing_kind,
-        request.source_path,
-        request.source_mime_type.as_deref().unwrap_or("")
-    );
-    validate_asset_attachment_target(&request.target)?;
-    validate_asset_processing_kind(&request.processing_kind)?;
-
-    let path_buf = PathBuf::from(&request.source_path);
-    if !is_deletable_photo_input_path(&path_buf) {
-        log::info!(
-            "[{}] enqueue_asset_processing:rejected source_path={} reason=non_photo_input_path",
-            PHOTO_PIPELINE_LOG_PREFIX,
-            request.source_path
-        );
-        return Err("Refusing to enqueue non product photo temp path".to_string());
-    }
-
-    let merchant_id = resolve_asset_target_merchant_id(&state.db_pool, &request.target).await?;
-    log::info!(
-        "[{}] enqueue_asset_processing:merchant_resolved entity_id={} merchant_id={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        request.target.entity_id,
-        merchant_id
-    );
-    let now = current_time_iso_string();
-    let job_id = current_job_id_string();
-    let (preview_path, preview_mime_type) = match write_pending_asset_processing_preview(
-        &request.source_path,
-        &request.original_filename,
-        &job_id,
-    )
-    .await
-    {
-        Ok((path, mime_type)) => {
-            log::info!(
-                "[RUST] [PHOTO:TRACE] enqueue_asset_processing:preview_ready job_id={} path={} mime_type={}",
-                job_id,
-                path,
-                mime_type
-            );
-            (Some(path), Some(mime_type))
-        }
-        Err(error) => {
-            log::info!(
-                "[RUST] [PHOTO:TRACE] enqueue_asset_processing:preview_failed job_id={} source_path={} error={}",
-                job_id,
-                request.source_path,
-                error
-            );
-            (None, None)
-        }
-    };
-    let returned_job_id = sqlx::query_scalar::<_, String>(
-        r#"
-        INSERT INTO pending_asset_processing_jobs (
-          id,
-          merchant_id,
-          source_path,
-          original_filename,
-          source_mime_type,
-          processing_kind,
-          entity_type,
-          entity_id,
-          attachment_field,
-          preview_path,
-          preview_mime_type,
-          status,
-          attempts,
-          last_error,
-          created_at,
-          updated_at
-        ) VALUES (
-          ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'pending', 0, NULL, ?12, ?12
-        )
-        RETURNING id
-        "#,
-    )
-    .bind(&job_id)
-    .bind(&merchant_id)
-    .bind(&request.source_path)
-    .bind(&request.original_filename)
-    .bind(request.source_mime_type.as_deref())
-    .bind(&request.processing_kind)
-    .bind(&request.target.entity_type)
-    .bind(&request.target.entity_id)
-    .bind(&request.target.field)
-    .bind(preview_path.as_deref())
-    .bind(preview_mime_type.as_deref())
-    .bind(&now)
-    .fetch_one(&state.db_pool)
-    .await
-    .map_err(|error| format!("Failed to enqueue pending asset processing job: {}", error))?;
-
-    log::info!(
-        "[{}] enqueue_asset_processing:enqueued job_id={} merchant_id={} entity_type={} entity_id={} field={} source_path={}",
-        PHOTO_PIPELINE_LOG_PREFIX,
-        returned_job_id,
-        merchant_id,
-        request.target.entity_type,
-        request.target.entity_id,
-        request.target.field,
-        request.source_path
-    );
-
-    Ok(EnqueueAssetProcessingResponse {
-        job_id: returned_job_id,
-    })
-}
-
-#[command]
-pub async fn upload_pending_product_images(
-    api_url: String,
-    session_token: String,
-    merchant_id: String,
-    limit: Option<i64>,
-    state: State<'_, AppState>,
-) -> Result<usize, String> {
-    let pool = &state.db_pool;
-    let api_client = build_api_client(&session_token)?;
-    let signed_url_client = build_signed_url_client()?;
-    let limit = limit.unwrap_or(20).max(1);
-    log::info!(
-        "[RUST] [PHOTO:TRACE] upload_pending_product_images:start merchant_id={} limit={} api_url={}",
-        merchant_id, limit, api_url
-    );
-    let pending_assets = load_pending_upload_assets(pool, &merchant_id, limit).await?;
-    log::info!(
-        "[RUST] [PHOTO:TRACE] upload_pending_product_images:pending count={}",
-        pending_assets.len()
-    );
-    let mut processed = 0usize;
-
-    for asset in pending_assets {
-        log::info!(
-            "[RUST] [PHOTO:TRACE] upload_asset:start asset_id={} object_key={} local_path={} byte_size={}",
-            asset.asset_id, asset.object_key, asset.local_path, asset.byte_size
-        );
-        mark_asset_uploading(pool, &asset.asset_id).await?;
-
-        let file_bytes = match fs::read(&asset.local_path).await {
-            Ok(bytes) => bytes,
-            Err(error) => {
-                let message = format!("Failed to read cached asset {}: {}", asset.asset_id, error);
-                log::info!(
-                    "[RUST] [PHOTO:TRACE] upload_asset:failed asset_id={} error={}",
-                    asset.asset_id,
-                    message
-                );
-                mark_asset_upload_failed(pool, &asset.asset_id, &asset.merchant_id, &message)
-                    .await?;
-                continue;
-            }
-        };
-
-        if sha256_hex(&file_bytes) != asset.content_hash {
-            let message = format!("Content hash mismatch for asset {}", asset.asset_id);
-            log::info!(
-                "[RUST] [PHOTO:TRACE] upload_asset:failed asset_id={} error={}",
-                asset.asset_id,
-                message
-            );
-            mark_asset_upload_failed(pool, &asset.asset_id, &asset.merchant_id, &message).await?;
-            continue;
-        }
-
-        let request = asset_proto::AssetPresignUploadRequest {
-            asset_id: asset.asset_id.clone(),
-            object_key: asset.object_key.clone(),
-            merchant_id: asset.merchant_id.clone(),
-            content_hash: asset.content_hash.clone(),
-            byte_size: asset.byte_size,
-            content_type: asset.content_type.clone(),
-            kind: asset.kind.clone(),
-            original_filename: asset.original_filename.clone().unwrap_or_default(),
-            width: asset.width.unwrap_or_default() as i32,
-            height: asset.height.unwrap_or_default() as i32,
-        };
-        let presign_url = format!("{}/api/assets/presign-upload", api_url);
-        log::info!(
-            "[RUST] [PHOTO:TRACE] upload_asset:presign_request asset_id={} endpoint={}",
-            asset.asset_id,
-            presign_url
-        );
-        let presign_response: asset_proto::AssetPresignUploadResponse =
-            match post_protobuf(&api_client, &presign_url, &request).await {
-                Ok(response) => response,
-                Err(error) => {
-                    log::info!(
-                    "[RUST] [PHOTO:TRACE] upload_asset:failed asset_id={} stage=presign error={}",
-                    asset.asset_id,
-                    error
-                );
-                    mark_asset_upload_failed(pool, &asset.asset_id, &asset.merchant_id, &error)
-                        .await?;
-                    continue;
-                }
-            };
-
-        if presign_response_means_already_ready(&presign_response) {
-            mark_reused_asset_ready(pool, &asset.asset_id, &asset.merchant_id).await?;
-            log::info!(
-                "[RUST] [PHOTO:TRACE] upload_asset:already_ready asset_id={}",
-                asset.asset_id
-            );
-            processed += 1;
-            continue;
-        }
-
-        log::info!(
-            "[RUST] [PHOTO:TRACE] upload_asset:put_request asset_id={} required_headers={}",
-            asset.asset_id,
-            presign_response.required_headers.len()
-        );
-        if let Err(error) = put_bytes_to_signed_url(
-            &signed_url_client,
-            &presign_response.upload_url,
-            &presign_response.required_headers,
-            &file_bytes,
-        )
-        .await
-        {
-            log::info!(
-                "[RUST] [PHOTO:TRACE] upload_asset:failed asset_id={} stage=put error={}",
-                asset.asset_id,
-                error
-            );
-            mark_asset_upload_failed(pool, &asset.asset_id, &asset.merchant_id, &error).await?;
-            continue;
-        }
-        log::info!(
-            "[RUST] [PHOTO:TRACE] upload_asset:put_done asset_id={}",
-            asset.asset_id
-        );
-
-        let complete_request = asset_proto::AssetCompleteUploadRequest {
-            asset_id: asset.asset_id.clone(),
-            object_key: asset.object_key.clone(),
-            content_hash: asset.content_hash.clone(),
-            byte_size: asset.byte_size,
-        };
-        let complete_url = format!("{}/api/assets/complete-upload", api_url);
-        log::info!(
-            "[RUST] [PHOTO:TRACE] upload_asset:complete_request asset_id={} endpoint={}",
-            asset.asset_id,
-            complete_url
-        );
-        let _: asset_proto::AssetCompleteUploadResponse =
-            match post_protobuf(&api_client, &complete_url, &complete_request).await {
-                Ok(response) => response,
-                Err(error) => {
-                    log::info!(
-                    "[RUST] [PHOTO:TRACE] upload_asset:failed asset_id={} stage=complete error={}",
-                    asset.asset_id,
-                    error
-                );
-                    mark_asset_upload_failed(pool, &asset.asset_id, &asset.merchant_id, &error)
-                        .await?;
-                    continue;
-                }
-            };
-
-        mark_asset_ready(pool, &asset.asset_id, &asset.merchant_id).await?;
-        log::info!(
-            "[RUST] [PHOTO:TRACE] upload_asset:complete_done asset_id={}",
-            asset.asset_id
-        );
-        processed += 1;
-    }
-
-    log::info!(
-        "[RUST] [PHOTO:TRACE] upload_pending_product_images:done uploaded={}",
-        processed
-    );
-    Ok(processed)
-}
-
-#[command]
-pub async fn hydrate_product_images(
-    app: AppHandle,
-    api_url: String,
-    session_token: String,
-    merchant_id: String,
-    limit: Option<i64>,
-    state: State<'_, AppState>,
-) -> Result<usize, String> {
-    let pool = &state.db_pool;
-    let api_client = build_api_client(&session_token)?;
-    let signed_url_client = build_signed_url_client()?;
-    let limit = limit.unwrap_or(20).max(1);
-    log::info!(
-        "[RUST] [PHOTO:TRACE] hydrate_product_images:start merchant_id={} limit={} api_url={}",
-        merchant_id,
-        limit,
-        api_url
-    );
-    let ready_assets = load_ready_assets(pool, &merchant_id, limit).await?;
-    log::info!(
-        "[RUST] [PHOTO:TRACE] hydrate_product_images:ready count={}",
-        ready_assets.len()
-    );
-    let mut hydrated = 0usize;
-
-    for asset in ready_assets {
-        log::info!(
-            "[RUST] [PHOTO:TRACE] hydrate_asset:start asset_id={} object_key={}",
-            asset.asset_id,
-            asset.object_key
-        );
-        let cached_exists = sqlx::query_scalar::<_, String>(
-            "SELECT local_path FROM local_asset_cache WHERE asset_id = ?1 AND status = 'ready'",
-        )
-        .bind(&asset.asset_id)
-        .fetch_optional(pool)
-        .await
-        .map_err(|error| format!("Failed to inspect local cache: {}", error))?;
-        if let Some(local_path) = cached_exists {
-            if fs::metadata(&local_path).await.is_ok() {
-                log::info!(
-                    "[RUST] [PHOTO:TRACE] hydrate_asset:skip_cached asset_id={} local_path={}",
-                    asset.asset_id,
-                    local_path
-                );
-                continue;
-            }
-        }
-
-        sqlx::query(
-            "UPDATE local_asset_cache SET status = 'pending_download', download_attempts = download_attempts + 1, last_error = NULL, updated_at = ?2 WHERE asset_id = ?1",
-        )
-        .bind(&asset.asset_id)
-        .bind(current_time_iso_string())
-        .execute(pool)
-        .await
-        .map_err(|error| format!("Failed to mark asset pending download: {}", error))?;
-
-        let request = asset_proto::AssetPresignDownloadRequest {
-            asset_id: asset.asset_id.clone(),
-        };
-        let download_url = format!("{}/api/assets/presign-download", api_url);
-        log::info!(
-            "[RUST] [PHOTO:TRACE] hydrate_asset:presign_request asset_id={} endpoint={}",
-            asset.asset_id,
-            download_url
-        );
-        let response: asset_proto::AssetPresignDownloadResponse = match post_protobuf(
-            &api_client,
-            &download_url,
-            &request,
-        )
-        .await
-        {
-            Ok(response) => response,
-            Err(error) => {
-                log::info!(
-                    "[RUST] [PHOTO:TRACE] hydrate_asset:failed asset_id={} stage=presign error={}",
-                    asset.asset_id,
-                    error
-                );
-                sqlx::query(
-                        "UPDATE local_asset_cache SET status = 'failed', last_error = ?2, updated_at = ?3 WHERE asset_id = ?1",
-                    )
-                    .bind(&asset.asset_id)
-                    .bind(&error)
-                    .bind(current_time_iso_string())
-                    .execute(pool)
-                    .await
-                    .map_err(|db_error| format!("Failed to mark cache failed: {}", db_error))?;
-                continue;
-            }
-        };
-
-        log::info!(
-            "[RUST] [PHOTO:TRACE] hydrate_asset:download_request asset_id={}",
-            asset.asset_id
-        );
-        let download = signed_url_client
-            .get(&response.download_url)
-            .send()
-            .await
-            .map_err(|error| format!("Failed to download asset {}: {}", asset.asset_id, error))?;
-        let download_status = download.status();
-        if !download_status.is_success() {
-            let text = download.text().await.unwrap_or_default();
-            let message = format!(
-                "Failed to download asset {} ({}): {}",
-                asset.asset_id, download_status, text
-            );
-            log::info!(
-                "[RUST] [PHOTO:TRACE] hydrate_asset:failed asset_id={} stage=download error={}",
-                asset.asset_id,
-                message
-            );
-            sqlx::query(
-                "UPDATE local_asset_cache SET status = 'failed', last_error = ?2, updated_at = ?3 WHERE asset_id = ?1",
-            )
-            .bind(&asset.asset_id)
-            .bind(&message)
-            .bind(current_time_iso_string())
-            .execute(pool)
-            .await
-            .map_err(|db_error| format!("Failed to mark cache failed: {}", db_error))?;
-            continue;
-        }
-
-        let bytes = download
-            .bytes()
-            .await
-            .map_err(|error| format!("Failed to read asset bytes {}: {}", asset.asset_id, error))?;
-        if sha256_hex(bytes.as_ref()) != asset.content_hash {
-            let message = format!("Downloaded asset hash mismatch for {}", asset.asset_id);
-            log::info!(
-                "[RUST] [PHOTO:TRACE] hydrate_asset:failed asset_id={} stage=hash error={}",
-                asset.asset_id,
-                message
-            );
-            sqlx::query(
-                "UPDATE local_asset_cache SET status = 'failed', last_error = ?2, updated_at = ?3 WHERE asset_id = ?1",
-            )
-            .bind(&asset.asset_id)
-            .bind(&message)
-            .bind(current_time_iso_string())
-            .execute(pool)
-            .await
-            .map_err(|db_error| format!("Failed to mark cache failed: {}", db_error))?;
-            continue;
-        }
-
-        let path = write_cached_asset(&app, &asset.object_key, bytes.as_ref()).await?;
-        log::info!(
-            "[RUST] [PHOTO:TRACE] hydrate_asset:download_done asset_id={} local_path={}",
-            asset.asset_id,
-            path
-        );
-        sqlx::query(
-            "INSERT INTO local_asset_cache (asset_id, merchant_id, object_key, local_path, content_hash, status, upload_attempts, download_attempts, last_error, cached_at, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, 'ready', 0, 0, NULL, ?6, ?6, ?6) ON CONFLICT(asset_id) DO UPDATE SET merchant_id = excluded.merchant_id, object_key = excluded.object_key, local_path = excluded.local_path, content_hash = excluded.content_hash, status = 'ready', last_error = NULL, cached_at = excluded.cached_at, updated_at = excluded.updated_at"
-        )
-        .bind(&asset.asset_id)
-        .bind(&asset.merchant_id)
-        .bind(&asset.object_key)
-        .bind(&path)
-        .bind(&asset.content_hash)
-        .bind(current_time_iso_string())
-        .execute(pool)
-        .await
-        .map_err(|error| format!("Failed to save hydrated asset: {}", error))?;
-        hydrated += 1;
-    }
-
-    log::info!(
-        "[RUST] [PHOTO:TRACE] hydrate_product_images:done hydrated={}",
-        hydrated
-    );
-    Ok(hydrated)
-}
-
 #[cfg(test)]
 mod tests {
+    use super::image::fit_within_max_edge;
     use super::*;
-    use image::{ImageBuffer, ImageFormat};
+    use ::image::{DynamicImage, ImageBuffer, ImageFormat, ImageReader, Rgb, Rgba};
+    use std::io::Cursor;
     use zenwebp::DecodeRequest;
 
     fn create_png_bytes(width: u32, height: u32) -> Vec<u8> {
         let mut image = ImageBuffer::new(width, height);
         for (x, y, pixel) in image.enumerate_pixels_mut() {
-            *pixel = image::Rgba([(x % 256) as u8, (y % 256) as u8, 200, 255]);
+            *pixel = Rgba([(x % 256) as u8, (y % 256) as u8, 200, 255]);
         }
 
         let dynamic = DynamicImage::ImageRgba8(image);
@@ -2431,9 +591,9 @@ mod tests {
     fn create_exif_oriented_jpeg_bytes(orientation: u16) -> Vec<u8> {
         let image = ImageBuffer::from_fn(2, 1, |x, _| {
             if x == 0 {
-                image::Rgb([255, 0, 0])
+                Rgb([255, 0, 0])
             } else {
-                image::Rgb([0, 255, 0])
+                Rgb([0, 255, 0])
             }
         });
         let dynamic = DynamicImage::ImageRgb8(image);
@@ -2526,10 +686,13 @@ mod tests {
     fn product_photo_preview_resizes_and_encodes_jpeg() {
         let png_bytes = create_png_bytes(1600, 1000);
 
-        let result = product_photo_preview_from_bytes(&png_bytes, "coffee.png")
+        let result = asset_image_preview_from_bytes(&png_bytes, "coffee.png")
             .expect("preview generation should succeed");
 
-        assert_eq!(result.preview_mime_type, PRODUCT_PHOTO_PREVIEW_MIME_TYPE);
+        assert_eq!(
+            result.preview_mime_type,
+            super::image::ASSET_IMAGE_PREVIEW_MIME_TYPE
+        );
         assert!(!result.preview_base64.is_empty());
 
         let preview_bytes = general_purpose::STANDARD
@@ -2607,18 +770,22 @@ mod tests {
                 "#,
             )
             .bind(preview_path.to_string_lossy().as_ref())
-            .bind(PRODUCT_PHOTO_PREVIEW_MIME_TYPE)
+            .bind(super::image::ASSET_IMAGE_PREVIEW_MIME_TYPE)
             .bind(current_time_iso_string())
             .execute(&pool)
             .await
             .expect("generic preview job should be inserted");
 
-            let result = get_pending_product_photo_preview_inner(&pool, "product-1")
-                .await
-                .expect("preview lookup should succeed")
-                .expect("generic asset preview should be returned");
+            let result =
+                crate::assets::processing_jobs::get_pending_asset_preview_inner(&pool, "product-1")
+                    .await
+                    .expect("preview lookup should succeed")
+                    .expect("generic asset preview should be returned");
 
-            assert_eq!(result.preview_mime_type, PRODUCT_PHOTO_PREVIEW_MIME_TYPE);
+            assert_eq!(
+                result.preview_mime_type,
+                super::image::ASSET_IMAGE_PREVIEW_MIME_TYPE
+            );
             assert_eq!(
                 result.preview_base64,
                 general_purpose::STANDARD.encode(preview_bytes)
@@ -2673,6 +840,22 @@ mod tests {
         };
 
         assert!(validate_asset_attachment_target(&target).is_ok());
+    }
+
+    #[test]
+    fn supported_asset_attachment_target_metadata_is_centralized() {
+        let target = AssetAttachmentTarget {
+            entity_type: "product".to_string(),
+            entity_id: "product-1".to_string(),
+            field: "image_asset_id".to_string(),
+        };
+
+        let supported_target = super::targets::supported_asset_attachment_target(&target)
+            .expect("target is supported");
+
+        assert_eq!(supported_target.asset_kind, "product_photo");
+        assert_eq!(supported_target.entity_type, "product");
+        assert_eq!(supported_target.field, "image_asset_id");
     }
 
     #[test]

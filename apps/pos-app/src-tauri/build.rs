@@ -1,4 +1,4 @@
-#[path = "src/migration_discovery.rs"]
+#[path = "src/db/migrations.rs"]
 mod migration_discovery;
 
 use std::{env, fmt::Write as _, fs, path::PathBuf};
@@ -8,7 +8,7 @@ fn main() {
     println!("cargo:rustc-link-arg=-Wl,-z,common-page-size=16384");
     println!("cargo:rerun-if-changed=../../../packages/protobuf/proto/sync.proto");
     println!("cargo:rerun-if-changed=../../../packages/protobuf/proto/assets.proto");
-    println!("cargo:rerun-if-changed=src/migration_discovery.rs");
+    println!("cargo:rerun-if-changed=src/db/migrations.rs");
 
     let protoc = protoc_bin_vendored::protoc_bin_path().expect("failed to find protoc binary");
     std::env::set_var("PROTOC", protoc);

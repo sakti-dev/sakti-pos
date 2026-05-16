@@ -20,8 +20,8 @@ const {
   presignAssetDownload,
   processImageFile,
   processPendingAssetJobs,
-  prepareLocalProductImageAsset,
-  prepareLocalProductImageAssetFromPath,
+  prepareLocalImageAsset,
+  prepareLocalImageAssetFromPath,
   readCachedAssetData,
 } = await import("../assets");
 
@@ -62,7 +62,7 @@ describe("assets helpers", () => {
     });
   });
 
-  test("prepareLocalProductImageAsset stores the compressed asset locally", async () => {
+  test("prepareLocalImageAsset stores a compressed image asset locally", async () => {
     mockInvoke.mockResolvedValue({
       asset: {
         id: "hash-1",
@@ -84,7 +84,7 @@ describe("assets helpers", () => {
       localPath: "/tmp/cache/merchant-1/assets/hash-1.webp",
     });
 
-    const result = await prepareLocalProductImageAsset({
+    const result = await prepareLocalImageAsset({
       byteSize: 5,
       contentHash: "hash-1",
       contentType: "image/webp",
@@ -98,7 +98,7 @@ describe("assets helpers", () => {
 
     expect(result.localPath).toContain("hash-1.webp");
     expect(mockInvoke).toHaveBeenCalledWith(
-      "prepare_local_product_image_asset",
+      "prepare_local_image_asset",
       expect.objectContaining({
         byteSize: 5,
         contentHash: "hash-1",
@@ -144,13 +144,13 @@ describe("assets helpers", () => {
     });
   });
 
-  test("prepareLocalProductImageAssetFromPath sends only path metadata to Rust", async () => {
+  test("prepareLocalImageAssetFromPath sends generic path metadata to Rust", async () => {
     mockInvoke.mockResolvedValue({
       asset: { id: "asset-1", objectKey: "merchant-1/assets/asset-1" },
       localPath: "/tmp/cache/merchant-1/assets/asset-1.webp",
     });
 
-    const result = await prepareLocalProductImageAssetFromPath({
+    const result = await prepareLocalImageAssetFromPath({
       kind: "product_photo",
       merchantId: "merchant-1",
       originalFilename: "photo_1.jpg",
@@ -159,7 +159,7 @@ describe("assets helpers", () => {
 
     expect(result.asset.id).toBe("asset-1");
     expect(mockInvoke).toHaveBeenCalledWith(
-      "prepare_local_product_image_asset_from_path",
+      "prepare_local_image_asset_from_path",
       {
         kind: "product_photo",
         merchantId: "merchant-1",

@@ -5,13 +5,14 @@ import {
   createMemo,
   createResource,
   createSignal,
-  onCleanup,
   Show,
-  untrack,
 } from "solid-js";
 import { toast } from "solid-sonner";
 import { FormTextField } from "~/components/form/form-text-field";
-import { PhotoSourceDrawer } from "~/components/photo-source-drawer";
+import {
+  ImageUpload,
+  type ImageUploadController,
+} from "~/components/image-upload";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
@@ -21,13 +22,7 @@ import {
   getProduct,
   updateProduct,
 } from "~/db/menu";
-import {
-  deleteTempProductPhoto,
-  enqueueAssetProcessing,
-  type PickedProductPhoto,
-  type ProductPhotoSource,
-  pickProductPhoto,
-} from "~/lib/assets";
+import { createAssetProcessingTarget } from "~/lib/asset-targets";
 import { createLogger } from "~/lib/logger";
 import { resolveCachedProductImageUrl } from "~/lib/product-images/cache";
 import {
@@ -59,88 +54,36 @@ export default function ProductForm() {
   });
   const [error, setError] = createSignal("");
   const [imageAssetId, setImageAssetId] = createSignal<string | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = createSignal<string | null>(
-    null
-  );
-  const [imageFileName, setImageFileName] = createSignal<string>("");
-  const [imageError, setImageError] = createSignal("");
-  const [isUploadingImage, setIsUploadingImage] = createSignal(false);
-  const [pendingPhoto, setPendingPhoto] =
-    createSignal<PickedProductPhoto | null>(null);
+  const [isImageBusy, setIsImageBusy] = createSignal(false);
   const [initializedProductId, setInitializedProductId] = createSignal<
     string | null
   >(null);
-  const [showPhotoSourceDrawer, setShowPhotoSourceDrawer] = createSignal(false);
   const [savedImagePreviewUrl] = createResource(
-    () => (pendingPhoto() ? null : imageAssetId()),
+    () => imageAssetId(),
     resolveCachedProductImageUrl
   );
+  let imageUpload: ImageUploadController | undefined;
   const photoLogger = createLogger({
     domain: "PHOTO",
     module: "product-photo",
   });
-  const revokePreviewUrl = (previewUrl: string | null) => {
-    if (previewUrl?.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl);
-    }
-  };
-  const cleanupTempPhoto = (path: string) => {
-    Promise.resolve(deleteTempProductPhoto(path)).catch(
-      (cleanupError: unknown) => {
-        photoLogger.warn("temp_photo_cleanup_failed", {
-          error:
-            cleanupError instanceof Error
-              ? cleanupError.message
-              : String(cleanupError),
-          path,
-        });
-      }
-    );
-  };
-  const clearPendingPhoto = () => {
-    const stagedPhoto = pendingPhoto();
-    if (stagedPhoto) {
-      cleanupTempPhoto(stagedPhoto.path);
-    }
-    setPendingPhoto(null);
-  };
-  const clearSelectedPhoto = () => {
-    untrack(clearPendingPhoto);
-    revokePreviewUrl(imagePreviewUrl());
-    setImageAssetId(null);
-    setImagePreviewUrl(null);
-    setImageFileName("");
-  };
-  const photoButtonLabel = () => {
-    if (isUploadingImage()) {
-      return "Memproses...";
-    }
-    return imageAssetId() || pendingPhoto() ? "Ganti Foto" : "Pilih Foto";
-  };
-  const visibleImagePreviewUrl = () =>
-    imagePreviewUrl() ?? savedImagePreviewUrl();
   const triggerBackgroundPhotoSync = (productId: string) => {
     window.setTimeout(() => {
       syncNow()
         .then((result) => {
           photoLogger.info("asset_sync_finished", {
-            assetId: productId,
+            productId,
             mode: result.mode,
             pushTables: result.push.tables_synced,
           });
         })
         .catch((syncError: unknown) => {
           photoLogger.error("asset_sync_failed", syncError, {
-            assetId: productId,
+            productId,
           });
         });
     }, 0);
   };
-
-  onCleanup(() => {
-    clearPendingPhoto();
-    revokePreviewUrl(imagePreviewUrl());
-  });
 
   const canSubmit = createMemo(() => {
     const input = getInput(form);
@@ -148,7 +91,7 @@ export default function ProductForm() {
       !!input?.name?.trim() &&
       !!input?.categoryId &&
       !!input?.price?.trim() &&
-      !isUploadingImage() &&
+      !isImageBusy() &&
       !form.isSubmitting
     );
   });
@@ -169,64 +112,10 @@ export default function ProductForm() {
         price: String(data.price),
       },
     });
-    clearPendingPhoto();
     setImageAssetId(data.imageAssetId ?? null);
-    setImageFileName("");
-    setImageError("");
     setError("");
     setInitializedProductId(data.id);
   });
-
-  const openPhotoSourceDrawer = () => {
-    photoLogger.info("drawer_opened");
-    setShowPhotoSourceDrawer(true);
-  };
-
-  const triggerCameraPicker = () => handleNativePhotoPick("camera");
-
-  const triggerGalleryPicker = () => handleNativePhotoPick("gallery");
-
-  const handleNativePhotoPick = async (source: ProductPhotoSource) => {
-    setIsUploadingImage(true);
-    setImageError("");
-
-    try {
-      photoLogger.info("native_picker_requested", { source });
-      const picked = await pickProductPhoto(source);
-      photoLogger.info("native_picker_finished", {
-        mimeType: picked.mimeType,
-        originalFilename: picked.originalFilename,
-        path: picked.path,
-        previewMimeType: picked.previewMimeType,
-        source: picked.source,
-      });
-
-      clearPendingPhoto();
-      revokePreviewUrl(imagePreviewUrl());
-      setPendingPhoto(picked);
-      setImageFileName(picked.originalFilename);
-      setImagePreviewUrl(
-        picked.previewBase64
-          ? `data:${picked.previewMimeType ?? picked.mimeType};base64,${
-              picked.previewBase64
-            }`
-          : null
-      );
-    } catch (uploadError) {
-      photoLogger.error("processing_failed", uploadError, { source });
-      setImageError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "Gagal memproses foto"
-      );
-      setPendingPhoto(null);
-      revokePreviewUrl(imagePreviewUrl());
-      setImagePreviewUrl(null);
-      setImageFileName("");
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
 
   const handleSave = async (values: ProductFormValues) => {
     try {
@@ -236,7 +125,7 @@ export default function ProductForm() {
       }
 
       const nextImageAssetId = imageAssetId();
-      const stagedPhoto = pendingPhoto();
+      const hasStagedImage = imageUpload?.hasStagedImage() ?? false;
       const data = {
         name: values.name,
         categoryId: values.categoryId,
@@ -245,13 +134,10 @@ export default function ProductForm() {
       };
       photoLogger.info("submit_started", {
         hasExistingAsset: !!nextImageAssetId,
-        hasStagedPhoto: !!stagedPhoto,
+        hasStagedPhoto: hasStagedImage,
         isEdit: isEdit(),
         merchantId,
         productId: params.id ?? null,
-        stagedPhotoMimeType: stagedPhoto?.mimeType ?? null,
-        stagedPhotoPath: stagedPhoto?.path ?? null,
-        stagedPhotoSource: stagedPhoto?.source ?? null,
       });
 
       let savedProductId: string;
@@ -275,32 +161,20 @@ export default function ProductForm() {
         });
       }
 
-      if (stagedPhoto) {
-        photoLogger.info("path_processing_started", {
-          name: stagedPhoto.originalFilename,
-          productId: savedProductId,
-          source: stagedPhoto.source,
-          sourceMimeType: stagedPhoto.mimeType,
-          sourcePath: stagedPhoto.path,
-        });
+      if (hasStagedImage) {
         try {
-          const { jobId } = await enqueueAssetProcessing({
-            originalFilename: stagedPhoto.originalFilename,
-            processingKind: "image:webp-thumbnail",
-            sourceMimeType: stagedPhoto.mimeType,
-            sourcePath: stagedPhoto.path,
-            target: {
-              entityId: savedProductId,
-              entityType: "product",
-              field: "image_asset_id",
-            },
-          });
+          const enqueueResult = await imageUpload?.enqueueFor(
+            createAssetProcessingTarget("productImage", savedProductId)
+          );
+
+          if (!enqueueResult) {
+            throw new Error("Tidak ada foto staged untuk diproses");
+          }
 
           photoLogger.info("pending_photo_job_enqueued", {
-            jobId,
+            jobId: enqueueResult.jobId,
             productId: savedProductId,
           });
-          setPendingPhoto(null);
           toast.success("Foto akan diproses di background");
           shouldTriggerPhotoSync = true;
         } catch (enqueueError) {
@@ -411,84 +285,31 @@ export default function ProductForm() {
               )}
             </Field>
 
-            <div class="flex flex-col gap-1.5">
-              <span class="font-medium text-sm leading-none">Foto Produk</span>
-              <div class="flex items-start gap-4 rounded-xl border border-border bg-card p-3">
-                <div class="flex size-24 items-center justify-center overflow-hidden rounded-lg border border-border border-dashed bg-muted">
-                  <Show
-                    fallback={
-                      <span class="px-2 text-center text-muted-foreground text-xs">
-                        Belum ada foto
-                      </span>
-                    }
-                    when={visibleImagePreviewUrl()}
-                  >
-                    {(previewUrl) => (
-                      <img
-                        alt="Preview foto produk"
-                        class="size-full object-cover"
-                        height="96"
-                        src={previewUrl()}
-                        width="96"
-                      />
-                    )}
-                  </Show>
-                </div>
-                <div class="flex min-w-0 flex-1 flex-col gap-2">
-                  <p class="text-muted-foreground text-sm">
-                    {imageFileName() ||
-                      "Pilih foto untuk diunggah sebagai WebP"}
-                  </p>
-                  <p class="text-muted-foreground text-xs">
-                    JPG/PNG, akan diproses menjadi WebP 400px.
-                  </p>
-                  <Show when={pendingPhoto()}>
-                    <p class="text-muted-foreground text-xs">
-                      Foto akan diproses saat disimpan.
-                    </p>
-                  </Show>
-                  <Show when={imageAssetId() && !pendingPhoto()}>
-                    <p class="text-muted-foreground text-xs">
-                      Foto akan diupload saat online.
-                    </p>
-                  </Show>
-                  <Show when={imageError()}>
-                    <p class="text-destructive text-xs" role="alert">
-                      {imageError()}
-                    </p>
-                  </Show>
-                  <div class="flex flex-wrap gap-2">
-                    <Button
-                      disabled={isUploadingImage()}
-                      onClick={openPhotoSourceDrawer}
-                      size="sm"
-                      type="button"
-                    >
-                      {photoButtonLabel()}
-                    </Button>
-                    <Show when={imageAssetId() || pendingPhoto()}>
-                      <Button
-                        onClick={clearSelectedPhoto}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        Hapus
-                      </Button>
-                    </Show>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <PhotoSourceDrawer
-              onOpenChange={(open) => {
-                photoLogger.info("drawer_state_changed", { open });
-                setShowPhotoSourceDrawer(open);
+            <ImageUpload
+              existingAssetId={imageAssetId()}
+              existingImageUrl={savedImagePreviewUrl()}
+              label="Foto Produk"
+              onBusyChange={setIsImageBusy}
+              onController={(controller) => {
+                imageUpload = controller;
               }}
-              onPickCamera={triggerCameraPicker}
-              onPickGallery={triggerGalleryPicker}
-              open={showPhotoSourceDrawer()}
-            />
+              onExistingAssetClear={() => setImageAssetId(null)}
+              processingKind="image:webp-thumbnail"
+            >
+              <ImageUpload.Preview alt="Preview foto produk" />
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <ImageUpload.FileName fallback="Pilih foto untuk diunggah sebagai WebP" />
+                <ImageUpload.Description>
+                  JPG/PNG, akan diproses menjadi WebP 400px.
+                </ImageUpload.Description>
+                <ImageUpload.StateText />
+                <ImageUpload.Error />
+                <ImageUpload.Actions>
+                  <ImageUpload.Trigger />
+                  <ImageUpload.Remove />
+                </ImageUpload.Actions>
+              </div>
+            </ImageUpload>
 
             <div class="mt-auto pt-4">
               <Button

@@ -13,7 +13,7 @@ export async function getPendingProductPhotoPreviewUrl(
   }
 
   const preview = await invoke<PendingProductPhotoPreview | null>(
-    "get_pending_product_photo_preview",
+    "get_pending_asset_preview",
     { productId }
   );
 

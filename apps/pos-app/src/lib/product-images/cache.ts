@@ -39,7 +39,7 @@ export async function hydrateMissingProductImages(input: {
   merchantId: string;
   sessionToken: string;
 }): Promise<number> {
-  return await invoke<number>("hydrate_product_images", {
+  return await invoke<number>("hydrate_missing_assets", {
     apiUrl: input.apiUrl,
     limit: input.limit ?? 20,
     merchantId: input.merchantId,

@@ -67,7 +67,7 @@ describe("resolveCachedProductImageUrl", () => {
       })
     ).resolves.toBe(2);
 
-    expect(mockInvoke).toHaveBeenCalledWith("hydrate_product_images", {
+    expect(mockInvoke).toHaveBeenCalledWith("hydrate_missing_assets", {
       apiUrl: "http://localhost:3001",
       limit: 20,
       merchantId: "merchant-1",

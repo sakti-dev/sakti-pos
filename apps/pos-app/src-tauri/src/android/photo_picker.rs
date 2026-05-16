@@ -112,7 +112,7 @@ pub async fn pick_product_photo<R: Runtime>(
 ) -> Result<PickedProductPhoto, String> {
     log::info!("[RUST] [PHOTO:TRACE] pick_product_photo:start source={source:?}");
     if uses_android_fs_picker(&source) {
-        let result = crate::android_fs::pick_gallery_to_product_photo_input(&app).await?;
+        let result = crate::android::fs::pick_gallery_to_product_photo_input(&app).await?;
         log::info!(
             "[RUST] [PHOTO:TRACE] pick_product_photo:done source={:?} path={} filename={} mime_type={}",
             result.source, result.path, result.original_filename, result.mime_type

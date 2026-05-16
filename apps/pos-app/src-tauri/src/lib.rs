@@ -1,15 +1,13 @@
-mod android_fs;
+mod android;
+mod app;
 mod assets;
-mod db_utils;
-mod drizzle_proxy;
+mod db;
+mod hardware;
 mod logging;
-mod photo_picker;
-mod printer;
 mod sync;
 mod time_utils;
 
 use argon2::{hash_raw, Config, Variant, Version};
-use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_stronghold::Builder;
 
@@ -35,46 +33,9 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_android_fs::init())
-        .plugin(photo_picker::init())
-        .plugin(printer::init())
-        .setup(|app| {
-            let handle = app.handle().clone();
-            tauri::async_runtime::block_on(async move {
-                match drizzle_proxy::init_db(&handle).await {
-                    Ok(pool) => {
-                        let pool_for_jobs = pool.clone();
-                        handle.manage(drizzle_proxy::AppState { db_pool: pool });
-                        tauri::async_runtime::spawn(async move {
-                            if let Err(error) =
-                                assets::reset_incomplete_pending_asset_processing_jobs(
-                                    &pool_for_jobs,
-                                )
-                                .await
-                            {
-                                crate::pos_log!(
-                                    error,
-                                    "ASSET",
-                                    "JOB:RESET:FAIL",
-                                    "Failed to reset incomplete asset jobs",
-                                    "error" => error
-                                );
-                                return;
-                            }
-                        });
-                    }
-                    Err(e) => {
-                        crate::pos_log!(
-                            error,
-                            "DB",
-                            "INIT:FAIL",
-                            "Failed to initialize database",
-                            "error" => e
-                        );
-                    }
-                }
-            });
-            Ok(())
-        })
+        .plugin(android::photo_picker::init())
+        .plugin(hardware::printer::init())
+        .setup(app::startup::setup_app)
         .plugin(tauri_plugin_opener::init())
         .plugin(
             Builder::new(|password| {
@@ -94,34 +55,34 @@ pub fn run() {
             .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            assets::process_image_to_webp,
-            assets::cache_asset_webp,
-            assets::prepare_local_product_image_asset,
-            assets::prepare_local_product_image_asset_from_path,
-            assets::read_cached_asset_data,
-            assets::enqueue_asset_processing,
-            assets::get_pending_product_photo_preview,
-            assets::process_pending_asset_jobs,
-            photo_picker::pick_product_photo,
-            photo_picker::delete_temp_product_photo,
-            assets::upload_pending_product_images,
-            assets::hydrate_product_images,
-            drizzle_proxy::run_sql,
-            drizzle_proxy::run_sql_batch,
-            drizzle_proxy::get_db_info,
-            printer::list_paired_thermal_printers,
-            printer::test_thermal_printer,
-            printer::print_thermal_receipt,
-            printer::request_bluetooth_permission,
-            sync::sync_push,
-            sync::sync_pull,
-            sync::get_sync_local_state,
-            sync::sync_push_outbox,
-            sync::sync_pull_events,
-            sync::sync_full_resync,
-            sync::purge_synced_outbox,
-            sync::run_garbage_collection,
-            sync::sync_now
+            assets::commands::process_image_to_webp,
+            assets::commands::cache_asset_webp,
+            assets::commands::prepare_local_image_asset,
+            assets::commands::prepare_local_image_asset_from_path,
+            assets::commands::read_cached_asset_data,
+            assets::commands::enqueue_asset_processing,
+            assets::commands::get_pending_asset_preview,
+            assets::commands::process_pending_asset_jobs,
+            android::photo_picker::pick_product_photo,
+            android::photo_picker::delete_temp_product_photo,
+            assets::commands::upload_pending_assets,
+            assets::commands::hydrate_missing_assets,
+            db::drizzle_proxy::run_sql,
+            db::drizzle_proxy::run_sql_batch,
+            db::drizzle_proxy::get_db_info,
+            hardware::printer::list_paired_thermal_printers,
+            hardware::printer::test_thermal_printer,
+            hardware::printer::print_thermal_receipt,
+            hardware::printer::request_bluetooth_permission,
+            sync::commands::sync_push,
+            sync::commands::sync_pull,
+            sync::commands::get_sync_local_state,
+            sync::commands::sync_push_outbox,
+            sync::commands::sync_pull_events,
+            sync::commands::sync_full_resync,
+            sync::commands::purge_synced_outbox,
+            sync::commands::run_garbage_collection,
+            sync::commands::sync_now
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

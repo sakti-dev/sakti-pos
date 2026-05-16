@@ -1,8 +1,11 @@
 import { createStore } from "solid-js/store";
+import type {
+  AssetAttachmentField,
+  AssetEntityType,
+} from "~/lib/asset-targets";
 import { createLogger } from "~/lib/logger";
 
-export type AssetEntityType = "product";
-export type AssetAttachmentField = "image_asset_id";
+export type { AssetAttachmentField, AssetEntityType };
 
 interface AssetAttachmentReadyInput {
   assetId: string;
