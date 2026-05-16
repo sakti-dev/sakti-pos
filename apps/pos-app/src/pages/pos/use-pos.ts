@@ -6,13 +6,13 @@ import {
   type ProductWithCategory,
 } from "~/db/orders";
 import { getAllOutlets, getOutletReceiptHeader } from "~/db/outlets";
+import { getDomainCatalogVersion } from "~/lib/assets/cache";
 import { formatUtcTimestamp } from "~/lib/date-time";
 import { createLogger } from "~/lib/logger";
 import { getDefaultPrinter, printReceipt } from "~/lib/printer/client";
 import type { ReceiptData } from "~/lib/receipt/types";
 import { currentUser, currentUserRole } from "~/store/auth";
 import { cartItems, cartTotal, clearCart } from "~/store/cart";
-import { getDomainCatalogVersion } from "~/store/domain-catalog";
 import { currentOutletId, currentOutletTimezone } from "~/store/outlet";
 import { useIsPhone } from "~/store/responsive";
 import { getCategoryNames, getVisibleProducts } from "./pos-utils";

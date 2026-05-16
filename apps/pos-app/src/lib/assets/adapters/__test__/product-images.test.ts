@@ -51,7 +51,7 @@ describe("product image adapter", () => {
 
   test("notifies domain catalog on attachment ready", async () => {
     const { resetDomainCatalogVersionsForTest, getDomainCatalogVersion } =
-      await import("~/store/domain-catalog");
+      await import("~/lib/assets/cache");
     resetDomainCatalogVersionsForTest();
 
     await productImageAdapter.startEventListeners();

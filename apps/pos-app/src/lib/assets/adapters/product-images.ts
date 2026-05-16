@@ -1,4 +1,4 @@
-import { notifyAssetAttachmentReady } from "~/store/domain-catalog";
+import { notifyAssetAttachmentReady } from "../cache";
 import { createAssetAdapter } from "../create-adapter";
 
 export const productImageAdapter = createAssetAdapter({

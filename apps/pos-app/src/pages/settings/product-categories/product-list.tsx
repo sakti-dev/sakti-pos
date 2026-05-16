@@ -29,8 +29,8 @@ import {
   type Product,
   updateProduct,
 } from "~/db/menu";
+import { getDomainCatalogVersion } from "~/lib/assets/cache";
 import { cn, formatIDR } from "~/lib/utils";
-import { getDomainCatalogVersion } from "~/store/domain-catalog";
 
 export default function ProductList(
   props: Partial<RouteSectionProps> & { hideHeader?: boolean } = {}

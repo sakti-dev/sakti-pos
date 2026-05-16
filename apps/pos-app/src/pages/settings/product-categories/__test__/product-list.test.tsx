@@ -6,7 +6,7 @@ import type { Category, Product } from "~/db/menu";
 import {
   notifyAssetAttachmentReady,
   resetDomainCatalogVersionsForTest,
-} from "~/store/domain-catalog";
+} from "~/lib/assets/cache";
 
 vi.mock("~/lib/assets/adapters/product-images", () => ({
   productImageAdapter: {
