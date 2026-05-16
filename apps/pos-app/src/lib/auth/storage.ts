@@ -1,5 +1,4 @@
-import { appDataDir, join } from "@tauri-apps/api/path";
-import { Stronghold } from "@tauri-apps/plugin-stronghold";
+import { invoke } from "@tauri-apps/api/core";
 import { createLogger } from "~/lib/logger";
 
 const storageLogger = createLogger({
@@ -8,68 +7,63 @@ const storageLogger = createLogger({
   scope: "storage",
 });
 
-const VAULT_NAME = "sakti-pos-vault.hold";
-const CLIENT_NAME = "auth_client";
-const STORE_KEY = "session_token";
-const MASTER_PASSWORD = "sakti-pos-device-key-2026";
 const LOCAL_KEY = "sakti-pos:session-token";
 
 let cachedToken: string | null = null;
 
-async function getVaultPath(): Promise<string> {
-  return await join(await appDataDir(), VAULT_NAME);
+async function saveTokenNative(token: string): Promise<void> {
+  await invoke("save_auth_token", { token });
 }
 
-async function getStrongholdClient() {
-  const vaultPath = await getVaultPath();
-  const stronghold = await Stronghold.load(vaultPath, MASTER_PASSWORD);
-  const client = await stronghold
-    .loadClient(CLIENT_NAME)
-    .catch(() => stronghold.createClient(CLIENT_NAME));
-  return { stronghold, client };
+async function getTokenNative(): Promise<string | null> {
+  return await invoke<string | null>("get_auth_token");
 }
 
-async function persistToStronghold(token: string): Promise<void> {
-  try {
-    const { stronghold, client } = await getStrongholdClient();
-    const store = client.getStore();
-    const encoder = new TextEncoder();
-    await store.insert(STORE_KEY, Array.from(encoder.encode(token)));
-    await stronghold.save();
-  } catch (err) {
-    storageLogger.error("stronghold_persist:failed", err);
-  }
+async function clearTokenNative(): Promise<void> {
+  await invoke("clear_auth_token");
+}
+
+async function migrateLegacyToken(token: string): Promise<void> {
+  await saveTokenNative(token);
+  localStorage.removeItem(LOCAL_KEY);
 }
 
 export const AuthStorage = {
-  saveToken(token: string): void {
+  async saveToken(token: string): Promise<void> {
     cachedToken = token;
-    localStorage.setItem(LOCAL_KEY, token);
-    persistToStronghold(token);
+    localStorage.removeItem(LOCAL_KEY);
+    try {
+      await saveTokenNative(token);
+    } catch (error: unknown) {
+      storageLogger.error("native_token_persist:failed", error);
+    }
   },
 
   async getToken(): Promise<string | null> {
-    if (cachedToken) {
+    if (cachedToken !== null) {
       return cachedToken;
     }
-    const fromLocal = localStorage.getItem(LOCAL_KEY);
-    if (fromLocal) {
-      cachedToken = fromLocal;
-      return fromLocal;
-    }
-    try {
-      const { client } = await getStrongholdClient();
-      const store = client.getStore();
-      const bytes = await store.get(STORE_KEY);
-      if (!bytes) {
+
+    const legacyToken = localStorage.getItem(LOCAL_KEY);
+    if (legacyToken !== null) {
+      try {
+        await migrateLegacyToken(legacyToken);
+        cachedToken = legacyToken;
+        return legacyToken;
+      } catch (error: unknown) {
+        storageLogger.error("legacy_token_migration:failed", error);
+        localStorage.removeItem(LOCAL_KEY);
         return null;
       }
-      const decoder = new TextDecoder();
-      const token = decoder.decode(new Uint8Array(bytes));
-      cachedToken = token;
-      localStorage.setItem(LOCAL_KEY, token);
-      return token;
-    } catch {
+    }
+
+    try {
+      const token = await getTokenNative();
+      cachedToken = token ?? null;
+      return cachedToken;
+    } catch (error: unknown) {
+      storageLogger.error("native_token_load:failed", error);
+      localStorage.removeItem(LOCAL_KEY);
       return null;
     }
   },
@@ -78,10 +72,9 @@ export const AuthStorage = {
     cachedToken = null;
     localStorage.removeItem(LOCAL_KEY);
     try {
-      const { stronghold, client } = await getStrongholdClient();
-      const store = client.getStore();
-      await store.remove(STORE_KEY);
-      await stronghold.save();
-    } catch {}
+      await clearTokenNative();
+    } catch (error: unknown) {
+      storageLogger.error("native_token_clear:failed", error);
+    }
   },
 };

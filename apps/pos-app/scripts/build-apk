@@ -15,9 +15,9 @@ KEY_PASS="android"
 APK_NAME="sakti-pos"
 
 echo "==> Building release APK..."
-bunx tauri android build --apk --target aarch64
+bunx tauri android build --apk --target aarch64 --split-per-abi
 
-UNSIGNED=$(find src-tauri/gen/android/app/build/outputs -name "*-unsigned.apk" -o -name "sakti-pos.apk" | head -1)
+UNSIGNED=$(find src-tauri/gen/android/app/build/outputs/apk/arm64 -type f \( -name "*-unsigned.apk" -o -name "sakti-pos.apk" \) | head -1)
 
 if [ -z "$UNSIGNED" ]; then
   echo "ERROR: No APK found"

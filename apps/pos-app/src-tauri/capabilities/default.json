@@ -7,14 +7,6 @@
     "android-fs:default",
     "core:default",
     "log:default",
-    "opener:default",
-    "stronghold:default",
-    "stronghold:allow-initialize",
-    "stronghold:allow-create-client",
-    "stronghold:allow-load-client",
-    "stronghold:allow-save",
-    "stronghold:allow-save-store-record",
-    "stronghold:allow-get-store-record",
-    "stronghold:allow-remove-store-record"
+    "opener:default"
   ]
 }

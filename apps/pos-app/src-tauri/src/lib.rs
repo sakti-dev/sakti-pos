@@ -1,4 +1,5 @@
 mod android;
+mod auth;
 mod app;
 mod assets;
 mod db;
@@ -7,9 +8,7 @@ mod logging;
 mod sync;
 mod time_utils;
 
-use argon2::{hash_raw, Config, Variant, Version};
 use tauri_plugin_log::{Target, TargetKind};
-use tauri_plugin_stronghold::Builder;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -33,27 +32,11 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_android_fs::init())
+        .plugin(auth::init())
         .plugin(android::photo_picker::init())
         .plugin(hardware::printer::init())
         .setup(app::startup::setup_app)
         .plugin(tauri_plugin_opener::init())
-        .plugin(
-            Builder::new(|password| {
-                let config = Config {
-                    lanes: 4,
-                    mem_cost: 10_000,
-                    time_cost: 2,
-                    variant: Variant::Argon2id,
-                    version: Version::Version13,
-                    ..Default::default()
-                };
-                let salt = b"sakti-pos-secure-salt-2026";
-                let key =
-                    hash_raw(password.as_bytes(), salt, &config).expect("failed to hash password");
-                key.to_vec()
-            })
-            .build(),
-        )
         .invoke_handler(tauri::generate_handler![
             assets::commands::process_image_to_webp,
             assets::commands::cache_asset_webp,
@@ -67,6 +50,9 @@ pub fn run() {
             android::photo_picker::delete_temp_product_photo,
             assets::commands::upload_pending_assets,
             assets::commands::hydrate_missing_assets,
+            auth::save_auth_token,
+            auth::get_auth_token,
+            auth::clear_auth_token,
             db::drizzle_proxy::run_sql,
             db::drizzle_proxy::run_sql_batch,
             db::drizzle_proxy::get_db_info,
