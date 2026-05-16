@@ -68,10 +68,10 @@ describe("ImageUpload", () => {
     expect(await screen.findByText("menu.png")).toBeInTheDocument();
     expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
       "src",
-      "data:image/jpeg;base64,cHJldmlldw==",
+      "data:image/jpeg;base64,cHJldmlldw=="
     );
     expect(
-      screen.getByText("Foto akan diproses saat disimpan."),
+      screen.getByText("Foto akan diproses saat disimpan.")
     ).toBeInTheDocument();
     expect(upload.hasStagedImage()).toBe(true);
 

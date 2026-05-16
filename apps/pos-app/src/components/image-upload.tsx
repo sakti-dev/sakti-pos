@@ -9,8 +9,8 @@ import {
 
 import { PhotoSourceDrawer } from "~/components/photo-source-drawer";
 import { Button } from "~/components/ui/button";
-import { createLogger } from "~/lib/logger";
 import type { ImageUploadState } from "~/lib/image-upload";
+import { createLogger } from "~/lib/logger";
 
 export type { ImageUploadState } from "~/lib/image-upload";
 
@@ -62,7 +62,7 @@ function useImageUploadContext(): ImageUploadContextValue {
   const context = useContext(ImageUploadContext);
   if (!context) {
     throw new Error(
-      "ImageUpload compound components must be used inside ImageUpload",
+      "ImageUpload compound components must be used inside ImageUpload"
     );
   }
   return context;
