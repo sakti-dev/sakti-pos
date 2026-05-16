@@ -9,10 +9,7 @@ import {
 } from "solid-js";
 import { toast } from "solid-sonner";
 import { FormTextField } from "~/components/form/form-text-field";
-import {
-  ImageUpload,
-  type ImageUploadController,
-} from "~/components/image-upload";
+import { ImageUpload } from "~/components/image-upload";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
 import { Select } from "~/components/ui/select";
@@ -23,6 +20,7 @@ import {
   updateProduct,
 } from "~/db/menu";
 import { createAssetProcessingTarget } from "~/lib/asset-targets";
+import { createImageUpload } from "~/lib/image-upload";
 import { createLogger } from "~/lib/logger";
 import { resolveCachedProductImageUrl } from "~/lib/product-images/cache";
 import {
@@ -54,7 +52,6 @@ export default function ProductForm() {
   });
   const [error, setError] = createSignal("");
   const [imageAssetId, setImageAssetId] = createSignal<string | null>(null);
-  const [isImageBusy, setIsImageBusy] = createSignal(false);
   const [initializedProductId, setInitializedProductId] = createSignal<
     string | null
   >(null);
@@ -62,7 +59,12 @@ export default function ProductForm() {
     () => imageAssetId(),
     resolveCachedProductImageUrl
   );
-  let imageUpload: ImageUploadController | undefined;
+  const upload = createImageUpload({
+    existingAssetId: imageAssetId,
+    existingImageUrl: () => savedImagePreviewUrl() ?? null,
+    onClearExisting: () => setImageAssetId(null),
+    processingKind: "image:webp-thumbnail",
+  });
   const photoLogger = createLogger({
     domain: "PHOTO",
     module: "product-photo",
@@ -91,7 +93,7 @@ export default function ProductForm() {
       !!input?.name?.trim() &&
       !!input?.categoryId &&
       !!input?.price?.trim() &&
-      !isImageBusy() &&
+      !upload.isBusy() &&
       !form.isSubmitting
     );
   });
@@ -125,7 +127,7 @@ export default function ProductForm() {
       }
 
       const nextImageAssetId = imageAssetId();
-      const hasStagedImage = imageUpload?.hasStagedImage() ?? false;
+      const hasStagedImage = upload.hasStagedImage();
       const data = {
         name: values.name,
         categoryId: values.categoryId,
@@ -163,7 +165,7 @@ export default function ProductForm() {
 
       if (hasStagedImage) {
         try {
-          const enqueueResult = await imageUpload?.enqueueFor(
+          const enqueueResult = await upload.enqueueFor(
             createAssetProcessingTarget("productImage", savedProductId)
           );
 
@@ -285,17 +287,7 @@ export default function ProductForm() {
               )}
             </Field>
 
-            <ImageUpload
-              existingAssetId={imageAssetId()}
-              existingImageUrl={savedImagePreviewUrl()}
-              label="Foto Produk"
-              onBusyChange={setIsImageBusy}
-              onController={(controller) => {
-                imageUpload = controller;
-              }}
-              onExistingAssetClear={() => setImageAssetId(null)}
-              processingKind="image:webp-thumbnail"
-            >
+            <ImageUpload label="Foto Produk" state={upload}>
               <ImageUpload.Preview alt="Preview foto produk" />
               <div class="flex min-w-0 flex-1 flex-col gap-2">
                 <ImageUpload.FileName fallback="Pilih foto untuk diunggah sebagai WebP" />
