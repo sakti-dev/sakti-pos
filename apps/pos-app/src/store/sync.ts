@@ -4,8 +4,7 @@ import { getSyncStatus } from "~/lib/api/sync";
 import { processPendingAssetJobs } from "~/lib/assets";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
-import { hydrateMissingProductImages } from "~/lib/product-images/cache";
-import { requestUploadPendingProductImages } from "~/lib/product-images/upload-queue";
+import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { describeError } from "~/lib/utils";
 import { currentMerchantId, currentOutletId } from "./outlet";
 
@@ -85,7 +84,7 @@ async function uploadPendingProductImages(
 ): Promise<void> {
   try {
     syncLogger.info("asset_upload_queue_started", { merchantId });
-    const queuedCount = await requestUploadPendingProductImages({
+    const queuedCount = await uploadPendingAssets({
       apiUrl: API_URL,
       merchantId,
       sessionToken,
@@ -144,7 +143,7 @@ async function hydrateProductImagesOnce(
 ): Promise<void> {
   try {
     syncLogger.info("asset_hydration_started", { merchantId });
-    const hydratedCount = await hydrateMissingProductImages({
+    const hydratedCount = await hydrateMissingAssets({
       apiUrl: API_URL,
       merchantId,
       sessionToken,
