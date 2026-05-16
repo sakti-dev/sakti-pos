@@ -3,7 +3,7 @@ import {
   getAssetCacheVersion,
   notifyAssetCacheReady,
   resetAssetCacheVersionsForTest,
-} from "~/store/asset-cache";
+} from "~/lib/assets/cache";
 
 describe("asset cache invalidation", () => {
   beforeEach(() => {

@@ -79,9 +79,14 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `asset://${path}`,
 }));
 
-vi.mock("~/lib/product-images/cache", () => ({
-  resolveCachedProductImageUrl: (...args: unknown[]) =>
-    mockResolveCachedProductImageUrl(...args),
+vi.mock("~/lib/assets/adapters/product-images", () => ({
+  productImageAdapter: {
+    resolveCachedImageUrl: (...args: unknown[]) =>
+      mockResolveCachedProductImageUrl(...args),
+    getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
+    startEventListeners: vi.fn(() => Promise.resolve()),
+    stopEventListeners: vi.fn(),
+  },
 }));
 
 vi.mock("~/components/ui/page-header", () => ({

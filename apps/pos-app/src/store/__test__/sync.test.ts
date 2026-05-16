@@ -33,13 +33,10 @@ vi.mock("~/lib/assets", () => ({
     mockProcessPendingAssetJobs(...args),
 }));
 
-vi.mock("~/lib/product-images/cache", () => ({
-  hydrateMissingProductImages: (...args: unknown[]) =>
+vi.mock("~/lib/assets/sync", () => ({
+  hydrateMissingAssets: (...args: unknown[]) =>
     mockHydrateMissingProductImages(...args),
-}));
-
-vi.mock("~/lib/product-images/upload-queue", () => ({
-  requestUploadPendingProductImages: (...args: unknown[]) =>
+  uploadPendingAssets: (...args: unknown[]) =>
     mockRequestUploadPendingProductImages(...args),
 }));
 
