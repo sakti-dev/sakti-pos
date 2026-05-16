@@ -46,6 +46,7 @@ pub fn run() {
             assets::commands::get_cached_asset_path,
             assets::commands::enqueue_asset_processing,
             assets::commands::get_pending_asset_preview,
+            assets::commands::get_pending_preview_path,
             assets::commands::process_pending_asset_jobs,
             android::photo_picker::pick_product_photo,
             android::photo_picker::delete_temp_product_photo,

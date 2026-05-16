@@ -106,6 +106,14 @@ pub async fn get_pending_asset_preview(
 }
 
 #[command]
+pub async fn get_pending_preview_path(
+    product_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<PendingPreviewPathResponse>, String> {
+    super::processing_jobs::get_pending_preview_path(product_id, state).await
+}
+
+#[command]
 pub async fn process_pending_asset_jobs(
     limit: Option<i64>,
     state: State<'_, AppState>,
