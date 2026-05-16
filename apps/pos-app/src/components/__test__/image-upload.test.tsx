@@ -3,10 +3,8 @@ import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
 import { describe, expect, test, vi } from "vitest";
 
-import {
-  ImageUpload,
-  type ImageUploadController,
-} from "~/components/image-upload";
+import { ImageUpload } from "~/components/image-upload";
+import { createImageUpload } from "~/lib/image-upload";
 
 const mockPickProductPhoto = vi.fn();
 const mockDeleteTempProductPhoto = vi.fn();
@@ -41,7 +39,6 @@ const user = userEvent.setup();
 
 describe("ImageUpload", () => {
   test("stages a picked image and enqueues it for a supplied asset target", async () => {
-    let controller: ImageUploadController | undefined;
     mockPickProductPhoto.mockResolvedValue({
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
@@ -52,16 +49,12 @@ describe("ImageUpload", () => {
     });
     mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
 
+    const upload = createImageUpload({
+      processingKind: "image:webp-thumbnail",
+    });
+
     render(() => (
-      <ImageUpload
-        existingAssetId={null}
-        existingImageUrl={null}
-        label="Foto Produk"
-        onController={(nextController) => {
-          controller = nextController;
-        }}
-        processingKind="image:webp-thumbnail"
-      >
+      <ImageUpload label="Foto Produk" state={upload}>
         <ImageUpload.Preview alt="Preview foto produk" />
         <ImageUpload.FileName fallback="Pilih foto untuk diunggah" />
         <ImageUpload.StateText />
@@ -75,14 +68,14 @@ describe("ImageUpload", () => {
     expect(await screen.findByText("menu.png")).toBeInTheDocument();
     expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
       "src",
-      "data:image/jpeg;base64,cHJldmlldw=="
+      "data:image/jpeg;base64,cHJldmlldw==",
     );
     expect(
-      screen.getByText("Foto akan diproses saat disimpan.")
+      screen.getByText("Foto akan diproses saat disimpan."),
     ).toBeInTheDocument();
-    expect(controller?.hasStagedImage()).toBe(true);
+    expect(upload.hasStagedImage()).toBe(true);
 
-    await controller?.enqueueFor({
+    await upload.enqueueFor({
       entityId: "product-1",
       entityType: "product",
       field: "image_asset_id",
@@ -99,6 +92,6 @@ describe("ImageUpload", () => {
         field: "image_asset_id",
       },
     });
-    await waitFor(() => expect(controller?.hasStagedImage()).toBe(false));
+    await waitFor(() => expect(upload.hasStagedImage()).toBe(false));
   });
 });
