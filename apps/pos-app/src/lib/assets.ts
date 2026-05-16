@@ -9,7 +9,7 @@ import type {
   AssetAttachmentField,
   AssetEntityType,
   AssetProcessingTarget,
-} from "~/lib/asset-targets";
+} from "~/lib/assets/targets";
 import { createLogger } from "~/lib/logger";
 
 const assetLogger = createLogger({
