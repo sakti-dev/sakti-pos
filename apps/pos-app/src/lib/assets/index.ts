@@ -48,3 +48,9 @@ export {
   hydrateMissingAssets,
   uploadPendingAssets,
 } from "./sync";
+
+export { createImageUpload } from "./image-upload";
+export type {
+  CreateImageUploadOptions,
+  ImageUploadState,
+} from "./image-upload";

@@ -2,7 +2,7 @@ import { createStore } from "solid-js/store";
 import type {
   AssetAttachmentField,
   AssetEntityType,
-} from "~/lib/asset-targets";
+} from "~/lib/assets/targets";
 import { createLogger } from "~/lib/logger";
 
 export type { AssetAttachmentField, AssetEntityType };
