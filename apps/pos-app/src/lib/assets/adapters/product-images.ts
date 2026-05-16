@@ -1,5 +1,5 @@
-import { createAssetAdapter } from "../create-adapter";
 import { notifyAssetAttachmentReady } from "~/store/domain-catalog";
+import { createAssetAdapter } from "../create-adapter";
 
 export const productImageAdapter = createAssetAdapter({
   entityType: "product",

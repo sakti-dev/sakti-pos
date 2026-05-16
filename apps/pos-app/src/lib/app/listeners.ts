@@ -1,5 +1,5 @@
-import { createLogger } from "~/lib/logger";
 import { productImageAdapter } from "~/lib/assets/adapters/product-images";
+import { createLogger } from "~/lib/logger";
 
 const appListenerLogger = createLogger({
   domain: "UI",

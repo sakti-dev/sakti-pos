@@ -19,10 +19,10 @@ import {
   getProduct,
   updateProduct,
 } from "~/db/menu";
-import { createAssetProcessingTarget } from "~/lib/assets/targets";
-import { createImageUpload } from "~/lib/image-upload";
-import { createLogger } from "~/lib/logger";
 import { productImageAdapter } from "~/lib/assets/adapters/product-images";
+import { createImageUpload } from "~/lib/assets/image-upload";
+import { createAssetProcessingTarget } from "~/lib/assets/targets";
+import { createLogger } from "~/lib/logger";
 import {
   type ProductFormValues,
   ProductSchema,

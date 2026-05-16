@@ -9,10 +9,10 @@ import {
 
 import { PhotoSourceDrawer } from "~/components/photo-source-drawer";
 import { Button } from "~/components/ui/button";
-import type { ImageUploadState } from "~/lib/image-upload";
+import type { ImageUploadState } from "~/lib/assets/image-upload";
 import { createLogger } from "~/lib/logger";
 
-export type { ImageUploadState } from "~/lib/image-upload";
+export type { ImageUploadState } from "~/lib/assets/image-upload";
 
 interface ImageUploadProps {
   children: JSX.Element;

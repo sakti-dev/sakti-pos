@@ -1,10 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createSignal } from "solid-js";
 import { getSyncStatus } from "~/lib/api/sync";
-import { processPendingAssetJobs } from "~/lib/assets";
+import { processPendingAssetJobs } from "~/lib/assets/processing";
+import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
-import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { describeError } from "~/lib/utils";
 import { currentMerchantId, currentOutletId } from "./outlet";
 

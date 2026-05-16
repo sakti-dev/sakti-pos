@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createStore } from "solid-js/store";
-import { base64ToUint8Array } from "./utils";
-import type { CachedAssetData } from "./types";
 import { createLogger } from "~/lib/logger";
+import type { CachedAssetData } from "./types";
+import { base64ToUint8Array } from "./utils";
 
 const [assetVersions, setAssetVersions] = createStore<Record<string, number>>(
   {}

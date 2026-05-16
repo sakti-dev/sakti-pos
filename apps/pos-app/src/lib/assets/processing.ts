@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { createLogger } from "~/lib/logger";
 import type {
   EnqueueAssetProcessingInput,
   EnqueueAssetProcessingResult,
@@ -6,7 +7,6 @@ import type {
   ProcessedImageResponse,
 } from "./types";
 import { bytesToBase64 } from "./utils";
-import { createLogger } from "~/lib/logger";
 
 const assetLogger = createLogger({
   domain: "ASSET",

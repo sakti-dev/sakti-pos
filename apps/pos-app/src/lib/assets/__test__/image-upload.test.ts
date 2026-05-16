@@ -5,12 +5,15 @@ const mockPickProductPhoto = vi.fn();
 const mockDeleteTempProductPhoto = vi.fn();
 const mockEnqueueAssetProcessing = vi.fn();
 
-vi.mock("~/lib/assets", () => ({
+vi.mock("~/lib/assets/picking", () => ({
   deleteTempProductPhoto: (...args: unknown[]) =>
     mockDeleteTempProductPhoto(...args),
+  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
+}));
+
+vi.mock("~/lib/assets/processing", () => ({
   enqueueAssetProcessing: (...args: unknown[]) =>
     mockEnqueueAssetProcessing(...args),
-  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
 }));
 
 describe("createImageUpload", () => {

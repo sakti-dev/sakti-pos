@@ -66,13 +66,15 @@ vi.mock("~/store/sync", () => ({
   syncNow: (...args: unknown[]) => mockSyncNow(...args),
 }));
 
-vi.mock("~/lib/assets", () => ({
-  createWebpPreviewUrl: () => "blob:preview-url",
+vi.mock("~/lib/assets/picking", () => ({
   deleteTempProductPhoto: (...args: unknown[]) =>
     mockDeleteTempProductPhoto(...args),
+  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
+}));
+
+vi.mock("~/lib/assets/processing", () => ({
   enqueueAssetProcessing: (...args: unknown[]) =>
     mockEnqueueAssetProcessing(...args),
-  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({

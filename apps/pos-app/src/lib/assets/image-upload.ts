@@ -1,17 +1,15 @@
 import type { Accessor } from "solid-js";
 import { createSignal, onCleanup } from "solid-js";
-
-import {
-  type AssetProcessingKind,
-  type AssetProcessingTarget,
-  deleteTempProductPhoto,
-  type EnqueueAssetProcessingResult,
-  enqueueAssetProcessing,
-  type PickedProductPhoto,
-  type ProductPhotoSource,
-  pickProductPhoto,
-} from ".";
 import { createLogger } from "~/lib/logger";
+import { deleteTempProductPhoto, pickProductPhoto } from "./picking";
+import { enqueueAssetProcessing } from "./processing";
+import type {
+  AssetProcessingKind,
+  AssetProcessingTarget,
+  EnqueueAssetProcessingResult,
+  PickedProductPhoto,
+  ProductPhotoSource,
+} from "./types";
 
 export interface CreateImageUploadOptions {
   existingAssetId?: Accessor<string | null>;

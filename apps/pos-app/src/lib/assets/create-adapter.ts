@@ -1,31 +1,31 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { createLogger } from "~/lib/logger";
 import { notifyAssetCacheReady, readCachedAssetData } from "./cache";
 import type {
   AssetAttachmentField,
   AssetEntityType,
   PendingAssetPreview,
 } from "./types";
-import { createLogger } from "~/lib/logger";
 
 export interface AssetAdapterConfig {
   entityType: AssetEntityType;
   field: AssetAttachmentField;
-  pendingPreviewParamName: string;
   onAttachmentReady?: (input: {
     assetId: string;
     entityId: string;
     entityType: AssetEntityType;
     field: AssetAttachmentField;
   }) => void;
+  pendingPreviewParamName: string;
 }
 
 export interface AssetAdapter {
-  resolveCachedImageUrl: (
-    assetId: string | null | undefined
-  ) => Promise<string | null>;
   getPendingPreviewUrl: (
     entityId: string | null | undefined
+  ) => Promise<string | null>;
+  resolveCachedImageUrl: (
+    assetId: string | null | undefined
   ) => Promise<string | null>;
   startEventListeners: () => Promise<void>;
   stopEventListeners: () => void;

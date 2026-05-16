@@ -28,7 +28,7 @@ vi.mock("~/lib/api/sync", () => ({
   getSyncStatus: (...args: unknown[]) => mockGetSyncStatus(...args),
 }));
 
-vi.mock("~/lib/assets", () => ({
+vi.mock("~/lib/assets/processing", () => ({
   processPendingAssetJobs: (...args: unknown[]) =>
     mockProcessPendingAssetJobs(...args),
 }));

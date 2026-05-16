@@ -5,8 +5,7 @@ export const ASSET_ATTACHMENT_TARGETS = {
   },
 } as const;
 
-export type AssetAttachmentTargetKey =
-  keyof typeof ASSET_ATTACHMENT_TARGETS;
+export type AssetAttachmentTargetKey = keyof typeof ASSET_ATTACHMENT_TARGETS;
 export type AssetEntityType =
   (typeof ASSET_ATTACHMENT_TARGETS)[AssetAttachmentTargetKey]["entityType"];
 export type AssetAttachmentField =
