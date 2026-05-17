@@ -9,6 +9,7 @@ export interface SyncTableManifest {
   changeMessageName: string;
   currentlyManualTyped: boolean;
   fieldAliases?: Record<string, FieldAlias>;
+  fieldOrder?: string[];
   rowMessageName: string;
   scope: SyncScope;
   tableName: string;
@@ -100,6 +101,20 @@ export const syncManifest: SyncManifest = {
         subtotal: { protoName: "subtotal_minor_units", protoType: "int64" },
         unitPrice: { protoName: "unit_price_minor_units", protoType: "int64" },
       },
+      fieldOrder: [
+        "id",
+        "orderId",
+        "outletId",
+        "productId",
+        "productName",
+        "quantity",
+        "unitPrice",
+        "originalPrice",
+        "subtotal",
+        "deletedAt",
+        "createdAt",
+        "updatedAt",
+      ],
       rowMessageName: "OrderItemRow",
       scope: "outlet",
       tableName: "order_items",

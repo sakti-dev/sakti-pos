@@ -135,9 +135,9 @@ message OrderItemRow {
   int64 unit_price_minor_units = 7;
   int64 original_price_minor_units = 8;
   int64 subtotal_minor_units = 9;
-  string updated_at = 10;
-  string deleted_at = 11;
-  string created_at = 12;
+  string deleted_at = 10;
+  string created_at = 11;
+  string updated_at = 12;
 }
 
 message OutletProductRow {

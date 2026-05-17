@@ -84,7 +84,7 @@ export function reflectSyncTables(
     }
 
     const tableConfig = getTableConfig(table);
-    const columns = tableConfig.columns
+    const reflectedColumns = tableConfig.columns
       .map((column) => {
         const propertyName = getColumnPropertyName(table, column);
         const alias = manifestTable.fieldAliases?.[propertyName];
@@ -99,6 +99,12 @@ export function reflectSyncTables(
       .filter(
         (column) => !manifest.globalExcludeColumns.includes(column.propertyName)
       );
+
+    const columns = manifestTable.fieldOrder
+      ? manifestTable.fieldOrder
+          .map((name) => reflectedColumns.find((c) => c.propertyName === name))
+          .filter((c): c is ReflectedColumn => !!c)
+      : reflectedColumns;
 
     return {
       changeMessageName: manifestTable.changeMessageName,
