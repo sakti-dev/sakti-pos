@@ -5,28 +5,10 @@ use serde_json::Value;
 use std::convert::TryFrom;
 
 use super::sync_proto::{
-    AssetChanges,
-    AssetRow,
-    CategoryChanges,
-    CategoryRow,
-    MerchantChanges,
-    MerchantRow,
-    OrderChanges,
-    OrderItemChanges,
-    OrderItemRow,
-    OrderRow,
-    OutletChanges,
-    OutletProductChanges,
-    OutletProductRow,
-    OutletRow,
-    ProductChanges,
-    ProductRow,
-    RegisterChanges,
-    RegisterRow,
-    StaffChanges,
-    StaffRow,
-    SyncPullBatchResponse,
-    SyncPushBatchRequest,
+    AssetChanges, AssetRow, CategoryChanges, CategoryRow, MerchantChanges, MerchantRow,
+    OrderChanges, OrderItemChanges, OrderItemRow, OrderRow, OutletChanges, OutletProductChanges,
+    OutletProductRow, OutletRow, ProductChanges, ProductRow, RegisterChanges, RegisterRow,
+    StaffChanges, StaffRow, SyncPullBatchResponse, SyncPushBatchRequest,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -198,8 +180,14 @@ fn order_row_from_value(row: &Value) -> OrderRow {
         order_number: value_to_string(row, &["orderNumber", "order_number"]),
         total_minor_units: value_to_i64(row, &["totalMinorUnits", "total"]),
         payment_method: value_to_string(row, &["paymentMethod", "payment_method"]),
-        amount_paid_minor_units: value_to_i64(row, &["amountPaidMinorUnits", "amountPaid", "amount_paid"]),
-        change_amount_minor_units: value_to_i64(row, &["changeAmountMinorUnits", "changeAmount", "change_amount"]),
+        amount_paid_minor_units: value_to_i64(
+            row,
+            &["amountPaidMinorUnits", "amountPaid", "amount_paid"],
+        ),
+        change_amount_minor_units: value_to_i64(
+            row,
+            &["changeAmountMinorUnits", "changeAmount", "change_amount"],
+        ),
         status: value_to_string(row, &["status"]),
         deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
         created_at: value_to_string(row, &["createdAt", "created_at"]),
@@ -215,8 +203,14 @@ fn order_item_row_from_value(row: &Value) -> OrderItemRow {
         product_id: value_to_string(row, &["productId", "product_id"]),
         product_name: value_to_string(row, &["productName", "product_name"]),
         quantity: value_to_i64(row, &["quantity"]),
-        unit_price_minor_units: value_to_i64(row, &["unitPriceMinorUnits", "unitPrice", "unit_price"]),
-        original_price_minor_units: value_to_i64(row, &["originalPriceMinorUnits", "originalPrice", "original_price"]),
+        unit_price_minor_units: value_to_i64(
+            row,
+            &["unitPriceMinorUnits", "unitPrice", "unit_price"],
+        ),
+        original_price_minor_units: value_to_i64(
+            row,
+            &["originalPriceMinorUnits", "originalPrice", "original_price"],
+        ),
         subtotal_minor_units: value_to_i64(row, &["subtotalMinorUnits", "subtotal"]),
         deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
         created_at: value_to_string(row, &["createdAt", "created_at"]),
@@ -426,7 +420,11 @@ fn typed_rows_to_json_values<T>(
     server_time: &str,
     mapper: impl Fn(&T) -> Value,
 ) -> Vec<Value> {
-    let mut rows = created.iter().chain(updated.iter()).map(mapper).collect::<Vec<_>>();
+    let mut rows = created
+        .iter()
+        .chain(updated.iter())
+        .map(mapper)
+        .collect::<Vec<_>>();
     rows.extend(
         deleted_ids
             .iter()
@@ -437,81 +435,161 @@ fn typed_rows_to_json_values<T>(
 
 pub(super) fn build_merchant_changes(changes: &TablePushChanges) -> MerchantChanges {
     MerchantChanges {
-        created: changes.created.iter().map(merchant_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(merchant_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(merchant_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(merchant_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_outlet_changes(changes: &TablePushChanges) -> OutletChanges {
     OutletChanges {
-        created: changes.created.iter().map(outlet_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(outlet_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(outlet_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(outlet_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_register_changes(changes: &TablePushChanges) -> RegisterChanges {
     RegisterChanges {
-        created: changes.created.iter().map(register_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(register_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(register_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(register_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_category_changes(changes: &TablePushChanges) -> CategoryChanges {
     CategoryChanges {
-        created: changes.created.iter().map(category_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(category_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(category_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(category_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_asset_changes(changes: &TablePushChanges) -> AssetChanges {
     AssetChanges {
-        created: changes.created.iter().map(asset_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(asset_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(asset_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(asset_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_product_changes(changes: &TablePushChanges) -> ProductChanges {
     ProductChanges {
-        created: changes.created.iter().map(product_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(product_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(product_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(product_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_order_changes(changes: &TablePushChanges) -> OrderChanges {
     OrderChanges {
-        created: changes.created.iter().map(order_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(order_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(order_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(order_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_order_item_changes(changes: &TablePushChanges) -> OrderItemChanges {
     OrderItemChanges {
-        created: changes.created.iter().map(order_item_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(order_item_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(order_item_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(order_item_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_outlet_product_changes(changes: &TablePushChanges) -> OutletProductChanges {
     OutletProductChanges {
-        created: changes.created.iter().map(outlet_product_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(outlet_product_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(outlet_product_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(outlet_product_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_staff_changes(changes: &TablePushChanges) -> StaffChanges {
     StaffChanges {
-        created: changes.created.iter().map(staff_row_from_value).collect::<Vec<_>>(),
+        created: changes
+            .created
+            .iter()
+            .map(staff_row_from_value)
+            .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(staff_row_from_value).collect::<Vec<_>>(),
+        updated: changes
+            .updated
+            .iter()
+            .map(staff_row_from_value)
+            .collect::<Vec<_>>(),
     }
 }
 

@@ -6,6 +6,7 @@ import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
 import { renderSyncProto } from "../proto-writer";
 import { renderRustSyncMappers } from "../rust-mapper-writer";
+import { formatGeneratedRust } from "../rust-format";
 import { renderApiSyncMappers } from "../ts-mapper-writer";
 
 const repoRoot = join(
@@ -44,7 +45,9 @@ describe("generated sync artifact drift", () => {
   test("checked-in Rust generated mapper matches generator output", async () => {
     const localSchema = await import("@repo/database");
     const tables = reflectSyncTables(localSchema, syncManifest);
-    const generated = renderRustSyncMappers(syncManifest, tables);
+    const generated = formatGeneratedRust(
+      renderRustSyncMappers(syncManifest, tables)
+    );
     const checkedIn = readFileSync(
       join(
         repoRoot,

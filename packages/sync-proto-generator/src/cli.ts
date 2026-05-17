@@ -4,6 +4,7 @@ import { reflectSyncTables } from "./drizzle-reflection";
 import { type GenerateMode, resolveGeneratorOutputPath } from "./file-output";
 import { syncManifest } from "./manifest";
 import { renderSyncProto } from "./proto-writer";
+import { formatGeneratedRust } from "./rust-format";
 import { renderRustSyncMappers } from "./rust-mapper-writer";
 import { renderApiSyncMappers } from "./ts-mapper-writer";
 
@@ -36,5 +37,8 @@ console.log(`[SYNC_PROTO_GENERATOR] wrote ${mappersPath}`);
 const rustMappers = renderRustSyncMappers(syncManifest, tables);
 const rustPath = resolveGeneratorOutputPath(mode, "pos-sync-mappers.rs");
 mkdirSync(dirname(rustPath), { recursive: true });
-writeFileSync(rustPath, rustMappers);
+writeFileSync(
+  rustPath,
+  mode === "write" ? formatGeneratedRust(rustMappers) : rustMappers
+);
 console.log(`[SYNC_PROTO_GENERATOR] wrote ${rustPath}`);

@@ -6,6 +6,7 @@ import { describe, expect, test } from "vitest";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
 import { renderRustSyncMappers } from "../rust-mapper-writer";
+import { formatGeneratedRust } from "../rust-format";
 
 const localSchema = await import("@repo/database");
 
@@ -81,7 +82,8 @@ function extractRowToValueFunc(
 
 describe("generated Rust mapper comparison with manual hot-table logic", () => {
   const tables = reflectSyncTables(localSchema, syncManifest);
-  const generatedSource = renderRustSyncMappers(syncManifest, tables);
+  const generatedRawSource = renderRustSyncMappers(syncManifest, tables);
+  const generatedSource = formatGeneratedRust(generatedRawSource);
   const savedSource = readFileSync(
     join(generatedDir, "pos-sync-mappers.rs"),
     "utf8"
@@ -89,7 +91,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   const manualSource = readFileSync(join(posAppSyncDir, "protobuf_generated.rs"), "utf8");
 
   test("generated source matches saved comparison artifact", () => {
-    expect(savedSource).toBe(generatedSource);
+    expect(savedSource).toBe(generatedRawSource);
   });
 
   test("generated product_row_from_value matches manual field key ordering", () => {
