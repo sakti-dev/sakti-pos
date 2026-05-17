@@ -12,6 +12,7 @@ pub mod http;
 pub mod local_state;
 pub mod outbox;
 pub mod protobuf;
+mod protobuf_generated;
 pub mod pull;
 pub mod push;
 pub mod schema;

@@ -86,7 +86,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
     join(generatedDir, "pos-sync-mappers.rs"),
     "utf8"
   );
-  const manualSource = readFileSync(join(posAppSyncDir, "protobuf.rs"), "utf8");
+  const manualSource = readFileSync(join(posAppSyncDir, "protobuf_generated.rs"), "utf8");
 
   test("generated source matches saved comparison artifact", () => {
     expect(savedSource).toBe(generatedSource);
