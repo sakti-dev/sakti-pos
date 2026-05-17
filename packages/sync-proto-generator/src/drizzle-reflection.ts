@@ -14,8 +14,12 @@ export interface ReflectedColumn {
 export interface ReflectedSyncTable {
   changeMessageName: string;
   columns: ReflectedColumn[];
+  protoFieldName: string;
   rowMessageName: string;
+  rustFieldName: string;
+  serviceKey: string;
   tableName: string;
+  tsProtoFieldName: string;
 }
 
 function isSQLiteTable(value: unknown): value is AnySQLiteTable {
@@ -109,8 +113,12 @@ export function reflectSyncTables(
     return {
       changeMessageName: manifestTable.changeMessageName,
       columns,
+      protoFieldName: manifestTable.protoFieldName,
       rowMessageName: manifestTable.rowMessageName,
+      rustFieldName: manifestTable.rustFieldName,
+      serviceKey: manifestTable.serviceKey,
       tableName: manifestTable.tableName,
+      tsProtoFieldName: manifestTable.tsProtoFieldName,
     };
   });
 }
