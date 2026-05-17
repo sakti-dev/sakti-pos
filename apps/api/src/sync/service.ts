@@ -449,19 +449,15 @@ async function processTimestamplessDeletedIds(
     input.tableName,
     input.changes.deletedIds
   );
-  const acceptedDeletedIds = input.changes.deletedIds.filter(
-    (id) => !existingDeleteIds.has(id)
+
+  const idsToSoftDelete = input.changes.deletedIds.filter((id) =>
+    existingDeleteIds.has(id)
   );
-  for (const id of input.changes.deletedIds) {
-    if (existingDeleteIds.has(id)) {
-      ack.rejected.push({ id, reason: "server_newer" });
-    }
-  }
 
   await softDeleteRowsForTableName(
     input.tx,
     input.tableName,
-    acceptedDeletedIds
+    idsToSoftDelete
   );
 
   const scope = getSyncEventScope(
@@ -469,7 +465,7 @@ async function processTimestamplessDeletedIds(
     input.merchantId,
     input.outletId
   );
-  for (const id of acceptedDeletedIds) {
+  for (const id of input.changes.deletedIds) {
     ack.acceptedDeletedIds.push(id);
     syncEventRows.push({
       changedAt: new Date().toISOString(),

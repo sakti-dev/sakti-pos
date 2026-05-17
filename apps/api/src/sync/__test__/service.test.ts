@@ -227,37 +227,49 @@ describe("handlePushBatch", () => {
     ]);
   });
 
-  test("rejects timestamp-less delete ids when server row exists", async () => {
+  test("accepts deletedIds for existing server rows and soft-deletes them", async () => {
+    const update = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+    const insert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    let selectCallCount = 0;
     mockTransaction.mockImplementation(
       async (fn: (tx: unknown) => Promise<void>) => {
         const tx = {
-          select: vi.fn().mockReturnValue({
+          select: vi.fn().mockImplementation(() => ({
             from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi
-                  .fn()
-                  .mockResolvedValue([
-                    { id: "product-1", updatedAt: "2026-05-18T00:00:00.000Z" },
-                  ]),
-                orderBy: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockResolvedValue([
-                    {
-                      id: "product-1",
-                      updatedAt: "2026-05-18T00:00:00.000Z",
-                    },
-                  ]),
-                }),
+              where: vi.fn().mockImplementation(() => {
+                selectCallCount++;
+                if (selectCallCount === 1) {
+                  return { limit: vi.fn().mockResolvedValue([]) };
+                }
+                return {
+                  limit: vi
+                    .fn()
+                    .mockResolvedValue([
+                      { id: "product-1", updatedAt: "2026-05-18T00:00:00.000Z" },
+                    ]),
+                  orderBy: vi.fn().mockReturnValue({
+                    limit: vi.fn().mockResolvedValue([
+                      {
+                        id: "product-1",
+                        updatedAt: "2026-05-18T00:00:00.000Z",
+                      },
+                    ]),
+                  }),
+                };
               }),
             }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn().mockResolvedValue(undefined),
-          }),
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(undefined),
-            }),
-          }),
+          })),
+          insert,
+          update,
         };
         return await fn(tx);
       }
@@ -273,14 +285,13 @@ describe("handlePushBatch", () => {
           deletedIds: ["product-1"],
         },
       },
-      "",
-      "request-hash-1"
+      "idem-delete-1",
+      "request-hash-delete-1"
     );
 
-    expect(result.tables[0]?.acceptedDeletedIds).toEqual([]);
-    expect(result.tables[0]?.rejected).toEqual([
-      { id: "product-1", reason: "server_newer" },
-    ]);
+    expect(result.tables[0]?.acceptedDeletedIds).toEqual(["product-1"]);
+    expect(result.tables[0]?.rejected).toEqual([]);
+    expect(update).toHaveBeenCalled();
   });
 
   test("batches accepted product updates and sync events", async () => {
