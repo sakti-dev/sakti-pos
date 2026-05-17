@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as localSchema from "@repo/database";
 import { describe, expect, test } from "vitest";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
 import { renderSyncProto } from "../proto-writer";
 
 describe("generated sync proto drift", () => {
-  test("checked-in sync.proto matches generator output", () => {
+  test("checked-in sync.proto matches generator output", async () => {
+    const localSchema = await import("@repo/database");
     const generated = renderSyncProto(
       syncManifest,
       reflectSyncTables(localSchema, syncManifest)
