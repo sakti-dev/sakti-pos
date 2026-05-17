@@ -1,5 +1,5 @@
 import { type AnySQLiteTable, getTableConfig } from "drizzle-orm/sqlite-core";
-import type { SyncManifest } from "./manifest";
+import type { SyncManifest, SyncTableManifest } from "./manifest";
 
 export type ProtoScalarType = "bool" | "int64" | "string";
 
@@ -70,95 +70,151 @@ function inferProtoType(column: unknown): ProtoScalarType {
   return "string";
 }
 
+function findSchemaTable(
+  schemaTables: AnySQLiteTable[],
+  tableName: string
+): AnySQLiteTable {
+  const table = schemaTables.find(
+    (schemaTable) => getTableConfig(schemaTable).name === tableName
+  );
+  if (!table) {
+    throw new Error(`Missing Drizzle table for sync table ${tableName}`);
+  }
+  return table;
+}
+
+function reflectColumns(
+  table: AnySQLiteTable,
+  manifest: SyncManifest,
+  manifestTable: SyncTableManifest
+): ReflectedColumn[] {
+  return getTableConfig(table)
+    .columns.map((column) => {
+      const propertyName = getColumnPropertyName(table, column);
+      const alias = manifestTable.fieldAliases?.[propertyName];
+      return {
+        columnName: column.name,
+        notNull: column.notNull,
+        propertyName,
+        protoName: alias?.protoName ?? camelToSnake(propertyName),
+        protoType: alias?.protoType ?? inferProtoType(column),
+      };
+    })
+    .filter(
+      (column) => !manifest.globalExcludeColumns.includes(column.propertyName)
+    );
+}
+
+function columnsByProperty(
+  columns: ReflectedColumn[]
+): Map<string, ReflectedColumn> {
+  const reflectedByProperty = new Map<string, ReflectedColumn>();
+  for (const column of columns) {
+    reflectedByProperty.set(column.propertyName, column);
+  }
+  return reflectedByProperty;
+}
+
+function validateAliases(
+  manifestTable: SyncTableManifest,
+  reflectedByProperty: Map<string, ReflectedColumn>
+) {
+  for (const aliasKey of Object.keys(manifestTable.fieldAliases ?? {})) {
+    if (!reflectedByProperty.has(aliasKey)) {
+      throw new Error(
+        `Invalid sync manifest for ${manifestTable.tableName}: fieldAlias references missing property ${aliasKey}`
+      );
+    }
+  }
+}
+
+function validateFieldOrder(input: {
+  columns: ReflectedColumn[];
+  manifestTable: SyncTableManifest;
+  reflectedByProperty: Map<string, ReflectedColumn>;
+}) {
+  const { columns, manifestTable, reflectedByProperty } = input;
+  if (!manifestTable.fieldOrder) {
+    return;
+  }
+
+  for (const name of manifestTable.fieldOrder) {
+    if (!reflectedByProperty.has(name)) {
+      throw new Error(
+        `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
+      );
+    }
+  }
+
+  const fieldOrderSet = new Set(manifestTable.fieldOrder);
+  for (const column of columns) {
+    if (!fieldOrderSet.has(column.propertyName)) {
+      throw new Error(
+        `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder omits reflected transport column ${column.propertyName}`
+      );
+    }
+  }
+}
+
+function orderedColumns(
+  manifestTable: SyncTableManifest,
+  reflectedColumns: ReflectedColumn[],
+  reflectedByProperty: Map<string, ReflectedColumn>
+): ReflectedColumn[] {
+  if (!manifestTable.fieldOrder) {
+    return reflectedColumns;
+  }
+
+  return manifestTable.fieldOrder.map((name) => {
+    const column = reflectedByProperty.get(name);
+    if (!column) {
+      throw new Error(
+        `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
+      );
+    }
+    return column;
+  });
+}
+
+function reflectSyncTable(
+  schemaTables: AnySQLiteTable[],
+  manifest: SyncManifest,
+  manifestTable: SyncTableManifest
+): ReflectedSyncTable {
+  const table = findSchemaTable(schemaTables, manifestTable.tableName);
+  const reflectedColumns = reflectColumns(table, manifest, manifestTable);
+  const reflectedByProperty = columnsByProperty(reflectedColumns);
+
+  validateAliases(manifestTable, reflectedByProperty);
+  validateFieldOrder({
+    columns: reflectedColumns,
+    manifestTable,
+    reflectedByProperty,
+  });
+
+  return {
+    changeMessageName: manifestTable.changeMessageName,
+    columns: orderedColumns(
+      manifestTable,
+      reflectedColumns,
+      reflectedByProperty
+    ),
+    protoFieldName: manifestTable.protoFieldName,
+    rowMessageName: manifestTable.rowMessageName,
+    rustFieldName: manifestTable.rustFieldName,
+    serviceKey: manifestTable.serviceKey,
+    tableName: manifestTable.tableName,
+    tsProtoFieldName: manifestTable.tsProtoFieldName,
+  };
+}
+
 export function reflectSyncTables(
   schemaModule: Record<string, unknown>,
   manifest: SyncManifest
 ): ReflectedSyncTable[] {
   const schemaTables = Object.values(schemaModule).filter(isSQLiteTable);
 
-  return manifest.tables.map((manifestTable) => {
-    const table = schemaTables.find(
-      (schemaTable) =>
-        getTableConfig(schemaTable).name === manifestTable.tableName
-    );
-    if (!table) {
-      throw new Error(
-        `Missing Drizzle table for sync table ${manifestTable.tableName}`
-      );
-    }
-
-    const tableConfig = getTableConfig(table);
-    const reflectedColumns = tableConfig.columns
-      .map((column) => {
-        const propertyName = getColumnPropertyName(table, column);
-        const alias = manifestTable.fieldAliases?.[propertyName];
-        return {
-          columnName: column.name,
-          notNull: column.notNull,
-          propertyName,
-          protoName: alias?.protoName ?? camelToSnake(propertyName),
-          protoType: alias?.protoType ?? inferProtoType(column),
-        };
-      })
-      .filter(
-        (column) => !manifest.globalExcludeColumns.includes(column.propertyName)
-      );
-
-    const reflectedByProperty = new Map<string, (typeof reflectedColumns)[number]>();
-    for (const col of reflectedColumns) {
-      reflectedByProperty.set(col.propertyName, col);
-    }
-
-    if (manifestTable.fieldAliases) {
-      for (const aliasKey of Object.keys(manifestTable.fieldAliases)) {
-        if (!reflectedByProperty.has(aliasKey)) {
-          throw new Error(
-            `Invalid sync manifest for ${manifestTable.tableName}: fieldAlias references missing property ${aliasKey}`
-          );
-        }
-      }
-    }
-
-    if (manifestTable.fieldOrder) {
-      for (const name of manifestTable.fieldOrder) {
-        if (!reflectedByProperty.has(name)) {
-          throw new Error(
-            `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
-          );
-        }
-      }
-
-      const fieldOrderSet = new Set(manifestTable.fieldOrder);
-      for (const col of reflectedColumns) {
-        if (!fieldOrderSet.has(col.propertyName)) {
-          throw new Error(
-            `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder omits reflected transport column ${col.propertyName}`
-          );
-        }
-      }
-    }
-
-    const columns = manifestTable.fieldOrder
-      ? manifestTable.fieldOrder.map((name) => {
-          const col = reflectedByProperty.get(name);
-          if (!col) {
-            throw new Error(
-              `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
-            );
-          }
-          return col;
-        })
-      : reflectedColumns;
-
-    return {
-      changeMessageName: manifestTable.changeMessageName,
-      columns,
-      protoFieldName: manifestTable.protoFieldName,
-      rowMessageName: manifestTable.rowMessageName,
-      rustFieldName: manifestTable.rustFieldName,
-      serviceKey: manifestTable.serviceKey,
-      tableName: manifestTable.tableName,
-      tsProtoFieldName: manifestTable.tsProtoFieldName,
-    };
-  });
+  return manifest.tables.map((manifestTable) =>
+    reflectSyncTable(schemaTables, manifest, manifestTable)
+  );
 }

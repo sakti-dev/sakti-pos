@@ -1,5 +1,5 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
@@ -10,7 +10,7 @@ import { renderRustSyncMappers } from "../rust-mapper-writer";
 const localSchema = await import("@repo/database");
 
 describe("generated Rust sync mapper validity", () => {
-  test("generated Rust mapper is syntactically valid and rustfmt-formattable", async () => {
+  test("generated Rust mapper is syntactically valid and rustfmt-formattable", () => {
     const source = renderRustSyncMappers(
       syncManifest,
       reflectSyncTables(localSchema, syncManifest)
@@ -22,7 +22,7 @@ describe("generated Rust sync mapper validity", () => {
     try {
       const fmt = spawnSync(
         "rustfmt",
-        ["--edition", "2021", "--emit", "stdout"],
+        ["--edition", "2021", "--emit", "stdout", file],
         { encoding: "utf8" }
       );
 

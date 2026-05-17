@@ -43,6 +43,14 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 - Use `status: accepted` for active decisions unless the user says otherwise. Do not delete old ADRs; mark them `deprecated` or `superseded`.
 - Keep operational references such as log prefix inventories in `docs/knowledge/`, and link them from ADRs when relevant.
 
+## Sync Schema And Protobuf
+
+- Before adding or updating Drizzle schema fields that may sync between API and POS app, read `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
+- Do not hand-edit sync protobuf runtime artifacts for durable changes. Update the Drizzle schema, sync manifest, or generator writers, then run `bun run generate:sync-proto:write`.
+- Runtime generated sync artifacts are `packages/protobuf/proto/sync.proto`, `apps/api/src/sync/protobuf.generated.ts`, and `apps/pos-app/src-tauri/src/sync/protobuf_generated.rs`.
+- `bun run generate:sync-proto:compare` writes disposable inspection output to `.logs/sync-proto-compare/`; do not commit compare artifacts or add generated fixture directories.
+- For synced column/table changes, run `bun run sync-proto:check` and the focused API/Rust sync tests listed in `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
+
 ## Cloudflare Workers
 
 - For Workers, KV, R2, D1, Durable Objects, Queues, Vectorize, Workers AI, or Agents SDK work, fetch current Cloudflare docs first. Local knowledge may be stale.

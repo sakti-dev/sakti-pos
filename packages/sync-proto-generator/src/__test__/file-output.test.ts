@@ -2,10 +2,10 @@ import { describe, expect, test } from "vitest";
 import { resolveGeneratorOutputPath } from "../file-output";
 
 describe("generator file output", () => {
-  test("compare mode writes under package generated directory", () => {
+  test("compare mode writes under ignored local comparison directory", () => {
     expect(
       resolveGeneratorOutputPath("compare", "sync.proto").endsWith(
-        "packages/sync-proto-generator/generated/sync.proto"
+        ".logs/sync-proto-compare/sync.proto"
       )
     ).toBe(true);
   });

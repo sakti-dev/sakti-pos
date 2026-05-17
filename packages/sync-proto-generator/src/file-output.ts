@@ -16,13 +16,20 @@ export function resolveGeneratorOutputPath(
   fileName: GeneratorFileName
 ): string {
   if (mode === "compare") {
-    return join(packageRoot, "generated", fileName);
+    return join(repoRoot, ".logs", "sync-proto-compare", fileName);
   }
   if (fileName === "sync.proto") {
     return join(repoRoot, "packages", "protobuf", "proto", fileName);
   }
   if (fileName === "api-sync-mappers.ts") {
-    return join(repoRoot, "apps", "api", "src", "sync", "protobuf.generated.ts");
+    return join(
+      repoRoot,
+      "apps",
+      "api",
+      "src",
+      "sync",
+      "protobuf.generated.ts"
+    );
   }
   if (fileName === "pos-sync-mappers.rs") {
     return join(
@@ -35,5 +42,5 @@ export function resolveGeneratorOutputPath(
       "protobuf_generated.rs"
     );
   }
-  return join(packageRoot, "generated", fileName);
+  return join(repoRoot, ".logs", "sync-proto-compare", fileName);
 }

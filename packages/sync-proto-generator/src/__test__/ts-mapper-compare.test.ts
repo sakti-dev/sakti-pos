@@ -1,4 +1,8 @@
 import { describe, expect, test } from "vitest";
+import {
+  decodeGeneratedPushBatchRequest,
+  encodeGeneratedPullBatchResponse,
+} from "../../../../apps/api/src/sync/protobuf.generated";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
 import { renderApiSyncMappers } from "../ts-mapper-writer";
@@ -9,7 +13,7 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
   const tables = reflectSyncTables(localSchema, syncManifest);
   const source = renderApiSyncMappers(syncManifest, tables);
 
-  test("generated source matches saved comparison artifact", async () => {
+  test("generated source matches runtime generated mapper", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const { fileURLToPath } = await import("node:url");
@@ -18,18 +22,21 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
       dirname(fileURLToPath(import.meta.url)),
       "..",
       "..",
-      "generated",
-      "api-sync-mappers.ts"
+      "..",
+      "..",
+      "apps",
+      "api",
+      "src",
+      "sync",
+      "protobuf.generated.ts"
     );
     const saved = readFileSync(generatedPath, "utf8");
 
     expect(saved).toBe(source);
   });
 
-  test("generated mapper maps product DB fields to protobuf money fields", async () => {
-    const mod = await import("../../generated/api-sync-mappers");
-
-    const result = mod.encodeGeneratedPullBatchResponse({
+  test("generated mapper maps product DB fields to protobuf money fields", () => {
+    const result = encodeGeneratedPullBatchResponse({
       latestEventId: 12,
       needsFullResync: false,
       products: {
@@ -67,10 +74,8 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
     });
   });
 
-  test("generated mapper maps order item DB fields to protobuf money fields", async () => {
-    const mod = await import("../../generated/api-sync-mappers");
-
-    const result = mod.encodeGeneratedPullBatchResponse({
+  test("generated mapper maps order item DB fields to protobuf money fields", () => {
+    const result = encodeGeneratedPullBatchResponse({
       latestEventId: 12,
       needsFullResync: false,
       order_items: {
@@ -103,10 +108,8 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
     });
   });
 
-  test("generated mapper maps order DB fields to protobuf money fields", async () => {
-    const mod = await import("../../generated/api-sync-mappers");
-
-    const result = mod.encodeGeneratedPullBatchResponse({
+  test("generated mapper maps order DB fields to protobuf money fields", () => {
+    const result = encodeGeneratedPullBatchResponse({
       latestEventId: 12,
       needsFullResync: false,
       orders: {
@@ -139,10 +142,8 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
     });
   });
 
-  test("generated mapper maps outlet product DB fields to protobuf money fields", async () => {
-    const mod = await import("../../generated/api-sync-mappers");
-
-    const result = mod.encodeGeneratedPullBatchResponse({
+  test("generated mapper maps outlet product DB fields to protobuf money fields", () => {
+    const result = encodeGeneratedPullBatchResponse({
       latestEventId: 12,
       needsFullResync: false,
       outlet_products: {
@@ -171,10 +172,8 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
     });
   });
 
-  test("generated decode spreads typed rows for all tables", async () => {
-    const mod = await import("../../generated/api-sync-mappers");
-
-    const result = mod.decodeGeneratedPushBatchRequest({
+  test("generated decode spreads typed rows for all tables", () => {
+    const result = decodeGeneratedPushBatchRequest({
       products: {
         created: [{ id: "p-1", name: "Kopi", priceMinorUnits: 15000n }],
         updated: [],

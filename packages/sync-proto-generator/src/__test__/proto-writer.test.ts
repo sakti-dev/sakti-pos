@@ -1,8 +1,9 @@
-import * as localSchema from "@repo/database";
 import { describe, expect, test } from "vitest";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
 import { renderSyncProto } from "../proto-writer";
+
+const localSchema = await import("@repo/database");
 
 describe("proto writer", () => {
   test("renders product row with current manual field names", () => {

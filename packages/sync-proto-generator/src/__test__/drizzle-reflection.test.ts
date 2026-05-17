@@ -1,7 +1,10 @@
-import * as localSchema from "@repo/database";
 import { describe, expect, test } from "vitest";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
+
+const localSchema = await import("@repo/database");
+const MISSING_FIELD_PATTERN = /products.*missingField/;
+const OMITTED_FIELD_PATTERN = /products.*fieldOrder.*omits/;
 
 describe("Drizzle runtime reflection", () => {
   test("reflects all manifest tables from local schema", () => {
@@ -34,7 +37,7 @@ describe("Drizzle runtime reflection", () => {
             : table
         ),
       })
-    ).toThrow(/products.*missingField/);
+    ).toThrow(MISSING_FIELD_PATTERN);
   });
 
   test("throws when fieldOrder omits reflected transport columns", () => {
@@ -42,10 +45,12 @@ describe("Drizzle runtime reflection", () => {
       reflectSyncTables(localSchema, {
         ...syncManifest,
         tables: syncManifest.tables.map((table) =>
-          table.tableName === "products" ? { ...table, fieldOrder: ["id"] } : table
+          table.tableName === "products"
+            ? { ...table, fieldOrder: ["id"] }
+            : table
         ),
       })
-    ).toThrow(/products.*fieldOrder.*omits/);
+    ).toThrow(OMITTED_FIELD_PATTERN);
   });
 
   test("throws when field alias references a missing property", () => {
@@ -58,12 +63,15 @@ describe("Drizzle runtime reflection", () => {
                 ...table,
                 fieldAliases: {
                   ...table.fieldAliases,
-                  missingField: { protoName: "missing_field", protoType: "int64" },
+                  missingField: {
+                    protoName: "missing_field",
+                    protoType: "int64",
+                  },
                 },
               }
             : table
         ),
       })
-    ).toThrow(/products.*missingField/);
+    ).toThrow(MISSING_FIELD_PATTERN);
   });
 });

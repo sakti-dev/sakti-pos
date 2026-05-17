@@ -37,8 +37,5 @@ console.log(`[SYNC_PROTO_GENERATOR] wrote ${mappersPath}`);
 const rustMappers = renderRustSyncMappers(syncManifest, tables);
 const rustPath = resolveGeneratorOutputPath(mode, "pos-sync-mappers.rs");
 mkdirSync(dirname(rustPath), { recursive: true });
-writeFileSync(
-  rustPath,
-  mode === "write" ? formatGeneratedRust(rustMappers) : rustMappers
-);
+writeFileSync(rustPath, formatGeneratedRust(rustMappers));
 console.log(`[SYNC_PROTO_GENERATOR] wrote ${rustPath}`);

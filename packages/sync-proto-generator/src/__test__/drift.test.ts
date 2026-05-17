@@ -5,8 +5,8 @@ import { describe, expect, test } from "vitest";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
 import { renderSyncProto } from "../proto-writer";
-import { renderRustSyncMappers } from "../rust-mapper-writer";
 import { formatGeneratedRust } from "../rust-format";
+import { renderRustSyncMappers } from "../rust-mapper-writer";
 import { renderApiSyncMappers } from "../ts-mapper-writer";
 
 const repoRoot = join(

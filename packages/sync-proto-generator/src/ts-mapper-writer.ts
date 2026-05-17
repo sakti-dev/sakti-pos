@@ -108,7 +108,9 @@ function renderDecodeFunction(tables: ReflectedSyncTable[]): string {
     lines.push(
       `      updated: request.${table.tsProtoFieldName}.updated.map((row: any) => ({ ...row })),`
     );
-    lines.push(`      deletedIds: request.${table.tsProtoFieldName}.deletedIds,`);
+    lines.push(
+      `      deletedIds: request.${table.tsProtoFieldName}.deletedIds,`
+    );
     lines.push("    };");
     lines.push("  }");
     lines.push("");

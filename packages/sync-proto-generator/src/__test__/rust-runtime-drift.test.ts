@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
-import { renderRustSyncMappers } from "../rust-mapper-writer";
 import { formatGeneratedRust } from "../rust-format";
+import { renderRustSyncMappers } from "../rust-mapper-writer";
 
 const repoRoot = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -19,7 +19,10 @@ const localSchema = await import("@repo/database");
 describe("generated Rust mapper drift", () => {
   test("runtime Rust generated mapper matches generator output", () => {
     const generated = formatGeneratedRust(
-      renderRustSyncMappers(syncManifest, reflectSyncTables(localSchema, syncManifest))
+      renderRustSyncMappers(
+        syncManifest,
+        reflectSyncTables(localSchema, syncManifest)
+      )
     );
     const checkedIn = readFileSync(
       join(

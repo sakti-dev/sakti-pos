@@ -454,11 +454,7 @@ async function processTimestamplessDeletedIds(
     existingDeleteIds.has(id)
   );
 
-  await softDeleteRowsForTableName(
-    input.tx,
-    input.tableName,
-    idsToSoftDelete
-  );
+  await softDeleteRowsForTableName(input.tx, input.tableName, idsToSoftDelete);
 
   const scope = getSyncEventScope(
     input.tableName,
@@ -843,6 +839,18 @@ function normalizePushBatchRowForTableName(
   const base = normalizeEmptyToNull(stripLocalOnlyColumns(row));
 
   switch (tableName) {
+    case "assets":
+      return {
+        ...base,
+        byteSize: normalizeBatchInt64(row.byteSize),
+        height: normalizeBatchInt64(row.height),
+        width: normalizeBatchInt64(row.width),
+      };
+    case "categories":
+      return {
+        ...base,
+        sortOrder: normalizeBatchInt64(row.sortOrder),
+      };
     case "products":
       return {
         ...base,

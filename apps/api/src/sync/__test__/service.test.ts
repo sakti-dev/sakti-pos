@@ -251,11 +251,12 @@ describe("handlePushBatch", () => {
                   return { limit: vi.fn().mockResolvedValue([]) };
                 }
                 return {
-                  limit: vi
-                    .fn()
-                    .mockResolvedValue([
-                      { id: "product-1", updatedAt: "2026-05-18T00:00:00.000Z" },
-                    ]),
+                  limit: vi.fn().mockResolvedValue([
+                    {
+                      id: "product-1",
+                      updatedAt: "2026-05-18T00:00:00.000Z",
+                    },
+                  ]),
                   orderBy: vi.fn().mockReturnValue({
                     limit: vi.fn().mockResolvedValue([
                       {
@@ -292,6 +293,100 @@ describe("handlePushBatch", () => {
     expect(result.tables[0]?.acceptedDeletedIds).toEqual(["product-1"]);
     expect(result.tables[0]?.rejected).toEqual([]);
     expect(update).toHaveBeenCalled();
+  });
+
+  test("normalizes protobuf bigint int64 fields before DB upsert", async () => {
+    const upsertedRows: Record<string, unknown>[][] = [];
+    const values = vi.fn((rows: Record<string, unknown>[]) => {
+      upsertedRows.push(rows);
+      return {
+        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+        onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+      };
+    });
+    const insert = vi.fn().mockReturnValue({ values });
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          }),
+          insert,
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        assets: {
+          created: [
+            {
+              byteSize: 1_024n,
+              contentHash: "hash",
+              contentType: "image/jpeg",
+              height: 20n,
+              id: "asset-1",
+              kind: "product_photo",
+              merchantId: "merchant-1",
+              objectKey: "assets/1",
+              status: "ready",
+              updatedAt: "2026-05-17T00:00:00.000Z",
+              width: 10n,
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+        categories: {
+          created: [
+            {
+              id: "cat-1",
+              isActive: true,
+              merchantId: "merchant-1",
+              name: "Minuman",
+              sortOrder: 3n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+      },
+      "idem-bigint-normalize",
+      "request-hash-bigint-normalize"
+    );
+
+    const writtenRows = upsertedRows.flat();
+    expect(writtenRows).toContainEqual(
+      expect.objectContaining({
+        id: "cat-1",
+        sortOrder: 3,
+      })
+    );
+    expect(writtenRows).toContainEqual(
+      expect.objectContaining({
+        byteSize: 1024,
+        height: 20,
+        id: "asset-1",
+        width: 10,
+      })
+    );
   });
 
   test("batches accepted product updates and sync events", async () => {

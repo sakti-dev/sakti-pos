@@ -5,17 +5,11 @@ import { describe, expect, test } from "vitest";
 
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
-import { renderRustSyncMappers } from "../rust-mapper-writer";
 import { formatGeneratedRust } from "../rust-format";
+import { renderRustSyncMappers } from "../rust-mapper-writer";
 
 const localSchema = await import("@repo/database");
 
-const generatedDir = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "generated"
-);
 const posAppSyncDir = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -84,14 +78,13 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   const tables = reflectSyncTables(localSchema, syncManifest);
   const generatedRawSource = renderRustSyncMappers(syncManifest, tables);
   const generatedSource = formatGeneratedRust(generatedRawSource);
-  const savedSource = readFileSync(
-    join(generatedDir, "pos-sync-mappers.rs"),
+  const runtimeSource = readFileSync(
+    join(posAppSyncDir, "protobuf_generated.rs"),
     "utf8"
   );
-  const manualSource = readFileSync(join(posAppSyncDir, "protobuf_generated.rs"), "utf8");
 
-  test("generated source matches saved comparison artifact", () => {
-    expect(savedSource).toBe(generatedRawSource);
+  test("generated source matches runtime Rust mapper", () => {
+    expect(runtimeSource).toBe(generatedSource);
   });
 
   test("generated product_row_from_value matches manual field key ordering", () => {
@@ -100,7 +93,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
       "product_row_from_value"
     );
     const manual = extractRowFromValueFunc(
-      manualSource,
+      runtimeSource,
       "product_row_from_value"
     );
 
@@ -143,7 +136,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
       "order_item_row_from_value"
     );
     const manual = extractRowFromValueFunc(
-      manualSource,
+      runtimeSource,
       "order_item_row_from_value"
     );
 
@@ -186,7 +179,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
       "order_row_from_value"
     );
     const manual = extractRowFromValueFunc(
-      manualSource,
+      runtimeSource,
       "order_row_from_value"
     );
 
@@ -230,7 +223,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
       "outlet_product_row_from_value"
     );
     const manual = extractRowFromValueFunc(
-      manualSource,
+      runtimeSource,
       "outlet_product_row_from_value"
     );
 
@@ -269,7 +262,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
       generatedSource,
       "product_row_to_value"
     );
-    const manual = extractRowToValueFunc(manualSource, "product_row_to_value");
+    const manual = extractRowToValueFunc(runtimeSource, "product_row_to_value");
 
     const moneyAliasFields = [
       "price",
@@ -311,7 +304,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
     for (const helper of helperNames) {
       const genPattern = new RegExp(`fn ${helper}\\([\\s\\S]*?^\\}`, "m");
       const genMatch = generatedSource.match(genPattern);
-      const manMatch = manualSource.match(genPattern);
+      const manMatch = runtimeSource.match(genPattern);
 
       expect(genMatch, `generated missing helper: ${helper}`).toBeTruthy();
       expect(manMatch, `manual missing helper: ${helper}`).toBeTruthy();
