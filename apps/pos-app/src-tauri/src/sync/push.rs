@@ -8,8 +8,10 @@ use crate::time_utils::current_time_iso_string;
 
 use super::http::build_client;
 use super::protobuf::{
-    build_order_changes, build_order_item_changes, build_outlet_product_changes,
-    build_product_changes, build_sync_push_batch_request,
+    build_asset_changes, build_category_changes, build_merchant_changes, build_order_changes,
+    build_order_item_changes, build_outlet_changes, build_outlet_product_changes,
+    build_product_changes, build_register_changes, build_staff_changes,
+    build_sync_push_batch_request,
 };
 use super::schema::{
     camel_to_snake, get_filter_value, mark_rows_synced_by_id_tx,
@@ -257,11 +259,16 @@ pub(super) async fn sync_push_batch_inner(
         merchant_id
     );
 
-    let mut json_tables = Vec::new();
+    let mut merchant_changes = super::protobuf::TablePushChanges::default();
+    let mut outlet_changes = super::protobuf::TablePushChanges::default();
+    let mut register_changes = super::protobuf::TablePushChanges::default();
+    let mut category_changes = super::protobuf::TablePushChanges::default();
+    let mut asset_changes = super::protobuf::TablePushChanges::default();
     let mut product_changes = super::protobuf::TablePushChanges::default();
-    let mut outlet_product_changes = super::protobuf::TablePushChanges::default();
     let mut order_changes = super::protobuf::TablePushChanges::default();
     let mut order_item_changes = super::protobuf::TablePushChanges::default();
+    let mut outlet_product_changes = super::protobuf::TablePushChanges::default();
+    let mut staff_changes = super::protobuf::TablePushChanges::default();
     for table in SYNC_TABLES {
         let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
         let changes = read_unsynced_table_changes_from_outbox(pool, table, filter_value).await?;
@@ -284,11 +291,17 @@ pub(super) async fn sync_push_batch_inner(
             continue;
         }
         match *table {
+            "merchants" => merchant_changes = changes,
+            "outlets" => outlet_changes = changes,
+            "registers" => register_changes = changes,
+            "categories" => category_changes = changes,
+            "assets" => asset_changes = changes,
             "products" => product_changes = changes,
-            "outlet_products" => outlet_product_changes = changes,
             "orders" => order_changes = changes,
             "order_items" => order_item_changes = changes,
-            _ => json_tables.push(super::protobuf::build_json_table_changes(table, &changes)),
+            "outlet_products" => outlet_product_changes = changes,
+            "staff" => staff_changes = changes,
+            _ => {}
         }
     }
 
@@ -300,11 +313,16 @@ pub(super) async fn sync_push_batch_inner(
     let request = build_sync_push_batch_request(
         outlet_id,
         &idempotency_key,
-        json_tables,
+        Some(build_merchant_changes(&merchant_changes)),
+        Some(build_outlet_changes(&outlet_changes)),
+        Some(build_register_changes(&register_changes)),
+        Some(build_category_changes(&category_changes)),
+        Some(build_asset_changes(&asset_changes)),
         Some(build_product_changes(&product_changes)),
-        Some(build_outlet_product_changes(&outlet_product_changes)),
         Some(build_order_changes(&order_changes)),
         Some(build_order_item_changes(&order_item_changes)),
+        Some(build_outlet_product_changes(&outlet_product_changes)),
+        Some(build_staff_changes(&staff_changes)),
     );
     let request_body = request.encode_to_vec();
 

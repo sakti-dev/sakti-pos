@@ -23,13 +23,6 @@ export interface SyncStatusResponse {
   hasOldestAvailableEventId: boolean;
 }
 
-export interface SyncJsonTableChanges {
-  table: string;
-  createdJson: string[];
-  updatedJson: string[];
-  deletedIds: string[];
-}
-
 export interface SyncRejectedRow {
   id: string;
   reason: string;
@@ -43,6 +36,71 @@ export interface SyncTableAck {
   rejected: SyncRejectedRow[];
 }
 
+export interface MerchantRow {
+  id: string;
+  name: string;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutletRow {
+  id: string;
+  merchantId: string;
+  timezone: string;
+  name: string;
+  address: string;
+  receiptName: string;
+  receiptAddress: string;
+  isActive: boolean;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegisterRow {
+  id: string;
+  outletId: string;
+  name: string;
+  shortId: string;
+  pairingCode: string;
+  pairingExpiresAt: string;
+  isActive: boolean;
+  lastSeenAt: string;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategoryRow {
+  id: string;
+  merchantId: string;
+  name: string;
+  sortOrder: bigint;
+  isActive: boolean;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssetRow {
+  id: string;
+  merchantId: string;
+  objectKey: string;
+  originalFilename: string;
+  contentType: string;
+  byteSize: bigint;
+  contentHash: string;
+  kind: string;
+  width: bigint;
+  height: bigint;
+  status: string;
+  createdByUserId: string;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductRow {
   id: string;
   merchantId: string;
@@ -52,18 +110,6 @@ export interface ProductRow {
   imageUrl: string;
   imageAssetId: string;
   isActive: boolean;
-  sortOrder: bigint;
-  deletedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OutletProductRow {
-  id: string;
-  outletId: string;
-  productId: string;
-  priceMinorUnits: bigint;
-  isAvailable: boolean;
   sortOrder: bigint;
   deletedAt: string;
   createdAt: string;
@@ -101,15 +147,65 @@ export interface OrderItemRow {
   updatedAt: string;
 }
 
-export interface ProductChanges {
-  created: ProductRow[];
-  updated: ProductRow[];
+export interface OutletProductRow {
+  id: string;
+  outletId: string;
+  productId: string;
+  priceMinorUnits: bigint;
+  isAvailable: boolean;
+  sortOrder: bigint;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffRow {
+  id: string;
+  merchantId: string;
+  cloudUserId: string;
+  outletId: string;
+  name: string;
+  pin: string;
+  role: string;
+  isActive: boolean;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MerchantChanges {
+  created: MerchantRow[];
+  updated: MerchantRow[];
   deletedIds: string[];
 }
 
-export interface OutletProductChanges {
-  created: OutletProductRow[];
-  updated: OutletProductRow[];
+export interface OutletChanges {
+  created: OutletRow[];
+  updated: OutletRow[];
+  deletedIds: string[];
+}
+
+export interface RegisterChanges {
+  created: RegisterRow[];
+  updated: RegisterRow[];
+  deletedIds: string[];
+}
+
+export interface CategoryChanges {
+  created: CategoryRow[];
+  updated: CategoryRow[];
+  deletedIds: string[];
+}
+
+export interface AssetChanges {
+  created: AssetRow[];
+  updated: AssetRow[];
+  deletedIds: string[];
+}
+
+export interface ProductChanges {
+  created: ProductRow[];
+  updated: ProductRow[];
   deletedIds: string[];
 }
 
@@ -125,14 +221,31 @@ export interface OrderItemChanges {
   deletedIds: string[];
 }
 
+export interface OutletProductChanges {
+  created: OutletProductRow[];
+  updated: OutletProductRow[];
+  deletedIds: string[];
+}
+
+export interface StaffChanges {
+  created: StaffRow[];
+  updated: StaffRow[];
+  deletedIds: string[];
+}
+
 export interface SyncPushBatchRequest {
   outletId: string;
   idempotencyKey: string;
-  jsonTables: SyncJsonTableChanges[];
+  merchants: MerchantChanges | undefined;
+  outlets: OutletChanges | undefined;
+  registers: RegisterChanges | undefined;
+  categories: CategoryChanges | undefined;
+  assets: AssetChanges | undefined;
   products: ProductChanges | undefined;
-  outletProducts: OutletProductChanges | undefined;
   orders: OrderChanges | undefined;
   orderItems: OrderItemChanges | undefined;
+  outletProducts: OutletProductChanges | undefined;
+  staff: StaffChanges | undefined;
 }
 
 export interface SyncPushBatchResponse {
@@ -150,11 +263,16 @@ export interface SyncPullBatchRequest {
 }
 
 export interface SyncPullBatchResponse {
-  jsonTables: SyncJsonTableChanges[];
+  merchants: MerchantChanges | undefined;
+  outlets: OutletChanges | undefined;
+  registers: RegisterChanges | undefined;
+  categories: CategoryChanges | undefined;
+  assets: AssetChanges | undefined;
   products: ProductChanges | undefined;
-  outletProducts: OutletProductChanges | undefined;
   orders: OrderChanges | undefined;
   orderItems: OrderItemChanges | undefined;
+  outletProducts: OutletProductChanges | undefined;
+  staff: StaffChanges | undefined;
   latestEventId: bigint;
   needsFullResync: boolean;
   serverTime: string;
@@ -426,126 +544,6 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
   },
 };
 
-function createBaseSyncJsonTableChanges(): SyncJsonTableChanges {
-  return { table: "", createdJson: [], updatedJson: [], deletedIds: [] };
-}
-
-export const SyncJsonTableChanges: MessageFns<SyncJsonTableChanges> = {
-  encode(message: SyncJsonTableChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.table !== "") {
-      writer.uint32(10).string(message.table);
-    }
-    for (const v of message.createdJson) {
-      writer.uint32(18).string(v!);
-    }
-    for (const v of message.updatedJson) {
-      writer.uint32(26).string(v!);
-    }
-    for (const v of message.deletedIds) {
-      writer.uint32(34).string(v!);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncJsonTableChanges {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncJsonTableChanges();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.table = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.createdJson.push(reader.string());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.updatedJson.push(reader.string());
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.deletedIds.push(reader.string());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): SyncJsonTableChanges {
-    return {
-      table: isSet(object.table) ? globalThis.String(object.table) : "",
-      createdJson: globalThis.Array.isArray(object?.createdJson)
-        ? object.createdJson.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.created_json)
-        ? object.created_json.map((e: any) => globalThis.String(e))
-        : [],
-      updatedJson: globalThis.Array.isArray(object?.updatedJson)
-        ? object.updatedJson.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.updated_json)
-        ? object.updated_json.map((e: any) => globalThis.String(e))
-        : [],
-      deletedIds: globalThis.Array.isArray(object?.deletedIds)
-        ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
-        : [],
-    };
-  },
-
-  toJSON(message: SyncJsonTableChanges): unknown {
-    const obj: any = {};
-    if (message.table !== "") {
-      obj.table = message.table;
-    }
-    if (message.createdJson?.length) {
-      obj.createdJson = message.createdJson;
-    }
-    if (message.updatedJson?.length) {
-      obj.updatedJson = message.updatedJson;
-    }
-    if (message.deletedIds?.length) {
-      obj.deletedIds = message.deletedIds;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<SyncJsonTableChanges>): SyncJsonTableChanges {
-    return SyncJsonTableChanges.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<SyncJsonTableChanges>): SyncJsonTableChanges {
-    const message = createBaseSyncJsonTableChanges();
-    message.table = object.table ?? "";
-    message.createdJson = object.createdJson?.map((e) => e) || [];
-    message.updatedJson = object.updatedJson?.map((e) => e) || [];
-    message.deletedIds = object.deletedIds?.map((e) => e) || [];
-    return message;
-  },
-};
-
 function createBaseSyncRejectedRow(): SyncRejectedRow {
   return { id: "", reason: "" };
 }
@@ -756,6 +754,1227 @@ export const SyncTableAck: MessageFns<SyncTableAck> = {
     message.acceptedUpdatedIds = object.acceptedUpdatedIds?.map((e) => e) || [];
     message.acceptedDeletedIds = object.acceptedDeletedIds?.map((e) => e) || [];
     message.rejected = object.rejected?.map((e) => SyncRejectedRow.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseMerchantRow(): MerchantRow {
+  return { id: "", name: "", deletedAt: "", createdAt: "", updatedAt: "" };
+}
+
+export const MerchantRow: MessageFns<MerchantRow> = {
+  encode(message: MerchantRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(26).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(34).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(42).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MerchantRow {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMerchantRow();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MerchantRow {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      deletedAt: isSet(object.deletedAt)
+        ? globalThis.String(object.deletedAt)
+        : isSet(object.deleted_at)
+        ? globalThis.String(object.deleted_at)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: MerchantRow): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<MerchantRow>): MerchantRow {
+    return MerchantRow.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MerchantRow>): MerchantRow {
+    const message = createBaseMerchantRow();
+    message.id = object.id ?? "";
+    message.name = object.name ?? "";
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseOutletRow(): OutletRow {
+  return {
+    id: "",
+    merchantId: "",
+    timezone: "",
+    name: "",
+    address: "",
+    receiptName: "",
+    receiptAddress: "",
+    isActive: false,
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const OutletRow: MessageFns<OutletRow> = {
+  encode(message: OutletRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.merchantId !== "") {
+      writer.uint32(18).string(message.merchantId);
+    }
+    if (message.timezone !== "") {
+      writer.uint32(26).string(message.timezone);
+    }
+    if (message.name !== "") {
+      writer.uint32(34).string(message.name);
+    }
+    if (message.address !== "") {
+      writer.uint32(42).string(message.address);
+    }
+    if (message.receiptName !== "") {
+      writer.uint32(50).string(message.receiptName);
+    }
+    if (message.receiptAddress !== "") {
+      writer.uint32(58).string(message.receiptAddress);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(64).bool(message.isActive);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(74).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletRow {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseOutletRow();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.merchantId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.address = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.receiptName = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.receiptAddress = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): OutletRow {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      merchantId: isSet(object.merchantId)
+        ? globalThis.String(object.merchantId)
+        : isSet(object.merchant_id)
+        ? globalThis.String(object.merchant_id)
+        : "",
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      address: isSet(object.address) ? globalThis.String(object.address) : "",
+      receiptName: isSet(object.receiptName)
+        ? globalThis.String(object.receiptName)
+        : isSet(object.receipt_name)
+        ? globalThis.String(object.receipt_name)
+        : "",
+      receiptAddress: isSet(object.receiptAddress)
+        ? globalThis.String(object.receiptAddress)
+        : isSet(object.receipt_address)
+        ? globalThis.String(object.receipt_address)
+        : "",
+      isActive: isSet(object.isActive)
+        ? globalThis.Boolean(object.isActive)
+        : isSet(object.is_active)
+        ? globalThis.Boolean(object.is_active)
+        : false,
+      deletedAt: isSet(object.deletedAt)
+        ? globalThis.String(object.deletedAt)
+        : isSet(object.deleted_at)
+        ? globalThis.String(object.deleted_at)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: OutletRow): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.merchantId !== "") {
+      obj.merchantId = message.merchantId;
+    }
+    if (message.timezone !== "") {
+      obj.timezone = message.timezone;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.address !== "") {
+      obj.address = message.address;
+    }
+    if (message.receiptName !== "") {
+      obj.receiptName = message.receiptName;
+    }
+    if (message.receiptAddress !== "") {
+      obj.receiptAddress = message.receiptAddress;
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<OutletRow>): OutletRow {
+    return OutletRow.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<OutletRow>): OutletRow {
+    const message = createBaseOutletRow();
+    message.id = object.id ?? "";
+    message.merchantId = object.merchantId ?? "";
+    message.timezone = object.timezone ?? "";
+    message.name = object.name ?? "";
+    message.address = object.address ?? "";
+    message.receiptName = object.receiptName ?? "";
+    message.receiptAddress = object.receiptAddress ?? "";
+    message.isActive = object.isActive ?? false;
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseRegisterRow(): RegisterRow {
+  return {
+    id: "",
+    outletId: "",
+    name: "",
+    shortId: "",
+    pairingCode: "",
+    pairingExpiresAt: "",
+    isActive: false,
+    lastSeenAt: "",
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const RegisterRow: MessageFns<RegisterRow> = {
+  encode(message: RegisterRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.outletId !== "") {
+      writer.uint32(18).string(message.outletId);
+    }
+    if (message.name !== "") {
+      writer.uint32(26).string(message.name);
+    }
+    if (message.shortId !== "") {
+      writer.uint32(34).string(message.shortId);
+    }
+    if (message.pairingCode !== "") {
+      writer.uint32(42).string(message.pairingCode);
+    }
+    if (message.pairingExpiresAt !== "") {
+      writer.uint32(50).string(message.pairingExpiresAt);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(56).bool(message.isActive);
+    }
+    if (message.lastSeenAt !== "") {
+      writer.uint32(66).string(message.lastSeenAt);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(74).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRow {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterRow();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.outletId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.shortId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.pairingCode = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.pairingExpiresAt = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.lastSeenAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterRow {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      outletId: isSet(object.outletId)
+        ? globalThis.String(object.outletId)
+        : isSet(object.outlet_id)
+        ? globalThis.String(object.outlet_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      shortId: isSet(object.shortId)
+        ? globalThis.String(object.shortId)
+        : isSet(object.short_id)
+        ? globalThis.String(object.short_id)
+        : "",
+      pairingCode: isSet(object.pairingCode)
+        ? globalThis.String(object.pairingCode)
+        : isSet(object.pairing_code)
+        ? globalThis.String(object.pairing_code)
+        : "",
+      pairingExpiresAt: isSet(object.pairingExpiresAt)
+        ? globalThis.String(object.pairingExpiresAt)
+        : isSet(object.pairing_expires_at)
+        ? globalThis.String(object.pairing_expires_at)
+        : "",
+      isActive: isSet(object.isActive)
+        ? globalThis.Boolean(object.isActive)
+        : isSet(object.is_active)
+        ? globalThis.Boolean(object.is_active)
+        : false,
+      lastSeenAt: isSet(object.lastSeenAt)
+        ? globalThis.String(object.lastSeenAt)
+        : isSet(object.last_seen_at)
+        ? globalThis.String(object.last_seen_at)
+        : "",
+      deletedAt: isSet(object.deletedAt)
+        ? globalThis.String(object.deletedAt)
+        : isSet(object.deleted_at)
+        ? globalThis.String(object.deleted_at)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: RegisterRow): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.outletId !== "") {
+      obj.outletId = message.outletId;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.shortId !== "") {
+      obj.shortId = message.shortId;
+    }
+    if (message.pairingCode !== "") {
+      obj.pairingCode = message.pairingCode;
+    }
+    if (message.pairingExpiresAt !== "") {
+      obj.pairingExpiresAt = message.pairingExpiresAt;
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.lastSeenAt !== "") {
+      obj.lastSeenAt = message.lastSeenAt;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RegisterRow>): RegisterRow {
+    return RegisterRow.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RegisterRow>): RegisterRow {
+    const message = createBaseRegisterRow();
+    message.id = object.id ?? "";
+    message.outletId = object.outletId ?? "";
+    message.name = object.name ?? "";
+    message.shortId = object.shortId ?? "";
+    message.pairingCode = object.pairingCode ?? "";
+    message.pairingExpiresAt = object.pairingExpiresAt ?? "";
+    message.isActive = object.isActive ?? false;
+    message.lastSeenAt = object.lastSeenAt ?? "";
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseCategoryRow(): CategoryRow {
+  return {
+    id: "",
+    merchantId: "",
+    name: "",
+    sortOrder: 0n,
+    isActive: false,
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const CategoryRow: MessageFns<CategoryRow> = {
+  encode(message: CategoryRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.merchantId !== "") {
+      writer.uint32(18).string(message.merchantId);
+    }
+    if (message.name !== "") {
+      writer.uint32(26).string(message.name);
+    }
+    if (message.sortOrder !== 0n) {
+      if (BigInt.asIntN(64, message.sortOrder) !== message.sortOrder) {
+        throw new globalThis.Error("value provided for field message.sortOrder of type int64 too large");
+      }
+      writer.uint32(32).int64(message.sortOrder);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(40).bool(message.isActive);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(50).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(58).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(66).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CategoryRow {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCategoryRow();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.merchantId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.sortOrder = reader.int64() as bigint;
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CategoryRow {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      merchantId: isSet(object.merchantId)
+        ? globalThis.String(object.merchantId)
+        : isSet(object.merchant_id)
+        ? globalThis.String(object.merchant_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      sortOrder: isSet(object.sortOrder)
+        ? BigInt(object.sortOrder)
+        : isSet(object.sort_order)
+        ? BigInt(object.sort_order)
+        : 0n,
+      isActive: isSet(object.isActive)
+        ? globalThis.Boolean(object.isActive)
+        : isSet(object.is_active)
+        ? globalThis.Boolean(object.is_active)
+        : false,
+      deletedAt: isSet(object.deletedAt)
+        ? globalThis.String(object.deletedAt)
+        : isSet(object.deleted_at)
+        ? globalThis.String(object.deleted_at)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: CategoryRow): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.merchantId !== "") {
+      obj.merchantId = message.merchantId;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.sortOrder !== 0n) {
+      obj.sortOrder = message.sortOrder.toString();
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CategoryRow>): CategoryRow {
+    return CategoryRow.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CategoryRow>): CategoryRow {
+    const message = createBaseCategoryRow();
+    message.id = object.id ?? "";
+    message.merchantId = object.merchantId ?? "";
+    message.name = object.name ?? "";
+    message.sortOrder = object.sortOrder ?? 0n;
+    message.isActive = object.isActive ?? false;
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseAssetRow(): AssetRow {
+  return {
+    id: "",
+    merchantId: "",
+    objectKey: "",
+    originalFilename: "",
+    contentType: "",
+    byteSize: 0n,
+    contentHash: "",
+    kind: "",
+    width: 0n,
+    height: 0n,
+    status: "",
+    createdByUserId: "",
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const AssetRow: MessageFns<AssetRow> = {
+  encode(message: AssetRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.merchantId !== "") {
+      writer.uint32(18).string(message.merchantId);
+    }
+    if (message.objectKey !== "") {
+      writer.uint32(26).string(message.objectKey);
+    }
+    if (message.originalFilename !== "") {
+      writer.uint32(34).string(message.originalFilename);
+    }
+    if (message.contentType !== "") {
+      writer.uint32(42).string(message.contentType);
+    }
+    if (message.byteSize !== 0n) {
+      if (BigInt.asIntN(64, message.byteSize) !== message.byteSize) {
+        throw new globalThis.Error("value provided for field message.byteSize of type int64 too large");
+      }
+      writer.uint32(48).int64(message.byteSize);
+    }
+    if (message.contentHash !== "") {
+      writer.uint32(58).string(message.contentHash);
+    }
+    if (message.kind !== "") {
+      writer.uint32(66).string(message.kind);
+    }
+    if (message.width !== 0n) {
+      if (BigInt.asIntN(64, message.width) !== message.width) {
+        throw new globalThis.Error("value provided for field message.width of type int64 too large");
+      }
+      writer.uint32(72).int64(message.width);
+    }
+    if (message.height !== 0n) {
+      if (BigInt.asIntN(64, message.height) !== message.height) {
+        throw new globalThis.Error("value provided for field message.height of type int64 too large");
+      }
+      writer.uint32(80).int64(message.height);
+    }
+    if (message.status !== "") {
+      writer.uint32(90).string(message.status);
+    }
+    if (message.createdByUserId !== "") {
+      writer.uint32(98).string(message.createdByUserId);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(106).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(114).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(122).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AssetRow {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAssetRow();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.merchantId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.objectKey = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.originalFilename = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.contentType = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.byteSize = reader.int64() as bigint;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.contentHash = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.kind = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.width = reader.int64() as bigint;
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.height = reader.int64() as bigint;
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.createdByUserId = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AssetRow {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      merchantId: isSet(object.merchantId)
+        ? globalThis.String(object.merchantId)
+        : isSet(object.merchant_id)
+        ? globalThis.String(object.merchant_id)
+        : "",
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : isSet(object.object_key)
+        ? globalThis.String(object.object_key)
+        : "",
+      originalFilename: isSet(object.originalFilename)
+        ? globalThis.String(object.originalFilename)
+        : isSet(object.original_filename)
+        ? globalThis.String(object.original_filename)
+        : "",
+      contentType: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+        ? globalThis.String(object.content_type)
+        : "",
+      byteSize: isSet(object.byteSize)
+        ? BigInt(object.byteSize)
+        : isSet(object.byte_size)
+        ? BigInt(object.byte_size)
+        : 0n,
+      contentHash: isSet(object.contentHash)
+        ? globalThis.String(object.contentHash)
+        : isSet(object.content_hash)
+        ? globalThis.String(object.content_hash)
+        : "",
+      kind: isSet(object.kind) ? globalThis.String(object.kind) : "",
+      width: isSet(object.width) ? BigInt(object.width) : 0n,
+      height: isSet(object.height) ? BigInt(object.height) : 0n,
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+      createdByUserId: isSet(object.createdByUserId)
+        ? globalThis.String(object.createdByUserId)
+        : isSet(object.created_by_user_id)
+        ? globalThis.String(object.created_by_user_id)
+        : "",
+      deletedAt: isSet(object.deletedAt)
+        ? globalThis.String(object.deletedAt)
+        : isSet(object.deleted_at)
+        ? globalThis.String(object.deleted_at)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: AssetRow): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.merchantId !== "") {
+      obj.merchantId = message.merchantId;
+    }
+    if (message.objectKey !== "") {
+      obj.objectKey = message.objectKey;
+    }
+    if (message.originalFilename !== "") {
+      obj.originalFilename = message.originalFilename;
+    }
+    if (message.contentType !== "") {
+      obj.contentType = message.contentType;
+    }
+    if (message.byteSize !== 0n) {
+      obj.byteSize = message.byteSize.toString();
+    }
+    if (message.contentHash !== "") {
+      obj.contentHash = message.contentHash;
+    }
+    if (message.kind !== "") {
+      obj.kind = message.kind;
+    }
+    if (message.width !== 0n) {
+      obj.width = message.width.toString();
+    }
+    if (message.height !== 0n) {
+      obj.height = message.height.toString();
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    if (message.createdByUserId !== "") {
+      obj.createdByUserId = message.createdByUserId;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<AssetRow>): AssetRow {
+    return AssetRow.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<AssetRow>): AssetRow {
+    const message = createBaseAssetRow();
+    message.id = object.id ?? "";
+    message.merchantId = object.merchantId ?? "";
+    message.objectKey = object.objectKey ?? "";
+    message.originalFilename = object.originalFilename ?? "";
+    message.contentType = object.contentType ?? "";
+    message.byteSize = object.byteSize ?? 0n;
+    message.contentHash = object.contentHash ?? "";
+    message.kind = object.kind ?? "";
+    message.width = object.width ?? 0n;
+    message.height = object.height ?? 0n;
+    message.status = object.status ?? "";
+    message.createdByUserId = object.createdByUserId ?? "";
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -1047,242 +2266,6 @@ export const ProductRow: MessageFns<ProductRow> = {
     message.imageUrl = object.imageUrl ?? "";
     message.imageAssetId = object.imageAssetId ?? "";
     message.isActive = object.isActive ?? false;
-    message.sortOrder = object.sortOrder ?? 0n;
-    message.deletedAt = object.deletedAt ?? "";
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
-    return message;
-  },
-};
-
-function createBaseOutletProductRow(): OutletProductRow {
-  return {
-    id: "",
-    outletId: "",
-    productId: "",
-    priceMinorUnits: 0n,
-    isAvailable: false,
-    sortOrder: 0n,
-    deletedAt: "",
-    createdAt: "",
-    updatedAt: "",
-  };
-}
-
-export const OutletProductRow: MessageFns<OutletProductRow> = {
-  encode(message: OutletProductRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.outletId !== "") {
-      writer.uint32(18).string(message.outletId);
-    }
-    if (message.productId !== "") {
-      writer.uint32(26).string(message.productId);
-    }
-    if (message.priceMinorUnits !== 0n) {
-      if (BigInt.asIntN(64, message.priceMinorUnits) !== message.priceMinorUnits) {
-        throw new globalThis.Error("value provided for field message.priceMinorUnits of type int64 too large");
-      }
-      writer.uint32(32).int64(message.priceMinorUnits);
-    }
-    if (message.isAvailable !== false) {
-      writer.uint32(40).bool(message.isAvailable);
-    }
-    if (message.sortOrder !== 0n) {
-      if (BigInt.asIntN(64, message.sortOrder) !== message.sortOrder) {
-        throw new globalThis.Error("value provided for field message.sortOrder of type int64 too large");
-      }
-      writer.uint32(48).int64(message.sortOrder);
-    }
-    if (message.deletedAt !== "") {
-      writer.uint32(58).string(message.deletedAt);
-    }
-    if (message.createdAt !== "") {
-      writer.uint32(66).string(message.createdAt);
-    }
-    if (message.updatedAt !== "") {
-      writer.uint32(74).string(message.updatedAt);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): OutletProductRow {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutletProductRow();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.outletId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.productId = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.priceMinorUnits = reader.int64() as bigint;
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
-
-          message.isAvailable = reader.bool();
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
-
-          message.sortOrder = reader.int64() as bigint;
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
-
-          message.deletedAt = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
-
-          message.createdAt = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
-
-          message.updatedAt = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): OutletProductRow {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      productId: isSet(object.productId)
-        ? globalThis.String(object.productId)
-        : isSet(object.product_id)
-        ? globalThis.String(object.product_id)
-        : "",
-      priceMinorUnits: isSet(object.priceMinorUnits)
-        ? BigInt(object.priceMinorUnits)
-        : isSet(object.price_minor_units)
-        ? BigInt(object.price_minor_units)
-        : 0n,
-      isAvailable: isSet(object.isAvailable)
-        ? globalThis.Boolean(object.isAvailable)
-        : isSet(object.is_available)
-        ? globalThis.Boolean(object.is_available)
-        : false,
-      sortOrder: isSet(object.sortOrder)
-        ? BigInt(object.sortOrder)
-        : isSet(object.sort_order)
-        ? BigInt(object.sort_order)
-        : 0n,
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
-    };
-  },
-
-  toJSON(message: OutletProductRow): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.outletId !== "") {
-      obj.outletId = message.outletId;
-    }
-    if (message.productId !== "") {
-      obj.productId = message.productId;
-    }
-    if (message.priceMinorUnits !== 0n) {
-      obj.priceMinorUnits = message.priceMinorUnits.toString();
-    }
-    if (message.isAvailable !== false) {
-      obj.isAvailable = message.isAvailable;
-    }
-    if (message.sortOrder !== 0n) {
-      obj.sortOrder = message.sortOrder.toString();
-    }
-    if (message.deletedAt !== "") {
-      obj.deletedAt = message.deletedAt;
-    }
-    if (message.createdAt !== "") {
-      obj.createdAt = message.createdAt;
-    }
-    if (message.updatedAt !== "") {
-      obj.updatedAt = message.updatedAt;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<OutletProductRow>): OutletProductRow {
-    return OutletProductRow.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<OutletProductRow>): OutletProductRow {
-    const message = createBaseOutletProductRow();
-    message.id = object.id ?? "";
-    message.outletId = object.outletId ?? "";
-    message.productId = object.productId ?? "";
-    message.priceMinorUnits = object.priceMinorUnits ?? 0n;
-    message.isAvailable = object.isAvailable ?? false;
     message.sortOrder = object.sortOrder ?? 0n;
     message.deletedAt = object.deletedAt ?? "";
     message.createdAt = object.createdAt ?? "";
@@ -1911,6 +2894,982 @@ export const OrderItemRow: MessageFns<OrderItemRow> = {
   },
 };
 
+function createBaseOutletProductRow(): OutletProductRow {
+  return {
+    id: "",
+    outletId: "",
+    productId: "",
+    priceMinorUnits: 0n,
+    isAvailable: false,
+    sortOrder: 0n,
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const OutletProductRow: MessageFns<OutletProductRow> = {
+  encode(message: OutletProductRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.outletId !== "") {
+      writer.uint32(18).string(message.outletId);
+    }
+    if (message.productId !== "") {
+      writer.uint32(26).string(message.productId);
+    }
+    if (message.priceMinorUnits !== 0n) {
+      if (BigInt.asIntN(64, message.priceMinorUnits) !== message.priceMinorUnits) {
+        throw new globalThis.Error("value provided for field message.priceMinorUnits of type int64 too large");
+      }
+      writer.uint32(32).int64(message.priceMinorUnits);
+    }
+    if (message.isAvailable !== false) {
+      writer.uint32(40).bool(message.isAvailable);
+    }
+    if (message.sortOrder !== 0n) {
+      if (BigInt.asIntN(64, message.sortOrder) !== message.sortOrder) {
+        throw new globalThis.Error("value provided for field message.sortOrder of type int64 too large");
+      }
+      writer.uint32(48).int64(message.sortOrder);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(58).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(66).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(74).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletProductRow {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseOutletProductRow();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.outletId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.productId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.priceMinorUnits = reader.int64() as bigint;
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.isAvailable = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.sortOrder = reader.int64() as bigint;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): OutletProductRow {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      outletId: isSet(object.outletId)
+        ? globalThis.String(object.outletId)
+        : isSet(object.outlet_id)
+        ? globalThis.String(object.outlet_id)
+        : "",
+      productId: isSet(object.productId)
+        ? globalThis.String(object.productId)
+        : isSet(object.product_id)
+        ? globalThis.String(object.product_id)
+        : "",
+      priceMinorUnits: isSet(object.priceMinorUnits)
+        ? BigInt(object.priceMinorUnits)
+        : isSet(object.price_minor_units)
+        ? BigInt(object.price_minor_units)
+        : 0n,
+      isAvailable: isSet(object.isAvailable)
+        ? globalThis.Boolean(object.isAvailable)
+        : isSet(object.is_available)
+        ? globalThis.Boolean(object.is_available)
+        : false,
+      sortOrder: isSet(object.sortOrder)
+        ? BigInt(object.sortOrder)
+        : isSet(object.sort_order)
+        ? BigInt(object.sort_order)
+        : 0n,
+      deletedAt: isSet(object.deletedAt)
+        ? globalThis.String(object.deletedAt)
+        : isSet(object.deleted_at)
+        ? globalThis.String(object.deleted_at)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: OutletProductRow): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.outletId !== "") {
+      obj.outletId = message.outletId;
+    }
+    if (message.productId !== "") {
+      obj.productId = message.productId;
+    }
+    if (message.priceMinorUnits !== 0n) {
+      obj.priceMinorUnits = message.priceMinorUnits.toString();
+    }
+    if (message.isAvailable !== false) {
+      obj.isAvailable = message.isAvailable;
+    }
+    if (message.sortOrder !== 0n) {
+      obj.sortOrder = message.sortOrder.toString();
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<OutletProductRow>): OutletProductRow {
+    return OutletProductRow.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<OutletProductRow>): OutletProductRow {
+    const message = createBaseOutletProductRow();
+    message.id = object.id ?? "";
+    message.outletId = object.outletId ?? "";
+    message.productId = object.productId ?? "";
+    message.priceMinorUnits = object.priceMinorUnits ?? 0n;
+    message.isAvailable = object.isAvailable ?? false;
+    message.sortOrder = object.sortOrder ?? 0n;
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseStaffRow(): StaffRow {
+  return {
+    id: "",
+    merchantId: "",
+    cloudUserId: "",
+    outletId: "",
+    name: "",
+    pin: "",
+    role: "",
+    isActive: false,
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const StaffRow: MessageFns<StaffRow> = {
+  encode(message: StaffRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.merchantId !== "") {
+      writer.uint32(18).string(message.merchantId);
+    }
+    if (message.cloudUserId !== "") {
+      writer.uint32(26).string(message.cloudUserId);
+    }
+    if (message.outletId !== "") {
+      writer.uint32(34).string(message.outletId);
+    }
+    if (message.name !== "") {
+      writer.uint32(42).string(message.name);
+    }
+    if (message.pin !== "") {
+      writer.uint32(50).string(message.pin);
+    }
+    if (message.role !== "") {
+      writer.uint32(58).string(message.role);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(64).bool(message.isActive);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(74).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffRow {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStaffRow();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.merchantId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.cloudUserId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.outletId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.pin = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.role = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): StaffRow {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      merchantId: isSet(object.merchantId)
+        ? globalThis.String(object.merchantId)
+        : isSet(object.merchant_id)
+        ? globalThis.String(object.merchant_id)
+        : "",
+      cloudUserId: isSet(object.cloudUserId)
+        ? globalThis.String(object.cloudUserId)
+        : isSet(object.cloud_user_id)
+        ? globalThis.String(object.cloud_user_id)
+        : "",
+      outletId: isSet(object.outletId)
+        ? globalThis.String(object.outletId)
+        : isSet(object.outlet_id)
+        ? globalThis.String(object.outlet_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      pin: isSet(object.pin) ? globalThis.String(object.pin) : "",
+      role: isSet(object.role) ? globalThis.String(object.role) : "",
+      isActive: isSet(object.isActive)
+        ? globalThis.Boolean(object.isActive)
+        : isSet(object.is_active)
+        ? globalThis.Boolean(object.is_active)
+        : false,
+      deletedAt: isSet(object.deletedAt)
+        ? globalThis.String(object.deletedAt)
+        : isSet(object.deleted_at)
+        ? globalThis.String(object.deleted_at)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: StaffRow): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.merchantId !== "") {
+      obj.merchantId = message.merchantId;
+    }
+    if (message.cloudUserId !== "") {
+      obj.cloudUserId = message.cloudUserId;
+    }
+    if (message.outletId !== "") {
+      obj.outletId = message.outletId;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.pin !== "") {
+      obj.pin = message.pin;
+    }
+    if (message.role !== "") {
+      obj.role = message.role;
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<StaffRow>): StaffRow {
+    return StaffRow.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<StaffRow>): StaffRow {
+    const message = createBaseStaffRow();
+    message.id = object.id ?? "";
+    message.merchantId = object.merchantId ?? "";
+    message.cloudUserId = object.cloudUserId ?? "";
+    message.outletId = object.outletId ?? "";
+    message.name = object.name ?? "";
+    message.pin = object.pin ?? "";
+    message.role = object.role ?? "";
+    message.isActive = object.isActive ?? false;
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseMerchantChanges(): MerchantChanges {
+  return { created: [], updated: [], deletedIds: [] };
+}
+
+export const MerchantChanges: MessageFns<MerchantChanges> = {
+  encode(message: MerchantChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.created) {
+      MerchantRow.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.updated) {
+      MerchantRow.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.deletedIds) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MerchantChanges {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMerchantChanges();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.created.push(MerchantRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated.push(MerchantRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MerchantChanges {
+    return {
+      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => MerchantRow.fromJSON(e)) : [],
+      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => MerchantRow.fromJSON(e)) : [],
+      deletedIds: globalThis.Array.isArray(object?.deletedIds)
+        ? object.deletedIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_ids)
+        ? object.deleted_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: MerchantChanges): unknown {
+    const obj: any = {};
+    if (message.created?.length) {
+      obj.created = message.created.map((e) => MerchantRow.toJSON(e));
+    }
+    if (message.updated?.length) {
+      obj.updated = message.updated.map((e) => MerchantRow.toJSON(e));
+    }
+    if (message.deletedIds?.length) {
+      obj.deletedIds = message.deletedIds;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<MerchantChanges>): MerchantChanges {
+    return MerchantChanges.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MerchantChanges>): MerchantChanges {
+    const message = createBaseMerchantChanges();
+    message.created = object.created?.map((e) => MerchantRow.fromPartial(e)) || [];
+    message.updated = object.updated?.map((e) => MerchantRow.fromPartial(e)) || [];
+    message.deletedIds = object.deletedIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseOutletChanges(): OutletChanges {
+  return { created: [], updated: [], deletedIds: [] };
+}
+
+export const OutletChanges: MessageFns<OutletChanges> = {
+  encode(message: OutletChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.created) {
+      OutletRow.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.updated) {
+      OutletRow.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.deletedIds) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletChanges {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseOutletChanges();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.created.push(OutletRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated.push(OutletRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): OutletChanges {
+    return {
+      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => OutletRow.fromJSON(e)) : [],
+      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => OutletRow.fromJSON(e)) : [],
+      deletedIds: globalThis.Array.isArray(object?.deletedIds)
+        ? object.deletedIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_ids)
+        ? object.deleted_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: OutletChanges): unknown {
+    const obj: any = {};
+    if (message.created?.length) {
+      obj.created = message.created.map((e) => OutletRow.toJSON(e));
+    }
+    if (message.updated?.length) {
+      obj.updated = message.updated.map((e) => OutletRow.toJSON(e));
+    }
+    if (message.deletedIds?.length) {
+      obj.deletedIds = message.deletedIds;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<OutletChanges>): OutletChanges {
+    return OutletChanges.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<OutletChanges>): OutletChanges {
+    const message = createBaseOutletChanges();
+    message.created = object.created?.map((e) => OutletRow.fromPartial(e)) || [];
+    message.updated = object.updated?.map((e) => OutletRow.fromPartial(e)) || [];
+    message.deletedIds = object.deletedIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseRegisterChanges(): RegisterChanges {
+  return { created: [], updated: [], deletedIds: [] };
+}
+
+export const RegisterChanges: MessageFns<RegisterChanges> = {
+  encode(message: RegisterChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.created) {
+      RegisterRow.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.updated) {
+      RegisterRow.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.deletedIds) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterChanges {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterChanges();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.created.push(RegisterRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated.push(RegisterRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterChanges {
+    return {
+      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => RegisterRow.fromJSON(e)) : [],
+      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => RegisterRow.fromJSON(e)) : [],
+      deletedIds: globalThis.Array.isArray(object?.deletedIds)
+        ? object.deletedIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_ids)
+        ? object.deleted_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: RegisterChanges): unknown {
+    const obj: any = {};
+    if (message.created?.length) {
+      obj.created = message.created.map((e) => RegisterRow.toJSON(e));
+    }
+    if (message.updated?.length) {
+      obj.updated = message.updated.map((e) => RegisterRow.toJSON(e));
+    }
+    if (message.deletedIds?.length) {
+      obj.deletedIds = message.deletedIds;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RegisterChanges>): RegisterChanges {
+    return RegisterChanges.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RegisterChanges>): RegisterChanges {
+    const message = createBaseRegisterChanges();
+    message.created = object.created?.map((e) => RegisterRow.fromPartial(e)) || [];
+    message.updated = object.updated?.map((e) => RegisterRow.fromPartial(e)) || [];
+    message.deletedIds = object.deletedIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseCategoryChanges(): CategoryChanges {
+  return { created: [], updated: [], deletedIds: [] };
+}
+
+export const CategoryChanges: MessageFns<CategoryChanges> = {
+  encode(message: CategoryChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.created) {
+      CategoryRow.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.updated) {
+      CategoryRow.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.deletedIds) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CategoryChanges {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCategoryChanges();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.created.push(CategoryRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated.push(CategoryRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CategoryChanges {
+    return {
+      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => CategoryRow.fromJSON(e)) : [],
+      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => CategoryRow.fromJSON(e)) : [],
+      deletedIds: globalThis.Array.isArray(object?.deletedIds)
+        ? object.deletedIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_ids)
+        ? object.deleted_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: CategoryChanges): unknown {
+    const obj: any = {};
+    if (message.created?.length) {
+      obj.created = message.created.map((e) => CategoryRow.toJSON(e));
+    }
+    if (message.updated?.length) {
+      obj.updated = message.updated.map((e) => CategoryRow.toJSON(e));
+    }
+    if (message.deletedIds?.length) {
+      obj.deletedIds = message.deletedIds;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<CategoryChanges>): CategoryChanges {
+    return CategoryChanges.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CategoryChanges>): CategoryChanges {
+    const message = createBaseCategoryChanges();
+    message.created = object.created?.map((e) => CategoryRow.fromPartial(e)) || [];
+    message.updated = object.updated?.map((e) => CategoryRow.fromPartial(e)) || [];
+    message.deletedIds = object.deletedIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseAssetChanges(): AssetChanges {
+  return { created: [], updated: [], deletedIds: [] };
+}
+
+export const AssetChanges: MessageFns<AssetChanges> = {
+  encode(message: AssetChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.created) {
+      AssetRow.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.updated) {
+      AssetRow.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.deletedIds) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AssetChanges {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAssetChanges();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.created.push(AssetRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated.push(AssetRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AssetChanges {
+    return {
+      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => AssetRow.fromJSON(e)) : [],
+      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => AssetRow.fromJSON(e)) : [],
+      deletedIds: globalThis.Array.isArray(object?.deletedIds)
+        ? object.deletedIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_ids)
+        ? object.deleted_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: AssetChanges): unknown {
+    const obj: any = {};
+    if (message.created?.length) {
+      obj.created = message.created.map((e) => AssetRow.toJSON(e));
+    }
+    if (message.updated?.length) {
+      obj.updated = message.updated.map((e) => AssetRow.toJSON(e));
+    }
+    if (message.deletedIds?.length) {
+      obj.deletedIds = message.deletedIds;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<AssetChanges>): AssetChanges {
+    return AssetChanges.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<AssetChanges>): AssetChanges {
+    const message = createBaseAssetChanges();
+    message.created = object.created?.map((e) => AssetRow.fromPartial(e)) || [];
+    message.updated = object.updated?.map((e) => AssetRow.fromPartial(e)) || [];
+    message.deletedIds = object.deletedIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
 function createBaseProductChanges(): ProductChanges {
   return { created: [], updated: [], deletedIds: [] };
 }
@@ -2002,106 +3961,6 @@ export const ProductChanges: MessageFns<ProductChanges> = {
     const message = createBaseProductChanges();
     message.created = object.created?.map((e) => ProductRow.fromPartial(e)) || [];
     message.updated = object.updated?.map((e) => ProductRow.fromPartial(e)) || [];
-    message.deletedIds = object.deletedIds?.map((e) => e) || [];
-    return message;
-  },
-};
-
-function createBaseOutletProductChanges(): OutletProductChanges {
-  return { created: [], updated: [], deletedIds: [] };
-}
-
-export const OutletProductChanges: MessageFns<OutletProductChanges> = {
-  encode(message: OutletProductChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      OutletProductRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      OutletProductRow.encode(v!, writer.uint32(18).fork()).join();
-    }
-    for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): OutletProductChanges {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutletProductChanges();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.created.push(OutletProductRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(OutletProductRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.deletedIds.push(reader.string());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): OutletProductChanges {
-    return {
-      created: globalThis.Array.isArray(object?.created)
-        ? object.created.map((e: any) => OutletProductRow.fromJSON(e))
-        : [],
-      updated: globalThis.Array.isArray(object?.updated)
-        ? object.updated.map((e: any) => OutletProductRow.fromJSON(e))
-        : [],
-      deletedIds: globalThis.Array.isArray(object?.deletedIds)
-        ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
-        : [],
-    };
-  },
-
-  toJSON(message: OutletProductChanges): unknown {
-    const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => OutletProductRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => OutletProductRow.toJSON(e));
-    }
-    if (message.deletedIds?.length) {
-      obj.deletedIds = message.deletedIds;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<OutletProductChanges>): OutletProductChanges {
-    return OutletProductChanges.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<OutletProductChanges>): OutletProductChanges {
-    const message = createBaseOutletProductChanges();
-    message.created = object.created?.map((e) => OutletProductRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => OutletProductRow.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
@@ -2303,15 +4162,216 @@ export const OrderItemChanges: MessageFns<OrderItemChanges> = {
   },
 };
 
+function createBaseOutletProductChanges(): OutletProductChanges {
+  return { created: [], updated: [], deletedIds: [] };
+}
+
+export const OutletProductChanges: MessageFns<OutletProductChanges> = {
+  encode(message: OutletProductChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.created) {
+      OutletProductRow.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.updated) {
+      OutletProductRow.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.deletedIds) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): OutletProductChanges {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseOutletProductChanges();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.created.push(OutletProductRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated.push(OutletProductRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): OutletProductChanges {
+    return {
+      created: globalThis.Array.isArray(object?.created)
+        ? object.created.map((e: any) => OutletProductRow.fromJSON(e))
+        : [],
+      updated: globalThis.Array.isArray(object?.updated)
+        ? object.updated.map((e: any) => OutletProductRow.fromJSON(e))
+        : [],
+      deletedIds: globalThis.Array.isArray(object?.deletedIds)
+        ? object.deletedIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_ids)
+        ? object.deleted_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: OutletProductChanges): unknown {
+    const obj: any = {};
+    if (message.created?.length) {
+      obj.created = message.created.map((e) => OutletProductRow.toJSON(e));
+    }
+    if (message.updated?.length) {
+      obj.updated = message.updated.map((e) => OutletProductRow.toJSON(e));
+    }
+    if (message.deletedIds?.length) {
+      obj.deletedIds = message.deletedIds;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<OutletProductChanges>): OutletProductChanges {
+    return OutletProductChanges.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<OutletProductChanges>): OutletProductChanges {
+    const message = createBaseOutletProductChanges();
+    message.created = object.created?.map((e) => OutletProductRow.fromPartial(e)) || [];
+    message.updated = object.updated?.map((e) => OutletProductRow.fromPartial(e)) || [];
+    message.deletedIds = object.deletedIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseStaffChanges(): StaffChanges {
+  return { created: [], updated: [], deletedIds: [] };
+}
+
+export const StaffChanges: MessageFns<StaffChanges> = {
+  encode(message: StaffChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.created) {
+      StaffRow.encode(v!, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.updated) {
+      StaffRow.encode(v!, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.deletedIds) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffChanges {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStaffChanges();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.created.push(StaffRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated.push(StaffRow.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): StaffChanges {
+    return {
+      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => StaffRow.fromJSON(e)) : [],
+      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => StaffRow.fromJSON(e)) : [],
+      deletedIds: globalThis.Array.isArray(object?.deletedIds)
+        ? object.deletedIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deleted_ids)
+        ? object.deleted_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: StaffChanges): unknown {
+    const obj: any = {};
+    if (message.created?.length) {
+      obj.created = message.created.map((e) => StaffRow.toJSON(e));
+    }
+    if (message.updated?.length) {
+      obj.updated = message.updated.map((e) => StaffRow.toJSON(e));
+    }
+    if (message.deletedIds?.length) {
+      obj.deletedIds = message.deletedIds;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<StaffChanges>): StaffChanges {
+    return StaffChanges.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<StaffChanges>): StaffChanges {
+    const message = createBaseStaffChanges();
+    message.created = object.created?.map((e) => StaffRow.fromPartial(e)) || [];
+    message.updated = object.updated?.map((e) => StaffRow.fromPartial(e)) || [];
+    message.deletedIds = object.deletedIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
 function createBaseSyncPushBatchRequest(): SyncPushBatchRequest {
   return {
     outletId: "",
     idempotencyKey: "",
-    jsonTables: [],
+    merchants: undefined,
+    outlets: undefined,
+    registers: undefined,
+    categories: undefined,
+    assets: undefined,
     products: undefined,
-    outletProducts: undefined,
     orders: undefined,
     orderItems: undefined,
+    outletProducts: undefined,
+    staff: undefined,
   };
 }
 
@@ -2323,20 +4383,35 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     if (message.idempotencyKey !== "") {
       writer.uint32(18).string(message.idempotencyKey);
     }
-    for (const v of message.jsonTables) {
-      SyncJsonTableChanges.encode(v!, writer.uint32(26).fork()).join();
+    if (message.merchants !== undefined) {
+      MerchantChanges.encode(message.merchants, writer.uint32(82).fork()).join();
+    }
+    if (message.outlets !== undefined) {
+      OutletChanges.encode(message.outlets, writer.uint32(90).fork()).join();
+    }
+    if (message.registers !== undefined) {
+      RegisterChanges.encode(message.registers, writer.uint32(98).fork()).join();
+    }
+    if (message.categories !== undefined) {
+      CategoryChanges.encode(message.categories, writer.uint32(106).fork()).join();
+    }
+    if (message.assets !== undefined) {
+      AssetChanges.encode(message.assets, writer.uint32(114).fork()).join();
     }
     if (message.products !== undefined) {
-      ProductChanges.encode(message.products, writer.uint32(82).fork()).join();
-    }
-    if (message.outletProducts !== undefined) {
-      OutletProductChanges.encode(message.outletProducts, writer.uint32(90).fork()).join();
+      ProductChanges.encode(message.products, writer.uint32(122).fork()).join();
     }
     if (message.orders !== undefined) {
-      OrderChanges.encode(message.orders, writer.uint32(98).fork()).join();
+      OrderChanges.encode(message.orders, writer.uint32(130).fork()).join();
     }
     if (message.orderItems !== undefined) {
-      OrderItemChanges.encode(message.orderItems, writer.uint32(106).fork()).join();
+      OrderItemChanges.encode(message.orderItems, writer.uint32(138).fork()).join();
+    }
+    if (message.outletProducts !== undefined) {
+      OutletProductChanges.encode(message.outletProducts, writer.uint32(146).fork()).join();
+    }
+    if (message.staff !== undefined) {
+      StaffChanges.encode(message.staff, writer.uint32(154).fork()).join();
     }
     return writer;
   },
@@ -2364,20 +4439,12 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
           message.idempotencyKey = reader.string();
           continue;
         }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.jsonTables.push(SyncJsonTableChanges.decode(reader, reader.uint32()));
-          continue;
-        }
         case 10: {
           if (tag !== 82) {
             break;
           }
 
-          message.products = ProductChanges.decode(reader, reader.uint32());
+          message.merchants = MerchantChanges.decode(reader, reader.uint32());
           continue;
         }
         case 11: {
@@ -2385,7 +4452,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.outletProducts = OutletProductChanges.decode(reader, reader.uint32());
+          message.outlets = OutletChanges.decode(reader, reader.uint32());
           continue;
         }
         case 12: {
@@ -2393,7 +4460,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.orders = OrderChanges.decode(reader, reader.uint32());
+          message.registers = RegisterChanges.decode(reader, reader.uint32());
           continue;
         }
         case 13: {
@@ -2401,7 +4468,55 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
+          message.categories = CategoryChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.assets = AssetChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.products = ProductChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.orders = OrderChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
           message.orderItems = OrderItemChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.outletProducts = OutletProductChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.staff = StaffChanges.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -2425,23 +4540,24 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
         : isSet(object.idempotency_key)
         ? globalThis.String(object.idempotency_key)
         : "",
-      jsonTables: globalThis.Array.isArray(object?.jsonTables)
-        ? object.jsonTables.map((e: any) => SyncJsonTableChanges.fromJSON(e))
-        : globalThis.Array.isArray(object?.json_tables)
-        ? object.json_tables.map((e: any) => SyncJsonTableChanges.fromJSON(e))
-        : [],
+      merchants: isSet(object.merchants) ? MerchantChanges.fromJSON(object.merchants) : undefined,
+      outlets: isSet(object.outlets) ? OutletChanges.fromJSON(object.outlets) : undefined,
+      registers: isSet(object.registers) ? RegisterChanges.fromJSON(object.registers) : undefined,
+      categories: isSet(object.categories) ? CategoryChanges.fromJSON(object.categories) : undefined,
+      assets: isSet(object.assets) ? AssetChanges.fromJSON(object.assets) : undefined,
       products: isSet(object.products) ? ProductChanges.fromJSON(object.products) : undefined,
-      outletProducts: isSet(object.outletProducts)
-        ? OutletProductChanges.fromJSON(object.outletProducts)
-        : isSet(object.outlet_products)
-        ? OutletProductChanges.fromJSON(object.outlet_products)
-        : undefined,
       orders: isSet(object.orders) ? OrderChanges.fromJSON(object.orders) : undefined,
       orderItems: isSet(object.orderItems)
         ? OrderItemChanges.fromJSON(object.orderItems)
         : isSet(object.order_items)
         ? OrderItemChanges.fromJSON(object.order_items)
         : undefined,
+      outletProducts: isSet(object.outletProducts)
+        ? OutletProductChanges.fromJSON(object.outletProducts)
+        : isSet(object.outlet_products)
+        ? OutletProductChanges.fromJSON(object.outlet_products)
+        : undefined,
+      staff: isSet(object.staff) ? StaffChanges.fromJSON(object.staff) : undefined,
     };
   },
 
@@ -2453,20 +4569,35 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     if (message.idempotencyKey !== "") {
       obj.idempotencyKey = message.idempotencyKey;
     }
-    if (message.jsonTables?.length) {
-      obj.jsonTables = message.jsonTables.map((e) => SyncJsonTableChanges.toJSON(e));
+    if (message.merchants !== undefined) {
+      obj.merchants = MerchantChanges.toJSON(message.merchants);
+    }
+    if (message.outlets !== undefined) {
+      obj.outlets = OutletChanges.toJSON(message.outlets);
+    }
+    if (message.registers !== undefined) {
+      obj.registers = RegisterChanges.toJSON(message.registers);
+    }
+    if (message.categories !== undefined) {
+      obj.categories = CategoryChanges.toJSON(message.categories);
+    }
+    if (message.assets !== undefined) {
+      obj.assets = AssetChanges.toJSON(message.assets);
     }
     if (message.products !== undefined) {
       obj.products = ProductChanges.toJSON(message.products);
-    }
-    if (message.outletProducts !== undefined) {
-      obj.outletProducts = OutletProductChanges.toJSON(message.outletProducts);
     }
     if (message.orders !== undefined) {
       obj.orders = OrderChanges.toJSON(message.orders);
     }
     if (message.orderItems !== undefined) {
       obj.orderItems = OrderItemChanges.toJSON(message.orderItems);
+    }
+    if (message.outletProducts !== undefined) {
+      obj.outletProducts = OutletProductChanges.toJSON(message.outletProducts);
+    }
+    if (message.staff !== undefined) {
+      obj.staff = StaffChanges.toJSON(message.staff);
     }
     return obj;
   },
@@ -2478,18 +4609,35 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     const message = createBaseSyncPushBatchRequest();
     message.outletId = object.outletId ?? "";
     message.idempotencyKey = object.idempotencyKey ?? "";
-    message.jsonTables = object.jsonTables?.map((e) => SyncJsonTableChanges.fromPartial(e)) || [];
+    message.merchants = (object.merchants !== undefined && object.merchants !== null)
+      ? MerchantChanges.fromPartial(object.merchants)
+      : undefined;
+    message.outlets = (object.outlets !== undefined && object.outlets !== null)
+      ? OutletChanges.fromPartial(object.outlets)
+      : undefined;
+    message.registers = (object.registers !== undefined && object.registers !== null)
+      ? RegisterChanges.fromPartial(object.registers)
+      : undefined;
+    message.categories = (object.categories !== undefined && object.categories !== null)
+      ? CategoryChanges.fromPartial(object.categories)
+      : undefined;
+    message.assets = (object.assets !== undefined && object.assets !== null)
+      ? AssetChanges.fromPartial(object.assets)
+      : undefined;
     message.products = (object.products !== undefined && object.products !== null)
       ? ProductChanges.fromPartial(object.products)
-      : undefined;
-    message.outletProducts = (object.outletProducts !== undefined && object.outletProducts !== null)
-      ? OutletProductChanges.fromPartial(object.outletProducts)
       : undefined;
     message.orders = (object.orders !== undefined && object.orders !== null)
       ? OrderChanges.fromPartial(object.orders)
       : undefined;
     message.orderItems = (object.orderItems !== undefined && object.orderItems !== null)
       ? OrderItemChanges.fromPartial(object.orderItems)
+      : undefined;
+    message.outletProducts = (object.outletProducts !== undefined && object.outletProducts !== null)
+      ? OutletProductChanges.fromPartial(object.outletProducts)
+      : undefined;
+    message.staff = (object.staff !== undefined && object.staff !== null)
+      ? StaffChanges.fromPartial(object.staff)
       : undefined;
     return message;
   },
@@ -2739,11 +4887,16 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
 
 function createBaseSyncPullBatchResponse(): SyncPullBatchResponse {
   return {
-    jsonTables: [],
+    merchants: undefined,
+    outlets: undefined,
+    registers: undefined,
+    categories: undefined,
+    assets: undefined,
     products: undefined,
-    outletProducts: undefined,
     orders: undefined,
     orderItems: undefined,
+    outletProducts: undefined,
+    staff: undefined,
     latestEventId: 0n,
     needsFullResync: false,
     serverTime: "",
@@ -2754,38 +4907,53 @@ function createBaseSyncPullBatchResponse(): SyncPullBatchResponse {
 
 export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
   encode(message: SyncPullBatchResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.jsonTables) {
-      SyncJsonTableChanges.encode(v!, writer.uint32(10).fork()).join();
+    if (message.merchants !== undefined) {
+      MerchantChanges.encode(message.merchants, writer.uint32(82).fork()).join();
+    }
+    if (message.outlets !== undefined) {
+      OutletChanges.encode(message.outlets, writer.uint32(90).fork()).join();
+    }
+    if (message.registers !== undefined) {
+      RegisterChanges.encode(message.registers, writer.uint32(98).fork()).join();
+    }
+    if (message.categories !== undefined) {
+      CategoryChanges.encode(message.categories, writer.uint32(106).fork()).join();
+    }
+    if (message.assets !== undefined) {
+      AssetChanges.encode(message.assets, writer.uint32(114).fork()).join();
     }
     if (message.products !== undefined) {
-      ProductChanges.encode(message.products, writer.uint32(82).fork()).join();
-    }
-    if (message.outletProducts !== undefined) {
-      OutletProductChanges.encode(message.outletProducts, writer.uint32(90).fork()).join();
+      ProductChanges.encode(message.products, writer.uint32(122).fork()).join();
     }
     if (message.orders !== undefined) {
-      OrderChanges.encode(message.orders, writer.uint32(98).fork()).join();
+      OrderChanges.encode(message.orders, writer.uint32(130).fork()).join();
     }
     if (message.orderItems !== undefined) {
-      OrderItemChanges.encode(message.orderItems, writer.uint32(106).fork()).join();
+      OrderItemChanges.encode(message.orderItems, writer.uint32(138).fork()).join();
+    }
+    if (message.outletProducts !== undefined) {
+      OutletProductChanges.encode(message.outletProducts, writer.uint32(146).fork()).join();
+    }
+    if (message.staff !== undefined) {
+      StaffChanges.encode(message.staff, writer.uint32(154).fork()).join();
     }
     if (message.latestEventId !== 0n) {
       if (BigInt.asIntN(64, message.latestEventId) !== message.latestEventId) {
         throw new globalThis.Error("value provided for field message.latestEventId of type int64 too large");
       }
-      writer.uint32(160).int64(message.latestEventId);
+      writer.uint32(800).int64(message.latestEventId);
     }
     if (message.needsFullResync !== false) {
-      writer.uint32(168).bool(message.needsFullResync);
+      writer.uint32(808).bool(message.needsFullResync);
     }
     if (message.serverTime !== "") {
-      writer.uint32(178).string(message.serverTime);
+      writer.uint32(818).string(message.serverTime);
     }
     if (message.hasMore !== false) {
-      writer.uint32(184).bool(message.hasMore);
+      writer.uint32(824).bool(message.hasMore);
     }
     if (message.nextPageCursor !== "") {
-      writer.uint32(194).string(message.nextPageCursor);
+      writer.uint32(834).string(message.nextPageCursor);
     }
     return writer;
   },
@@ -2797,20 +4965,12 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.jsonTables.push(SyncJsonTableChanges.decode(reader, reader.uint32()));
-          continue;
-        }
         case 10: {
           if (tag !== 82) {
             break;
           }
 
-          message.products = ProductChanges.decode(reader, reader.uint32());
+          message.merchants = MerchantChanges.decode(reader, reader.uint32());
           continue;
         }
         case 11: {
@@ -2818,7 +4978,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.outletProducts = OutletProductChanges.decode(reader, reader.uint32());
+          message.outlets = OutletChanges.decode(reader, reader.uint32());
           continue;
         }
         case 12: {
@@ -2826,7 +4986,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.orders = OrderChanges.decode(reader, reader.uint32());
+          message.registers = RegisterChanges.decode(reader, reader.uint32());
           continue;
         }
         case 13: {
@@ -2834,43 +4994,91 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
+          message.categories = CategoryChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.assets = AssetChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.products = ProductChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.orders = OrderChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
           message.orderItems = OrderItemChanges.decode(reader, reader.uint32());
           continue;
         }
-        case 20: {
-          if (tag !== 160) {
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.outletProducts = OutletProductChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.staff = StaffChanges.decode(reader, reader.uint32());
+          continue;
+        }
+        case 100: {
+          if (tag !== 800) {
             break;
           }
 
           message.latestEventId = reader.int64() as bigint;
           continue;
         }
-        case 21: {
-          if (tag !== 168) {
+        case 101: {
+          if (tag !== 808) {
             break;
           }
 
           message.needsFullResync = reader.bool();
           continue;
         }
-        case 22: {
-          if (tag !== 178) {
+        case 102: {
+          if (tag !== 818) {
             break;
           }
 
           message.serverTime = reader.string();
           continue;
         }
-        case 23: {
-          if (tag !== 184) {
+        case 103: {
+          if (tag !== 824) {
             break;
           }
 
           message.hasMore = reader.bool();
           continue;
         }
-        case 24: {
-          if (tag !== 194) {
+        case 104: {
+          if (tag !== 834) {
             break;
           }
 
@@ -2888,23 +5096,24 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
 
   fromJSON(object: any): SyncPullBatchResponse {
     return {
-      jsonTables: globalThis.Array.isArray(object?.jsonTables)
-        ? object.jsonTables.map((e: any) => SyncJsonTableChanges.fromJSON(e))
-        : globalThis.Array.isArray(object?.json_tables)
-        ? object.json_tables.map((e: any) => SyncJsonTableChanges.fromJSON(e))
-        : [],
+      merchants: isSet(object.merchants) ? MerchantChanges.fromJSON(object.merchants) : undefined,
+      outlets: isSet(object.outlets) ? OutletChanges.fromJSON(object.outlets) : undefined,
+      registers: isSet(object.registers) ? RegisterChanges.fromJSON(object.registers) : undefined,
+      categories: isSet(object.categories) ? CategoryChanges.fromJSON(object.categories) : undefined,
+      assets: isSet(object.assets) ? AssetChanges.fromJSON(object.assets) : undefined,
       products: isSet(object.products) ? ProductChanges.fromJSON(object.products) : undefined,
-      outletProducts: isSet(object.outletProducts)
-        ? OutletProductChanges.fromJSON(object.outletProducts)
-        : isSet(object.outlet_products)
-        ? OutletProductChanges.fromJSON(object.outlet_products)
-        : undefined,
       orders: isSet(object.orders) ? OrderChanges.fromJSON(object.orders) : undefined,
       orderItems: isSet(object.orderItems)
         ? OrderItemChanges.fromJSON(object.orderItems)
         : isSet(object.order_items)
         ? OrderItemChanges.fromJSON(object.order_items)
         : undefined,
+      outletProducts: isSet(object.outletProducts)
+        ? OutletProductChanges.fromJSON(object.outletProducts)
+        : isSet(object.outlet_products)
+        ? OutletProductChanges.fromJSON(object.outlet_products)
+        : undefined,
+      staff: isSet(object.staff) ? StaffChanges.fromJSON(object.staff) : undefined,
       latestEventId: isSet(object.latestEventId)
         ? BigInt(object.latestEventId)
         : isSet(object.latest_event_id)
@@ -2935,20 +5144,35 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
 
   toJSON(message: SyncPullBatchResponse): unknown {
     const obj: any = {};
-    if (message.jsonTables?.length) {
-      obj.jsonTables = message.jsonTables.map((e) => SyncJsonTableChanges.toJSON(e));
+    if (message.merchants !== undefined) {
+      obj.merchants = MerchantChanges.toJSON(message.merchants);
+    }
+    if (message.outlets !== undefined) {
+      obj.outlets = OutletChanges.toJSON(message.outlets);
+    }
+    if (message.registers !== undefined) {
+      obj.registers = RegisterChanges.toJSON(message.registers);
+    }
+    if (message.categories !== undefined) {
+      obj.categories = CategoryChanges.toJSON(message.categories);
+    }
+    if (message.assets !== undefined) {
+      obj.assets = AssetChanges.toJSON(message.assets);
     }
     if (message.products !== undefined) {
       obj.products = ProductChanges.toJSON(message.products);
-    }
-    if (message.outletProducts !== undefined) {
-      obj.outletProducts = OutletProductChanges.toJSON(message.outletProducts);
     }
     if (message.orders !== undefined) {
       obj.orders = OrderChanges.toJSON(message.orders);
     }
     if (message.orderItems !== undefined) {
       obj.orderItems = OrderItemChanges.toJSON(message.orderItems);
+    }
+    if (message.outletProducts !== undefined) {
+      obj.outletProducts = OutletProductChanges.toJSON(message.outletProducts);
+    }
+    if (message.staff !== undefined) {
+      obj.staff = StaffChanges.toJSON(message.staff);
     }
     if (message.latestEventId !== 0n) {
       obj.latestEventId = message.latestEventId.toString();
@@ -2973,18 +5197,35 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
   },
   fromPartial(object: DeepPartial<SyncPullBatchResponse>): SyncPullBatchResponse {
     const message = createBaseSyncPullBatchResponse();
-    message.jsonTables = object.jsonTables?.map((e) => SyncJsonTableChanges.fromPartial(e)) || [];
+    message.merchants = (object.merchants !== undefined && object.merchants !== null)
+      ? MerchantChanges.fromPartial(object.merchants)
+      : undefined;
+    message.outlets = (object.outlets !== undefined && object.outlets !== null)
+      ? OutletChanges.fromPartial(object.outlets)
+      : undefined;
+    message.registers = (object.registers !== undefined && object.registers !== null)
+      ? RegisterChanges.fromPartial(object.registers)
+      : undefined;
+    message.categories = (object.categories !== undefined && object.categories !== null)
+      ? CategoryChanges.fromPartial(object.categories)
+      : undefined;
+    message.assets = (object.assets !== undefined && object.assets !== null)
+      ? AssetChanges.fromPartial(object.assets)
+      : undefined;
     message.products = (object.products !== undefined && object.products !== null)
       ? ProductChanges.fromPartial(object.products)
-      : undefined;
-    message.outletProducts = (object.outletProducts !== undefined && object.outletProducts !== null)
-      ? OutletProductChanges.fromPartial(object.outletProducts)
       : undefined;
     message.orders = (object.orders !== undefined && object.orders !== null)
       ? OrderChanges.fromPartial(object.orders)
       : undefined;
     message.orderItems = (object.orderItems !== undefined && object.orderItems !== null)
       ? OrderItemChanges.fromPartial(object.orderItems)
+      : undefined;
+    message.outletProducts = (object.outletProducts !== undefined && object.outletProducts !== null)
+      ? OutletProductChanges.fromPartial(object.outletProducts)
+      : undefined;
+    message.staff = (object.staff !== undefined && object.staff !== null)
+      ? StaffChanges.fromPartial(object.staff)
       : undefined;
     message.latestEventId = object.latestEventId ?? 0n;
     message.needsFullResync = object.needsFullResync ?? false;

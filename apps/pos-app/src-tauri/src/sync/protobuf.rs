@@ -2,9 +2,10 @@ use serde_json::Value;
 use std::convert::TryFrom;
 
 use super::sync_proto::{
-    OrderChanges, OrderItemChanges, OrderItemRow, OrderRow, OutletProductChanges,
-    OutletProductRow, ProductChanges, ProductRow, SyncJsonTableChanges, SyncPullBatchRequest,
-    SyncPullBatchResponse, SyncPushBatchRequest,
+    AssetChanges, AssetRow, CategoryChanges, CategoryRow, MerchantChanges, MerchantRow,
+    OrderChanges, OrderItemChanges, OrderItemRow, OrderRow, OutletChanges, OutletProductChanges,
+    OutletProductRow, OutletRow, ProductChanges, ProductRow, RegisterChanges, RegisterRow,
+    StaffChanges, StaffRow, SyncPullBatchRequest, SyncPullBatchResponse, SyncPushBatchRequest,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -12,26 +13,6 @@ pub(super) struct TablePushChanges {
     pub created: Vec<Value>,
     pub updated: Vec<Value>,
     pub deleted_ids: Vec<String>,
-}
-
-pub(super) fn build_json_table_changes(
-    table: &str,
-    changes: &TablePushChanges,
-) -> SyncJsonTableChanges {
-    SyncJsonTableChanges {
-        table: table.to_string(),
-        created_json: changes
-            .created
-            .iter()
-            .map(|row| serde_json::to_string(row).unwrap_or_else(|_| "{}".to_string()))
-            .collect(),
-        updated_json: changes
-            .updated
-            .iter()
-            .map(|row| serde_json::to_string(row).unwrap_or_else(|_| "{}".to_string()))
-            .collect(),
-        deleted_ids: changes.deleted_ids.clone(),
-    }
 }
 
 fn value_to_string(row: &Value, keys: &[&str]) -> String {
@@ -95,6 +76,81 @@ fn value_to_i64(row: &Value, keys: &[&str]) -> i64 {
     0
 }
 
+fn merchant_row_from_value(row: &Value) -> MerchantRow {
+    MerchantRow {
+        id: value_to_string(row, &["id"]),
+        name: value_to_string(row, &["name"]),
+        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
+        created_at: value_to_string(row, &["createdAt", "created_at"]),
+        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+    }
+}
+
+fn outlet_row_from_value(row: &Value) -> OutletRow {
+    OutletRow {
+        id: value_to_string(row, &["id"]),
+        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
+        timezone: value_to_string(row, &["timezone"]),
+        name: value_to_string(row, &["name"]),
+        address: value_to_string(row, &["address"]),
+        receipt_name: value_to_string(row, &["receiptName", "receipt_name"]),
+        receipt_address: value_to_string(row, &["receiptAddress", "receipt_address"]),
+        is_active: value_to_bool(row, &["isActive", "is_active"]),
+        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
+        created_at: value_to_string(row, &["createdAt", "created_at"]),
+        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+    }
+}
+
+fn register_row_from_value(row: &Value) -> RegisterRow {
+    RegisterRow {
+        id: value_to_string(row, &["id"]),
+        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
+        name: value_to_string(row, &["name"]),
+        short_id: value_to_string(row, &["shortId", "short_id"]),
+        pairing_code: value_to_string(row, &["pairingCode", "pairing_code"]),
+        pairing_expires_at: value_to_string(row, &["pairingExpiresAt", "pairing_expires_at"]),
+        is_active: value_to_bool(row, &["isActive", "is_active"]),
+        last_seen_at: value_to_string(row, &["lastSeenAt", "last_seen_at"]),
+        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
+        created_at: value_to_string(row, &["createdAt", "created_at"]),
+        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+    }
+}
+
+fn category_row_from_value(row: &Value) -> CategoryRow {
+    CategoryRow {
+        id: value_to_string(row, &["id"]),
+        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
+        name: value_to_string(row, &["name"]),
+        sort_order: value_to_i64(row, &["sortOrder", "sort_order"]),
+        is_active: value_to_bool(row, &["isActive", "is_active"]),
+        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
+        created_at: value_to_string(row, &["createdAt", "created_at"]),
+        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+    }
+}
+
+fn asset_row_from_value(row: &Value) -> AssetRow {
+    AssetRow {
+        id: value_to_string(row, &["id"]),
+        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
+        object_key: value_to_string(row, &["objectKey", "object_key"]),
+        original_filename: value_to_string(row, &["originalFilename", "original_filename"]),
+        content_type: value_to_string(row, &["contentType", "content_type"]),
+        byte_size: value_to_i64(row, &["byteSize", "byte_size"]),
+        content_hash: value_to_string(row, &["contentHash", "content_hash"]),
+        kind: value_to_string(row, &["kind"]),
+        width: value_to_i64(row, &["width"]),
+        height: value_to_i64(row, &["height"]),
+        status: value_to_string(row, &["status"]),
+        created_by_user_id: value_to_string(row, &["createdByUserId", "created_by_user_id"]),
+        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
+        created_at: value_to_string(row, &["createdAt", "created_at"]),
+        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+    }
+}
+
 fn product_row_from_value(row: &Value) -> ProductRow {
     ProductRow {
         id: value_to_string(row, &["id"]),
@@ -105,20 +161,6 @@ fn product_row_from_value(row: &Value) -> ProductRow {
         image_url: value_to_string(row, &["imageUrl", "image_url"]),
         image_asset_id: value_to_string(row, &["imageAssetId", "image_asset_id"]),
         is_active: value_to_bool(row, &["isActive", "is_active"]),
-        sort_order: value_to_i64(row, &["sortOrder", "sort_order"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
-    }
-}
-
-fn outlet_product_row_from_value(row: &Value) -> OutletProductRow {
-    OutletProductRow {
-        id: value_to_string(row, &["id"]),
-        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
-        product_id: value_to_string(row, &["productId", "product_id"]),
-        price_minor_units: value_to_i64(row, &["priceMinorUnits", "price"]),
-        is_available: value_to_bool(row, &["isAvailable", "is_available"]),
         sort_order: value_to_i64(row, &["sortOrder", "sort_order"]),
         deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
         created_at: value_to_string(row, &["createdAt", "created_at"]),
@@ -170,6 +212,116 @@ fn order_item_row_from_value(row: &Value) -> OrderItemRow {
     }
 }
 
+fn outlet_product_row_from_value(row: &Value) -> OutletProductRow {
+    OutletProductRow {
+        id: value_to_string(row, &["id"]),
+        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
+        product_id: value_to_string(row, &["productId", "product_id"]),
+        price_minor_units: value_to_i64(row, &["priceMinorUnits", "price"]),
+        is_available: value_to_bool(row, &["isAvailable", "is_available"]),
+        sort_order: value_to_i64(row, &["sortOrder", "sort_order"]),
+        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
+        created_at: value_to_string(row, &["createdAt", "created_at"]),
+        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+    }
+}
+
+fn staff_row_from_value(row: &Value) -> StaffRow {
+    StaffRow {
+        id: value_to_string(row, &["id"]),
+        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
+        cloud_user_id: value_to_string(row, &["cloudUserId", "cloud_user_id"]),
+        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
+        name: value_to_string(row, &["name"]),
+        pin: value_to_string(row, &["pin"]),
+        role: value_to_string(row, &["role"]),
+        is_active: value_to_bool(row, &["isActive", "is_active"]),
+        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
+        created_at: value_to_string(row, &["createdAt", "created_at"]),
+        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+    }
+}
+
+pub(super) fn build_merchant_changes(changes: &TablePushChanges) -> MerchantChanges {
+    MerchantChanges {
+        created: changes
+            .created
+            .iter()
+            .map(merchant_row_from_value)
+            .collect::<Vec<_>>(),
+        deleted_ids: changes.deleted_ids.clone(),
+        updated: changes
+            .updated
+            .iter()
+            .map(merchant_row_from_value)
+            .collect::<Vec<_>>(),
+    }
+}
+
+pub(super) fn build_outlet_changes(changes: &TablePushChanges) -> OutletChanges {
+    OutletChanges {
+        created: changes
+            .created
+            .iter()
+            .map(outlet_row_from_value)
+            .collect::<Vec<_>>(),
+        deleted_ids: changes.deleted_ids.clone(),
+        updated: changes
+            .updated
+            .iter()
+            .map(outlet_row_from_value)
+            .collect::<Vec<_>>(),
+    }
+}
+
+pub(super) fn build_register_changes(changes: &TablePushChanges) -> RegisterChanges {
+    RegisterChanges {
+        created: changes
+            .created
+            .iter()
+            .map(register_row_from_value)
+            .collect::<Vec<_>>(),
+        deleted_ids: changes.deleted_ids.clone(),
+        updated: changes
+            .updated
+            .iter()
+            .map(register_row_from_value)
+            .collect::<Vec<_>>(),
+    }
+}
+
+pub(super) fn build_category_changes(changes: &TablePushChanges) -> CategoryChanges {
+    CategoryChanges {
+        created: changes
+            .created
+            .iter()
+            .map(category_row_from_value)
+            .collect::<Vec<_>>(),
+        deleted_ids: changes.deleted_ids.clone(),
+        updated: changes
+            .updated
+            .iter()
+            .map(category_row_from_value)
+            .collect::<Vec<_>>(),
+    }
+}
+
+pub(super) fn build_asset_changes(changes: &TablePushChanges) -> AssetChanges {
+    AssetChanges {
+        created: changes
+            .created
+            .iter()
+            .map(asset_row_from_value)
+            .collect::<Vec<_>>(),
+        deleted_ids: changes.deleted_ids.clone(),
+        updated: changes
+            .updated
+            .iter()
+            .map(asset_row_from_value)
+            .collect::<Vec<_>>(),
+    }
+}
+
 pub(super) fn build_product_changes(changes: &TablePushChanges) -> ProductChanges {
     ProductChanges {
         created: changes
@@ -182,22 +334,6 @@ pub(super) fn build_product_changes(changes: &TablePushChanges) -> ProductChange
             .updated
             .iter()
             .map(product_row_from_value)
-            .collect::<Vec<_>>(),
-    }
-}
-
-pub(super) fn build_outlet_product_changes(changes: &TablePushChanges) -> OutletProductChanges {
-    OutletProductChanges {
-        created: changes
-            .created
-            .iter()
-            .map(outlet_product_row_from_value)
-            .collect::<Vec<_>>(),
-        deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(outlet_product_row_from_value)
             .collect::<Vec<_>>(),
     }
 }
@@ -234,23 +370,65 @@ pub(super) fn build_order_item_changes(changes: &TablePushChanges) -> OrderItemC
     }
 }
 
+pub(super) fn build_outlet_product_changes(changes: &TablePushChanges) -> OutletProductChanges {
+    OutletProductChanges {
+        created: changes
+            .created
+            .iter()
+            .map(outlet_product_row_from_value)
+            .collect::<Vec<_>>(),
+        deleted_ids: changes.deleted_ids.clone(),
+        updated: changes
+            .updated
+            .iter()
+            .map(outlet_product_row_from_value)
+            .collect::<Vec<_>>(),
+    }
+}
+
+pub(super) fn build_staff_changes(changes: &TablePushChanges) -> StaffChanges {
+    StaffChanges {
+        created: changes
+            .created
+            .iter()
+            .map(staff_row_from_value)
+            .collect::<Vec<_>>(),
+        deleted_ids: changes.deleted_ids.clone(),
+        updated: changes
+            .updated
+            .iter()
+            .map(staff_row_from_value)
+            .collect::<Vec<_>>(),
+    }
+}
+
 pub(super) fn build_sync_push_batch_request(
     outlet_id: &str,
     idempotency_key: &str,
-    json_tables: Vec<SyncJsonTableChanges>,
+    merchants: Option<MerchantChanges>,
+    outlets: Option<OutletChanges>,
+    registers: Option<RegisterChanges>,
+    categories: Option<CategoryChanges>,
+    assets: Option<AssetChanges>,
     products: Option<ProductChanges>,
-    outlet_products: Option<OutletProductChanges>,
     orders: Option<OrderChanges>,
     order_items: Option<OrderItemChanges>,
+    outlet_products: Option<OutletProductChanges>,
+    staff: Option<StaffChanges>,
 ) -> SyncPushBatchRequest {
     SyncPushBatchRequest {
         outlet_id: outlet_id.to_string(),
         idempotency_key: idempotency_key.to_string(),
-        json_tables,
+        merchants,
+        outlets,
+        registers,
+        categories,
+        assets,
         products,
-        outlet_products,
         orders,
         order_items,
+        outlet_products,
+        staff,
     }
 }
 
@@ -278,6 +456,81 @@ fn empty_string_to_null(value: &str) -> Value {
     }
 }
 
+fn merchant_row_to_value(row: &MerchantRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "name": row.name,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn outlet_row_to_value(row: &OutletRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "merchantId": row.merchant_id,
+        "timezone": row.timezone,
+        "name": row.name,
+        "address": empty_string_to_null(&row.address),
+        "receiptName": empty_string_to_null(&row.receipt_name),
+        "receiptAddress": empty_string_to_null(&row.receipt_address),
+        "isActive": row.is_active,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn register_row_to_value(row: &RegisterRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "outletId": row.outlet_id,
+        "name": row.name,
+        "shortId": row.short_id,
+        "pairingCode": empty_string_to_null(&row.pairing_code),
+        "pairingExpiresAt": empty_string_to_null(&row.pairing_expires_at),
+        "isActive": row.is_active,
+        "lastSeenAt": empty_string_to_null(&row.last_seen_at),
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn category_row_to_value(row: &CategoryRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "merchantId": row.merchant_id,
+        "name": row.name,
+        "sortOrder": row.sort_order,
+        "isActive": row.is_active,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn asset_row_to_value(row: &AssetRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "merchantId": row.merchant_id,
+        "objectKey": row.object_key,
+        "originalFilename": empty_string_to_null(&row.original_filename),
+        "contentType": row.content_type,
+        "byteSize": row.byte_size,
+        "contentHash": row.content_hash,
+        "kind": row.kind,
+        "width": row.width,
+        "height": row.height,
+        "status": row.status,
+        "createdByUserId": empty_string_to_null(&row.created_by_user_id),
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
 fn product_row_to_value(row: &ProductRow) -> Value {
     serde_json::json!({
         "id": row.id,
@@ -295,26 +548,12 @@ fn product_row_to_value(row: &ProductRow) -> Value {
     })
 }
 
-fn outlet_product_row_to_value(row: &OutletProductRow) -> Value {
-    serde_json::json!({
-        "id": row.id,
-        "outletId": row.outlet_id,
-        "productId": row.product_id,
-        "price": row.price_minor_units,
-        "isAvailable": row.is_available,
-        "sortOrder": row.sort_order,
-        "deletedAt": empty_string_to_null(&row.deleted_at),
-        "createdAt": row.created_at,
-        "updatedAt": row.updated_at,
-    })
-}
-
 fn order_row_to_value(row: &OrderRow) -> Value {
     serde_json::json!({
         "id": row.id,
         "outletId": row.outlet_id,
-        "registerId": row.register_id,
-        "staffId": row.staff_id,
+        "registerId": empty_string_to_null(&row.register_id),
+        "staffId": empty_string_to_null(&row.staff_id),
         "orderNumber": row.order_number,
         "total": row.total_minor_units,
         "paymentMethod": row.payment_method,
@@ -344,6 +583,36 @@ fn order_item_row_to_value(row: &OrderItemRow) -> Value {
     })
 }
 
+fn outlet_product_row_to_value(row: &OutletProductRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "outletId": row.outlet_id,
+        "productId": row.product_id,
+        "price": row.price_minor_units,
+        "isAvailable": row.is_available,
+        "sortOrder": row.sort_order,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn staff_row_to_value(row: &StaffRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "merchantId": row.merchant_id,
+        "cloudUserId": empty_string_to_null(&row.cloud_user_id),
+        "outletId": empty_string_to_null(&row.outlet_id),
+        "name": row.name,
+        "pin": empty_string_to_null(&row.pin),
+        "role": row.role,
+        "isActive": row.is_active,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
 fn typed_rows_to_json_values<T>(
     created: &[T],
     updated: &[T],
@@ -365,43 +634,66 @@ pub(super) fn decode_pull_batch_response_tables(
 ) -> Result<std::collections::BTreeMap<String, Value>, String> {
     let mut map = std::collections::BTreeMap::new();
 
-    for table in &response.json_tables {
-        let created_rows: Vec<Value> = table
-            .created_json
-            .iter()
-            .map(|row| {
-                serde_json::from_str(row).map_err(|e| {
-                    format!(
-                        "Failed to parse created JSON row for {}: {}",
-                        table.table, e
-                    )
-                })
-            })
-            .collect::<Result<_, _>>()?;
-        let updated_rows: Vec<Value> = table
-            .updated_json
-            .iter()
-            .map(|row| {
-                serde_json::from_str(row).map_err(|e| {
-                    format!(
-                        "Failed to parse updated JSON row for {}: {}",
-                        table.table, e
-                    )
-                })
-            })
-            .collect::<Result<_, _>>()?;
-
-        let mut rows = created_rows;
-        rows.extend(updated_rows);
-        rows.extend(
-            table
-                .deleted_ids
-                .iter()
-                .map(|id| serde_json::json!({ "id": id, "deletedAt": response.server_time })),
+    if let Some(changes) = &response.merchants {
+        map.insert(
+            "merchants".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.created,
+                &changes.updated,
+                &changes.deleted_ids,
+                &response.server_time,
+                merchant_row_to_value,
+            )),
         );
-        map.insert(table.table.clone(), Value::Array(rows));
     }
-
+    if let Some(changes) = &response.outlets {
+        map.insert(
+            "outlets".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.created,
+                &changes.updated,
+                &changes.deleted_ids,
+                &response.server_time,
+                outlet_row_to_value,
+            )),
+        );
+    }
+    if let Some(changes) = &response.registers {
+        map.insert(
+            "registers".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.created,
+                &changes.updated,
+                &changes.deleted_ids,
+                &response.server_time,
+                register_row_to_value,
+            )),
+        );
+    }
+    if let Some(changes) = &response.categories {
+        map.insert(
+            "categories".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.created,
+                &changes.updated,
+                &changes.deleted_ids,
+                &response.server_time,
+                category_row_to_value,
+            )),
+        );
+    }
+    if let Some(changes) = &response.assets {
+        map.insert(
+            "assets".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.created,
+                &changes.updated,
+                &changes.deleted_ids,
+                &response.server_time,
+                asset_row_to_value,
+            )),
+        );
+    }
     if let Some(changes) = &response.products {
         map.insert(
             "products".to_string(),
@@ -411,18 +703,6 @@ pub(super) fn decode_pull_batch_response_tables(
                 &changes.deleted_ids,
                 &response.server_time,
                 product_row_to_value,
-            )),
-        );
-    }
-    if let Some(changes) = &response.outlet_products {
-        map.insert(
-            "outlet_products".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
-                &changes.deleted_ids,
-                &response.server_time,
-                outlet_product_row_to_value,
             )),
         );
     }
@@ -447,6 +727,30 @@ pub(super) fn decode_pull_batch_response_tables(
                 &changes.deleted_ids,
                 &response.server_time,
                 order_item_row_to_value,
+            )),
+        );
+    }
+    if let Some(changes) = &response.outlet_products {
+        map.insert(
+            "outlet_products".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.created,
+                &changes.updated,
+                &changes.deleted_ids,
+                &response.server_time,
+                outlet_product_row_to_value,
+            )),
+        );
+    }
+    if let Some(changes) = &response.staff {
+        map.insert(
+            "staff".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.created,
+                &changes.updated,
+                &changes.deleted_ids,
+                &response.server_time,
+                staff_row_to_value,
             )),
         );
     }
@@ -481,31 +785,39 @@ mod tests {
 
     #[test]
     fn build_sync_push_batch_request_includes_idempotency_key() {
-        let json_tables = vec![build_json_table_changes(
-            "categories",
-            &TablePushChanges {
-                created: vec![json!({ "id": "cat-1" })],
-                ..Default::default()
-            },
-        )];
         let products = TablePushChanges {
             created: vec![json!({
-            "id": "product-1",
-            "merchantId": "merchant-1",
-            "name": "Kopi",
-            "price": 15_000,
-            "isActive": true,
-            "sortOrder": 1,
-            "createdAt": "2026-05-17T00:00:00.000Z",
-            "updatedAt": "2026-05-17T00:00:00.000Z",
+                "id": "product-1",
+                "merchantId": "merchant-1",
+                "name": "Kopi",
+                "price": 15_000,
+                "isActive": true,
+                "sortOrder": 1,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
             })],
             ..Default::default()
         };
         let request = build_sync_push_batch_request(
             "outlet-1",
             "sync-request-1",
-            json_tables,
+            None,
+            None,
+            None,
+            Some(build_category_changes(&TablePushChanges {
+                created: vec![json!({
+                    "id": "cat-1",
+                    "merchantId": "merchant-1",
+                    "name": "Minuman",
+                    "sortOrder": 1,
+                    "isActive": true,
+                    "updatedAt": "2026-05-17T00:00:00.000Z",
+                })],
+                ..Default::default()
+            })),
+            None,
             Some(build_product_changes(&products)),
+            None,
             None,
             None,
             None,
@@ -513,21 +825,35 @@ mod tests {
 
         assert_eq!(request.outlet_id, "outlet-1");
         assert_eq!(request.idempotency_key, "sync-request-1");
-        assert_eq!(request.json_tables.len(), 1);
-        assert_eq!(request.products.expect("products should exist").created.len(), 1);
+        assert_eq!(
+            request
+                .categories
+                .expect("categories should exist")
+                .created
+                .len(),
+            1
+        );
+        assert_eq!(
+            request
+                .products
+                .expect("products should exist")
+                .created
+                .len(),
+            1
+        );
     }
 
     #[test]
     fn product_changes_do_not_duplicate_rows_across_created_and_updated() {
         let products = TablePushChanges {
             created: vec![json!({
-            "id": "product-1",
-            "merchantId": "merchant-1",
-            "name": "Kopi",
-            "price": 15_000,
-            "isActive": true,
-            "createdAt": "2026-05-17T00:00:00.000Z",
-            "updatedAt": "2026-05-17T00:00:00.000Z",
+                "id": "product-1",
+                "merchantId": "merchant-1",
+                "name": "Kopi",
+                "price": 15_000,
+                "isActive": true,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
             })],
             ..Default::default()
         };
@@ -548,12 +874,11 @@ mod tests {
                 updated: Vec::new(),
                 deleted_ids: vec!["product-deleted".to_string()],
             }),
-            json_tables: vec![SyncJsonTableChanges {
-                table: "categories".to_string(),
-                created_json: Vec::new(),
-                updated_json: Vec::new(),
+            categories: Some(CategoryChanges {
+                created: Vec::new(),
+                updated: Vec::new(),
                 deleted_ids: vec!["cat-deleted".to_string()],
-            }],
+            }),
             ..Default::default()
         };
 
@@ -632,5 +957,32 @@ mod tests {
         assert_eq!(tables["order_items"][0]["originalPrice"], json!(20_000));
         assert_eq!(tables["order_items"][0]["subtotal"], json!(30_000));
         assert!(tables["order_items"][0].get("unitPriceMinorUnits").is_none());
+    }
+
+    #[test]
+    fn decode_pull_batch_response_maps_typed_category_to_local_db_columns() {
+        let response = SyncPullBatchResponse {
+            server_time: "2026-05-17T00:00:00.000Z".to_string(),
+            categories: Some(CategoryChanges {
+                created: vec![CategoryRow {
+                    id: "cat-1".to_string(),
+                    merchant_id: "merchant-1".to_string(),
+                    name: "Minuman".to_string(),
+                    sort_order: 1,
+                    is_active: true,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
+
+        assert_eq!(tables["categories"][0]["name"], json!("Minuman"));
+        assert_eq!(tables["categories"][0]["sortOrder"], json!(1));
+        assert_eq!(tables["categories"][0]["isActive"], json!(true));
     }
 }
