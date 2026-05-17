@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, State};
 use tokio::fs;
 
-use super::dto::{PendingPreviewPathResponse, PendingProductPhotoPreviewResponse};
+use super::dto::PendingPreviewPathResponse;
 use super::image::asset_image_preview_from_bytes;
 use crate::time_utils::{current_job_id_string, current_time_iso_string};
 
@@ -47,97 +47,6 @@ pub(super) async fn write_pending_asset_processing_preview(
         preview_path.to_string_lossy().to_string(),
         preview.preview_mime_type,
     ))
-}
-
-pub(super) async fn get_pending_asset_preview_inner(
-    pool: &SqlitePool,
-    product_id: &str,
-) -> Result<Option<PendingProductPhotoPreviewResponse>, String> {
-    let legacy_row = sqlx::query(
-        r#"
-        SELECT preview_base64, preview_mime_type
-        FROM pending_product_photo_jobs
-        WHERE product_id = ?1
-          AND status IN ('pending', 'processing')
-          AND preview_base64 IS NOT NULL
-          AND preview_mime_type IS NOT NULL
-        ORDER BY updated_at DESC
-        LIMIT 1
-        "#,
-    )
-    .bind(product_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|error| format!("Failed to inspect pending product photo preview: {}", error))?;
-
-    if let Some(row) = legacy_row {
-        return Ok(Some(PendingProductPhotoPreviewResponse {
-            preview_base64: row
-                .try_get("preview_base64")
-                .map_err(|error| format!("Failed to read preview_base64: {}", error))?,
-            preview_mime_type: row
-                .try_get("preview_mime_type")
-                .map_err(|error| format!("Failed to read preview_mime_type: {}", error))?,
-        }));
-    }
-
-    let generic_row = sqlx::query(
-        r#"
-        SELECT preview_path, preview_mime_type
-        FROM pending_asset_processing_jobs
-        WHERE entity_type = 'product'
-          AND entity_id = ?1
-          AND attachment_field = 'image_asset_id'
-          AND status IN ('pending', 'processing')
-          AND preview_path IS NOT NULL
-          AND preview_mime_type IS NOT NULL
-        ORDER BY updated_at DESC
-        LIMIT 1
-        "#,
-    )
-    .bind(product_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|error| {
-        format!(
-            "Failed to inspect pending asset processing preview: {}",
-            error
-        )
-    })?;
-
-    let Some(row) = generic_row else {
-        return Ok(None);
-    };
-
-    let preview_path: String = row
-        .try_get("preview_path")
-        .map_err(|error| format!("Failed to read pending asset preview_path: {}", error))?;
-    let preview_mime_type: String = row
-        .try_get("preview_mime_type")
-        .map_err(|error| format!("Failed to read pending asset preview_mime_type: {}", error))?;
-
-    match fs::read(&preview_path).await {
-        Ok(preview_bytes) => Ok(Some(PendingProductPhotoPreviewResponse {
-            preview_base64: general_purpose::STANDARD.encode(preview_bytes),
-            preview_mime_type,
-        })),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            log::info!(
-                "[RUST] [PHOTO:TRACE] pending_asset_preview:missing product_id={} path={}",
-                product_id,
-                preview_path
-            );
-            Ok(None)
-        }
-        Err(error) => Err(format!("Failed to read pending asset preview: {}", error)),
-    }
-}
-
-pub async fn get_pending_asset_preview(
-    product_id: String,
-    state: State<'_, crate::app::state::AppState>,
-) -> Result<Option<super::PendingProductPhotoPreviewResponse>, String> {
-    get_pending_asset_preview_inner(&state.db_pool, &product_id).await
 }
 
 pub async fn get_pending_preview_path(

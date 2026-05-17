@@ -5,12 +5,10 @@ use crate::app::state::AppState;
 use super::cache::{
     cache_asset_webp as cache_asset_webp_impl,
     get_cached_asset_path as get_cached_asset_path_impl,
-    read_cached_asset_data as read_cached_asset_data_impl,
 };
 use super::dto::{
     CachedAssetPathResponse, EnqueueAssetProcessingRequest, EnqueueAssetProcessingResponse,
-    PendingPreviewPathResponse, PendingProductPhotoPreviewResponse, PreparedLocalAssetResponse,
-    ProcessedImageResponse,
+    PendingPreviewPathResponse, PreparedLocalAssetResponse, ProcessedImageResponse,
 };
 
 #[command]
@@ -20,14 +18,6 @@ pub async fn cache_asset_webp(
     data_base64: String,
 ) -> Result<crate::assets::CachedAssetResponse, String> {
     cache_asset_webp_impl(app, object_key, data_base64).await
-}
-
-#[command]
-pub async fn read_cached_asset_data(
-    asset_id: String,
-    state: State<'_, AppState>,
-) -> Result<Option<crate::assets::CachedAssetDataResponse>, String> {
-    read_cached_asset_data_impl(asset_id, state).await
 }
 
 #[command]
@@ -95,14 +85,6 @@ pub async fn prepare_local_image_asset_from_path(
         path,
     )
     .await
-}
-
-#[command]
-pub async fn get_pending_asset_preview(
-    product_id: String,
-    state: State<'_, AppState>,
-) -> Result<Option<PendingProductPhotoPreviewResponse>, String> {
-    super::processing_jobs::get_pending_asset_preview(product_id, state).await
 }
 
 #[command]

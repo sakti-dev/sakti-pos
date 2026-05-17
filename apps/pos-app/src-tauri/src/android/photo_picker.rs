@@ -23,8 +23,6 @@ pub struct PickedProductPhoto {
     pub path: String,
     pub original_filename: String,
     pub mime_type: String,
-    pub preview_base64: Option<String>,
-    pub preview_mime_type: Option<String>,
     pub source: ProductPhotoSource,
 }
 
@@ -61,16 +59,12 @@ pub fn picked_product_photo_from_path(
     path: PathBuf,
     original_filename: String,
     mime_type: String,
-    preview_base64: Option<String>,
-    preview_mime_type: Option<String>,
     source: ProductPhotoSource,
 ) -> PickedProductPhoto {
     PickedProductPhoto {
         path: path.to_string_lossy().to_string(),
         original_filename,
         mime_type,
-        preview_base64,
-        preview_mime_type,
         source,
     }
 }

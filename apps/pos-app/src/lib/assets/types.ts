@@ -32,7 +32,5 @@ export interface PickedProductPhoto {
   mimeType: string;
   originalFilename: string;
   path: string;
-  previewBase64?: string;
-  previewMimeType?: string;
   source: ProductPhotoSource;
 }
