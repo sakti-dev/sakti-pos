@@ -4,6 +4,7 @@ import { reflectSyncTables } from "./drizzle-reflection";
 import { type GenerateMode, resolveGeneratorOutputPath } from "./file-output";
 import { syncManifest } from "./manifest";
 import { renderSyncProto } from "./proto-writer";
+import { renderApiSyncMappers } from "./ts-mapper-writer";
 
 declare const Bun: { argv: string[] };
 
@@ -17,9 +18,16 @@ function parseMode(argv: string[]): GenerateMode {
 }
 
 const tables = reflectSyncTables(await import("@repo/database"), syncManifest);
-const proto = renderSyncProto(syncManifest, tables);
 const mode = parseMode(Bun.argv);
-const outputPath = resolveGeneratorOutputPath(mode, "sync.proto");
-mkdirSync(dirname(outputPath), { recursive: true });
-writeFileSync(outputPath, proto);
-console.log(`[SYNC_PROTO_GENERATOR] wrote ${outputPath}`);
+
+const proto = renderSyncProto(syncManifest, tables);
+const protoPath = resolveGeneratorOutputPath(mode, "sync.proto");
+mkdirSync(dirname(protoPath), { recursive: true });
+writeFileSync(protoPath, proto);
+console.log(`[SYNC_PROTO_GENERATOR] wrote ${protoPath}`);
+
+const mappers = renderApiSyncMappers(syncManifest, tables);
+const mappersPath = resolveGeneratorOutputPath(mode, "api-sync-mappers.ts");
+mkdirSync(dirname(mappersPath), { recursive: true });
+writeFileSync(mappersPath, mappers);
+console.log(`[SYNC_PROTO_GENERATOR] wrote ${mappersPath}`);
