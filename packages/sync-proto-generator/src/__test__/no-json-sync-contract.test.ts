@@ -10,6 +10,11 @@ const packagesRoot = join(
   ".."
 );
 
+const JSON_SYNC_CONTRACT_PATTERN =
+  /jsonTables|createdJson|updatedJson|SyncJsonTableChanges/;
+
+const repoRoot = join(packagesRoot, "..");
+
 describe("typed sync contract cleanup", () => {
   test("sync protobuf contract has no JSON row table payload", () => {
     const proto = readFileSync(
@@ -20,5 +25,15 @@ describe("typed sync contract cleanup", () => {
     expect(proto).not.toContain("SyncJsonTableChanges");
     expect(proto).not.toContain("created_json");
     expect(proto).not.toContain("updated_json");
+    expect(proto).not.toContain("json_tables");
+  });
+
+  test("generated API mapper has no JSON row references", () => {
+    const generatedTs = readFileSync(
+      join(repoRoot, "apps", "api", "src", "sync", "protobuf.generated.ts"),
+      "utf8"
+    );
+
+    expect(generatedTs).not.toMatch(JSON_SYNC_CONTRACT_PATTERN);
   });
 });
