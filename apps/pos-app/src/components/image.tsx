@@ -1,49 +1,52 @@
-import type { Accessor } from "solid-js";
-import { Show } from "solid-js";
+import type { Accessor, JSX } from "solid-js";
+import { Show, splitProps } from "solid-js";
 import { productImageAdapter } from "~/lib/assets/adapters/product-images";
 
-interface ImageBaseProps {
-  alt: string;
-  class?: string;
+interface ImageBaseProps extends JSX.ImgHTMLAttributes<HTMLImageElement> {
+  fallback?: JSX.Element;
   imageUrl: Accessor<string | null>;
 }
 
 function ImageBase(props: ImageBaseProps) {
+  const [local, imgProps] = splitProps(props, [
+    "imageUrl",
+    "fallback",
+    "class",
+    "alt",
+  ]);
+
+  const classStr = () =>
+    `flex items-center justify-center bg-muted text-muted-foreground text-xs ${local.class ?? ""}`;
+
   return (
     <Show
-      fallback={
-        <div
-          class={`flex items-center justify-center rounded-lg bg-muted text-muted-foreground text-xs ${props.class ?? ""}`}
-        >
-          Foto
-        </div>
-      }
-      when={props.imageUrl()}
+      fallback={<div class={classStr()}>{local.fallback ?? "Foto"}</div>}
+      when={local.imageUrl()}
     >
       {(src) => (
+        // biome-ignore lint/correctness/useImageSize: dimensions come from imgProps spread
         <img
-          alt={props.alt}
-          class={`object-cover ${props.class ?? ""}`}
-          height={64}
+          alt={local.alt ?? ""}
+          {...imgProps}
+          class={`object-cover ${local.class ?? ""}`}
           src={src()}
-          width={64}
         />
       )}
     </Show>
   );
 }
 
-interface ProductImageProps {
-  alt: string;
-  class?: string;
+interface ProductImageProps extends JSX.ImgHTMLAttributes<HTMLImageElement> {
   entityId?: string | null;
   imageAssetId?: string | null;
 }
 
 export function ProductImage(props: ProductImageProps) {
+  const [local, imgProps] = splitProps(props, ["entityId", "imageAssetId"]);
+
   const imageUrl = productImageAdapter.useImageUrl(
-    () => props.imageAssetId,
-    () => props.entityId
+    () => local.imageAssetId,
+    () => local.entityId
   );
-  return <ImageBase alt={props.alt} class={props.class} imageUrl={imageUrl} />;
+  return <ImageBase {...imgProps} imageUrl={imageUrl} />;
 }

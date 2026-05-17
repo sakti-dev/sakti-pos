@@ -36,11 +36,12 @@ describe("ProductImage", () => {
       />
     ));
 
-    expect(screen.getByText("Foto")).toBeInTheDocument();
-    expect(screen.getByText("Foto").classList.toString()).toContain("size-12");
+    const fallback = screen.getByText("Foto");
+    expect(fallback).toBeInTheDocument();
+    expect(fallback.closest("div")!.classList.toString()).toContain("size-12");
   });
 
-  test("renders image when URL is available", () => {
+  test("renders image with class and passthrough img props", () => {
     mockUseImageUrl.mockReturnValue(
       () => "https://asset.localhost/cached.webp?v=0"
     );
@@ -48,9 +49,10 @@ describe("ProductImage", () => {
     render(() => (
       <ProductImage
         alt="Nasi goreng"
-        class="size-12"
+        class="h-16 w-full rounded-md"
         entityId="product-1"
         imageAssetId="asset-1"
+        loading="lazy"
       />
     ));
 
@@ -60,7 +62,10 @@ describe("ProductImage", () => {
       "src",
       "https://asset.localhost/cached.webp?v=0"
     );
+    expect(img).toHaveAttribute("loading", "lazy");
     expect(img.classList.toString()).toContain("object-cover");
+    expect(img.classList.toString()).toContain("h-16");
+    expect(img.classList.toString()).toContain("w-full");
   });
 
   test("delegates to adapter useImageUrl hook with accessors", () => {
