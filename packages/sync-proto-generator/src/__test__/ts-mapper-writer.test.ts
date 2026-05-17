@@ -37,9 +37,34 @@ describe("TypeScript API sync mapper writer", () => {
     expect(source).toContain(
       "staff: mapTableChanges(result.staff, staffRowToProto)"
     );
-    expect(source).toContain(
-      "orderItems: mapTableChanges(result.orderItems, orderItemRowToProto)"
+  });
+
+  test("encodes pull responses from service keys, not ts-proto keys", () => {
+    const source = renderApiSyncMappers(
+      syncManifest,
+      reflectSyncTables(localSchema, syncManifest)
     );
+
+    expect(source).toContain(
+      "orderItems: mapTableChanges(result.order_items, orderItemRowToProto)"
+    );
+    expect(source).toContain(
+      "outletProducts: mapTableChanges(result.outlet_products, outletProductRowToProto)"
+    );
+    expect(source).not.toContain("result.orderItems");
+    expect(source).not.toContain("result.outletProducts");
+  });
+
+  test("decodes push requests using ts-proto field names into service keys", () => {
+    const source = renderApiSyncMappers(
+      syncManifest,
+      reflectSyncTables(localSchema, syncManifest)
+    );
+
+    expect(source).toContain("if (request.orderItems) {");
+    expect(source).toContain("changes.order_items = {");
+    expect(source).toContain("if (request.outletProducts) {");
+    expect(source).toContain("changes.outlet_products = {");
   });
 
   test("renders row to proto functions for every sync table", () => {

@@ -20,10 +20,6 @@ function renderChangesMessage(table: ReflectedSyncTable): string {
   ].join("\n");
 }
 
-function tableFieldName(tableName: string): string {
-  return tableName;
-}
-
 function renderPushRequest(manifest: SyncManifest): string {
   const lines = [
     "message SyncPushBatchRequest {",
@@ -32,7 +28,7 @@ function renderPushRequest(manifest: SyncManifest): string {
   ];
   for (const [index, table] of manifest.tables.entries()) {
     lines.push(
-      `  ${table.changeMessageName} ${tableFieldName(table.tableName)} = ${
+      `  ${table.changeMessageName} ${table.protoFieldName} = ${
         manifest.requestTypedFieldStart + index
       };`
     );
@@ -45,7 +41,7 @@ function renderPullResponse(manifest: SyncManifest): string {
   const lines = ["message SyncPullBatchResponse {"];
   for (const [index, table] of manifest.tables.entries()) {
     lines.push(
-      `  ${table.changeMessageName} ${tableFieldName(table.tableName)} = ${
+      `  ${table.changeMessageName} ${table.protoFieldName} = ${
         manifest.requestTypedFieldStart + index
       };`
     );

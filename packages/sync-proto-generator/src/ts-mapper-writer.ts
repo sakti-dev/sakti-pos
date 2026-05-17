@@ -100,16 +100,15 @@ function renderDecodeFunction(tables: ReflectedSyncTable[]): string {
   ];
 
   for (const table of tables) {
-    const pfName = snakeToCamel(table.tableName);
-    lines.push(`  if (request.${pfName}) {`);
-    lines.push(`    changes.${table.tableName} = {`);
+    lines.push(`  if (request.${table.tsProtoFieldName}) {`);
+    lines.push(`    changes.${table.serviceKey} = {`);
     lines.push(
-      `      created: request.${pfName}.created.map((row: any) => ({ ...row })),`
+      `      created: request.${table.tsProtoFieldName}.created.map((row: any) => ({ ...row })),`
     );
     lines.push(
-      `      updated: request.${pfName}.updated.map((row: any) => ({ ...row })),`
+      `      updated: request.${table.tsProtoFieldName}.updated.map((row: any) => ({ ...row })),`
     );
-    lines.push(`      deletedIds: request.${pfName}.deletedIds,`);
+    lines.push(`      deletedIds: request.${table.tsProtoFieldName}.deletedIds,`);
     lines.push("    };");
     lines.push("  }");
     lines.push("");
@@ -127,10 +126,9 @@ function renderEncodeFunction(tables: ReflectedSyncTable[]): string {
   ];
 
   for (const table of tables) {
-    const pfName = snakeToCamel(table.tableName);
     const funcName = rowToProtoFuncName(table.rowMessageName);
     lines.push(
-      `    ${pfName}: mapTableChanges(result.${pfName}, ${funcName}),`
+      `    ${table.tsProtoFieldName}: mapTableChanges(result.${table.serviceKey}, ${funcName}),`
     );
   }
 

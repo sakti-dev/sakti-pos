@@ -73,7 +73,7 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
     const result = mod.encodeGeneratedPullBatchResponse({
       latestEventId: 12,
       needsFullResync: false,
-      orderItems: {
+      order_items: {
         created: [
           {
             id: "item-1",
@@ -145,7 +145,7 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
     const result = mod.encodeGeneratedPullBatchResponse({
       latestEventId: 12,
       needsFullResync: false,
-      outletProducts: {
+      outlet_products: {
         created: [
           {
             id: "op-1",

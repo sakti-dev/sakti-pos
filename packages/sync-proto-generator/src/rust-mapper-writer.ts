@@ -232,10 +232,10 @@ function renderBuildPushRequest(manifest: SyncManifest): string {
   ];
 
   for (const table of manifest.tables) {
-    const pfName = table.tableName;
+    const rustField = table.rustFieldName;
     const paramType = table.changeMessageName;
-    params.push(`${pfName}: Option<${paramType}>`);
-    fields.push(`${pfName}`);
+    params.push(`${rustField}: Option<${paramType}>`);
+    fields.push(`${rustField}`);
   }
 
   return [
@@ -259,11 +259,11 @@ function renderDecodePullResponse(tables: ReflectedSyncTable[]): string {
   ];
 
   for (const table of tables) {
-    const pfName = table.tableName;
+    const rustField = table.rustFieldName;
     const rowFunc = rowToValueFuncName(table.rowMessageName);
-    lines.push(`    if let Some(changes) = &response.${pfName} {`);
+    lines.push(`    if let Some(changes) = &response.${rustField} {`);
     lines.push("        map.insert(");
-    lines.push(`            "${table.tableName}".to_string(),`);
+    lines.push(`            "${table.serviceKey}".to_string(),`);
     lines.push("            Value::Array(typed_rows_to_json_values(");
     lines.push("                &changes.created,");
     lines.push("                &changes.updated,");
