@@ -4,6 +4,12 @@ import { protoFetch } from "../client";
 
 const originalFetch = globalThis.fetch;
 
+vi.mock("~/lib/auth/storage", () => ({
+  AuthStorage: {
+    getToken: vi.fn(),
+  },
+}));
+
 describe("protoFetch", () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -11,6 +17,10 @@ describe("protoFetch", () => {
   });
 
   test("posts protobuf request and decodes protobuf response", async () => {
+    const { AuthStorage } = await import("~/lib/auth/storage");
+    (AuthStorage.getToken as ReturnType<typeof vi.fn>).mockResolvedValue(
+      "test-token"
+    );
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const request = input as unknown as Request;
       expect(request.method).toBe("POST");
@@ -23,7 +33,7 @@ describe("protoFetch", () => {
         new Uint8Array(await request.arrayBuffer())
       );
       expect(requestBody).toEqual({
-        lastServerEventId: 10,
+        lastServerEventId: 10n,
         outletId: "outlet-1",
       });
 
@@ -32,9 +42,9 @@ describe("protoFetch", () => {
           changedTables: ["products"],
           hasChanges: true,
           hasOldestAvailableEventId: true,
-          latestEventId: 12,
+          latestEventId: 12n,
           needsFullResync: false,
-          oldestAvailableEventId: 10,
+          oldestAvailableEventId: 10n,
         })
       ).finish();
 
@@ -49,12 +59,12 @@ describe("protoFetch", () => {
       "api/sync/status",
       { req: SyncStatusRequest, res: SyncStatusResponse },
       SyncStatusRequest.create({
-        lastServerEventId: 10,
+        lastServerEventId: 10n,
         outletId: "outlet-1",
       })
     );
 
-    expect(result.latestEventId).toBe(12);
+    expect(result.latestEventId).toBe(12n);
     expect(result.changedTables).toEqual(["products"]);
   });
 });

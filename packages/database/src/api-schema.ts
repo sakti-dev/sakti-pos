@@ -1,5 +1,10 @@
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 
 export const merchants = sqliteTable("merchants", {
@@ -60,6 +65,27 @@ export const syncEvents = sqliteTable("sync_events", {
   }).notNull(),
   changedAt: text("changed_at").notNull(),
 });
+
+export const syncBatchRequests = sqliteTable(
+  "sync_batch_requests",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
+    scopeId: text("scope_id").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    responseJson: text("response_json").notNull(),
+    latestEventId: integer("latest_event_id").notNull().default(0),
+    serverTime: text("server_time").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => ({
+    scopeIdempotencyKey: uniqueIndex(
+      "sync_batch_requests_scope_idempotency_key_unique"
+    ).on(table.scopeType, table.scopeId, table.idempotencyKey),
+  })
+);
 
 export const outlets = sqliteTable("outlets", {
   id: text("id")

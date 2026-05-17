@@ -161,11 +161,7 @@ async function hydrateProductImagesOnce(
 }
 
 async function invokeSyncTransfer(
-  command:
-    | "sync_full_resync"
-    | "sync_now"
-    | "sync_pull_events"
-    | "sync_push_outbox",
+  command: "sync_full_resync" | "sync_now" | "sync_pull" | "sync_push",
   params: Record<string, unknown>,
   mode: SyncMode
 ): Promise<SyncNowResult> {
@@ -245,7 +241,11 @@ async function syncNowInner(): Promise<SyncNowResult> {
     if (localState.needs_baseline_sync || serverStatus.needsFullResync) {
       result = await invokeSyncTransfer(
         "sync_full_resync",
-        { ...baseParams, latestEventId: serverStatus.latestEventId },
+        {
+          ...baseParams,
+          latestEventId: serverStatus.latestEventId,
+          tables: serverStatus.changedTables,
+        },
         "full"
       );
     } else if (
@@ -253,17 +253,17 @@ async function syncNowInner(): Promise<SyncNowResult> {
     ) {
       result = emptySyncResult("skipped");
     } else if (hasLocalChanges && hasServerChanges) {
-      result = await invokeSyncTransfer("sync_now", baseParams, "full");
-    } else if (hasLocalChanges) {
       result = await invokeSyncTransfer(
-        "sync_push_outbox",
-        baseParams,
-        "push_only"
+        "sync_now",
+        { ...baseParams, tables: serverStatus.changedTables },
+        "full"
       );
+    } else if (hasLocalChanges) {
+      result = await invokeSyncTransfer("sync_push", baseParams, "push_only");
     } else {
       result = await invokeSyncTransfer(
-        "sync_pull_events",
-        { ...baseParams, latestEventId: serverStatus.latestEventId },
+        "sync_pull",
+        { ...baseParams, tables: serverStatus.changedTables },
         "pull_only"
       );
     }
@@ -309,4 +309,15 @@ export async function runStartupSync(): Promise<void> {
   } catch {
     setSyncStatus("offline");
   }
+}
+
+export function __resetSyncStateForTests() {
+  stopSyncScheduler();
+  inFlightSync = null;
+  followUpSyncRequested = false;
+  inFlightAssetHydration = null;
+  followUpAssetHydrationRequested = false;
+  setSyncStatus("idle");
+  setLastSyncTime(null);
+  setLastAssetQueueCount(0);
 }

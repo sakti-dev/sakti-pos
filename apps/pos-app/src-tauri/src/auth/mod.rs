@@ -1,5 +1,5 @@
-use serde::Serialize;
 use serde::Deserialize;
+use serde::Serialize;
 #[cfg(not(target_os = "android"))]
 use std::sync::Mutex;
 use tauri::{plugin::TauriPlugin, Manager, Runtime};

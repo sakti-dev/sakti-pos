@@ -15,7 +15,7 @@ export interface Asset {
   objectKey: string;
   originalFilename: string;
   contentType: string;
-  byteSize: number;
+  byteSize: bigint;
   contentHash: string;
   kind: string;
   width: number;
@@ -35,7 +35,7 @@ export interface AssetHeader {
 export interface AssetPresignUploadRequest {
   merchantId: string;
   contentHash: string;
-  byteSize: number;
+  byteSize: bigint;
   contentType: string;
   kind: string;
   originalFilename: string;
@@ -55,7 +55,7 @@ export interface AssetCompleteUploadRequest {
   assetId: string;
   objectKey: string;
   contentHash: string;
-  byteSize: number;
+  byteSize: bigint;
 }
 
 export interface AssetCompleteUploadResponse {
@@ -77,7 +77,7 @@ function createBaseAsset(): Asset {
     objectKey: "",
     originalFilename: "",
     contentType: "",
-    byteSize: 0,
+    byteSize: 0n,
     contentHash: "",
     kind: "",
     width: 0,
@@ -107,7 +107,10 @@ export const Asset: MessageFns<Asset> = {
     if (message.contentType !== "") {
       writer.uint32(42).string(message.contentType);
     }
-    if (message.byteSize !== 0) {
+    if (message.byteSize !== 0n) {
+      if (BigInt.asIntN(64, message.byteSize) !== message.byteSize) {
+        throw new globalThis.Error("value provided for field message.byteSize of type int64 too large");
+      }
       writer.uint32(48).int64(message.byteSize);
     }
     if (message.contentHash !== "") {
@@ -192,7 +195,7 @@ export const Asset: MessageFns<Asset> = {
             break;
           }
 
-          message.byteSize = longToNumber(reader.int64());
+          message.byteSize = reader.int64() as bigint;
           continue;
         }
         case 7: {
@@ -300,10 +303,10 @@ export const Asset: MessageFns<Asset> = {
         ? globalThis.String(object.content_type)
         : "",
       byteSize: isSet(object.byteSize)
-        ? globalThis.Number(object.byteSize)
+        ? BigInt(object.byteSize)
         : isSet(object.byte_size)
-        ? globalThis.Number(object.byte_size)
-        : 0,
+        ? BigInt(object.byte_size)
+        : 0n,
       contentHash: isSet(object.contentHash)
         ? globalThis.String(object.contentHash)
         : isSet(object.content_hash)
@@ -353,8 +356,8 @@ export const Asset: MessageFns<Asset> = {
     if (message.contentType !== "") {
       obj.contentType = message.contentType;
     }
-    if (message.byteSize !== 0) {
-      obj.byteSize = Math.round(message.byteSize);
+    if (message.byteSize !== 0n) {
+      obj.byteSize = message.byteSize.toString();
     }
     if (message.contentHash !== "") {
       obj.contentHash = message.contentHash;
@@ -396,7 +399,7 @@ export const Asset: MessageFns<Asset> = {
     message.objectKey = object.objectKey ?? "";
     message.originalFilename = object.originalFilename ?? "";
     message.contentType = object.contentType ?? "";
-    message.byteSize = object.byteSize ?? 0;
+    message.byteSize = object.byteSize ?? 0n;
     message.contentHash = object.contentHash ?? "";
     message.kind = object.kind ?? "";
     message.width = object.width ?? 0;
@@ -490,7 +493,7 @@ function createBaseAssetPresignUploadRequest(): AssetPresignUploadRequest {
   return {
     merchantId: "",
     contentHash: "",
-    byteSize: 0,
+    byteSize: 0n,
     contentType: "",
     kind: "",
     originalFilename: "",
@@ -509,7 +512,10 @@ export const AssetPresignUploadRequest: MessageFns<AssetPresignUploadRequest> = 
     if (message.contentHash !== "") {
       writer.uint32(18).string(message.contentHash);
     }
-    if (message.byteSize !== 0) {
+    if (message.byteSize !== 0n) {
+      if (BigInt.asIntN(64, message.byteSize) !== message.byteSize) {
+        throw new globalThis.Error("value provided for field message.byteSize of type int64 too large");
+      }
       writer.uint32(24).int64(message.byteSize);
     }
     if (message.contentType !== "") {
@@ -564,7 +570,7 @@ export const AssetPresignUploadRequest: MessageFns<AssetPresignUploadRequest> = 
             break;
           }
 
-          message.byteSize = longToNumber(reader.int64());
+          message.byteSize = reader.int64() as bigint;
           continue;
         }
         case 4: {
@@ -645,10 +651,10 @@ export const AssetPresignUploadRequest: MessageFns<AssetPresignUploadRequest> = 
         ? globalThis.String(object.content_hash)
         : "",
       byteSize: isSet(object.byteSize)
-        ? globalThis.Number(object.byteSize)
+        ? BigInt(object.byteSize)
         : isSet(object.byte_size)
-        ? globalThis.Number(object.byte_size)
-        : 0,
+        ? BigInt(object.byte_size)
+        : 0n,
       contentType: isSet(object.contentType)
         ? globalThis.String(object.contentType)
         : isSet(object.content_type)
@@ -683,8 +689,8 @@ export const AssetPresignUploadRequest: MessageFns<AssetPresignUploadRequest> = 
     if (message.contentHash !== "") {
       obj.contentHash = message.contentHash;
     }
-    if (message.byteSize !== 0) {
-      obj.byteSize = Math.round(message.byteSize);
+    if (message.byteSize !== 0n) {
+      obj.byteSize = message.byteSize.toString();
     }
     if (message.contentType !== "") {
       obj.contentType = message.contentType;
@@ -717,7 +723,7 @@ export const AssetPresignUploadRequest: MessageFns<AssetPresignUploadRequest> = 
     const message = createBaseAssetPresignUploadRequest();
     message.merchantId = object.merchantId ?? "";
     message.contentHash = object.contentHash ?? "";
-    message.byteSize = object.byteSize ?? 0;
+    message.byteSize = object.byteSize ?? 0n;
     message.contentType = object.contentType ?? "";
     message.kind = object.kind ?? "";
     message.originalFilename = object.originalFilename ?? "";
@@ -830,7 +836,7 @@ export const AssetPresignUploadResponse: MessageFns<AssetPresignUploadResponse> 
 };
 
 function createBaseAssetCompleteUploadRequest(): AssetCompleteUploadRequest {
-  return { assetId: "", objectKey: "", contentHash: "", byteSize: 0 };
+  return { assetId: "", objectKey: "", contentHash: "", byteSize: 0n };
 }
 
 export const AssetCompleteUploadRequest: MessageFns<AssetCompleteUploadRequest> = {
@@ -844,7 +850,10 @@ export const AssetCompleteUploadRequest: MessageFns<AssetCompleteUploadRequest> 
     if (message.contentHash !== "") {
       writer.uint32(26).string(message.contentHash);
     }
-    if (message.byteSize !== 0) {
+    if (message.byteSize !== 0n) {
+      if (BigInt.asIntN(64, message.byteSize) !== message.byteSize) {
+        throw new globalThis.Error("value provided for field message.byteSize of type int64 too large");
+      }
       writer.uint32(32).int64(message.byteSize);
     }
     return writer;
@@ -886,7 +895,7 @@ export const AssetCompleteUploadRequest: MessageFns<AssetCompleteUploadRequest> 
             break;
           }
 
-          message.byteSize = longToNumber(reader.int64());
+          message.byteSize = reader.int64() as bigint;
           continue;
         }
       }
@@ -916,10 +925,10 @@ export const AssetCompleteUploadRequest: MessageFns<AssetCompleteUploadRequest> 
         ? globalThis.String(object.content_hash)
         : "",
       byteSize: isSet(object.byteSize)
-        ? globalThis.Number(object.byteSize)
+        ? BigInt(object.byteSize)
         : isSet(object.byte_size)
-        ? globalThis.Number(object.byte_size)
-        : 0,
+        ? BigInt(object.byte_size)
+        : 0n,
     };
   },
 
@@ -934,8 +943,8 @@ export const AssetCompleteUploadRequest: MessageFns<AssetCompleteUploadRequest> 
     if (message.contentHash !== "") {
       obj.contentHash = message.contentHash;
     }
-    if (message.byteSize !== 0) {
-      obj.byteSize = Math.round(message.byteSize);
+    if (message.byteSize !== 0n) {
+      obj.byteSize = message.byteSize.toString();
     }
     return obj;
   },
@@ -948,7 +957,7 @@ export const AssetCompleteUploadRequest: MessageFns<AssetCompleteUploadRequest> 
     message.assetId = object.assetId ?? "";
     message.objectKey = object.objectKey ?? "";
     message.contentHash = object.contentHash ?? "";
-    message.byteSize = object.byteSize ?? 0;
+    message.byteSize = object.byteSize ?? 0n;
     return message;
   },
 };
@@ -1139,24 +1148,13 @@ export const AssetPresignDownloadResponse: MessageFns<AssetPresignDownloadRespon
   },
 };
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | bigint | undefined;
 
 export type DeepPartial<T> = T extends Builtin ? T
   : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
-
-function longToNumber(int64: { toString(): string }): number {
-  const num = globalThis.Number(int64.toString());
-  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
-  }
-  return num;
-}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

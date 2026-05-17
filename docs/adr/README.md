@@ -15,6 +15,7 @@ Use frontmatter `domains` to group decisions by topic. Keep operational referenc
 | [0005](0005-use-cloud-staff-mapping-for-pos-login.md) | accepted | `auth`, `staff`, `sync`, `api` | Use Cloud Staff Mapping For POS Login |
 | [0006](0006-use-schema-compatibility-and-version-gating.md) | accepted | `schema`, `sync`, `api`, `pos` | Use Schema Compatibility And Version Gating |
 | [0007](0007-use-android-native-thermal-receipt-printing.md) | accepted | `printer`, `android`, `pos`, `hardware` | Use Android Native Thermal Receipt Printing |
+| [0008](0008-use-idempotent-sync-batches-and-paged-pulls.md) | accepted | `sync`, `api`, `protobuf`, `sqlite` | Use Idempotent Sync Batches And Paged Pulls |
 
 ## Status Values
 

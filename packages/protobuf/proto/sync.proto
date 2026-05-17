@@ -2,21 +2,6 @@ syntax = "proto3";
 
 package sakti.sync.v1;
 
-message SyncPushRequest {
-  string outlet_id = 1;
-  string payload_json = 2;
-}
-
-message SyncServerWin {
-  string table = 1;
-  repeated string ids = 2;
-}
-
-message SyncPushResponse {
-  repeated SyncServerWin server_wins = 1;
-  string server_time = 2;
-}
-
 message SyncStatusRequest {
   string outlet_id = 1;
   int64 last_server_event_id = 2;
@@ -31,29 +16,141 @@ message SyncStatusResponse {
   bool has_oldest_available_event_id = 6;
 }
 
-message SyncPullEventsRequest {
+message SyncJsonTableChanges {
+  string table = 1;
+  repeated string created_json = 2;
+  repeated string updated_json = 3;
+  repeated string deleted_ids = 4;
+}
+
+message SyncRejectedRow {
+  string id = 1;
+  string reason = 2;
+}
+
+message SyncTableAck {
+  string table = 1;
+  repeated string accepted_created_ids = 2;
+  repeated string accepted_updated_ids = 3;
+  repeated string accepted_deleted_ids = 4;
+  repeated SyncRejectedRow rejected = 5;
+}
+
+message ProductRow {
+  string id = 1;
+  string merchant_id = 2;
+  string category_id = 3;
+  string name = 4;
+  int64 price_minor_units = 5;
+  string image_url = 6;
+  string image_asset_id = 7;
+  bool is_active = 8;
+  int64 sort_order = 9;
+  string deleted_at = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message OutletProductRow {
+  string id = 1;
+  string outlet_id = 2;
+  string product_id = 3;
+  int64 price_minor_units = 4;
+  bool is_available = 5;
+  int64 sort_order = 6;
+  string deleted_at = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message OrderRow {
+  string id = 1;
+  string outlet_id = 2;
+  string register_id = 3;
+  string staff_id = 4;
+  string order_number = 5;
+  int64 total_minor_units = 6;
+  string payment_method = 7;
+  int64 amount_paid_minor_units = 8;
+  int64 change_amount_minor_units = 9;
+  string status = 10;
+  string deleted_at = 11;
+  string created_at = 12;
+  string updated_at = 13;
+}
+
+message OrderItemRow {
+  string id = 1;
+  string order_id = 2;
+  string outlet_id = 3;
+  string product_id = 4;
+  string product_name = 5;
+  int64 quantity = 6;
+  int64 unit_price_minor_units = 7;
+  int64 original_price_minor_units = 8;
+  int64 subtotal_minor_units = 9;
+  string deleted_at = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message ProductChanges {
+  repeated ProductRow created = 1;
+  repeated ProductRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message OutletProductChanges {
+  repeated OutletProductRow created = 1;
+  repeated OutletProductRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message OrderChanges {
+  repeated OrderRow created = 1;
+  repeated OrderRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message OrderItemChanges {
+  repeated OrderItemRow created = 1;
+  repeated OrderItemRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message SyncPushBatchRequest {
+  string outlet_id = 1;
+  string idempotency_key = 2;
+  repeated SyncJsonTableChanges json_tables = 3;
+  ProductChanges products = 10;
+  OutletProductChanges outlet_products = 11;
+  OrderChanges orders = 12;
+  OrderItemChanges order_items = 13;
+}
+
+message SyncPushBatchResponse {
+  repeated SyncTableAck tables = 1;
+  string server_time = 2;
+  int64 latest_event_id = 3;
+}
+
+message SyncPullBatchRequest {
   string outlet_id = 1;
   int64 after_event_id = 2;
+  repeated string tables = 3;
+  int32 limit = 4;
+  string page_cursor = 5;
 }
 
-message SyncTableRows {
-  string table = 1;
-  string rows_json = 2;
-}
-
-message SyncPullEventsResponse {
-  repeated SyncTableRows tables = 1;
-  int64 latest_event_id = 2;
-  bool needs_full_resync = 3;
-}
-
-message SyncPullRequest {
-  string outlet_id = 1;
-  repeated string tables = 2;
-  string since = 3;
-}
-
-message SyncPullResponse {
-  repeated SyncTableRows tables = 1;
-  string server_time = 2;
+message SyncPullBatchResponse {
+  repeated SyncJsonTableChanges json_tables = 1;
+  ProductChanges products = 10;
+  OutletProductChanges outlet_products = 11;
+  OrderChanges orders = 12;
+  OrderItemChanges order_items = 13;
+  int64 latest_event_id = 20;
+  bool needs_full_resync = 21;
+  string server_time = 22;
+  bool has_more = 23;
+  string next_page_cursor = 24;
 }

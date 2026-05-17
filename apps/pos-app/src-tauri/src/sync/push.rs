@@ -1,16 +1,21 @@
 use prost::Message;
 use serde_json::Value;
 use sqlx::{Row, SqliteConnection, SqlitePool};
+use std::collections::{HashMap, HashSet};
+use uuid::Uuid;
 
 use crate::time_utils::current_time_iso_string;
 
 use super::http::build_client;
-use super::protobuf::{build_sync_push_request, server_wins_to_skip_map};
-use super::schema::{
-    camel_to_snake, get_filter_value, get_table_filter_column, mark_rows_synced_tx,
-    read_unsynced_rows,
+use super::protobuf::{
+    build_order_changes, build_order_item_changes, build_outlet_product_changes,
+    build_product_changes, build_sync_push_batch_request,
 };
-use super::sync_proto::SyncPushResponse;
+use super::schema::{
+    camel_to_snake, get_filter_value, mark_rows_synced_by_id_tx,
+    read_unsynced_table_changes_from_outbox,
+};
+use super::sync_proto::SyncPushBatchResponse;
 use super::SYNC_TABLES;
 
 #[derive(Debug, serde::Serialize)]
@@ -18,6 +23,19 @@ pub struct PushResult {
     pub tables_synced: Vec<String>,
     pub server_wins_count: usize,
     pub server_time: String,
+}
+
+pub(super) fn accepted_ids_by_table(
+    response: &SyncPushBatchResponse,
+) -> HashMap<String, HashSet<String>> {
+    let mut result = HashMap::new();
+    for ack in &response.tables {
+        let ids = result.entry(ack.table.clone()).or_insert_with(HashSet::new);
+        ids.extend(ack.accepted_created_ids.iter().cloned());
+        ids.extend(ack.accepted_updated_ids.iter().cloned());
+        ids.extend(ack.accepted_deleted_ids.iter().cloned());
+    }
+    result
 }
 
 pub(super) fn debug_row_summary(row: &Value) -> String {
@@ -217,7 +235,7 @@ pub(super) async fn upsert_row(
     Ok(())
 }
 
-pub(super) async fn sync_push_inner(
+pub(super) async fn sync_push_batch_inner(
     pool: &SqlitePool,
     outlet_id: &str,
     api_url: &str,
@@ -234,35 +252,60 @@ pub(super) async fn sync_push_inner(
             .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
     };
     log::info!(
-        "[RUST] [SYNC:TRACE] push: outlet_id={}, merchant_id={:?}",
+        "[RUST] [SYNC:TRACE] push_batch: outlet_id={}, merchant_id={:?}",
         outlet_id,
         merchant_id
     );
 
-    let mut tables_json = serde_json::Map::new();
+    let mut json_tables = Vec::new();
+    let mut product_changes = super::protobuf::TablePushChanges::default();
+    let mut outlet_product_changes = super::protobuf::TablePushChanges::default();
+    let mut order_changes = super::protobuf::TablePushChanges::default();
+    let mut order_item_changes = super::protobuf::TablePushChanges::default();
     for table in SYNC_TABLES {
         let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
-        let rows = read_unsynced_rows(pool, table, filter_value).await?;
+        let changes = read_unsynced_table_changes_from_outbox(pool, table, filter_value).await?;
+        let row_count = changes.created.len() + changes.updated.len() + changes.deleted_ids.len();
         log::info!(
-            "[RUST] [SYNC:TRACE] push: table={}, unsynced_rows={}",
+            "[RUST] [SYNC:TRACE] push_batch: table={}, created={}, updated={}, deleted={}",
             table,
-            rows.len()
+            changes.created.len(),
+            changes.updated.len(),
+            changes.deleted_ids.len()
         );
-        for row in &rows {
+        for row in changes.created.iter().chain(changes.updated.iter()) {
             log::info!(
-                "[RUST] [SYNC:TRACE] push row: table={}, row={}",
+                "[RUST] [SYNC:TRACE] push_batch row: table={}, row={}",
                 table,
                 debug_row_summary(row)
             );
         }
-        tables_json.insert(table.to_string(), Value::Array(rows));
+        if row_count == 0 {
+            continue;
+        }
+        match *table {
+            "products" => product_changes = changes,
+            "outlet_products" => outlet_product_changes = changes,
+            "orders" => order_changes = changes,
+            "order_items" => order_item_changes = changes,
+            _ => json_tables.push(super::protobuf::build_json_table_changes(table, &changes)),
+        }
     }
 
     log::info!(
-        "[RUST] [SYNC:TRACE] push: sending to {}/api/sync/push",
+        "[RUST] [SYNC:TRACE] push_batch: sending to {}/api/sync/push",
         api_url
     );
-    let request = build_sync_push_request(outlet_id, Value::Object(tables_json));
+    let idempotency_key = Uuid::new_v4().to_string();
+    let request = build_sync_push_batch_request(
+        outlet_id,
+        &idempotency_key,
+        json_tables,
+        Some(build_product_changes(&product_changes)),
+        Some(build_outlet_product_changes(&outlet_product_changes)),
+        Some(build_order_changes(&order_changes)),
+        Some(build_order_item_changes(&order_item_changes)),
+    );
     let request_body = request.encode_to_vec();
 
     let response = client
@@ -272,65 +315,81 @@ pub(super) async fn sync_push_inner(
         .body(request_body)
         .send()
         .await
-        .map_err(|e| format!("Sync push failed: {}", e))?;
+        .map_err(|e| format!("Sync push batch failed: {}", e))?;
 
     let status = response.status();
     if !status.is_success() {
         let text = response.text().await.unwrap_or_default();
         log::info!(
-            "[RUST] [SYNC:TRACE] push FAILED: status={}, body={}",
+            "[RUST] [SYNC:TRACE] push_batch FAILED: status={}, body={}",
             status,
             text
         );
-        return Err(format!("Sync push failed ({}): {}", status, text));
+        return Err(format!("Sync push batch failed ({}): {}", status, text));
     }
 
     let response_body = response
         .bytes()
         .await
-        .map_err(|e| format!("Failed to read push response: {}", e))?;
-    let result = SyncPushResponse::decode(response_body)
-        .map_err(|e| format!("Failed to decode push response: {}", e))?;
+        .map_err(|e| format!("Failed to read push batch response: {}", e))?;
+    let result = SyncPushBatchResponse::decode(response_body)
+        .map_err(|e| format!("Failed to decode push batch response: {}", e))?;
     log::info!(
-        "[RUST] [SYNC:TRACE] push response: server_wins={}, server_time={}",
-        result.server_wins.len(),
+        "[RUST] [SYNC:TRACE] push_batch response: tables={}, server_time={}",
+        result.tables.len(),
         result.server_time
     );
 
-    let server_wins_count = result.server_wins.len();
+    let mut server_wins_count = 0usize;
+    let accepted_ids_by_table = accepted_ids_by_table(&result);
+    let mut rejected_ids_by_table: HashMap<String, HashSet<String>> = HashMap::new();
+    for ack in &result.tables {
+        let rejected_ids = rejected_ids_by_table.entry(ack.table.clone()).or_default();
+        for rejected in &ack.rejected {
+            rejected_ids.insert(rejected.id.clone());
+            server_wins_count += 1;
+        }
+    }
+
     let server_time = result.server_time.clone();
-    let server_wins_map = server_wins_to_skip_map(result.server_wins);
+    let tables_synced = result
+        .tables
+        .iter()
+        .map(|ack| ack.table.clone())
+        .collect::<Vec<_>>();
 
     let mut tx = pool
         .begin()
         .await
-        .map_err(|e| format!("Failed to begin push transaction: {}", e))?;
+        .map_err(|e| format!("Failed to begin push batch transaction: {}", e))?;
     for table in SYNC_TABLES {
-        let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
-        let filter_col = get_table_filter_column(table);
-        let skip_ids = server_wins_map
-            .get(table.to_string().as_str())
+        let accepted_ids = accepted_ids_by_table
+            .get(*table)
             .cloned()
             .unwrap_or_default();
-        mark_rows_synced_tx(&mut tx, table, filter_col, filter_value, &skip_ids).await?;
+        mark_rows_synced_by_id_tx(&mut tx, table, &accepted_ids).await?;
     }
     let synced_at = if server_time.is_empty() {
         current_time_iso_string()
     } else {
         server_time.clone()
     };
-    let marked_outbox =
-        super::outbox::mark_outbox_synced_tx(&mut tx, outlet_id, &merchant_id, &synced_at).await?;
+    let marked_outbox = super::outbox::mark_outbox_synced_by_accepted_ids_tx(
+        &mut tx,
+        &synced_at,
+        &accepted_ids_by_table,
+    )
+    .await?;
     log::info!(
-        "[RUST] [SYNC:TRACE] push: marked_outbox_synced={}",
+        "[RUST] [SYNC:TRACE] push_batch: marked_outbox_synced={}",
         marked_outbox
     );
     tx.commit()
         .await
-        .map_err(|e| format!("Failed to commit push transaction: {}", e))?;
+        .map_err(|e| format!("Failed to commit push batch transaction: {}", e))?;
 
     Ok(PushResult {
-        tables_synced: SYNC_TABLES.iter().map(|t| t.to_string()).collect(),
+        tables_synced,
         server_wins_count,
         server_time,
     })

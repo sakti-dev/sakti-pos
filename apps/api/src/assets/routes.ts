@@ -16,9 +16,26 @@ import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { presignS3DownloadUrl, presignS3Url } from "../lib/s3-presign";
-import { tsProtoPlugin } from "../lib/ts-proto-plugin";
+import { tsProtoCodec, tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
 import { encodeAsset } from "./protobuf";
+
+const assetPresignUploadRequestCodec = tsProtoCodec(AssetPresignUploadRequest);
+const assetPresignUploadResponseCodec = tsProtoCodec(
+  AssetPresignUploadResponse
+);
+const assetCompleteUploadRequestCodec = tsProtoCodec(
+  AssetCompleteUploadRequest
+);
+const assetCompleteUploadResponseCodec = tsProtoCodec(
+  AssetCompleteUploadResponse
+);
+const assetPresignDownloadRequestCodec = tsProtoCodec(
+  AssetPresignDownloadRequest
+);
+const assetPresignDownloadResponseCodec = tsProtoCodec(
+  AssetPresignDownloadResponse
+);
 
 async function verifyMerchantAccess(
   userId: string,
@@ -63,6 +80,16 @@ function normalizeOptionalString(value: string): string | null {
 
 function normalizeOptionalNumber(value: number): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function protobufInt64ToSafeNumber(value: bigint, fieldName: string): number {
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new BadRequestError(`${fieldName} exceeds safe integer range`);
+  }
+  if (value < 0n) {
+    throw new BadRequestError(`${fieldName} must be non-negative`);
+  }
+  return Number(value);
 }
 
 function buildRequiredHeaders(contentType: string): AssetHeader[] {
@@ -116,7 +143,7 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
         });
         contentType = requireNonEmptyString(request.contentType, "contentType");
         contentHash = requireNonEmptyString(request.contentHash, "contentHash");
-        byteSize = request.byteSize;
+        byteSize = protobufInt64ToSafeNumber(request.byteSize, "byteSize");
         if (!Number.isFinite(byteSize) || byteSize <= 0) {
           throw new BadRequestError("byteSize harus lebih besar dari 0");
         }
@@ -254,8 +281,8 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
     },
     {
       proto: {
-        req: AssetPresignUploadRequest,
-        res: AssetPresignUploadResponse,
+        req: assetPresignUploadRequestCodec,
+        res: assetPresignUploadResponseCodec,
       },
     }
   )
@@ -271,7 +298,7 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
         assetId = requireNonEmptyString(request.assetId, "assetId");
         objectKey = requireNonEmptyString(request.objectKey, "objectKey");
         contentHash = requireNonEmptyString(request.contentHash, "contentHash");
-        byteSize = request.byteSize;
+        byteSize = protobufInt64ToSafeNumber(request.byteSize, "byteSize");
         if (!Number.isFinite(byteSize) || byteSize <= 0) {
           throw new BadRequestError("byteSize harus lebih besar dari 0");
         }
@@ -323,8 +350,8 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
     },
     {
       proto: {
-        req: AssetCompleteUploadRequest,
-        res: AssetCompleteUploadResponse,
+        req: assetCompleteUploadRequestCodec,
+        res: assetCompleteUploadResponseCodec,
       },
     }
   )
@@ -376,8 +403,8 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
     },
     {
       proto: {
-        req: AssetPresignDownloadRequest,
-        res: AssetPresignDownloadResponse,
+        req: assetPresignDownloadRequestCodec,
+        res: assetPresignDownloadResponseCodec,
       },
     }
   );

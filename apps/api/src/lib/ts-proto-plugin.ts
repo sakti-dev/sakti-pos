@@ -12,6 +12,13 @@ interface ProtoSchemas {
   res?: TsProtoClass<unknown>;
 }
 
+export function tsProtoCodec<T>(schema: TsProtoClass<T>): TsProtoClass<T> {
+  return {
+    decode: schema.decode,
+    encode: schema.encode,
+  };
+}
+
 export const tsProtoPlugin = new Elysia({ name: "elysia-ts-proto" })
   .onParse(({ contentType, request }) => {
     if (contentType === PROTOBUF_CONTENT_TYPE) {

@@ -5,44 +5,9 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1778183221802,
-      "tag": "0000_steady_ma_gnuci",
+      "when": 1778998398054,
+      "tag": "0000_initial_api_schema",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1778311982251,
-      "tag": "0001_shiny_captain_cross",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1778323316235,
-      "tag": "0002_dazzling_timeslip",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1778327928934,
-      "tag": "0003_magical_paper_doll",
-      "breakpoints": true
-    },
-		{
-			"idx": 4,
-			"version": "6",
-			"when": 1778436169871,
-			"tag": "0005_productive_spyke",
-			"breakpoints": true
-		},
-		{
-			"idx": 5,
-			"version": "6",
-			"when": 1778436169872,
-			"tag": "0007_assets",
-			"breakpoints": true
-		}
+    }
   ]
 }

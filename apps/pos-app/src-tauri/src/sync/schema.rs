@@ -3,6 +3,7 @@ use sqlx::{Column, Row, SqliteConnection, SqlitePool};
 
 use crate::db::sqlite;
 
+use super::protobuf::TablePushChanges;
 use super::LOCAL_ONLY_COLUMNS;
 
 pub(super) fn get_table_filter_column(table: &str) -> &'static str {
@@ -60,73 +61,171 @@ pub(super) fn snake_to_camel(s: &str) -> String {
     result
 }
 
-pub(super) async fn read_unsynced_rows(
+#[derive(Debug)]
+pub(super) struct OutboxRowForSync {
+    pub operation: String,
+    pub row_id: String,
+    pub row: Option<Value>,
+}
+
+#[derive(Debug, Clone)]
+struct CoalescedOutboxRow {
+    operation: String,
+    row: Option<Value>,
+}
+
+fn coalesce_operation(previous: Option<&str>, next: &str) -> Result<Option<String>, String> {
+    match (previous, next) {
+        (None, "insert" | "update" | "delete") => Ok(Some(next.to_string())),
+        (Some("insert"), "update") => Ok(Some("insert".to_string())),
+        (Some("insert"), "delete") => Ok(None),
+        (Some("update"), "update") => Ok(Some("update".to_string())),
+        (Some("update"), "delete") => Ok(Some("delete".to_string())),
+        (Some("delete"), "insert") => Ok(Some("update".to_string())),
+        (Some("delete"), "update") => Ok(Some("update".to_string())),
+        (Some("delete"), "delete") => Ok(Some("delete".to_string())),
+        (_, "insert" | "update" | "delete") => Ok(Some(next.to_string())),
+        (_, other) => Err(format!("Unknown sync outbox operation: {}", other)),
+    }
+}
+
+pub(super) fn outbox_rows_to_table_changes(
+    rows: Vec<OutboxRowForSync>,
+) -> Result<TablePushChanges, String> {
+    let mut order: Vec<String> = Vec::new();
+    let mut by_id = std::collections::HashMap::<String, CoalescedOutboxRow>::new();
+
+    for item in rows {
+        if !by_id.contains_key(&item.row_id) {
+            order.push(item.row_id.clone());
+        }
+        let previous = by_id.get(&item.row_id).map(|entry| entry.operation.as_str());
+        match coalesce_operation(previous, &item.operation)? {
+            Some(operation) => {
+                by_id.insert(
+                    item.row_id,
+                    CoalescedOutboxRow {
+                        operation,
+                        row: item.row,
+                    },
+                );
+            }
+            None => {
+                by_id.remove(&item.row_id);
+            }
+        }
+    }
+
+    let mut changes = TablePushChanges::default();
+    for row_id in order {
+        let Some(entry) = by_id.remove(&row_id) else {
+            continue;
+        };
+        match entry.operation.as_str() {
+            "insert" => {
+                let row = entry
+                    .row
+                    .ok_or_else(|| format!("Inserted sync row {} is missing payload", row_id))?;
+                changes.created.push(row);
+            }
+            "update" => {
+                let row = entry
+                    .row
+                    .ok_or_else(|| format!("Updated sync row {} is missing payload", row_id))?;
+                changes.updated.push(row);
+            }
+            "delete" => {
+                if let Some(row) = entry.row {
+                    changes.updated.push(row);
+                } else {
+                    changes.deleted_ids.push(row_id);
+                }
+            }
+            other => return Err(format!("Unknown sync outbox operation: {}", other)),
+        }
+    }
+
+    Ok(changes)
+}
+
+pub(super) async fn read_unsynced_table_changes_from_outbox(
     pool: &SqlitePool,
     table: &str,
     filter_value: &str,
-) -> Result<Vec<Value>, String> {
-    let filter_col = get_table_filter_column(table);
+) -> Result<TablePushChanges, String> {
     let query = format!(
-        "SELECT * FROM {} WHERE {} = ?1 AND (is_synced = 0 OR id IN (SELECT row_id FROM sync_outbox WHERE table_name = ?2 AND synced_at IS NULL))",
-        table, filter_col
+        "SELECT t.*, o.operation AS __sync_operation, o.row_id AS __sync_row_id
+         FROM sync_outbox o
+         LEFT JOIN {table} t ON t.id = o.row_id
+         WHERE o.table_name = ?1 AND o.scope_id = ?2 AND o.synced_at IS NULL
+         ORDER BY o.changed_at ASC, o.id ASC"
     );
     let rows = sqlx::query(&query)
-        .bind(filter_value)
         .bind(table)
+        .bind(filter_value)
         .fetch_all(pool)
         .await
-        .map_err(|e| format!("Failed to read unsynced rows for {}: {}", table, e))?;
+        .map_err(|e| format!("Failed to read unsynced outbox changes for {}: {}", table, e))?;
 
     let mut result = Vec::new();
     for row in &rows {
+        let operation = row
+            .try_get::<String, _>("__sync_operation")
+            .map_err(|e| format!("Failed to read sync operation for {}: {}", table, e))?;
+        let row_id = row
+            .try_get::<String, _>("__sync_row_id")
+            .map_err(|e| format!("Failed to read sync row id for {}: {}", table, e))?;
         let mut obj = serde_json::Map::new();
+        let mut has_source_row = false;
         for (idx, col) in row.columns().iter().enumerate() {
             let name = col.name().to_string();
-            if LOCAL_ONLY_COLUMNS.contains(&name.as_str()) {
+            if name.starts_with("__sync_") || LOCAL_ONLY_COLUMNS.contains(&name.as_str()) {
                 continue;
             }
             let val = match row.try_get_raw(idx) {
                 Ok(_) => sqlite::sqlx_value_to_json(row, idx),
                 Err(_) => Value::Null,
             };
+            if name == "id" && !val.is_null() {
+                has_source_row = true;
+            }
             obj.insert(snake_to_camel(&name), val);
         }
-        result.push(Value::Object(obj));
+        result.push(OutboxRowForSync {
+            operation,
+            row_id,
+            row: has_source_row.then_some(Value::Object(obj)),
+        });
     }
-    Ok(result)
+
+    outbox_rows_to_table_changes(result)
 }
 
-pub(super) async fn mark_rows_synced_tx(
+pub(super) async fn mark_rows_synced_by_id_tx(
     conn: &mut SqliteConnection,
     table: &str,
-    filter_col: &str,
-    filter_value: &str,
-    skip_ids: &std::collections::HashSet<String>,
+    accepted_ids: &std::collections::HashSet<String>,
 ) -> Result<(), String> {
-    let query = format!(
-        "UPDATE {} SET is_synced = 1 WHERE {} = ?1 AND is_synced = 0",
-        table, filter_col
-    );
-    sqlx::query(&query)
-        .bind(filter_value)
-        .execute(&mut *conn)
-        .await
-        .map_err(|e| format!("Failed to mark {} as synced: {}", table, e))?;
-
-    if !skip_ids.is_empty() {
-        let unmark_query = format!(
-            "UPDATE {} SET is_synced = 0 WHERE id IN ({})",
-            table,
-            skip_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",")
-        );
-        let mut q = sqlx::query(&unmark_query);
-        for id in skip_ids {
-            q = q.bind(id);
-        }
-        q.execute(&mut *conn)
-            .await
-            .map_err(|e| format!("Failed to unmark server-wins rows for {}: {}", table, e))?;
+    if accepted_ids.is_empty() {
+        return Ok(());
     }
+
+    let query = format!(
+        "UPDATE {} SET is_synced = 1 WHERE id IN ({})",
+        table,
+        accepted_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    let mut q = sqlx::query(&query);
+    for id in accepted_ids {
+        q = q.bind(id);
+    }
+    q.execute(&mut *conn)
+        .await
+        .map_err(|e| format!("Failed to mark accepted rows for {} as synced: {}", table, e))?;
 
     Ok(())
 }
