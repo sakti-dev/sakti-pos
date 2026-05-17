@@ -12,6 +12,13 @@ function snakeToCamel(value: string): string {
   );
 }
 
+function camelToSnake(value: string): string {
+  return value.replace(
+    CAMEL_TO_SNAKE_PATTERN,
+    (_, letter: string) => `_${letter.toLowerCase()}`
+  );
+}
+
 function toSnakeBase(rowMessageName: string): string {
   return snakeToCamel(
     rowMessageName
@@ -106,6 +113,10 @@ function columnKeys(
 ): string {
   const camelProto = snakeToCamel(column.protoName);
   if (isAlias) {
+    const aliasSnake = camelToSnake(column.propertyName);
+    if (aliasSnake !== column.propertyName) {
+      return `&["${camelProto}", "${column.propertyName}", "${aliasSnake}"]`;
+    }
     return `&["${camelProto}", "${column.propertyName}"]`;
   }
   if (column.protoName.includes("_")) {
