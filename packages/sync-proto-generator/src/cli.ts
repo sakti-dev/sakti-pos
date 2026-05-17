@@ -4,6 +4,7 @@ import { reflectSyncTables } from "./drizzle-reflection";
 import { type GenerateMode, resolveGeneratorOutputPath } from "./file-output";
 import { syncManifest } from "./manifest";
 import { renderSyncProto } from "./proto-writer";
+import { renderRustSyncMappers } from "./rust-mapper-writer";
 import { renderApiSyncMappers } from "./ts-mapper-writer";
 
 declare const Bun: { argv: string[] };
@@ -31,3 +32,9 @@ const mappersPath = resolveGeneratorOutputPath(mode, "api-sync-mappers.ts");
 mkdirSync(dirname(mappersPath), { recursive: true });
 writeFileSync(mappersPath, mappers);
 console.log(`[SYNC_PROTO_GENERATOR] wrote ${mappersPath}`);
+
+const rustMappers = renderRustSyncMappers(syncManifest, tables);
+const rustPath = resolveGeneratorOutputPath(mode, "pos-sync-mappers.rs");
+mkdirSync(dirname(rustPath), { recursive: true });
+writeFileSync(rustPath, rustMappers);
+console.log(`[SYNC_PROTO_GENERATOR] wrote ${rustPath}`);
