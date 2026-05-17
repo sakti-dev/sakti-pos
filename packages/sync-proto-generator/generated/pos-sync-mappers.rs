@@ -175,7 +175,7 @@ fn order_row_from_value(row: &Value) -> OrderRow {
     }
 }
 
-fn orderItem_row_from_value(row: &Value) -> OrderItemRow {
+fn order_item_row_from_value(row: &Value) -> OrderItemRow {
     OrderItemRow {
         id: value_to_string(row, &["id"]),
         order_id: value_to_string(row, &["orderId", "order_id"]),
@@ -192,7 +192,7 @@ fn orderItem_row_from_value(row: &Value) -> OrderItemRow {
     }
 }
 
-fn outletProduct_row_from_value(row: &Value) -> OutletProductRow {
+fn outlet_product_row_from_value(row: &Value) -> OutletProductRow {
     OutletProductRow {
         id: value_to_string(row, &["id"]),
         outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
@@ -340,7 +340,7 @@ fn order_row_to_value(row: &OrderRow) -> Value {
     })
 }
 
-fn orderItem_row_to_value(row: &OrderItemRow) -> Value {
+fn order_item_row_to_value(row: &OrderItemRow) -> Value {
     serde_json::json!({
         "id": row.id,
         "orderId": row.order_id,
@@ -357,7 +357,7 @@ fn orderItem_row_to_value(row: &OrderItemRow) -> Value {
     })
 }
 
-fn outletProduct_row_to_value(row: &OutletProductRow) -> Value {
+fn outlet_product_row_to_value(row: &OutletProductRow) -> Value {
     serde_json::json!({
         "id": row.id,
         "outletId": row.outlet_id,
@@ -461,17 +461,17 @@ pub(super) fn build_orders_changes(changes: &TablePushChanges) -> OrderChanges {
 
 pub(super) fn build_order_items_changes(changes: &TablePushChanges) -> OrderItemChanges {
     OrderItemChanges {
-        created: changes.created.iter().map(orderItem_row_from_value).collect::<Vec<_>>(),
+        created: changes.created.iter().map(order_item_row_from_value).collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(orderItem_row_from_value).collect::<Vec<_>>(),
+        updated: changes.updated.iter().map(order_item_row_from_value).collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_outlet_products_changes(changes: &TablePushChanges) -> OutletProductChanges {
     OutletProductChanges {
-        created: changes.created.iter().map(outletProduct_row_from_value).collect::<Vec<_>>(),
+        created: changes.created.iter().map(outlet_product_row_from_value).collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(outletProduct_row_from_value).collect::<Vec<_>>(),
+        updated: changes.updated.iter().map(outlet_product_row_from_value).collect::<Vec<_>>(),
     }
 }
 
@@ -493,10 +493,10 @@ pub(super) fn build_sync_push_batch_request(
     assets: Option<AssetChanges>,
     products: Option<ProductChanges>,
     orders: Option<OrderChanges>,
-    orderItems: Option<OrderItemChanges>,
-    outletProducts: Option<OutletProductChanges>,
-    staff: Option<StaffChanges>),
-    -> SyncPushBatchRequest {
+    order_items: Option<OrderItemChanges>,
+    outlet_products: Option<OutletProductChanges>,
+    staff: Option<StaffChanges>,
+) -> SyncPushBatchRequest {
     SyncPushBatchRequest {
         outlet_id: outlet_id.to_string(),
         idempotency_key: idempotency_key.to_string(),
@@ -507,8 +507,8 @@ pub(super) fn build_sync_push_batch_request(
         assets,
         products,
         orders,
-        orderItems,
-        outletProducts,
+        order_items,
+        outlet_products,
         staff,
     }
 }
@@ -609,7 +609,7 @@ pub(super) fn decode_pull_batch_response_tables(
         );
     }
 
-    if let Some(changes) = &response.orderItems {
+    if let Some(changes) = &response.order_items {
         map.insert(
             "order_items".to_string(),
             Value::Array(typed_rows_to_json_values(
@@ -617,12 +617,12 @@ pub(super) fn decode_pull_batch_response_tables(
                 &changes.updated,
                 &changes.deleted_ids,
                 &response.server_time,
-                orderItem_row_to_value,
+                order_item_row_to_value,
             )),
         );
     }
 
-    if let Some(changes) = &response.outletProducts {
+    if let Some(changes) = &response.outlet_products {
         map.insert(
             "outlet_products".to_string(),
             Value::Array(typed_rows_to_json_values(
@@ -630,7 +630,7 @@ pub(super) fn decode_pull_batch_response_tables(
                 &changes.updated,
                 &changes.deleted_ids,
                 &response.server_time,
-                outletProduct_row_to_value,
+                outlet_product_row_to_value,
             )),
         );
     }

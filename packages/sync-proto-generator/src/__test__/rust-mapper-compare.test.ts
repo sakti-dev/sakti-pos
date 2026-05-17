@@ -138,7 +138,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   test("generated order_item_row_from_value matches manual field key ordering", () => {
     const generated = extractRowFromValueFunc(
       generatedSource,
-      "orderItem_row_from_value"
+      "order_item_row_from_value"
     );
     const manual = extractRowFromValueFunc(
       manualSource,
@@ -225,7 +225,7 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   test("generated outlet_product_row_from_value matches manual field key ordering", () => {
     const generated = extractRowFromValueFunc(
       generatedSource,
-      "outletProduct_row_from_value"
+      "outlet_product_row_from_value"
     );
     const manual = extractRowFromValueFunc(
       manualSource,

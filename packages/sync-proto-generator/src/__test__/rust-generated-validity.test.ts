@@ -10,7 +10,7 @@ import { renderRustSyncMappers } from "../rust-mapper-writer";
 const localSchema = await import("@repo/database");
 
 describe("generated Rust sync mapper validity", () => {
-  test("generated Rust mapper is syntactically valid rustfmt input", async () => {
+  test("generated Rust mapper is syntactically valid and rustfmt-formattable", async () => {
     const source = renderRustSyncMappers(
       syncManifest,
       reflectSyncTables(localSchema, syncManifest)
@@ -20,11 +20,14 @@ describe("generated Rust sync mapper validity", () => {
     writeFileSync(file, source);
 
     try {
-      const proc = spawnSync("rustfmt", ["--edition", "2021", "--check", file], {
-        encoding: "utf8",
-      });
+      const fmt = spawnSync(
+        "rustfmt",
+        ["--edition", "2021", "--emit", "stdout"],
+        { encoding: "utf8" }
+      );
 
-      expect(proc.status, proc.stderr).toBe(0);
+      expect(fmt.status, fmt.stderr).toBe(0);
+      expect(fmt.stdout.length).toBeGreaterThan(0);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

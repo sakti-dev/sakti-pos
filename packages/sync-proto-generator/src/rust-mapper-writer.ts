@@ -1,10 +1,13 @@
 import type { ReflectedSyncTable } from "./drizzle-reflection";
 import type { SyncManifest, SyncTableManifest } from "./manifest";
 
-const SNAKE_TO_CAMEL_PATTERN = /_([a-z])/g;
+const ACRONYM_BOUNDARY_PATTERN = /([A-Z]+)([A-Z][a-z])/g;
+const LOWER_TO_UPPER_PATTERN = /([a-z0-9])([A-Z])/g;
+const NON_IDENTIFIER_PATTERN = /[^a-zA-Z0-9]+/g;
 const ROW_SUFFIX_PATTERN = /Row$/;
-const CAMEL_TO_SNAKE_PATTERN = /([A-Z])/g;
 const LEADING_UNDERSCORE_PATTERN = /^_/;
+const SNAKE_TO_CAMEL_PATTERN = /_([a-z])/g;
+const CAMEL_TO_SNAKE_PATTERN = /([A-Z])/g;
 
 function snakeToCamel(value: string): string {
   return value.replace(SNAKE_TO_CAMEL_PATTERN, (_, letter: string) =>
@@ -19,22 +22,22 @@ function camelToSnake(value: string): string {
   );
 }
 
-function toSnakeBase(rowMessageName: string): string {
-  return snakeToCamel(
-    rowMessageName
-      .replace(ROW_SUFFIX_PATTERN, "")
-      .replace(CAMEL_TO_SNAKE_PATTERN, "_$1")
-      .toLowerCase()
-      .replace(LEADING_UNDERSCORE_PATTERN, "")
-  );
+function toRustSnakeIdentifier(value: string): string {
+  return value
+    .replace(ROW_SUFFIX_PATTERN, "")
+    .replace(ACRONYM_BOUNDARY_PATTERN, "$1_$2")
+    .replace(LOWER_TO_UPPER_PATTERN, "$1_$2")
+    .replace(NON_IDENTIFIER_PATTERN, "_")
+    .toLowerCase()
+    .replace(LEADING_UNDERSCORE_PATTERN, "");
 }
 
 function rowFromValueFuncName(rowMessageName: string): string {
-  return `${toSnakeBase(rowMessageName)}_row_from_value`;
+  return `${toRustSnakeIdentifier(rowMessageName)}_row_from_value`;
 }
 
 function rowToValueFuncName(rowMessageName: string): string {
-  return `${toSnakeBase(rowMessageName)}_row_to_value`;
+  return `${toRustSnakeIdentifier(rowMessageName)}_row_to_value`;
 }
 
 function buildChangesFuncName(tableName: string): string {
@@ -229,7 +232,7 @@ function renderBuildPushRequest(manifest: SyncManifest): string {
   ];
 
   for (const table of manifest.tables) {
-    const pfName = snakeToCamel(table.tableName);
+    const pfName = table.tableName;
     const paramType = table.changeMessageName;
     params.push(`${pfName}: Option<${paramType}>`);
     fields.push(`${pfName}`);
@@ -237,11 +240,8 @@ function renderBuildPushRequest(manifest: SyncManifest): string {
 
   return [
     "pub(super) fn build_sync_push_batch_request(",
-    ...params.map((p, i) => {
-      const suffix = i < params.length - 1 ? "," : "),";
-      return `    ${p}${suffix}`;
-    }),
-    "    -> SyncPushBatchRequest {",
+    ...params.map((p) => `    ${p},`),
+    ") -> SyncPushBatchRequest {",
     "    SyncPushBatchRequest {",
     ...fields.map((f) => `        ${f},`),
     "    }",
@@ -259,7 +259,7 @@ function renderDecodePullResponse(tables: ReflectedSyncTable[]): string {
   ];
 
   for (const table of tables) {
-    const pfName = snakeToCamel(table.tableName);
+    const pfName = table.tableName;
     const rowFunc = rowToValueFuncName(table.rowMessageName);
     lines.push(`    if let Some(changes) = &response.${pfName} {`);
     lines.push("        map.insert(");
