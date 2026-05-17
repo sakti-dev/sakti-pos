@@ -1,7 +1,7 @@
 mod android;
-mod auth;
 mod app;
 mod assets;
+mod auth;
 mod db;
 mod hardware;
 mod logging;
@@ -63,8 +63,6 @@ pub fn run() {
             sync::commands::sync_push,
             sync::commands::sync_pull,
             sync::commands::get_sync_local_state,
-            sync::commands::sync_push_outbox,
-            sync::commands::sync_pull_events,
             sync::commands::sync_full_resync,
             sync::commands::purge_synced_outbox,
             sync::commands::run_garbage_collection,

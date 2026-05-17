@@ -18,7 +18,7 @@ export function encodeAsset(row: {
   width?: number | null;
 }): Asset {
   return {
-    byteSize: row.byteSize,
+    byteSize: BigInt(row.byteSize),
     contentHash: row.contentHash,
     contentType: row.contentType,
     createdAt: row.createdAt ?? "",

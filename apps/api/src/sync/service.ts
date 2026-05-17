@@ -9,15 +9,28 @@ import {
   products,
   registers,
   staff,
+  syncBatchRequests,
   syncEvents,
   userMerchants,
 } from "@repo/database/api-schema";
-import { and, eq, gt, inArray, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { db } from "../db";
 import type {
   SyncEventOperation,
   SyncEventScopeType,
 } from "../lib/sync-events";
+import { ConflictRequestError } from "../lib/validation";
+import { protobufInt64ToSafeNumber } from "./protobuf";
 
 const ALL_SYNC_TABLE_NAMES = [
   "merchants",
@@ -44,6 +57,17 @@ const PUSH_TABLE_ORDER = [
   "orders",
   "order_items",
 ];
+
+const HOT_SYNC_TABLE_NAMES = new Set([
+  "products",
+  "outlet_products",
+  "orders",
+  "order_items",
+]);
+
+const PULL_BATCH_DEFAULT_LIMIT = 250;
+const PULL_BATCH_MAX_LIMIT = 500;
+const PULL_BATCH_CURSOR_PREFIX = "event:";
 
 const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
 
@@ -76,9 +100,75 @@ export async function verifyOutletAccess(
 }
 
 type TransactionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-interface UpsertResult {
-  acceptedOperation: SyncEventOperation | null;
-  serverWin: string | null;
+
+interface ExistingSyncRow {
+  createdAt?: unknown;
+  id: string;
+  updatedAt?: unknown;
+}
+
+interface AcceptedPushRow {
+  operation: SyncEventOperation;
+  row: Record<string, unknown>;
+  source: "created" | "updated";
+}
+
+interface CandidatePushRow {
+  operation: "insert" | "update";
+  row: Record<string, unknown>;
+  source: "created" | "updated";
+}
+
+interface PullTableChanges {
+  created: Record<string, unknown>[];
+  deletedIds: string[];
+  updated: Record<string, unknown>[];
+}
+
+interface PullBatchResult {
+  hasMore: boolean;
+  jsonTables: {
+    createdJson: string[];
+    deletedIds: string[];
+    table: string;
+    updatedJson: string[];
+  }[];
+  latestEventId: number;
+  needsFullResync: boolean;
+  nextPageCursor: string;
+  order_items?: PullTableChanges;
+  orders?: PullTableChanges;
+  outlet_products?: PullTableChanges;
+  products?: PullTableChanges;
+  serverTime: string;
+}
+
+type HotTableName = "order_items" | "orders" | "outlet_products" | "products";
+
+function isHotTableName(table: string): table is HotTableName {
+  return HOT_SYNC_TABLE_NAMES.has(table);
+}
+
+export interface TableChangeSet {
+  created: Record<string, unknown>[];
+  deletedIds: string[];
+  updated: Record<string, unknown>[];
+}
+
+export type PushBatchChanges = Record<string, TableChangeSet>;
+
+export interface PushBatchTableAck {
+  acceptedCreatedIds: string[];
+  acceptedDeletedIds: string[];
+  acceptedUpdatedIds: string[];
+  rejected: { id: string; reason: string }[];
+  table: string;
+}
+
+interface StoredPushBatchResponse {
+  latestEventId: number;
+  serverTime: string;
+  tables: PushBatchTableAck[];
 }
 
 function stripLocalOnlyColumns(
@@ -120,302 +210,1009 @@ function parseTimestampMs(value: unknown): number {
   return Date.parse(trimmed);
 }
 
-export async function handlePush(
+export async function handlePushBatch(
   outletId: string,
   merchantId: string,
-  data: Record<string, unknown[]>
+  changes: PushBatchChanges,
+  idempotencyKey = "",
+  requestHash = ""
 ) {
-  const serverWins: { table: string; ids: string[] }[] = [];
+  return await db.transaction(async (tx) => {
+    if (idempotencyKey) {
+      const cached = await loadPushBatchResponse(tx, {
+        idempotencyKey,
+        requestHash,
+        outletId,
+      });
+      if (cached) {
+        return cached;
+      }
+    }
 
-  await db.transaction(async (tx) => {
+    const tables: PushBatchTableAck[] = [];
     for (const tableName of PUSH_TABLE_ORDER) {
-      const rows = data[tableName];
-      if (!rows || rows.length === 0) {
+      const tableChanges = changes[tableName];
+      if (!tableChanges) {
         continue;
       }
 
-      const wins = await processPushTable({
-        merchantId,
-        outletId,
-        rows: rows as Record<string, unknown>[],
-        tableName,
-        tx,
-      });
-
-      if (wins.length > 0) {
-        serverWins.push({ table: tableName, ids: wins });
-      }
+      tables.push(
+        await processPushBatchTable({
+          merchantId,
+          outletId,
+          tableName,
+          changes: tableChanges,
+          tx,
+        })
+      );
     }
-  });
 
-  return { serverWins, serverTime: new Date().toISOString() };
+    const response: StoredPushBatchResponse = {
+      latestEventId: await getLatestScopedEventId(tx, merchantId, outletId),
+      serverTime: new Date().toISOString(),
+      tables,
+    };
+
+    if (idempotencyKey) {
+      await storePushBatchResponse(tx, {
+        idempotencyKey,
+        outletId,
+        requestHash,
+        response,
+      });
+    }
+
+    return response;
+  });
 }
 
-async function processPushTable(input: {
+async function loadPushBatchResponse(
+  tx: TransactionTx,
+  input: {
+    idempotencyKey: string;
+    requestHash: string;
+    outletId: string;
+  }
+): Promise<StoredPushBatchResponse | null> {
+  const [existing] = await tx
+    .select({
+      latestEventId: syncBatchRequests.latestEventId,
+      requestHash: syncBatchRequests.requestHash,
+      responseJson: syncBatchRequests.responseJson,
+      serverTime: syncBatchRequests.serverTime,
+    })
+    .from(syncBatchRequests)
+    .where(
+      and(
+        eq(syncBatchRequests.scopeType, "outlet"),
+        eq(syncBatchRequests.scopeId, input.outletId),
+        eq(syncBatchRequests.idempotencyKey, input.idempotencyKey)
+      )
+    )
+    .limit(1);
+
+  if (!existing) {
+    return null;
+  }
+
+  if (existing.requestHash !== input.requestHash) {
+    throw new ConflictRequestError(
+      "idempotency key reused with different request body"
+    );
+  }
+
+  try {
+    const parsed = JSON.parse(existing.responseJson) as StoredPushBatchResponse;
+    return {
+      latestEventId: existing.latestEventId,
+      serverTime: existing.serverTime,
+      tables: Array.isArray(parsed.tables) ? parsed.tables : [],
+    };
+  } catch {
+    return {
+      latestEventId: existing.latestEventId,
+      serverTime: existing.serverTime,
+      tables: [],
+    };
+  }
+}
+
+async function storePushBatchResponse(
+  tx: TransactionTx,
+  input: {
+    idempotencyKey: string;
+    requestHash: string;
+    outletId: string;
+    response: StoredPushBatchResponse;
+  }
+) {
+  const now = new Date().toISOString();
+  await tx.insert(syncBatchRequests).values({
+    createdAt: now,
+    idempotencyKey: input.idempotencyKey,
+    latestEventId: input.response.latestEventId,
+    requestHash: input.requestHash,
+    responseJson: JSON.stringify(input.response),
+    scopeId: input.outletId,
+    scopeType: "outlet",
+    serverTime: input.response.serverTime,
+    updatedAt: now,
+  });
+}
+
+async function processPushBatchTable(input: {
+  merchantId: string;
+  outletId: string;
+  tableName: string;
+  changes: TableChangeSet;
+  tx: TransactionTx;
+}): Promise<PushBatchTableAck> {
+  const ack: PushBatchTableAck = {
+    acceptedCreatedIds: [],
+    acceptedDeletedIds: [],
+    acceptedUpdatedIds: [],
+    rejected: [],
+    table: input.tableName,
+  };
+
+  const acceptedRows = await partitionAcceptedPushRows(input, ack);
+  await bulkUpsertRowsForTableName({
+    merchantId: input.merchantId,
+    outletId: input.outletId,
+    rows: acceptedRows.map((accepted) => accepted.row),
+    tableName: input.tableName,
+    tx: input.tx,
+  });
+
+  const syncEventRows = acceptedRows.map((accepted) =>
+    buildSyncEventRow({
+      merchantId: input.merchantId,
+      operation: accepted.operation,
+      outletId: input.outletId,
+      row: accepted.row,
+      tableName: input.tableName,
+    })
+  );
+
+  await processTimestamplessDeletedIds(input, ack, syncEventRows);
+  await insertSyncEvents(input.tx, syncEventRows);
+
+  return ack;
+}
+
+async function partitionAcceptedPushRows(
+  input: {
+    changes: TableChangeSet;
+    merchantId: string;
+    outletId: string;
+    tableName: string;
+    tx: TransactionTx;
+  },
+  ack: PushBatchTableAck
+): Promise<AcceptedPushRow[]> {
+  const candidateRows: CandidatePushRow[] = [
+    ...input.changes.created.map((row) => ({
+      operation: "insert" as const,
+      row: normalizePushBatchRowForTableName(input.tableName, row),
+      source: "created" as const,
+    })),
+    ...input.changes.updated.map((row) => ({
+      operation: "update" as const,
+      row: normalizePushBatchRowForTableName(input.tableName, row),
+      source: "updated" as const,
+    })),
+  ];
+
+  if (candidateRows.length === 0) {
+    return [];
+  }
+
+  const existingRows = await selectExistingRowsForTableName(
+    input.tx,
+    input.tableName,
+    candidateRows.map((candidate) => candidate.row.id as string)
+  );
+  const existingRowsById = new Map(existingRows.map((row) => [row.id, row]));
+  const acceptedRows: AcceptedPushRow[] = [];
+
+  for (const candidate of candidateRows) {
+    const id = candidate.row.id as string;
+    const existing = existingRowsById.get(id);
+    const defaultOperation = existing ? "update" : candidate.operation;
+    const acceptedOperation = getAcceptedOperation(
+      candidate.row,
+      defaultOperation
+    );
+
+    if (existing && !clientRowWins(input.tableName, candidate.row, existing)) {
+      ack.rejected.push({ id, reason: "server_newer" });
+      continue;
+    }
+
+    acceptedRows.push({ ...candidate, operation: acceptedOperation });
+    if (acceptedOperation === "delete") {
+      ack.acceptedDeletedIds.push(id);
+    } else if (candidate.source === "created") {
+      ack.acceptedCreatedIds.push(id);
+    } else {
+      ack.acceptedUpdatedIds.push(id);
+    }
+  }
+
+  return acceptedRows;
+}
+
+async function processTimestamplessDeletedIds(
+  input: {
+    merchantId: string;
+    outletId: string;
+    tableName: string;
+    changes: TableChangeSet;
+    tx: TransactionTx;
+  },
+  ack: PushBatchTableAck,
+  syncEventRows: Record<string, unknown>[]
+) {
+  if (input.changes.deletedIds.length === 0) {
+    return;
+  }
+
+  const existingDeleteIds = await existingRowIdsForTableName(
+    input.tx,
+    input.tableName,
+    input.changes.deletedIds
+  );
+  const acceptedDeletedIds = input.changes.deletedIds.filter(
+    (id) => !existingDeleteIds.has(id)
+  );
+  for (const id of input.changes.deletedIds) {
+    if (existingDeleteIds.has(id)) {
+      ack.rejected.push({ id, reason: "server_newer" });
+    }
+  }
+
+  await softDeleteRowsForTableName(
+    input.tx,
+    input.tableName,
+    acceptedDeletedIds
+  );
+
+  const scope = getSyncEventScope(
+    input.tableName,
+    input.merchantId,
+    input.outletId
+  );
+  for (const id of acceptedDeletedIds) {
+    ack.acceptedDeletedIds.push(id);
+    syncEventRows.push({
+      changedAt: new Date().toISOString(),
+      operation: "delete",
+      rowId: id,
+      scopeId: scope.scopeId,
+      scopeType: scope.scopeType,
+      tableName: input.tableName,
+    });
+  }
+}
+
+function clientRowWins(
+  tableName: string,
+  clientRow: Record<string, unknown>,
+  serverRow: ExistingSyncRow
+): boolean {
+  const timestampColumn =
+    tableName === "order_items" ? "createdAt" : "updatedAt";
+  const serverTimestamp = parseTimestampMs(serverRow[timestampColumn]);
+  const clientTimestamp = parseTimestampMs(clientRow[timestampColumn]);
+  return clientTimestamp >= serverTimestamp;
+}
+
+async function selectExistingRowsForTableName(
+  tx: TransactionTx,
+  tableName: string,
+  ids: string[]
+): Promise<ExistingSyncRow[]> {
+  if (ids.length === 0) {
+    return [];
+  }
+
+  let rowsResult: unknown;
+  switch (tableName) {
+    case "merchants":
+      rowsResult = tx
+        .select()
+        .from(merchants)
+        .where(inArray(merchants.id, ids));
+      break;
+    case "outlets":
+      rowsResult = tx.select().from(outlets).where(inArray(outlets.id, ids));
+      break;
+    case "registers":
+      rowsResult = tx
+        .select()
+        .from(registers)
+        .where(inArray(registers.id, ids));
+      break;
+    case "categories":
+      rowsResult = tx
+        .select()
+        .from(categories)
+        .where(inArray(categories.id, ids));
+      break;
+    case "assets":
+      rowsResult = tx.select().from(assets).where(inArray(assets.id, ids));
+      break;
+    case "products":
+      rowsResult = tx.select().from(products).where(inArray(products.id, ids));
+      break;
+    case "outlet_products":
+      rowsResult = tx
+        .select()
+        .from(outletProducts)
+        .where(inArray(outletProducts.id, ids));
+      break;
+    case "staff":
+      rowsResult = tx.select().from(staff).where(inArray(staff.id, ids));
+      break;
+    case "orders":
+      rowsResult = tx.select().from(orders).where(inArray(orders.id, ids));
+      break;
+    case "order_items":
+      rowsResult = tx
+        .select()
+        .from(orderItems)
+        .where(inArray(orderItems.id, ids));
+      break;
+    default:
+      rowsResult = [];
+  }
+
+  const rows = await resolveLimitedRows<unknown>(rowsResult, ids.length);
+  return rows.filter(
+    (row): row is ExistingSyncRow =>
+      typeof row === "object" &&
+      row !== null &&
+      "id" in row &&
+      typeof row.id === "string" &&
+      ("updatedAt" in row || "createdAt" in row)
+  );
+}
+
+async function bulkUpsertRowsForTableName(input: {
   merchantId: string;
   outletId: string;
   rows: Record<string, unknown>[];
   tableName: string;
   tx: TransactionTx;
-}): Promise<string[]> {
-  const wins: string[] = [];
-
-  for (const rawRow of input.rows) {
-    const row = normalizeEmptyToNull(stripLocalOnlyColumns(rawRow));
-    const upsertResult = await upsertRowForTableName({
-      merchantId: input.merchantId,
-      outletId: input.outletId,
-      row,
-      tableName: input.tableName,
-      tx: input.tx,
-    });
-
-    if (upsertResult.serverWin) {
-      wins.push(upsertResult.serverWin);
-    }
-    if (upsertResult.acceptedOperation) {
-      const scope = getSyncEventScope(
-        input.tableName,
-        input.merchantId,
-        input.outletId
-      );
-      await input.tx.insert(syncEvents).values({
-        changedAt: String(
-          row.updatedAt ?? row.createdAt ?? new Date().toISOString()
-        ),
-        operation: upsertResult.acceptedOperation,
-        rowId: row.id as string,
-        scopeId: scope.scopeId,
-        scopeType: scope.scopeType,
-        tableName: input.tableName,
-      });
-    }
+}) {
+  if (input.rows.length === 0) {
+    return;
   }
 
-  return wins;
+  switch (input.tableName) {
+    case "merchants":
+      await bulkUpsertRows(input.tx, merchants, input.rows);
+      break;
+    case "outlets":
+      await bulkUpsertRows(
+        input.tx,
+        outlets,
+        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
+      );
+      break;
+    case "registers":
+      await bulkUpsertRows(
+        input.tx,
+        registers,
+        input.rows.map((row) => ({ ...row, outletId: input.outletId }))
+      );
+      break;
+    case "categories":
+      await bulkUpsertRows(
+        input.tx,
+        categories,
+        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
+      );
+      break;
+    case "assets":
+      await bulkUpsertRows(
+        input.tx,
+        assets,
+        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
+      );
+      break;
+    case "products":
+      await bulkUpsertRows(
+        input.tx,
+        products,
+        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
+      );
+      break;
+    case "outlet_products":
+      await bulkUpsertRows(
+        input.tx,
+        outletProducts,
+        input.rows.map((row) => ({ ...row, outletId: input.outletId }))
+      );
+      break;
+    case "staff":
+      await bulkUpsertRows(
+        input.tx,
+        staff,
+        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
+      );
+      break;
+    case "orders":
+      await bulkUpsertRows(
+        input.tx,
+        orders,
+        input.rows.map((row) => ({ ...row, outletId: input.outletId }))
+      );
+      break;
+    case "order_items":
+      await bulkUpsertRows(
+        input.tx,
+        orderItems,
+        input.rows.map((row) => ({
+          ...normalizeOrderItemRow(row),
+          outletId: input.outletId,
+        }))
+      );
+      break;
+    default:
+      break;
+  }
 }
 
-async function upsertRowForTableName(input: {
+async function bulkUpsertRows(
+  tx: TransactionTx,
+  table:
+    | typeof assets
+    | typeof categories
+    | typeof merchants
+    | typeof orderItems
+    | typeof orders
+    | typeof outletProducts
+    | typeof outlets
+    | typeof products
+    | typeof registers
+    | typeof staff,
+  rows: Record<string, unknown>[]
+) {
+  const set = buildExcludedSet(
+    table as unknown as Record<string, unknown>,
+    rows
+  );
+  if (Object.keys(set).length === 0) {
+    await tx
+      .insert(table)
+      .values(rows as never)
+      .onConflictDoNothing();
+    return;
+  }
+
+  await tx
+    .insert(table)
+    .values(rows as never)
+    .onConflictDoUpdate({ set, target: table.id } as never);
+}
+
+function buildExcludedSet(
+  table: Record<string, unknown>,
+  rows: Record<string, unknown>[]
+): Record<string, SQL> {
+  const keys = new Set(rows.flatMap((row) => Object.keys(row)));
+  keys.delete("id");
+  const tableColumns = table as Record<string, { name?: string }>;
+  const set: Record<string, SQL> = {};
+
+  for (const key of keys) {
+    const columnName = tableColumns[key]?.name;
+    if (!columnName) {
+      continue;
+    }
+    set[key] = sql.raw(`excluded.${columnName}`);
+  }
+
+  return set;
+}
+
+function buildSyncEventRow(input: {
   merchantId: string;
+  operation: SyncEventOperation;
   outletId: string;
   row: Record<string, unknown>;
   tableName: string;
-  tx: TransactionTx;
-}): Promise<UpsertResult> {
-  switch (input.tableName) {
+}): Record<string, unknown> {
+  const scope = getSyncEventScope(
+    input.tableName,
+    input.merchantId,
+    input.outletId
+  );
+  return {
+    changedAt: String(
+      input.row.updatedAt ?? input.row.createdAt ?? new Date().toISOString()
+    ),
+    operation: input.operation,
+    rowId: input.row.id as string,
+    scopeId: scope.scopeId,
+    scopeType: scope.scopeType,
+    tableName: input.tableName,
+  };
+}
+
+async function insertSyncEvents(
+  tx: TransactionTx,
+  events: Record<string, unknown>[]
+) {
+  if (events.length > 0) {
+    await tx.insert(syncEvents).values(events as never);
+  }
+}
+
+async function existingRowIdsForTableName(
+  tx: TransactionTx,
+  tableName: string,
+  ids: string[]
+): Promise<Set<string>> {
+  if (ids.length === 0) {
+    return new Set();
+  }
+
+  let rowsResult: unknown;
+  switch (tableName) {
     case "merchants":
-      return await upsertMerchantRow(
-        input.tx,
-        merchants,
-        input.row,
-        input.merchantId
-      );
+      rowsResult = await tx
+        .select({ id: merchants.id })
+        .from(merchants)
+        .where(inArray(merchants.id, ids));
+      break;
     case "outlets":
-      return await upsertOutletRow(
-        input.tx,
-        outlets,
-        input.row,
-        input.outletId
-      );
+      rowsResult = await tx
+        .select({ id: outlets.id })
+        .from(outlets)
+        .where(inArray(outlets.id, ids));
+      break;
     case "registers":
-      return await upsertOutletRow(
-        input.tx,
-        registers,
-        input.row,
-        input.outletId
-      );
+      rowsResult = await tx
+        .select({ id: registers.id })
+        .from(registers)
+        .where(inArray(registers.id, ids));
+      break;
     case "categories":
-      return await upsertMerchantRow(
-        input.tx,
-        categories,
-        input.row,
-        input.merchantId
-      );
+      rowsResult = await tx
+        .select({ id: categories.id })
+        .from(categories)
+        .where(inArray(categories.id, ids));
+      break;
     case "assets":
-      return await upsertMerchantRow(
-        input.tx,
-        assets,
-        input.row,
-        input.merchantId
-      );
+      rowsResult = await tx
+        .select({ id: assets.id })
+        .from(assets)
+        .where(inArray(assets.id, ids));
+      break;
     case "products":
-      return await upsertMerchantRow(
-        input.tx,
-        products,
-        input.row,
-        input.merchantId
-      );
+      rowsResult = await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(inArray(products.id, ids));
+      break;
     case "outlet_products":
-      return await upsertOutletRow(
-        input.tx,
-        outletProducts,
-        input.row,
-        input.outletId
-      );
+      rowsResult = await tx
+        .select({ id: outletProducts.id })
+        .from(outletProducts)
+        .where(inArray(outletProducts.id, ids));
+      break;
     case "staff":
-      return await upsertStaffRow(input.tx, input.row, input.merchantId);
+      rowsResult = await tx
+        .select({ id: staff.id })
+        .from(staff)
+        .where(inArray(staff.id, ids));
+      break;
     case "orders":
-      return await upsertOutletRow(input.tx, orders, input.row, input.outletId);
+      rowsResult = await tx
+        .select({ id: orders.id })
+        .from(orders)
+        .where(inArray(orders.id, ids));
+      break;
     case "order_items":
-      return await upsertOrderItem(input.tx, input.row, input.outletId);
+      rowsResult = await tx
+        .select({ id: orderItems.id })
+        .from(orderItems)
+        .where(inArray(orderItems.id, ids));
+      break;
     default:
-      return { acceptedOperation: null, serverWin: null };
+      rowsResult = [];
   }
+
+  const rows = await resolveRowsResult(rowsResult);
+  return new Set(rows.map((row) => row.id));
 }
 
-async function upsertMerchantRow(
-  tx: TransactionTx,
-  table: typeof assets | typeof categories | typeof products | typeof merchants,
-  row: Record<string, unknown>,
-  merchantId: string
-): Promise<UpsertResult> {
-  const existing = await tx
-    .select()
-    .from(table)
-    .where(eq(table.id, row.id as string))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const serverUpdated = parseTimestampMs(
-      (existing[0] as Record<string, unknown>).updatedAt
+async function resolveRowsResult(value: unknown): Promise<{ id: string }[]> {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (row): row is { id: string } =>
+        typeof row === "object" &&
+        row !== null &&
+        "id" in row &&
+        typeof row.id === "string"
     );
-    const clientUpdated = parseTimestampMs(row.updatedAt);
+  }
 
-    if (clientUpdated >= serverUpdated) {
-      await tx
-        .update(table)
-        .set(row)
-        .where(eq(table.id, row.id as string));
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "limit" in value &&
+    typeof value.limit === "function"
+  ) {
+    const limitedRows = await value.limit(1);
+    return resolveRowsResult(limitedRows);
+  }
+
+  return [];
+}
+
+function normalizePushBatchRowForTableName(
+  tableName: string,
+  row: Record<string, unknown>
+): Record<string, unknown> {
+  const base = normalizeEmptyToNull(stripLocalOnlyColumns(row));
+
+  switch (tableName) {
+    case "products":
       return {
-        acceptedOperation: getAcceptedOperation(row, "update"),
-        serverWin: null,
+        ...base,
+        price: normalizeBatchInt64(row.priceMinorUnits),
+        sortOrder: normalizeBatchInt64(row.sortOrder),
       };
-    }
-    return { acceptedOperation: null, serverWin: row.id as string };
-  }
-
-  await tx.insert(table).values({ ...row, merchantId } as never);
-  return {
-    acceptedOperation: getAcceptedOperation(row, "insert"),
-    serverWin: null,
-  };
-}
-
-async function upsertOutletRow(
-  tx: TransactionTx,
-  table:
-    | typeof outletProducts
-    | typeof orders
-    | typeof outlets
-    | typeof registers,
-  row: Record<string, unknown>,
-  outletId: string
-): Promise<UpsertResult> {
-  const existing = await tx
-    .select()
-    .from(table)
-    .where(eq(table.id, row.id as string))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const serverUpdated = parseTimestampMs(
-      (existing[0] as Record<string, unknown>).updatedAt
-    );
-    const clientUpdated = parseTimestampMs(row.updatedAt);
-
-    if (clientUpdated >= serverUpdated) {
-      await tx
-        .update(table)
-        .set(row)
-        .where(eq(table.id, row.id as string));
+    case "outlet_products":
       return {
-        acceptedOperation: getAcceptedOperation(row, "update"),
-        serverWin: null,
+        ...base,
+        price: normalizeBatchInt64(row.priceMinorUnits),
+        sortOrder: normalizeBatchInt64(row.sortOrder),
       };
-    }
-    return { acceptedOperation: null, serverWin: row.id as string };
+    case "orders":
+      return {
+        ...base,
+        amountPaid: normalizeBatchInt64(row.amountPaidMinorUnits),
+        changeAmount: normalizeBatchInt64(row.changeAmountMinorUnits),
+        total: normalizeBatchInt64(row.totalMinorUnits),
+      };
+    case "order_items":
+      return {
+        ...base,
+        originalPrice: normalizeBatchInt64(row.originalPriceMinorUnits),
+        quantity: normalizeBatchInt64(row.quantity),
+        subtotal: normalizeBatchInt64(row.subtotalMinorUnits),
+        unitPrice: normalizeBatchInt64(row.unitPriceMinorUnits),
+      };
+    default:
+      return base;
   }
-
-  await tx.insert(table).values({ ...row, outletId } as never);
-  return {
-    acceptedOperation: getAcceptedOperation(row, "insert"),
-    serverWin: null,
-  };
 }
 
-async function upsertStaffRow(
+async function softDeleteRowsForTableName(
   tx: TransactionTx,
-  row: Record<string, unknown>,
-  merchantId: string
-): Promise<UpsertResult> {
-  const existing = await tx
-    .select()
-    .from(staff)
-    .where(eq(staff.id, row.id as string))
-    .limit(1);
+  tableName: string,
+  ids: string[]
+) {
+  if (ids.length === 0) {
+    return;
+  }
 
-  if (existing.length > 0) {
-    const serverUpdated = parseTimestampMs(
-      (existing[0] as Record<string, unknown>).updatedAt
-    );
-    const clientUpdated = parseTimestampMs(row.updatedAt);
-
-    if (clientUpdated >= serverUpdated) {
+  const now = new Date().toISOString();
+  switch (tableName) {
+    case "merchants":
+      await tx
+        .update(merchants)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(merchants.id, ids));
+      break;
+    case "outlets":
+      await tx
+        .update(outlets)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(outlets.id, ids));
+      break;
+    case "registers":
+      await tx
+        .update(registers)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(registers.id, ids));
+      break;
+    case "categories":
+      await tx
+        .update(categories)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(categories.id, ids));
+      break;
+    case "assets":
+      await tx
+        .update(assets)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(assets.id, ids));
+      break;
+    case "products":
+      await tx
+        .update(products)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(products.id, ids));
+      break;
+    case "outlet_products":
+      await tx
+        .update(outletProducts)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(outletProducts.id, ids));
+      break;
+    case "staff":
       await tx
         .update(staff)
-        .set(row)
-        .where(eq(staff.id, row.id as string));
-      return {
-        acceptedOperation: getAcceptedOperation(row, "update"),
-        serverWin: null,
-      };
-    }
-    return { acceptedOperation: null, serverWin: row.id as string };
-  }
-
-  await tx.insert(staff).values({ ...row, merchantId } as never);
-  return {
-    acceptedOperation: getAcceptedOperation(row, "insert"),
-    serverWin: null,
-  };
-}
-
-async function upsertOrderItem(
-  tx: TransactionTx,
-  row: Record<string, unknown>,
-  outletId: string
-): Promise<UpsertResult> {
-  const existing = await tx
-    .select()
-    .from(orderItems)
-    .where(eq(orderItems.id, row.id as string))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const serverCreated = parseTimestampMs(
-      (existing[0] as Record<string, unknown>).createdAt
-    );
-    const clientCreated = parseTimestampMs(row.createdAt);
-
-    if (clientCreated >= serverCreated) {
-      const normalizedRow = normalizeOrderItemRow(row);
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(staff.id, ids));
+      break;
+    case "orders":
+      await tx
+        .update(orders)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(orders.id, ids));
+      break;
+    case "order_items":
       await tx
         .update(orderItems)
-        .set(normalizedRow)
-        .where(eq(orderItems.id, row.id as string));
-      return {
-        acceptedOperation: getAcceptedOperation(row, "update"),
-        serverWin: null,
-      };
-    }
-    return { acceptedOperation: null, serverWin: row.id as string };
+        .set({ deletedAt: now, updatedAt: now })
+        .where(inArray(orderItems.id, ids));
+      break;
+    default:
+      break;
+  }
+}
+
+function normalizeBatchInt64(value: unknown): number {
+  if (typeof value === "bigint") {
+    return protobufInt64ToSafeNumber(value, "int64");
+  }
+  if (typeof value === "number") {
+    return value;
+  }
+  return 0;
+}
+
+interface PullBatchEntry {
+  kind: "hot" | "json";
+  operation: SyncEventOperation;
+  row: Record<string, unknown>;
+  rowId: string;
+  table: string;
+}
+
+function normalizePullBatchLimit(limit: number): number {
+  if (!Number.isFinite(limit) || limit <= 0) {
+    return PULL_BATCH_DEFAULT_LIMIT;
   }
 
-  const normalizedRow = normalizeOrderItemRow(row);
-  await tx.insert(orderItems).values({ ...normalizedRow, outletId } as never);
+  return Math.min(limit, PULL_BATCH_MAX_LIMIT);
+}
+
+function parsePullBatchCursor(pageCursor: string): number {
+  if (!pageCursor) {
+    return 0;
+  }
+
+  if (!pageCursor.startsWith(PULL_BATCH_CURSOR_PREFIX)) {
+    throw new Error("Invalid pull batch cursor");
+  }
+
+  const rawEventId = Number(pageCursor.slice(PULL_BATCH_CURSOR_PREFIX.length));
+  if (!Number.isInteger(rawEventId) || rawEventId < 0) {
+    throw new Error("Invalid pull batch cursor");
+  }
+
+  return rawEventId;
+}
+
+function formatPullBatchCursor(eventId: number): string {
+  return `${PULL_BATCH_CURSOR_PREFIX}${eventId}`;
+}
+
+async function buildPullBatchEntries(
+  events: {
+    id: number;
+    operation: SyncEventOperation;
+    rowId: string;
+    tableName: string;
+  }[],
+  merchantId: string,
+  outletId: string
+): Promise<PullBatchEntry[]> {
+  const entries: PullBatchEntry[] = [];
+  const idsByTable = new Map<string, Set<string>>();
+
+  for (const event of events) {
+    if (event.operation === "delete") {
+      continue;
+    }
+    const ids = idsByTable.get(event.tableName) ?? new Set<string>();
+    ids.add(event.rowId);
+    idsByTable.set(event.tableName, ids);
+  }
+
+  const snapshotsByTable = new Map<
+    string,
+    Map<string, Record<string, unknown>>
+  >();
+  for (const [tableName, rowIds] of idsByTable) {
+    const rows = await selectSnapshotsForEvents({
+      merchantId,
+      outletId,
+      rowIds: Array.from(rowIds),
+      tableName,
+    });
+    const rowsById = new Map<string, Record<string, unknown>>();
+    for (const row of (rows ?? []) as Record<string, unknown>[]) {
+      if (typeof row.id === "string") {
+        rowsById.set(row.id, row);
+      }
+    }
+    snapshotsByTable.set(tableName, rowsById);
+  }
+
+  for (const event of events) {
+    const row =
+      event.operation === "delete"
+        ? { id: event.rowId }
+        : snapshotsByTable.get(event.tableName)?.get(event.rowId);
+    if (!row) {
+      continue;
+    }
+    entries.push({
+      kind: HOT_SYNC_TABLE_NAMES.has(event.tableName) ? "hot" : "json",
+      operation: event.operation,
+      row,
+      rowId: event.rowId,
+      table: event.tableName,
+    });
+  }
+
+  return entries;
+}
+
+function applyPullBatchEntries(
+  entries: PullBatchEntry[]
+): Pick<
+  PullBatchResult,
+  "jsonTables" | "order_items" | "orders" | "outlet_products" | "products"
+> {
+  const result: Partial<
+    Pick<
+      PullBatchResult,
+      "order_items" | "orders" | "outlet_products" | "products"
+    >
+  > = {};
+  const jsonTables = new Map<
+    string,
+    {
+      createdJson: string[];
+      deletedIds: string[];
+      table: string;
+      updatedJson: string[];
+    }
+  >();
+
+  for (const entry of entries) {
+    if (entry.kind === "hot") {
+      if (!isHotTableName(entry.table)) {
+        continue;
+      }
+      const current = (result[entry.table] as
+        | {
+            created: Record<string, unknown>[];
+            deletedIds: string[];
+            updated: Record<string, unknown>[];
+          }
+        | undefined) ?? {
+        created: [],
+        deletedIds: [],
+        updated: [],
+      };
+      if (entry.operation === "insert") {
+        current.created.push(entry.row);
+      } else if (entry.operation === "delete") {
+        current.deletedIds.push(entry.rowId);
+      } else {
+        current.updated.push(entry.row);
+      }
+      result[entry.table] = current;
+      continue;
+    }
+
+    const tableRows = jsonTables.get(entry.table) ?? {
+      createdJson: [],
+      deletedIds: [],
+      table: entry.table,
+      updatedJson: [],
+    };
+    if (entry.operation === "insert") {
+      tableRows.createdJson.push(JSON.stringify(entry.row));
+    } else if (entry.operation === "delete") {
+      tableRows.deletedIds.push(entry.rowId);
+    } else {
+      tableRows.updatedJson.push(JSON.stringify(entry.row));
+    }
+    jsonTables.set(entry.table, tableRows);
+  }
+
+  if (jsonTables.size > 0) {
+    return { ...result, jsonTables: Array.from(jsonTables.values()) };
+  }
+
+  return { ...result, jsonTables: [] };
+}
+
+async function normalizePullBatchResult(input: {
+  afterEventId: number;
+  events: {
+    id: number;
+    operation: SyncEventOperation;
+    rowId: string;
+    tableName: string;
+  }[];
+  gapBaseEventId: number;
+  limit: number;
+  merchantId: string;
+  outletId: string;
+}): Promise<PullBatchResult> {
+  const eventIds = input.events.map((event) => event.id);
+  const retainedLatestEventId =
+    eventIds.length > 0 ? Math.max(...eventIds) : input.afterEventId;
+  const oldestAvailableEventId =
+    eventIds.length > 0 ? Math.min(...eventIds) : null;
+  const needsFullResync =
+    oldestAvailableEventId !== null &&
+    input.gapBaseEventId > 0 &&
+    input.gapBaseEventId + 1 < oldestAvailableEventId;
+  const serverTime = new Date().toISOString();
+
+  if (needsFullResync) {
+    return {
+      hasMore: false,
+      jsonTables: [],
+      latestEventId: retainedLatestEventId,
+      needsFullResync: true,
+      nextPageCursor: "",
+      serverTime,
+    };
+  }
+
+  const pageEvents = input.events;
+  const normalizedLimit = input.limit;
+  const hasMore = pageEvents.length > normalizedLimit;
+  const committedEvents = hasMore
+    ? pageEvents.slice(0, normalizedLimit)
+    : pageEvents;
+  const latestEventId =
+    committedEvents.at(-1)?.id ??
+    Math.max(input.afterEventId, input.gapBaseEventId);
+  const pageEntries = await buildPullBatchEntries(
+    committedEvents,
+    input.merchantId,
+    input.outletId
+  );
+  const pageResult = applyPullBatchEntries(pageEntries);
+
   return {
-    acceptedOperation: getAcceptedOperation(row, "insert"),
-    serverWin: null,
+    ...pageResult,
+    hasMore,
+    jsonTables: (pageResult.jsonTables ?? []) as {
+      createdJson: string[];
+      deletedIds: string[];
+      table: string;
+      updatedJson: string[];
+    }[],
+    latestEventId,
+    needsFullResync: false,
+    nextPageCursor: hasMore ? formatPullBatchCursor(latestEventId) : "",
+    serverTime,
   };
 }
 
@@ -448,12 +1245,12 @@ function getSyncEventScope(
   }
 }
 
-export async function handlePull(
+async function selectBaselineSnapshots(
   outletId: string,
   merchantId: string,
   tables: string[],
   since: string
-) {
+): Promise<Record<string, unknown[]>> {
   const result: Record<string, unknown[]> = {};
 
   for (const tableName of tables) {
@@ -571,68 +1368,140 @@ export async function handlePull(
     }
   }
 
-  return { ...result, serverTime: new Date().toISOString() };
+  return result;
 }
 
-export interface EventPullInput {
+export interface PullBatchInput {
   afterEventId: number;
+  limit: number;
   merchantId: string;
   outletId: string;
+  pageCursor: string;
+  tables: string[];
 }
 
-export async function handleEventPull(input: EventPullInput) {
-  const events = await db
+export async function handlePullBatch(input: PullBatchInput) {
+  if (input.afterEventId === 0 && !input.pageCursor) {
+    const latestEvent = await getLatestScopedEvent(
+      input.merchantId,
+      input.outletId
+    );
+    return await buildBaselinePullBatchResult(input, latestEvent?.id ?? 0);
+  }
+
+  const normalizedLimit = normalizePullBatchLimit(input.limit);
+  const cursorEventId = parsePullBatchCursor(input.pageCursor);
+  const lowerBound = Math.max(input.afterEventId, cursorEventId);
+  const scopedEventsFilter = getScopedEventsFilter(
+    input.merchantId,
+    input.outletId
+  );
+  const conditions: SQL[] = [gt(syncEvents.id, lowerBound)];
+  if (scopedEventsFilter) {
+    conditions.unshift(scopedEventsFilter);
+  }
+  if (input.tables.length > 0) {
+    conditions.push(inArray(syncEvents.tableName, input.tables));
+  }
+
+  const eventQuery = db
     .select({
       id: syncEvents.id,
+      operation: syncEvents.operation,
       rowId: syncEvents.rowId,
       tableName: syncEvents.tableName,
     })
     .from(syncEvents)
-    .where(getScopedEventsFilter(input.merchantId, input.outletId));
+    .where(and(...conditions))
+    .orderBy(asc(syncEvents.id));
+  const events = await resolveLimitedRows<{
+    id: number;
+    operation: SyncEventOperation;
+    rowId: string;
+    tableName: string;
+  }>(eventQuery, normalizedLimit + 1);
 
-  const eventIds = events.map((event) => event.id);
-  const latestEventId =
-    eventIds.length > 0 ? Math.max(...eventIds) : input.afterEventId;
-  const oldestAvailableEventId =
-    eventIds.length > 0 ? Math.min(...eventIds) : null;
-  const needsFullResync =
-    oldestAvailableEventId !== null &&
-    input.afterEventId > 0 &&
-    input.afterEventId + 1 < oldestAvailableEventId;
+  return await normalizePullBatchResult({
+    afterEventId: input.afterEventId,
+    events: events.slice(0, normalizedLimit + 1),
+    gapBaseEventId: lowerBound,
+    limit: normalizedLimit,
+    merchantId: input.merchantId,
+    outletId: input.outletId,
+  });
+}
 
-  if (needsFullResync) {
-    return { latestEventId, needsFullResync: true };
+async function getLatestScopedEvent(merchantId: string, outletId: string) {
+  const query = db
+    .select({ id: syncEvents.id })
+    .from(syncEvents)
+    .where(getScopedEventsFilter(merchantId, outletId))
+    .orderBy(desc(syncEvents.id));
+  const rows = await resolveLimitedRows<{ id: number }>(query, 1);
+  return rows[0] ?? null;
+}
+
+async function resolveLimitedRows<T>(
+  value: unknown,
+  limit: number
+): Promise<T[]> {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "limit" in value &&
+    typeof value.limit === "function"
+  ) {
+    return (await value.limit(limit)) as T[];
   }
 
-  const changedRowsByTable = new Map<string, Set<string>>();
-  for (const event of events) {
-    if (event.id <= input.afterEventId) {
-      continue;
+  const resolved = await value;
+  return Array.isArray(resolved) ? (resolved as T[]) : [];
+}
+
+async function buildBaselinePullBatchResult(
+  input: PullBatchInput,
+  latestEventId: number
+) {
+  const tables = input.tables.length > 0 ? input.tables : ALL_SYNC_TABLE_NAMES;
+  const snapshots = await selectBaselineSnapshots(
+    input.outletId,
+    input.merchantId,
+    tables,
+    "1970-01-01T00:00:00.000Z"
+  );
+  const entries: PullBatchEntry[] = [];
+  for (const table of tables) {
+    const rows = Array.isArray(snapshots[table])
+      ? (snapshots[table] as Record<string, unknown>[])
+      : [];
+    for (const row of rows) {
+      if (typeof row.id !== "string") {
+        continue;
+      }
+      entries.push({
+        kind: HOT_SYNC_TABLE_NAMES.has(table) ? "hot" : "json",
+        operation: row.deletedAt ? "delete" : "insert",
+        row,
+        rowId: row.id,
+        table,
+      });
     }
-
-    const rowIds = changedRowsByTable.get(event.tableName) ?? new Set<string>();
-    rowIds.add(event.rowId);
-    changedRowsByTable.set(event.tableName, rowIds);
   }
-
-  const result: Record<string, unknown> = {
+  const pageResult = applyPullBatchEntries(entries);
+  return {
+    ...pageResult,
+    hasMore: false,
+    jsonTables: (pageResult.jsonTables ?? []) as {
+      createdJson: string[];
+      deletedIds: string[];
+      table: string;
+      updatedJson: string[];
+    }[],
     latestEventId,
     needsFullResync: false,
+    nextPageCursor: "",
+    serverTime: String(snapshots.serverTime),
   };
-
-  for (const [tableName, rowIds] of changedRowsByTable) {
-    const rows = await selectSnapshotsForEvents({
-      merchantId: input.merchantId,
-      outletId: input.outletId,
-      rowIds: Array.from(rowIds),
-      tableName,
-    });
-    if (rows) {
-      result[tableName] = rows;
-    }
-  }
-
-  return result;
 }
 
 async function selectSnapshotsForEvents(input: {
@@ -758,22 +1627,40 @@ export interface SyncStatusInput {
 }
 
 export async function handleSyncStatus(input: SyncStatusInput) {
-  const events = await db
-    .select({ id: syncEvents.id, tableName: syncEvents.tableName })
+  const latestQuery = db
+    .select({ id: syncEvents.id })
     .from(syncEvents)
-    .where(getScopedEventsFilter(input.merchantId, input.outletId));
+    .where(getScopedEventsFilter(input.merchantId, input.outletId))
+    .orderBy(desc(syncEvents.id));
+  const [latestEvent] = await resolveLimitedRows<{ id: number }>(
+    latestQuery,
+    1
+  );
 
-  const eventIds = events.map((event) => event.id);
-  const latestEventId =
-    eventIds.length > 0 ? Math.max(...eventIds) : input.lastServerEventId;
-  const oldestAvailableEventId =
-    eventIds.length > 0 ? Math.min(...eventIds) : null;
-  const changedTables = Array.from(
-    new Set(
-      events
-        .filter((event) => event.id > input.lastServerEventId)
-        .map((event) => event.tableName)
+  const oldestQuery = db
+    .select({ id: syncEvents.id })
+    .from(syncEvents)
+    .where(getScopedEventsFilter(input.merchantId, input.outletId))
+    .orderBy(asc(syncEvents.id));
+  const [oldestEvent] = await resolveLimitedRows<{ id: number }>(
+    oldestQuery,
+    1
+  );
+
+  const changedTableRows = await db
+    .select({ tableName: syncEvents.tableName })
+    .from(syncEvents)
+    .where(
+      and(
+        getScopedEventsFilter(input.merchantId, input.outletId),
+        gt(syncEvents.id, input.lastServerEventId)
+      )
     )
+    .orderBy(asc(syncEvents.id));
+  const latestEventId = latestEvent?.id ?? input.lastServerEventId;
+  const oldestAvailableEventId = oldestEvent?.id ?? null;
+  const changedTables = Array.from(
+    new Set(changedTableRows.map((event) => event.tableName))
   );
 
   return {
@@ -796,6 +1683,21 @@ function getScopedEventsFilter(merchantId: string, outletId: string) {
     ),
     and(eq(syncEvents.scopeType, "outlet"), eq(syncEvents.scopeId, outletId))
   );
+}
+
+async function getLatestScopedEventId(
+  tx: TransactionTx,
+  merchantId: string,
+  outletId: string
+): Promise<number> {
+  const [latestEvent] = await tx
+    .select({ id: syncEvents.id })
+    .from(syncEvents)
+    .where(getScopedEventsFilter(merchantId, outletId))
+    .orderBy(desc(syncEvents.id))
+    .limit(1);
+
+  return latestEvent?.id ?? 0;
 }
 
 export { ALL_SYNC_TABLE_NAMES };

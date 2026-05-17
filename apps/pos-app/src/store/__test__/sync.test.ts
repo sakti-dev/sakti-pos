@@ -11,6 +11,7 @@ let mockToken: string | null = "test-session-token";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  transformCallback: vi.fn(),
 }));
 
 vi.mock("~/store/outlet", () => ({
@@ -28,6 +29,15 @@ vi.mock("~/lib/api/sync", () => ({
   getSyncStatus: (...args: unknown[]) => mockGetSyncStatus(...args),
 }));
 
+vi.mock("~/lib/logger", () => ({
+  createLogger: () => ({
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  }),
+}));
+
 vi.mock("~/lib/assets", () => ({
   processPendingAssetJobs: (...args: unknown[]) =>
     mockProcessPendingAssetJobs(...args),
@@ -43,14 +53,6 @@ vi.mock("~/lib/product-images/upload-queue", () => ({
     mockRequestUploadPendingProductImages(...args),
 }));
 
-vi.mock("~/store/sync", async () => {
-  const actual =
-    await vi.importActual<typeof import("~/store/sync")>("~/store/sync");
-  return {
-    ...actual,
-  };
-});
-
 const {
   syncNow,
   runStartupSync,
@@ -58,23 +60,43 @@ const {
   lastSyncTime,
   startSyncScheduler,
   stopSyncScheduler,
+  __resetSyncStateForTests,
 } = await import("~/store/sync");
+
+function resetSyncMocks() {
+  __resetSyncStateForTests();
+  mockInvoke.mockReset();
+  mockGetSyncStatus.mockReset();
+  mockProcessPendingAssetJobs.mockReset();
+  mockRequestUploadPendingProductImages.mockReset();
+  mockHydrateMissingProductImages.mockReset();
+  mockOutletId = "outlet-1";
+  mockMerchantId = "merchant-1";
+  mockToken = "test-session-token";
+  mockInvoke.mockResolvedValue({
+    last_server_event_id: 10,
+    local_dirty_count: 0,
+  });
+  mockProcessPendingAssetJobs.mockResolvedValue(0);
+  mockHydrateMissingProductImages.mockResolvedValue(0);
+  mockGetSyncStatus.mockResolvedValue({
+    changedTables: [],
+    hasChanges: false,
+    latestEventId: 10,
+    needsFullResync: false,
+    oldestAvailableEventId: 1,
+  });
+}
+
+async function flushMicrotasks(count = 6) {
+  for (let index = 0; index < count; index += 1) {
+    await Promise.resolve();
+  }
+}
 
 describe("syncNow", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockOutletId = "outlet-1";
-    mockMerchantId = "merchant-1";
-    mockToken = "test-session-token";
-    mockProcessPendingAssetJobs.mockResolvedValue(0);
-    mockHydrateMissingProductImages.mockResolvedValue(0);
-    mockGetSyncStatus.mockResolvedValue({
-      changedTables: [],
-      hasChanges: false,
-      latestEventId: 10,
-      needsFullResync: false,
-      oldestAvailableEventId: 1,
-    });
+    resetSyncMocks();
   });
 
   test("returns empty result when no outletId", async () => {
@@ -179,7 +201,7 @@ describe("syncNow", () => {
     expect(mockInvoke).toHaveBeenNthCalledWith(1, "get_sync_local_state", {
       outletId: "outlet-1",
     });
-    expect(mockInvoke).toHaveBeenNthCalledWith(2, "sync_push_outbox", {
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, "sync_push", {
       apiUrl: expect.any(String),
       outletId: "outlet-1",
       sessionToken: "test-session-token",
@@ -276,9 +298,9 @@ describe("syncNow", () => {
     expect(mockHydrateMissingProductImages).toHaveBeenCalledTimes(1);
 
     finishHydration?.(1);
-    await vi.waitFor(() =>
-      expect(mockHydrateMissingProductImages).toHaveBeenCalledTimes(2)
-    );
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockHydrateMissingProductImages).toHaveBeenCalledTimes(2);
   });
 
   test("keeps sync successful when background asset hydration fails", async () => {
@@ -294,9 +316,9 @@ describe("syncNow", () => {
     const result = await syncNow();
 
     expect(result.mode).toBe("skipped");
-    await vi.waitFor(() =>
-      expect(mockHydrateMissingProductImages).toHaveBeenCalledOnce()
-    );
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockHydrateMissingProductImages).toHaveBeenCalledOnce();
     expect(syncStatus()).toBe("idle");
   });
 
@@ -320,7 +342,7 @@ describe("syncNow", () => {
 
     const result = await syncNow();
 
-    expect(mockInvoke).toHaveBeenLastCalledWith("sync_push_outbox", {
+    expect(mockInvoke).toHaveBeenLastCalledWith("sync_push", {
       outletId: "outlet-1",
       apiUrl: expect.any(String),
       sessionToken: "test-session-token",
@@ -357,11 +379,11 @@ describe("syncNow", () => {
 
     const result = await syncNow();
 
-    expect(mockInvoke).toHaveBeenLastCalledWith("sync_pull_events", {
+    expect(mockInvoke).toHaveBeenLastCalledWith("sync_pull", {
       apiUrl: expect.any(String),
-      latestEventId: 11,
       outletId: "outlet-1",
       sessionToken: "test-session-token",
+      tables: ["products"],
     });
     expect(result.mode).toBe("pull_only");
   });
@@ -405,11 +427,11 @@ describe("syncNow", () => {
     const pullResult = await syncNow();
     const skippedResult = await syncNow();
 
-    expect(mockInvoke).toHaveBeenNthCalledWith(2, "sync_pull_events", {
+    expect(mockInvoke).toHaveBeenNthCalledWith(2, "sync_pull", {
       apiUrl: expect.any(String),
-      latestEventId: 3,
       outletId: "outlet-1",
       sessionToken: "test-session-token",
+      tables: ["categories", "products", "outlet_products"],
     });
     expect(mockInvoke).toHaveBeenCalledTimes(3);
     expect(pullResult.mode).toBe("pull_only");
@@ -452,6 +474,7 @@ describe("syncNow", () => {
       apiUrl: expect.any(String),
       outletId: "outlet-1",
       sessionToken: "test-session-token",
+      tables: ["products"],
     });
     expect(result.mode).toBe("full");
   });
@@ -511,6 +534,7 @@ describe("syncNow", () => {
     expect(call[1].sessionToken).toBe("test-session-token");
     expect(call[1].apiUrl).toContain("://");
     expect(call[1].latestEventId).toBe(50);
+    expect(call[1].tables).toEqual(["products"]);
     expect(result).toEqual(syncResult);
     expect(syncStatus()).toBe("idle");
     expect(lastSyncTime()).toBe("2025-01-01T00:00:00.000Z");
@@ -542,6 +566,7 @@ describe("syncNow", () => {
       latestEventId: 10,
       outletId: "outlet-1",
       sessionToken: "test-session-token",
+      tables: [],
     });
     expect(result.mode).toBe("full");
   });
@@ -556,10 +581,7 @@ describe("syncNow", () => {
 
 describe("runStartupSync", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockOutletId = "outlet-1";
-    mockMerchantId = "merchant-1";
-    mockToken = "test-session-token";
+    resetSyncMocks();
   });
 
   test("does nothing when no outletId", async () => {
@@ -594,7 +616,7 @@ describe("runStartupSync", () => {
   test("silently catches errors", async () => {
     mockInvoke.mockRejectedValue(new Error("Network error"));
 
-    await expect(runStartupSync()).resolves.not.toThrow();
+    await expect(runStartupSync()).resolves.toBeUndefined();
     expect(syncStatus()).toBe("offline");
   });
 
@@ -612,11 +634,8 @@ describe("runStartupSync", () => {
 
 describe("startSyncScheduler / stopSyncScheduler", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    resetSyncMocks();
     vi.useFakeTimers();
-    mockOutletId = "outlet-1";
-    mockMerchantId = "merchant-1";
-    mockToken = "test-session-token";
     mockInvoke.mockResolvedValue({
       pull: { rows_received: 0, server_time: "" },
       push: { tables_synced: [], server_wins_count: 0, server_time: "" },
@@ -632,7 +651,8 @@ describe("startSyncScheduler / stopSyncScheduler", () => {
   test("startSyncScheduler calls syncNow immediately", async () => {
     startSyncScheduler();
 
-    await vi.advanceTimersByTimeAsync(0);
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
     expect(mockInvoke).toHaveBeenCalledTimes(1);
 
     stopSyncScheduler();
@@ -642,7 +662,8 @@ describe("startSyncScheduler / stopSyncScheduler", () => {
     startSyncScheduler();
     stopSyncScheduler();
 
-    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    vi.advanceTimersByTime(10 * 60 * 1000);
+    await flushMicrotasks();
     expect(mockInvoke).toHaveBeenCalledTimes(1);
   });
 
@@ -650,7 +671,8 @@ describe("startSyncScheduler / stopSyncScheduler", () => {
     startSyncScheduler();
     startSyncScheduler();
 
-    await vi.advanceTimersByTimeAsync(0);
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
     expect(mockInvoke).toHaveBeenCalledTimes(1);
 
     stopSyncScheduler();

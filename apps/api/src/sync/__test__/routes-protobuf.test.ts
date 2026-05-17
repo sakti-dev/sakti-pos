@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
 import {
-  SyncPullEventsRequest,
-  SyncPullEventsResponse,
-  SyncPullRequest,
-  SyncPullResponse,
-  SyncPushRequest,
-  SyncPushResponse,
+  SyncPullBatchRequest,
+  SyncPullBatchResponse,
+  SyncPushBatchRequest,
+  SyncPushBatchResponse,
   SyncStatusRequest,
   SyncStatusResponse,
 } from "@repo/protobuf/sync";
@@ -13,10 +11,9 @@ import {
 const mockSelect = vi.fn();
 const mockGetSessionFromRequest = vi.fn();
 const mockVerifyOutletAccess = vi.fn();
-const mockHandlePush = vi.fn();
+const mockHandlePushBatch = vi.fn();
 const mockHandleSyncStatus = vi.fn();
-const mockHandleEventPull = vi.fn();
-const mockHandlePull = vi.fn();
+const mockHandlePullBatch = vi.fn();
 
 vi.mock("../../db", () => ({
   db: {
@@ -30,9 +27,8 @@ vi.mock("../../lib/session", () => ({
 }));
 
 vi.mock("../service", () => ({
-  handleEventPull: (...args: unknown[]) => mockHandleEventPull(...args),
-  handlePull: (...args: unknown[]) => mockHandlePull(...args),
-  handlePush: (...args: unknown[]) => mockHandlePush(...args),
+  handlePullBatch: (...args: unknown[]) => mockHandlePullBatch(...args),
+  handlePushBatch: (...args: unknown[]) => mockHandlePushBatch(...args),
   handleSyncStatus: (...args: unknown[]) => mockHandleSyncStatus(...args),
   verifyOutletAccess: (...args: unknown[]) => mockVerifyOutletAccess(...args),
 }));
@@ -84,47 +80,79 @@ async function makeProtobufRequest(
 
 describe("sync protobuf routes", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
-  test("POST /api/sync/push accepts protobuf and returns protobuf", async () => {
+  test("POST /api/sync/push accepts batch protobuf and returns batch protobuf ack", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockVerifyOutletAccess.mockResolvedValue(true);
     mockOutletLookup();
-    mockHandlePush.mockResolvedValue({
-      serverTime: "2026-05-10T00:00:00.000Z",
-      serverWins: [{ ids: ["product-1"], table: "products" }],
+    mockHandlePushBatch.mockResolvedValue({
+      latestEventId: 12,
+      serverTime: "2026-05-17T00:00:00.000Z",
+      tables: [
+        {
+          acceptedCreatedIds: ["product-1"],
+          acceptedDeletedIds: [],
+          acceptedUpdatedIds: [],
+          rejected: [],
+          table: "products",
+        },
+      ],
     });
 
-    const body = SyncPushRequest.encode(
-      SyncPushRequest.create({
+    const body = SyncPushBatchRequest.encode(
+      SyncPushBatchRequest.create({
+        idempotencyKey: "sync-request-1",
         outletId: "outlet-1",
-        payloadJson: JSON.stringify({ products: [{ id: "product-1" }] }),
+        products: {
+          created: [
+            {
+              id: "product-1",
+              merchantId: "merchant-1",
+              name: "Kopi",
+              priceMinorUnits: 15_000n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
       })
     ).finish();
 
     const response = await makeProtobufRequest("/api/sync/push", body);
-    const decoded = SyncPushResponse.decode(
+    const decoded = SyncPushBatchResponse.decode(
       new Uint8Array(await response.arrayBuffer())
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toContain(
-      "application/x-protobuf"
+    expect(mockHandlePushBatch).toHaveBeenCalledWith(
+      "outlet-1",
+      "merchant-1",
+      {
+        products: {
+          created: [
+            expect.objectContaining({
+              id: "product-1",
+              name: "Kopi",
+            }),
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+      },
+      "sync-request-1",
+      expect.any(String)
     );
-    expect(mockHandlePush).toHaveBeenCalledWith("outlet-1", "merchant-1", {
-      products: [{ id: "product-1" }],
-    });
-    expect(decoded.serverWins).toEqual([
-      { ids: ["product-1"], table: "products" },
-    ]);
+    expect(decoded.tables[0]?.acceptedCreatedIds).toEqual(["product-1"]);
   });
 
   test("POST /api/sync/status returns JSON 401 when no session exists", async () => {
     mockGetSessionFromRequest.mockResolvedValue(null);
     const body = SyncStatusRequest.encode(
       SyncStatusRequest.create({
-        lastServerEventId: 0,
+        lastServerEventId: 0n,
         outletId: "outlet-1",
       })
     ).finish();
@@ -140,9 +168,10 @@ describe("sync protobuf routes", () => {
   test("POST /api/sync/status returns 403 when outlet access is denied", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockVerifyOutletAccess.mockResolvedValue(false);
+    mockOutletLookup();
     const body = SyncStatusRequest.encode(
       SyncStatusRequest.create({
-        lastServerEventId: 0,
+        lastServerEventId: 0n,
         outletId: "outlet-1",
       })
     ).finish();
@@ -155,21 +184,166 @@ describe("sync protobuf routes", () => {
     expect(mockVerifyOutletAccess).toHaveBeenCalledWith("user-1", "outlet-1");
   });
 
-  test("POST /api/sync/push returns 400 for malformed embedded JSON", async () => {
+  test("POST /api/sync/push returns 400 for malformed JSON fallback rows", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockVerifyOutletAccess.mockResolvedValue(true);
     mockOutletLookup();
-    const body = SyncPushRequest.encode(
-      SyncPushRequest.create({
+    const body = SyncPushBatchRequest.encode(
+      SyncPushBatchRequest.create({
+        idempotencyKey: "sync-request-1",
         outletId: "outlet-1",
-        payloadJson: "{bad-json",
+        jsonTables: [
+          {
+            table: "categories",
+            createdJson: ["{bad-json"],
+          },
+        ],
       })
     ).finish();
 
     const response = await makeProtobufRequest("/api/sync/push", body);
 
     expect(response.status).toBe(400);
-    expect(mockHandlePush).not.toHaveBeenCalled();
+    expect(mockHandlePushBatch).not.toHaveBeenCalled();
+  });
+
+  test("POST /api/sync/push requires an idempotency key", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockVerifyOutletAccess.mockResolvedValue(true);
+    mockOutletLookup();
+    const body = SyncPushBatchRequest.encode(
+      SyncPushBatchRequest.create({
+        outletId: "outlet-1",
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/push", body);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain("idempotency");
+    expect(mockHandlePushBatch).not.toHaveBeenCalled();
+  });
+
+  test("POST /api/sync/push returns 400 for malformed protobuf", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+
+    const response = await makeProtobufRequest(
+      "/api/sync/push",
+      new Uint8Array([0xff])
+    );
+
+    expect(response.status).toBe(400);
+    expect(mockVerifyOutletAccess).not.toHaveBeenCalled();
+    expect(mockHandlePushBatch).not.toHaveBeenCalled();
+  });
+
+  test("POST /api/sync/pull returns 400 for invalid cursors", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockVerifyOutletAccess.mockResolvedValue(true);
+    mockOutletLookup();
+    mockHandlePullBatch.mockRejectedValue(
+      new Error("Invalid pull batch cursor")
+    );
+    const body = SyncPullBatchRequest.encode(
+      SyncPullBatchRequest.create({
+        afterEventId: 10n,
+        outletId: "outlet-1",
+        pageCursor: "bad-cursor",
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/pull", body);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain("Invalid pull batch cursor");
+  });
+
+  test("POST /api/sync/pull returns 400 for unsafe afterEventId", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockVerifyOutletAccess.mockResolvedValue(true);
+    mockOutletLookup();
+    const body = SyncPullBatchRequest.encode(
+      SyncPullBatchRequest.create({
+        afterEventId: BigInt(Number.MAX_SAFE_INTEGER) + 1n,
+        outletId: "outlet-1",
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/pull", body);
+
+    expect(response.status).toBe(400);
+    expect(mockHandlePullBatch).not.toHaveBeenCalled();
+  });
+
+  test("POST /api/sync/status returns 404 before access check when outlet is missing", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockSelect.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    });
+    const body = SyncStatusRequest.encode(
+      SyncStatusRequest.create({
+        lastServerEventId: 0n,
+        outletId: "missing-outlet",
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/status", body);
+
+    expect(response.status).toBe(404);
+    expect(mockVerifyOutletAccess).not.toHaveBeenCalled();
+    expect(mockHandleSyncStatus).not.toHaveBeenCalled();
+  });
+
+  test("POST /api/sync/push returns 413 when row count is over the limit", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockVerifyOutletAccess.mockResolvedValue(true);
+    mockOutletLookup();
+    const body = SyncPushBatchRequest.encode(
+      SyncPushBatchRequest.create({
+        idempotencyKey: "sync-request-1",
+        outletId: "outlet-1",
+        products: {
+          created: [],
+          deletedIds: Array.from(
+            { length: 2001 },
+            (_, index) => `product-${index}`
+          ),
+          updated: [],
+        },
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/push", body);
+
+    expect(response.status).toBe(413);
+    expect(mockHandlePushBatch).not.toHaveBeenCalled();
+  });
+
+  test("POST /api/sync/push returns 413 when encoded body is over the byte limit", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockVerifyOutletAccess.mockResolvedValue(true);
+    mockOutletLookup();
+    const body = SyncPushBatchRequest.encode(
+      SyncPushBatchRequest.create({
+        idempotencyKey: "sync-request-1",
+        jsonTables: [
+          {
+            createdJson: ["x".repeat(2 * 1024 * 1024)],
+            table: "categories",
+          },
+        ],
+        outletId: "outlet-1",
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/push", body);
+
+    expect(response.status).toBe(413);
+    expect(mockHandlePushBatch).not.toHaveBeenCalled();
   });
 
   test("POST /api/sync/status accepts protobuf and returns protobuf", async () => {
@@ -186,7 +360,7 @@ describe("sync protobuf routes", () => {
 
     const body = SyncStatusRequest.encode(
       SyncStatusRequest.create({
-        lastServerEventId: 10,
+        lastServerEventId: 10n,
         outletId: "outlet-1",
       })
     ).finish();
@@ -202,77 +376,69 @@ describe("sync protobuf routes", () => {
       merchantId: "merchant-1",
       outletId: "outlet-1",
     });
-    expect(decoded.latestEventId).toBe(12);
+    expect(decoded.latestEventId).toBe(12n);
     expect(decoded.changedTables).toEqual(["products"]);
     expect(decoded.hasOldestAvailableEventId).toBe(false);
   });
 
-  test("POST /api/sync/pull-events accepts protobuf and returns protobuf", async () => {
+  test("POST /api/sync/pull returns protobuf batch changes", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockVerifyOutletAccess.mockResolvedValue(true);
     mockOutletLookup();
-    mockHandleEventPull.mockResolvedValue({
-      latestEventId: 13,
+    mockHandlePullBatch.mockResolvedValue({
+      hasMore: false,
+      jsonTables: [
+        {
+          createdJson: [],
+          deletedIds: [],
+          table: "categories",
+          updatedJson: [JSON.stringify({ id: "cat-1", name: "Minuman" })],
+        },
+      ],
+      latestEventId: 12,
       needsFullResync: false,
-      products: [{ id: "product-1" }],
+      nextPageCursor: "",
+      products: {
+        created: [],
+        deletedIds: [],
+        updated: [
+          {
+            id: "product-1",
+            merchantId: "merchant-1",
+            name: "Kopi",
+            price: 15_000,
+            updatedAt: "2026-05-17T00:00:00.000Z",
+          },
+        ],
+      },
+      serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    const body = SyncPullEventsRequest.encode(
-      SyncPullEventsRequest.create({
-        afterEventId: 10,
+    const body = SyncPullBatchRequest.encode(
+      SyncPullBatchRequest.create({
+        afterEventId: 10n,
+        limit: 2000,
         outletId: "outlet-1",
-      })
-    ).finish();
-
-    const response = await makeProtobufRequest("/api/sync/pull-events", body);
-    const decoded = SyncPullEventsResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
-
-    expect(response.status).toBe(200);
-    expect(mockHandleEventPull).toHaveBeenCalledWith({
-      afterEventId: 10,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-    });
-    expect(decoded.latestEventId).toBe(13);
-    expect(decoded.tables).toEqual([
-      { rowsJson: JSON.stringify([{ id: "product-1" }]), table: "products" },
-    ]);
-  });
-
-  test("POST /api/sync/pull accepts protobuf and returns protobuf", async () => {
-    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
-    mockVerifyOutletAccess.mockResolvedValue(true);
-    mockOutletLookup();
-    mockHandlePull.mockResolvedValue({
-      products: [{ id: "product-1" }],
-      serverTime: "2026-05-10T00:00:00.000Z",
-    });
-
-    const body = SyncPullRequest.encode(
-      SyncPullRequest.create({
-        outletId: "outlet-1",
-        since: "2026-05-10T00:00:00.000Z",
-        tables: ["products"],
+        pageCursor: "",
+        tables: ["products", "categories"],
       })
     ).finish();
 
     const response = await makeProtobufRequest("/api/sync/pull", body);
-    const decoded = SyncPullResponse.decode(
+    const decoded = SyncPullBatchResponse.decode(
       new Uint8Array(await response.arrayBuffer())
     );
 
     expect(response.status).toBe(200);
-    expect(mockHandlePull).toHaveBeenCalledWith(
-      "outlet-1",
-      "merchant-1",
-      ["products"],
-      "2026-05-10T00:00:00.000Z"
-    );
-    expect(decoded.serverTime).toBe("2026-05-10T00:00:00.000Z");
-    expect(decoded.tables).toEqual([
-      { rowsJson: JSON.stringify([{ id: "product-1" }]), table: "products" },
-    ]);
+    expect(mockHandlePullBatch).toHaveBeenCalledWith({
+      afterEventId: 10,
+      limit: 2000,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      pageCursor: "",
+      tables: ["products", "categories"],
+    });
+    expect(decoded.products?.updated[0]?.id).toBe("product-1");
+    expect(decoded.jsonTables[0]?.table).toBe("categories");
   });
 });

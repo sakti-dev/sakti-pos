@@ -4094,6 +4094,7 @@ dependencies = [
  "tauri-plugin-opener",
  "time",
  "tokio",
+ "uuid",
  "zenwebp",
 ]
 

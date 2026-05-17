@@ -1,4 +1,5 @@
-use sqlx::{SqliteConnection, SqlitePool};
+use sqlx::{QueryBuilder, Sqlite, SqliteConnection, SqlitePool};
+use std::collections::{HashMap, HashSet};
 
 use super::schema::{get_filter_value, get_table_filter_column};
 use super::SYNC_TABLES;
@@ -49,31 +50,39 @@ pub(super) async fn count_legacy_unsynced_rows(
     Ok(total)
 }
 
-pub(super) async fn mark_outbox_synced_tx(
+pub(super) async fn mark_outbox_synced_by_accepted_ids_tx(
     conn: &mut SqliteConnection,
-    outlet_id: &str,
-    merchant_id: &Option<String>,
     synced_at: &str,
+    accepted_ids_by_table: &HashMap<String, HashSet<String>>,
 ) -> Result<u64, String> {
-    let result = if let Some(merchant_id) = merchant_id {
-        sqlx::query(
-            "UPDATE sync_outbox SET synced_at = ?3 WHERE synced_at IS NULL AND ((scope_type = 'outlet' AND scope_id = ?1) OR (scope_type = 'merchant' AND scope_id = ?2))",
-        )
-        .bind(outlet_id)
-        .bind(merchant_id)
-        .bind(synced_at)
-        .execute(&mut *conn)
-        .await
-    } else {
-        sqlx::query(
-            "UPDATE sync_outbox SET synced_at = ?2 WHERE synced_at IS NULL AND scope_type = 'outlet' AND scope_id = ?1",
-        )
-        .bind(outlet_id)
-        .bind(synced_at)
-        .execute(&mut *conn)
-        .await
-    }
-    .map_err(|e| format!("Failed to mark sync outbox rows synced: {}", e))?;
+    let mut marked = 0_u64;
+    for (table_name, accepted_ids) in accepted_ids_by_table {
+        if accepted_ids.is_empty() {
+            continue;
+        }
 
-    Ok(result.rows_affected())
+        let mut builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+            "UPDATE sync_outbox SET synced_at = ",
+        );
+        builder
+            .push_bind(synced_at)
+            .push(" WHERE synced_at IS NULL AND table_name = ")
+            .push_bind(table_name)
+            .push(" AND row_id IN (");
+        let mut separated = builder.separated(", ");
+        for id in accepted_ids {
+            separated.push_bind(id);
+        }
+        separated.push_unseparated(")");
+
+        let result = builder.build().execute(&mut *conn).await.map_err(|e| {
+            format!(
+                "Failed to mark accepted sync outbox rows synced for {}: {}",
+                table_name, e
+            )
+        })?;
+        marked += result.rows_affected();
+    }
+
+    Ok(marked)
 }

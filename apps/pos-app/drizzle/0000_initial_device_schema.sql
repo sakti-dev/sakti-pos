@@ -117,6 +117,42 @@ CREATE TABLE `outlets` (
 	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `pending_asset_processing_jobs` (
+	`id` text PRIMARY KEY NOT NULL,
+	`merchant_id` text NOT NULL,
+	`source_path` text NOT NULL,
+	`original_filename` text NOT NULL,
+	`source_mime_type` text,
+	`processing_kind` text NOT NULL,
+	`entity_type` text NOT NULL,
+	`entity_id` text NOT NULL,
+	`attachment_field` text NOT NULL,
+	`preview_path` text,
+	`preview_mime_type` text,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`attempts` integer DEFAULT 0 NOT NULL,
+	`last_error` text,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `pending_product_photo_jobs` (
+	`id` text PRIMARY KEY NOT NULL,
+	`product_id` text NOT NULL,
+	`merchant_id` text NOT NULL,
+	`temp_path` text NOT NULL,
+	`original_filename` text NOT NULL,
+	`kind` text DEFAULT 'product_photo' NOT NULL,
+	`preview_mime_type` text,
+	`preview_base64` text,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`attempts` integer DEFAULT 0 NOT NULL,
+	`last_error` text,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `pending_product_photo_jobs_product_id_unique` ON `pending_product_photo_jobs` (`product_id`);--> statement-breakpoint
 CREATE TABLE `products` (
 	`id` text PRIMARY KEY NOT NULL,
 	`merchant_id` text NOT NULL,

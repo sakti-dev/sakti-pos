@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { SyncStatusRequest, SyncStatusResponse } from "@repo/protobuf/sync";
 import { Elysia } from "elysia";
-import { tsProtoPlugin } from "../ts-proto-plugin";
+import { tsProtoCodec, tsProtoPlugin } from "../ts-proto-plugin";
 
 describe("tsProtoPlugin", () => {
   test("decodes protobuf request bodies and encodes protobuf responses", async () => {
@@ -15,15 +15,15 @@ describe("tsProtoPlugin", () => {
             changedTables: [request.outletId],
             hasChanges: true,
             hasOldestAvailableEventId: false,
-            latestEventId: request.lastServerEventId + 1,
+            latestEventId: request.lastServerEventId + 1n,
             needsFullResync: false,
-            oldestAvailableEventId: 0,
+            oldestAvailableEventId: 0n,
           };
         },
         {
           proto: {
-            req: SyncStatusRequest,
-            res: SyncStatusResponse,
+            req: tsProtoCodec(SyncStatusRequest),
+            res: tsProtoCodec(SyncStatusResponse),
           },
         }
       )
@@ -31,7 +31,7 @@ describe("tsProtoPlugin", () => {
 
     const requestBody = SyncStatusRequest.encode(
       SyncStatusRequest.create({
-        lastServerEventId: 10,
+        lastServerEventId: 10n,
         outletId: "outlet-1",
       })
     ).finish();
@@ -51,7 +51,7 @@ describe("tsProtoPlugin", () => {
     expect(response.headers.get("Content-Type")).toContain(
       "application/x-protobuf"
     );
-    expect(decoded.latestEventId).toBe(11);
+    expect(decoded.latestEventId).toBe(11n);
     expect(decoded.changedTables).toEqual(["outlet-1"]);
   });
 
@@ -60,8 +60,8 @@ describe("tsProtoPlugin", () => {
       .use(tsProtoPlugin)
       .post("/status", () => ({ latestEventId: 1 }), {
         proto: {
-          req: SyncStatusRequest,
-          res: SyncStatusResponse,
+          req: tsProtoCodec(SyncStatusRequest),
+          res: tsProtoCodec(SyncStatusResponse),
         },
       })
       .compile();

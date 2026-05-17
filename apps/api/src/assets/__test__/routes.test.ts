@@ -124,7 +124,7 @@ describe("asset protobuf routes", () => {
       "/api/assets/presign-upload",
       AssetPresignUploadRequest.encode(
         AssetPresignUploadRequest.create({
-          byteSize: 12_345,
+          byteSize: 12_345n,
           contentHash: "a".repeat(64),
           contentType: "image/webp",
           height: 600,
@@ -178,7 +178,7 @@ describe("asset protobuf routes", () => {
       "/api/assets/presign-upload",
       AssetPresignUploadRequest.encode(
         AssetPresignUploadRequest.create({
-          byteSize: 12_345,
+          byteSize: 12_345n,
           contentHash: "a".repeat(64),
           contentType: "image/webp",
           height: 600,
@@ -232,7 +232,7 @@ describe("asset protobuf routes", () => {
       AssetPresignUploadRequest.encode(
         AssetPresignUploadRequest.create({
           assetId: "hash-1",
-          byteSize: 12_345,
+          byteSize: 12_345n,
           contentHash: "a".repeat(64),
           contentType: "image/webp",
           height: 600,
@@ -288,7 +288,7 @@ describe("asset protobuf routes", () => {
       AssetPresignUploadRequest.encode(
         AssetPresignUploadRequest.create({
           assetId: "hash-1",
-          byteSize: 12_345,
+          byteSize: 12_345n,
           contentHash: "a".repeat(64),
           contentType: "image/webp",
           height: 600,
@@ -346,7 +346,7 @@ describe("asset protobuf routes", () => {
       AssetPresignUploadRequest.encode(
         AssetPresignUploadRequest.create({
           assetId: "hash-1",
-          byteSize: 12_345,
+          byteSize: 12_345n,
           contentHash: "a".repeat(64),
           contentType: "image/webp",
           height: 600,
@@ -464,7 +464,7 @@ describe("asset protobuf routes", () => {
       AssetCompleteUploadRequest.encode(
         AssetCompleteUploadRequest.create({
           assetId: "asset-1",
-          byteSize: 1234,
+          byteSize: 1234n,
           contentHash: "a".repeat(64),
           objectKey: "merchant-1/assets/asset-1",
         })

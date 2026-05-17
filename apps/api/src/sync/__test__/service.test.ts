@@ -41,12 +41,10 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 const {
-  handlePush,
-  handlePull,
-  handleEventPull,
+  handlePushBatch,
+  handlePullBatch,
   handleSyncStatus,
   verifyOutletAccess,
-  ALL_SYNC_TABLE_NAMES,
 } = await import("../service");
 
 describe("verifyOutletAccess", () => {
@@ -81,727 +79,92 @@ describe("verifyOutletAccess", () => {
   });
 });
 
-describe("handlePush", () => {
+describe("handlePushBatch", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  test("returns empty serverWins when inserting new rows", async () => {
+  test("accepts created updated and deleted rows across tables in one transaction", async () => {
     const values = vi.fn().mockResolvedValue(undefined);
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values,
-          }),
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(undefined),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const now = new Date().toISOString();
-    const result = await handlePush("outlet-1", "merchant-1", {
-      categories: [
-        {
-          id: "cat-1",
-          name: "Minuman",
-          merchantId: "merchant-1",
-          updatedAt: now,
-          createdAt: now,
-        },
-      ],
-    });
-
-    expect(result.serverWins).toEqual([]);
-    expect(result.serverTime).toBeDefined();
-    expect(values).toHaveBeenCalledWith(
-      expect.objectContaining({
-        operation: "insert",
-        rowId: "cat-1",
-        scopeId: "merchant-1",
-        scopeType: "merchant",
-        tableName: "categories",
-      })
-    );
-  });
-
-  test("server wins when client updatedAt is older", async () => {
-    const oldTime = "2025-01-01T00:00:00.000Z";
-    const newTime = "2025-01-02T00:00:00.000Z";
-
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi
-                  .fn()
-                  .mockResolvedValue([{ id: "cat-1", updatedAt: newTime }]),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn().mockResolvedValue(undefined),
-          }),
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(undefined),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const result = await handlePush("outlet-1", "merchant-1", {
-      categories: [
-        {
-          id: "cat-1",
-          name: "Minuman Updated",
-          merchantId: "merchant-1",
-          updatedAt: oldTime,
-          createdAt: oldTime,
-        },
-      ],
-    });
-
-    expect(result.serverWins).toHaveLength(1);
-    expect(result.serverWins[0]).toEqual({
-      table: "categories",
-      ids: ["cat-1"],
-    });
-  });
-
-  test("client wins when client updatedAt is newer or equal", async () => {
-    const oldTime = "2025-01-01T00:00:00.000Z";
-    const newTime = "2025-01-02T00:00:00.000Z";
-
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi
-                  .fn()
-                  .mockResolvedValue([{ id: "cat-1", updatedAt: oldTime }]),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn().mockResolvedValue(undefined),
-          }),
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(undefined),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const result = await handlePush("outlet-1", "merchant-1", {
-      categories: [
-        {
-          id: "cat-1",
-          name: "Minuman Updated",
-          merchantId: "merchant-1",
-          updatedAt: newTime,
-          createdAt: oldTime,
-        },
-      ],
-    });
-
-    expect(result.serverWins).toHaveLength(0);
-  });
-
-  test("handles order_items using createdAt for conflict resolution", async () => {
-    const oldCreated = "2025-01-01T00:00:00.000Z";
-    const newCreated = "2025-01-02T00:00:00.000Z";
-
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi
-                  .fn()
-                  .mockResolvedValue([{ id: "oi-1", createdAt: newCreated }]),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn().mockResolvedValue(undefined),
-          }),
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(undefined),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const result = await handlePush("outlet-1", "merchant-1", {
-      order_items: [
-        {
-          id: "oi-1",
-          quantity: 5,
-          createdAt: oldCreated,
-        },
-      ],
-    });
-
-    expect(result.serverWins).toHaveLength(1);
-    expect(result.serverWins[0]).toEqual({
-      table: "order_items",
-      ids: ["oi-1"],
-    });
-  });
-
-  test("keeps order item snapshots when referenced product is missing", async () => {
-    const insertedValues = vi.fn().mockResolvedValue(undefined);
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const select = vi
-          .fn()
-          .mockReturnValueOnce({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          });
-        const tx = {
-          insert: vi.fn().mockReturnValue({
-            values: insertedValues,
-          }),
-          select,
-        };
-        await fn(tx);
-      }
-    );
-
-    await handlePush("outlet-1", "merchant-1", {
-      order_items: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "item-1",
-          orderId: "order-1",
-          productId: "missing-product",
-          productName: "Nasi",
-          quantity: 1,
-          subtotal: 4000,
-          unitPrice: 4000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-    });
-
-    expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "item-1",
-        outletId: "outlet-1",
-        productId: null,
-        productName: "Nasi",
-        subtotal: 4000,
-      })
-    );
-  });
-
-  test("does not enforce product references for order item snapshots", async () => {
-    const insertedValues = vi.fn().mockResolvedValue(undefined);
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const select = vi
-          .fn()
-          .mockReturnValueOnce({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([{ id: "prod-1" }]),
-              }),
-            }),
-          });
-        const tx = {
-          insert: vi.fn().mockReturnValue({
-            values: insertedValues,
-          }),
-          select,
-        };
-        await fn(tx);
-      }
-    );
-
-    await handlePush("outlet-1", "merchant-1", {
-      order_items: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "item-1",
-          orderId: "order-1",
-          productId: "prod-1",
-          productName: "Nasi",
-          quantity: 1,
-          subtotal: 4000,
-          unitPrice: 4000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-    });
-
-    expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "item-1",
-        productId: null,
-        productName: "Nasi",
-      })
-    );
-  });
-
-  test("normalizes empty string productId to null for order item inserts", async () => {
-    const insertedValues = vi.fn().mockResolvedValue(undefined);
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          insert: vi.fn().mockReturnValue({
-            values: insertedValues,
-          }),
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    await handlePush("outlet-1", "merchant-1", {
-      order_items: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "item-1",
-          orderId: "order-1",
-          productId: "",
-          productName: "Nasi",
-          quantity: 1,
-          subtotal: 4000,
-          unitPrice: 4000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-    });
-
-    expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "item-1",
-        productId: null,
-      })
-    );
-  });
-
-  test("normalizes empty string registerId to null for order inserts", async () => {
-    const insertedValues = vi.fn().mockResolvedValue(undefined);
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          insert: vi.fn().mockReturnValue({
-            values: insertedValues,
-          }),
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    await handlePush("outlet-1", "merchant-1", {
-      orders: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "order-1",
-          orderNumber: "2026-05-10-001",
-          paymentMethod: "cash",
-          registerId: "",
-          staffId: "staff-1",
-          status: "completed",
-          total: 18_000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-    });
-
-    expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "order-1",
-        registerId: null,
-        staffId: "staff-1",
-      })
-    );
-  });
-
-  test("normalizes empty string categoryId to null for product inserts", async () => {
-    const insertedValues = vi.fn().mockResolvedValue(undefined);
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          insert: vi.fn().mockReturnValue({
-            values: insertedValues,
-          }),
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const now = new Date().toISOString();
-    await handlePush("outlet-1", "merchant-1", {
-      products: [
-        {
-          categoryId: "",
-          createdAt: now,
-          id: "prod-1",
-          merchantId: "merchant-1",
-          name: "Nasi Goreng",
-          price: 15_000,
-          updatedAt: now,
-        },
-      ],
-    });
-
-    expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        categoryId: null,
-        id: "prod-1",
-        name: "Nasi Goreng",
-      })
-    );
-  });
-
-  test("accepts millisecond updatedAt timestamps for product updates with imageAssetId", async () => {
-    const setValues = vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
-    });
-    const serverUpdatedAt = "2026-05-10T00:00:00.000Z";
-    const clientUpdatedAt = String(
-      new Date("2026-05-10T00:00:01.000Z").getTime()
-    );
-
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi
-                  .fn()
-                  .mockResolvedValue([
-                    { id: "prod-1", updatedAt: serverUpdatedAt },
-                  ]),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn().mockResolvedValue(undefined),
-          }),
-          update: vi.fn().mockReturnValue({
-            set: setValues,
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const result = await handlePush("outlet-1", "merchant-1", {
-      products: [
-        {
-          createdAt: "2026-05-10T00:00:00.000Z",
-          id: "prod-1",
-          imageAssetId: "asset-1",
-          merchantId: "merchant-1",
-          name: "Nasi Goreng",
-          price: 15_000,
-          updatedAt: clientUpdatedAt,
-        },
-      ],
-    });
-
-    expect(result.serverWins).toEqual([]);
-    expect(setValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        imageAssetId: "asset-1",
-        updatedAt: clientUpdatedAt,
-      })
-    );
-  });
-
-  test("normalizes empty strings across orders and order_items in a single push", async () => {
-    const insertedValues: Record<string, unknown>[] = [];
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn((value: Record<string, unknown>) => {
-              insertedValues.push(value);
-              return Promise.resolve();
-            }),
-          }),
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    await handlePush("outlet-1", "merchant-1", {
-      order_items: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "item-1",
-          orderId: "order-1",
-          productId: "",
-          productName: "Nasi",
-          quantity: 1,
-          subtotal: 4000,
-          unitPrice: 4000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-      orders: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "order-1",
-          orderNumber: "2026-05-10-001",
-          paymentMethod: "cash",
-          registerId: "",
-          staffId: "staff-1",
-          status: "completed",
-          total: 4000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-    });
-
-    const order = insertedValues.find((v) => v.id === "order-1");
-    const item = insertedValues.find((v) => v.id === "item-1");
-
-    expect(order).toEqual(
-      expect.objectContaining({
-        registerId: null,
-        staffId: "staff-1",
-      })
-    );
-
-    expect(item).toEqual(
-      expect.objectContaining({
-        productId: null,
-        productName: "Nasi",
-      })
-    );
-  });
-
-  test("processes parent tables before child tables regardless of payload key order", async () => {
-    const insertedValues: Record<string, unknown>[] = [];
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn((value: Record<string, unknown>) => {
-              insertedValues.push(value);
-              return Promise.resolve();
-            }),
-          }),
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    await handlePush("outlet-1", "merchant-1", {
-      order_items: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "item-1",
-          orderId: "order-1",
-          productName: "Nasi",
-          quantity: 1,
-          subtotal: 4000,
-          unitPrice: 4000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-      orders: [
-        {
-          createdAt: "2026-05-10T00:39:47.185Z",
-          id: "order-1",
-          orderNumber: "2026-05-10-001",
-          paymentMethod: "cash",
-          status: "completed",
-          total: 4000,
-          updatedAt: "2026-05-10T00:39:47.185Z",
-        },
-      ],
-    });
-
-    const businessRows = insertedValues.filter((value) => "id" in value);
-    expect(businessRows[0]).toEqual(expect.objectContaining({ id: "order-1" }));
-    expect(businessRows[1]).toEqual(expect.objectContaining({ id: "item-1" }));
-  });
-
-  test("handles outlet_products push", async () => {
-    const now = new Date().toISOString();
-
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn().mockResolvedValue(undefined),
-          }),
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(undefined),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const result = await handlePush("outlet-1", "merchant-1", {
-      outlet_products: [
-        {
-          id: "op-1",
-          outletId: "outlet-1",
-          productId: "prod-1",
-          price: 5000,
-          updatedAt: now,
-          createdAt: now,
-        },
-      ],
-    });
-
-    expect(result.serverWins).toEqual([]);
-  });
-
-  test("handles empty tables gracefully", async () => {
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        await fn({});
-      }
-    );
-
-    const result = await handlePush("outlet-1", "merchant-1", {});
-    expect(result.serverWins).toEqual([]);
-  });
-
-  test("tombstoned records flow through push normally", async () => {
-    const now = new Date().toISOString();
-    mockTransaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<void>) => {
-        const tx = {
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockReturnValue({
-            values: vi.fn().mockResolvedValue(undefined),
-          }),
-          update: vi.fn().mockReturnValue({
-            set: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(undefined),
-            }),
-          }),
-        };
-        await fn(tx);
-      }
-    );
-
-    const result = await handlePush("outlet-1", "merchant-1", {
-      categories: [
-        {
-          id: "cat-deleted",
-          name: "Deleted Category",
-          merchantId: "merchant-1",
-          updatedAt: now,
-          createdAt: now,
-          deletedAt: now,
-        },
-      ],
-    });
-
-    expect(result.serverWins).toEqual([]);
-  });
-
-  test("updates existing category tombstones during push", async () => {
-    const existingUpdatedAt = "2026-05-09T12:00:00.000Z";
-    const deletedAt = "2026-05-10T12:00:00.000Z";
+    const onConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
+    const onConflictDoNothing = vi.fn().mockResolvedValue(undefined);
     const set = vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(undefined),
     });
+    const update = vi.fn().mockReturnValue({ set });
+    const insert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing,
+        onConflictDoUpdate,
+      }),
+    });
 
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          }),
+          insert,
+          update,
+        };
+        return await fn(tx);
+      }
+    );
+
+    const result = await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        orders: {
+          created: [
+            {
+              id: "order-1",
+              outletId: "outlet-1",
+              totalMinorUnits: 15_000n,
+              status: "completed",
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          updated: [],
+          deletedIds: [],
+        },
+        products: {
+          created: [
+            {
+              id: "product-1",
+              merchantId: "merchant-1",
+              name: "Kopi",
+              priceMinorUnits: 15_000n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          updated: [],
+          deletedIds: [],
+        },
+      },
+      "",
+      "request-hash-1"
+    );
+
+    expect(
+      result.tables.find((table) => table.table === "products")
+    ).toBeDefined();
+    expect(
+      result.tables.find((table) => table.table === "orders")
+    ).toBeDefined();
+    expect(insert.mock.calls.length).toBeLessThanOrEqual(4);
+    expect(values).toBeDefined();
+  });
+
+  test("rejects stale updates with reason", async () => {
     mockTransaction.mockImplementation(
       async (fn: (tx: unknown) => Promise<void>) => {
         const tx = {
@@ -811,165 +174,338 @@ describe("handlePush", () => {
                 limit: vi
                   .fn()
                   .mockResolvedValue([
-                    { id: "cat-deleted", updatedAt: existingUpdatedAt },
+                    { id: "product-1", updatedAt: "2026-05-18T00:00:00.000Z" },
                   ]),
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([
+                    {
+                      id: "product-1",
+                      updatedAt: "2026-05-18T00:00:00.000Z",
+                    },
+                  ]),
+                }),
               }),
             }),
           }),
           insert: vi.fn().mockReturnValue({
             values: vi.fn().mockResolvedValue(undefined),
           }),
-          update: vi.fn().mockReturnValue({ set }),
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
         };
-        await fn(tx);
+        return await fn(tx);
       }
     );
 
-    const result = await handlePush("outlet-1", "merchant-1", {
-      categories: [
+    const result = await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        products: {
+          created: [],
+          updated: [
+            {
+              id: "product-1",
+              merchantId: "merchant-1",
+              name: "Kopi Lama",
+              priceMinorUnits: 15_000n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+        },
+      },
+      "",
+      "request-hash-1"
+    );
+
+    expect(result.tables[0]?.rejected).toEqual([
+      { id: "product-1", reason: "server_newer" },
+    ]);
+  });
+
+  test("rejects timestamp-less delete ids when server row exists", async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi
+                  .fn()
+                  .mockResolvedValue([
+                    { id: "product-1", updatedAt: "2026-05-18T00:00:00.000Z" },
+                  ]),
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([
+                    {
+                      id: "product-1",
+                      updatedAt: "2026-05-18T00:00:00.000Z",
+                    },
+                  ]),
+                }),
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockResolvedValue(undefined),
+          }),
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    const result = await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        products: {
+          created: [],
+          updated: [],
+          deletedIds: ["product-1"],
+        },
+      },
+      "",
+      "request-hash-1"
+    );
+
+    expect(result.tables[0]?.acceptedDeletedIds).toEqual([]);
+    expect(result.tables[0]?.rejected).toEqual([
+      { id: "product-1", reason: "server_newer" },
+    ]);
+  });
+
+  test("batches accepted product updates and sync events", async () => {
+    const productRows = Array.from({ length: 100 }, (_, index) => ({
+      id: `product-${index}`,
+      merchantId: "merchant-1",
+      name: `Product ${index}`,
+      priceMinorUnits: BigInt(10_000 + index),
+      updatedAt: "2026-05-17T00:00:00.000Z",
+    }));
+    const existingRows = productRows.map((row) => ({
+      id: row.id,
+      updatedAt: "2026-05-16T00:00:00.000Z",
+    }));
+    const values = vi.fn().mockReturnValue({
+      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+    });
+    const insert = vi.fn().mockReturnValue({ values });
+    const select = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue(existingRows),
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: 100 }]),
+          }),
+        }),
+      }),
+    });
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          insert,
+          select,
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    const result = await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        products: {
+          created: [],
+          updated: productRows,
+          deletedIds: [],
+        },
+      },
+      "",
+      "request-hash-1"
+    );
+
+    const syncEventPayloads = values.mock.calls
+      .map(([payload]) => payload)
+      .filter(
+        (payload): payload is Record<string, unknown>[] =>
+          Array.isArray(payload) &&
+          payload.every(
+            (row) =>
+              typeof row === "object" &&
+              row !== null &&
+              "tableName" in row &&
+              row.tableName === "products"
+          )
+      );
+
+    expect(select).toHaveBeenCalledTimes(2);
+    expect(syncEventPayloads).toHaveLength(1);
+    expect(syncEventPayloads[0]).toHaveLength(100);
+    expect(result.tables[0]?.acceptedUpdatedIds).toHaveLength(100);
+    expect(result.tables[0]?.rejected).toEqual([]);
+  });
+
+  test("returns a cached response when the same idempotency key is retried", async () => {
+    const cachedResponse = {
+      latestEventId: 42,
+      serverTime: "2026-05-17T00:00:00.000Z",
+      tables: [
         {
-          createdAt: existingUpdatedAt,
-          deletedAt,
-          id: "cat-deleted",
-          merchantId: "merchant-1",
-          name: "Deleted Category",
-          updatedAt: deletedAt,
+          acceptedCreatedIds: ["product-1"],
+          acceptedDeletedIds: [],
+          acceptedUpdatedIds: [],
+          rejected: [],
+          table: "products",
         },
       ],
-    });
+    };
 
-    expect(result.serverWins).toEqual([]);
-    expect(set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deletedAt,
-        id: "cat-deleted",
-        updatedAt: deletedAt,
-      })
-    );
-  });
-});
-
-describe("handlePull", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  test("returns rows for requested tables", async () => {
-    const mockRows = [
-      { id: "cat-1", name: "Minuman", merchantId: "merchant-1" },
-    ];
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(mockRows),
-      }),
-    });
-
-    const result = (await handlePull(
-      "outlet-1",
-      "merchant-1",
-      ["categories"],
-      "2025-01-01T00:00:00.000Z"
-    )) as Record<string, unknown>;
-
-    expect(result.categories).toEqual(mockRows);
-    expect(result.serverTime).toBeDefined();
-  });
-
-  test("returns empty for unknown table names", async () => {
-    const result = (await handlePull(
-      "outlet-1",
-      "merchant-1",
-      ["unknown_table"],
-      "2025-01-01T00:00:00.000Z"
-    )) as Record<string, unknown>;
-    expect(result.unknown_table).toBeUndefined();
-    expect(result.serverTime).toBeDefined();
-  });
-
-  test("pulls multiple tables", async () => {
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    });
-
-    const result = (await handlePull(
-      "outlet-1",
-      "merchant-1",
-      [
-        "categories",
-        "assets",
-        "products",
-        "orders",
-        "order_items",
-        "outlet_products",
-        "staff",
-      ],
-      "2025-01-01T00:00:00.000Z"
-    )) as Record<string, unknown>;
-
-    expect(result.categories).toEqual([]);
-    expect(result.assets).toEqual([]);
-    expect(result.products).toEqual([]);
-    expect(result.orders).toEqual([]);
-    expect(result.order_items).toEqual([]);
-    expect(result.outlet_products).toEqual([]);
-    expect(result.staff).toEqual([]);
-    expect(result.serverTime).toBeDefined();
-  });
-
-  test("includes assets in the sync table list", () => {
-    expect(ALL_SYNC_TABLE_NAMES).toContain("assets");
-  });
-
-  test("categories and products are scoped by merchantId", async () => {
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    });
-
-    await handlePull(
-      "outlet-1",
-      "merchant-1",
-      ["categories", "products"],
-      "2025-01-01T00:00:00.000Z"
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([
+                  {
+                    latestEventId: 42,
+                    requestHash: "request-hash-1",
+                    responseJson: JSON.stringify(cachedResponse),
+                    serverTime: "2026-05-17T00:00:00.000Z",
+                  },
+                ]),
+              }),
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+          insert: vi.fn(),
+          update: vi.fn(),
+        };
+        return await fn(tx);
+      }
     );
 
-    expect(mockSelect).toHaveBeenCalled();
-  });
-
-  test("orders and order_items are scoped by outletId", async () => {
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    });
-
-    await handlePull(
+    const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
-      ["orders", "order_items"],
-      "2025-01-01T00:00:00.000Z"
+      {},
+      "sync-request-1",
+      "request-hash-1"
     );
 
-    expect(mockSelect).toHaveBeenCalled();
+    expect(result).toEqual(cachedResponse);
+  });
+
+  test("rejects cached retries when the request body changes under the same idempotency key", async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([
+                  {
+                    latestEventId: 42,
+                    requestHash: "request-hash-1",
+                    responseJson: JSON.stringify({
+                      latestEventId: 42,
+                      serverTime: "2026-05-17T00:00:00.000Z",
+                      tables: [],
+                    }),
+                    serverTime: "2026-05-17T00:00:00.000Z",
+                  },
+                ]),
+              }),
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+          insert: vi.fn(),
+          update: vi.fn(),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await expect(
+      handlePushBatch(
+        "outlet-1",
+        "merchant-1",
+        {},
+        "sync-request-1",
+        "request-hash-2"
+      )
+    ).rejects.toThrow("idempotency key reused with different request body");
   });
 });
 
 describe("handleSyncStatus", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
+  function mockSyncStatusQueries(input: {
+    changedRows: { tableName: string }[];
+    latestRows: { id: number }[];
+    oldestRows: { id: number }[];
+  }) {
+    const latestLimit = vi.fn().mockResolvedValue(input.latestRows);
+    const oldestLimit = vi.fn().mockResolvedValue(input.oldestRows);
+    const changedOrderBy = vi.fn().mockResolvedValue(input.changedRows);
+
+    mockSelect
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: latestLimit,
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: oldestLimit,
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: changedOrderBy,
+          }),
+        }),
+      });
+
+    return { changedOrderBy, latestLimit, oldestLimit };
+  }
+
   test("returns no changes when cursor equals latest event", async () => {
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([
-          { id: 1, tableName: "merchants" },
-          { id: 10, tableName: "products" },
-        ]),
-      }),
+    mockSyncStatusQueries({
+      changedRows: [],
+      latestRows: [{ id: 10 }],
+      oldestRows: [{ id: 1 }],
     });
 
     const result = await handleSyncStatus({
@@ -988,13 +524,10 @@ describe("handleSyncStatus", () => {
   });
 
   test("requires full resync when cursor is older than retained history", async () => {
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([
-          { id: 50, tableName: "products" },
-          { id: 100, tableName: "orders" },
-        ]),
-      }),
+    mockSyncStatusQueries({
+      changedRows: [{ tableName: "products" }, { tableName: "orders" }],
+      latestRows: [{ id: 100 }],
+      oldestRows: [{ id: 50 }],
     });
 
     const result = await handleSyncStatus({
@@ -1007,113 +540,301 @@ describe("handleSyncStatus", () => {
     expect(result.hasChanges).toBe(true);
     expect(result.changedTables).toEqual(["products", "orders"]);
   });
+
+  test("reads latest and oldest event bounds with limit one", async () => {
+    const { latestLimit, oldestLimit } = mockSyncStatusQueries({
+      changedRows: [{ tableName: "products" }, { tableName: "orders" }],
+      latestRows: [{ id: 100 }],
+      oldestRows: [{ id: 90 }],
+    });
+
+    const result = await handleSyncStatus({
+      lastServerEventId: 75,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+    });
+
+    expect(latestLimit).toHaveBeenCalledWith(1);
+    expect(oldestLimit).toHaveBeenCalledWith(1);
+    expect(result).toEqual({
+      changedTables: ["products", "orders"],
+      hasChanges: true,
+      latestEventId: 100,
+      needsFullResync: true,
+      oldestAvailableEventId: 90,
+    });
+  });
 });
 
-describe("handleEventPull", () => {
+describe("handlePullBatch", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
-  function mockSelectQueue(rowsByCall: unknown[][]) {
-    let callIndex = 0;
-    mockSelect.mockImplementation(() => ({
+  test("returns typed hot table rows and json fallback rows from events", async () => {
+    mockSelect.mockImplementationOnce(() => ({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockImplementation(() => {
-          const rows = rowsByCall[callIndex] ?? [];
-          callIndex += 1;
-          return rows;
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([
+            {
+              id: 10,
+              operation: "update",
+              rowId: "product-1",
+              tableName: "products",
+            },
+            {
+              id: 11,
+              operation: "insert",
+              rowId: "cat-1",
+              tableName: "categories",
+            },
+          ]),
         }),
       }),
     }));
-  }
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
+          ]),
+      }),
+    }));
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "cat-1", merchantId: "merchant-1", name: "Minuman" },
+          ]),
+      }),
+    }));
 
-  test("coalesces repeated row events into one latest snapshot", async () => {
-    mockSelectQueue([
-      [
-        { id: 11, rowId: "prod-1", tableName: "products" },
-        { id: 12, rowId: "prod-1", tableName: "products" },
-      ],
-      [{ id: "prod-1", name: "Kopi", merchantId: "merchant-1" }],
-    ]);
-
-    const result = await handleEventPull({
-      afterEventId: 10,
+    const result = await handlePullBatch({
+      afterEventId: 9,
+      limit: 2000,
       merchantId: "merchant-1",
       outletId: "outlet-1",
+      pageCursor: "",
+      tables: ["products", "categories"],
     });
 
+    expect(result.latestEventId).toBe(11);
+    expect(result.hasMore).toBe(false);
     expect(result.needsFullResync).toBe(false);
-    expect(result.latestEventId).toBe(12);
-    expect(result.products).toEqual([
-      { id: "prod-1", name: "Kopi", merchantId: "merchant-1" },
-    ]);
+    expect(result.products?.updated[0]).toMatchObject({ id: "product-1" });
+    expect(
+      result.jsonTables.find((table) => table.table === "categories")
+        ?.createdJson[0]
+    ).toBeDefined();
   });
 
-  test("returns retained soft-deleted row snapshots", async () => {
-    mockSelectQueue([
-      [{ id: 21, rowId: "staff-1", tableName: "staff" }],
-      [
-        {
-          deletedAt: "2026-05-09T12:00:00.000Z",
-          id: "staff-1",
-          merchantId: "merchant-1",
-        },
-      ],
-    ]);
-
-    const result = await handleEventPull({
-      afterEventId: 20,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
+  test("pages rows using the cursor and limit", async () => {
+    let callIndex = 0;
+    mockSelect.mockImplementation(() => {
+      const rowsByCall = [
+        [
+          {
+            id: 10,
+            operation: "update",
+            rowId: "product-1",
+            tableName: "products",
+          },
+          {
+            id: 11,
+            operation: "update",
+            rowId: "product-2",
+            tableName: "products",
+          },
+        ],
+        [
+          { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
+          { id: "product-2", merchantId: "merchant-1", name: "Teh" },
+        ],
+        [
+          {
+            id: 11,
+            operation: "update",
+            rowId: "product-2",
+            tableName: "products",
+          },
+        ],
+        [
+          { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
+          { id: "product-2", merchantId: "merchant-1", name: "Teh" },
+        ],
+      ];
+      const rows = rowsByCall[callIndex] ?? [];
+      callIndex += 1;
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation(() => {
+            if (callIndex % 2 === 1) {
+              return {
+                orderBy: vi.fn().mockResolvedValue(rows),
+              };
+            }
+            return rows;
+          }),
+        }),
+      };
     });
 
-    expect(result.latestEventId).toBe(21);
-    expect(result.staff).toEqual([
+    const firstPage = await handlePullBatch({
+      afterEventId: 9,
+      limit: 1,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      pageCursor: "",
+      tables: ["products"],
+    });
+    const secondPage = await handlePullBatch({
+      afterEventId: 9,
+      limit: 1,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      pageCursor: firstPage.nextPageCursor,
+      tables: ["products"],
+    });
+
+    expect(firstPage.hasMore).toBe(true);
+    expect(firstPage.latestEventId).toBe(10);
+    expect(firstPage.nextPageCursor).toBe("event:10");
+    expect(firstPage.products?.updated[0]?.id).toBe("product-1");
+    expect(secondPage.hasMore).toBe(false);
+    expect(secondPage.latestEventId).toBe(11);
+    expect(secondPage.nextPageCursor).toBe("");
+    expect(secondPage.products?.updated[0]?.id).toBe("product-2");
+  });
+
+  test("fetches only one bounded event page from the database", async () => {
+    const eventRows = [
       {
-        deletedAt: "2026-05-09T12:00:00.000Z",
-        id: "staff-1",
-        merchantId: "merchant-1",
+        id: 11,
+        operation: "update",
+        rowId: "product-1",
+        tableName: "products",
       },
-    ]);
-  });
+      {
+        id: 12,
+        operation: "update",
+        rowId: "product-2",
+        tableName: "products",
+      },
+    ];
+    const limit = vi.fn().mockResolvedValue(eventRows);
+    const orderByResult = {
+      limit,
+    };
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue(orderByResult),
+        }),
+      }),
+    }));
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
+          ]),
+      }),
+    }));
 
-  test("requires full resync when cursor is older than retained event history", async () => {
-    mockSelectQueue([[{ id: 50, rowId: "prod-1", tableName: "products" }]]);
-
-    const result = await handleEventPull({
+    await handlePullBatch({
       afterEventId: 10,
+      limit: 1,
       merchantId: "merchant-1",
       outletId: "outlet-1",
+      pageCursor: "",
+      tables: ["products"],
     });
 
-    expect(result).toEqual({
-      latestEventId: 50,
-      needsFullResync: true,
+    expect(limit).toHaveBeenCalledWith(2);
+  });
+
+  test("returns delete events as deleted ids without requiring row snapshots", async () => {
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([
+            {
+              id: 12,
+              operation: "delete",
+              rowId: "product-deleted",
+              tableName: "products",
+            },
+          ]),
+        }),
+      }),
+    }));
+
+    const result = await handlePullBatch({
+      afterEventId: 11,
+      limit: 2000,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      pageCursor: "",
+      tables: ["products"],
     });
+
+    expect(result.latestEventId).toBe(12);
+    expect(result.products?.deletedIds).toEqual(["product-deleted"]);
+    expect(result.products?.updated).toEqual([]);
+  });
+
+  test("returns baseline snapshots when pulling from cursor zero", async () => {
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([
+            {
+              id: 12,
+              operation: "update",
+              rowId: "product-1",
+              tableName: "products",
+            },
+          ]),
+        }),
+      }),
+    }));
+    mockSelect.mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
+          ]),
+      }),
+    }));
+
+    const result = await handlePullBatch({
+      afterEventId: 0,
+      limit: 2000,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      pageCursor: "",
+      tables: ["products"],
+    });
+
+    expect(result.latestEventId).toBe(12);
+    expect(result.hasMore).toBe(false);
+    expect(result.products?.created[0]).toMatchObject({ id: "product-1" });
   });
 });
 
 describe("smart sync simulation", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
-
-  function mockSelectQueue(rowsByCall: unknown[][]) {
-    let callIndex = 0;
-    mockSelect.mockImplementation(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockImplementation(() => {
-          const rows = rowsByCall[callIndex] ?? [];
-          callIndex += 1;
-          return rows;
-        }),
-      }),
-    }));
-  }
 
   test("detects and pulls a product change made by another device", async () => {
     const simulatedProductEvent = {
       id: 1,
+      operation: "update",
       rowId: "prod-1",
       tableName: "products",
     };
@@ -1124,11 +845,54 @@ describe("smart sync simulation", () => {
       updatedAt: "2026-05-09T12:00:00.000Z",
     };
 
-    mockSelectQueue([
-      [simulatedProductEvent],
-      [simulatedProductEvent],
-      [changedProduct],
-    ]);
+    mockSelect
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi
+                .fn()
+                .mockResolvedValue([{ id: simulatedProductEvent.id }]),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi
+                .fn()
+                .mockResolvedValue([{ id: simulatedProductEvent.id }]),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi
+              .fn()
+              .mockResolvedValue([
+                { tableName: simulatedProductEvent.tableName },
+              ]),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([simulatedProductEvent]),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([changedProduct]),
+        }),
+      });
 
     const status = await handleSyncStatus({
       lastServerEventId: 0,
@@ -1144,14 +908,17 @@ describe("smart sync simulation", () => {
       oldestAvailableEventId: 1,
     });
 
-    const pull = await handleEventPull({
+    const pull = await handlePullBatch({
       afterEventId: 0,
+      limit: 250,
       merchantId: "merchant-1",
       outletId: "outlet-1",
+      pageCursor: "",
+      tables: ["products"],
     });
 
     expect(pull.needsFullResync).toBe(false);
     expect(pull.latestEventId).toBe(1);
-    expect(pull.products).toEqual([changedProduct]);
+    expect(pull.products?.created).toEqual([changedProduct]);
   });
 });

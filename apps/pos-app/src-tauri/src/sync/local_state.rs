@@ -9,21 +9,6 @@ pub struct LocalSyncState {
     pub needs_baseline_sync: bool,
 }
 
-pub(super) async fn get_last_sync_at(
-    pool: &SqlitePool,
-    table: &str,
-    outlet_id: &str,
-) -> Result<Option<String>, String> {
-    let query = "SELECT last_sync_at FROM sync_meta WHERE table_name = ?1 AND outlet_id = ?2";
-    let row: Option<(String,)> = sqlx::query_as(query)
-        .bind(table)
-        .bind(outlet_id)
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| format!("Failed to get last sync at: {}", e))?;
-    Ok(row.map(|r| r.0))
-}
-
 pub(super) async fn resolve_merchant_id(
     pool: &SqlitePool,
     outlet_id: &str,
@@ -34,14 +19,6 @@ pub(super) async fn resolve_merchant_id(
         .fetch_optional(pool)
         .await
         .map_err(|e| format!("Failed to resolve merchant_id: {}", e))
-}
-
-pub(super) fn choose_pull_since(timestamps: Vec<Option<String>>) -> String {
-    timestamps
-        .into_iter()
-        .flatten()
-        .min()
-        .unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_string())
 }
 
 pub(super) async fn get_last_server_event_id(

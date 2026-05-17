@@ -1,6 +1,5 @@
 import { SyncStatusRequest, SyncStatusResponse } from "@repo/protobuf/sync";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { getSyncStatus } from "../sync";
 
 const originalFetch = globalThis.fetch;
 
@@ -17,6 +16,7 @@ describe("getSyncStatus", () => {
   });
 
   test("posts protobuf status request and decodes protobuf response", async () => {
+    const { getSyncStatus } = await import("../sync?actual" as "../sync");
     const { AuthStorage } = await import("~/lib/auth/storage");
     (AuthStorage.getToken as ReturnType<typeof vi.fn>).mockResolvedValue(
       "test-token"
@@ -34,16 +34,16 @@ describe("getSyncStatus", () => {
           changedTables: ["products"],
           hasChanges: true,
           hasOldestAvailableEventId: true,
-          latestEventId: 12,
+          latestEventId: 12n,
           needsFullResync: false,
-          oldestAvailableEventId: 10,
+          oldestAvailableEventId: 10n,
         })
       ).finish();
 
       expect(
         SyncStatusRequest.decode(new Uint8Array(await request.arrayBuffer()))
       ).toEqual({
-        lastServerEventId: 10,
+        lastServerEventId: 10n,
         outletId: "outlet-1",
       });
 
@@ -69,6 +69,7 @@ describe("getSyncStatus", () => {
   });
 
   test("maps absent oldest event to null", async () => {
+    const { getSyncStatus } = await import("../sync?actual" as "../sync");
     const { AuthStorage } = await import("~/lib/auth/storage");
     (AuthStorage.getToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
@@ -79,9 +80,9 @@ describe("getSyncStatus", () => {
           changedTables: [],
           hasChanges: false,
           hasOldestAvailableEventId: false,
-          latestEventId: 10,
+          latestEventId: 10n,
           needsFullResync: false,
-          oldestAvailableEventId: 0,
+          oldestAvailableEventId: 0n,
         })
       ).finish();
 

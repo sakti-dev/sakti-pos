@@ -9,6 +9,13 @@ export interface SyncStatusResult {
   oldestAvailableEventId: number | null;
 }
 
+function protobufInt64ToSafeNumber(value: bigint, fieldName: string): number {
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`${fieldName} exceeds Number.MAX_SAFE_INTEGER`);
+  }
+  return Number(value);
+}
+
 export async function getSyncStatus(input: {
   lastServerEventId: number;
   outletId: string;
@@ -20,7 +27,7 @@ export async function getSyncStatus(input: {
       res: SyncStatusResponse,
     },
     SyncStatusRequest.create({
-      lastServerEventId: input.lastServerEventId,
+      lastServerEventId: BigInt(input.lastServerEventId),
       outletId: input.outletId,
     })
   );
@@ -28,10 +35,16 @@ export async function getSyncStatus(input: {
   return {
     changedTables: decoded.changedTables,
     hasChanges: decoded.hasChanges,
-    latestEventId: decoded.latestEventId,
+    latestEventId: protobufInt64ToSafeNumber(
+      decoded.latestEventId,
+      "latestEventId"
+    ),
     needsFullResync: decoded.needsFullResync,
     oldestAvailableEventId: decoded.hasOldestAvailableEventId
-      ? decoded.oldestAvailableEventId
+      ? protobufInt64ToSafeNumber(
+          decoded.oldestAvailableEventId,
+          "oldestAvailableEventId"
+        )
       : null,
   };
 }

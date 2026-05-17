@@ -11,6 +11,19 @@ export class BadRequestError extends Error {
   }
 }
 
+export class ConflictRequestError extends Error {
+  status = 409;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictRequestError";
+  }
+
+  toResponse(): Response {
+    return Response.json({ error: this.message }, { status: 409 });
+  }
+}
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PIN_REGEX = /^\d{4,6}$/;
 const PAIRING_CODE_REGEX = /^[A-Z0-9]{8}$/;
