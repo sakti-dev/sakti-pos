@@ -1,12 +1,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { createStore } from "solid-js/store";
 import { createLogger } from "~/lib/logger";
-import type {
-  AssetAttachmentField,
-  AssetEntityType,
-  CachedAssetData,
-} from "./types";
-import { base64ToUint8Array } from "./utils";
+import type { AssetAttachmentField, AssetEntityType } from "./types";
 
 export type { AssetAttachmentField, AssetEntityType };
 
@@ -22,14 +17,6 @@ const assetCacheLogger = createLogger({
   domain: "ASSET",
   module: "asset-cache",
 });
-
-export async function readCachedAssetData(
-  assetId: string
-): Promise<CachedAssetData | null> {
-  return await invoke<CachedAssetData | null>("read_cached_asset_data", {
-    assetId,
-  });
-}
 
 export async function resolveAssetUrl(
   assetId: string | null | undefined
@@ -69,33 +56,6 @@ export async function resolvePendingPreviewUrl(
   }
 
   return convertFileSrc(result.previewPath);
-}
-
-export async function persistCachedAsset(input: {
-  dataBase64: string;
-  objectKey: string;
-}): Promise<{ localPath: string; objectKey: string }> {
-  return await invoke<{ localPath: string; objectKey: string }>(
-    "cache_asset_webp",
-    {
-      dataBase64: input.dataBase64,
-      objectKey: input.objectKey,
-    }
-  );
-}
-
-export function createWebpPreviewUrl(dataBase64: string): string {
-  const bytes = base64ToUint8Array(dataBase64);
-  const blob = new Blob(
-    [
-      bytes.buffer.slice(
-        bytes.byteOffset,
-        bytes.byteOffset + bytes.byteLength
-      ) as ArrayBuffer,
-    ],
-    { type: "image/webp" }
-  );
-  return URL.createObjectURL(blob);
 }
 
 export function getAssetCacheVersion(

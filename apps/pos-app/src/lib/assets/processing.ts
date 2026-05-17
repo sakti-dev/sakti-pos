@@ -4,73 +4,12 @@ import type {
   EnqueueAssetProcessingInput,
   EnqueueAssetProcessingResult,
   PreparedLocalAsset,
-  ProcessedImageResponse,
 } from "./types";
-import { bytesToBase64 } from "./utils";
 
 const assetLogger = createLogger({
   domain: "ASSET",
   module: "assets",
 });
-
-async function fileToBase64(file: File): Promise<string> {
-  if (typeof FileReader === "undefined") {
-    const buffer = await file.arrayBuffer();
-    return bytesToBase64(new Uint8Array(buffer));
-  }
-
-  const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (result instanceof ArrayBuffer) {
-        resolve(result);
-        return;
-      }
-      reject(new Error("Failed to read image file"));
-    };
-    reader.onerror = () => {
-      reject(reader.error ?? new Error("Failed to read image file"));
-    };
-    reader.readAsArrayBuffer(file);
-  });
-  return bytesToBase64(new Uint8Array(buffer));
-}
-
-export async function processImageFile(
-  file: File
-): Promise<ProcessedImageResponse> {
-  const dataBase64 = await fileToBase64(file);
-  return await invoke<ProcessedImageResponse>("process_image_to_webp", {
-    dataBase64,
-    mimeType: file.type,
-    originalFilename: file.name,
-  });
-}
-
-export async function prepareLocalImageAsset(input: {
-  byteSize: number;
-  contentHash: string;
-  contentType: string;
-  dataBase64: string;
-  height: number;
-  kind: string;
-  merchantId: string;
-  originalFilename: string;
-  width: number;
-}): Promise<PreparedLocalAsset> {
-  return await invoke<PreparedLocalAsset>("prepare_local_image_asset", {
-    byteSize: input.byteSize,
-    contentHash: input.contentHash,
-    contentType: input.contentType,
-    dataBase64: input.dataBase64,
-    height: input.height,
-    kind: input.kind,
-    merchantId: input.merchantId,
-    originalFilename: input.originalFilename,
-    width: input.width,
-  });
-}
 
 export async function prepareLocalImageAssetFromPath(input: {
   kind: string;

@@ -5,19 +5,6 @@ import type {
   AssetProcessingTarget,
 } from "./targets";
 
-export interface ProcessedImageAsset {
-  byteSize: number;
-  contentHash: string;
-  contentType: string;
-  dataBase64: string;
-  height: number;
-  width: number;
-}
-
-export interface PresignedDownloadAsset {
-  downloadUrl: string;
-}
-
 export interface PreparedLocalAsset {
   asset: Asset;
   dataBase64?: string;
@@ -39,11 +26,6 @@ export interface EnqueueAssetProcessingResult {
   jobId: string;
 }
 
-export interface CachedAssetData {
-  contentType: string;
-  dataBase64: string;
-}
-
 export type ProductPhotoSource = "camera" | "gallery";
 
 export interface PickedProductPhoto {
@@ -53,18 +35,4 @@ export interface PickedProductPhoto {
   previewBase64?: string;
   previewMimeType?: string;
   source: ProductPhotoSource;
-}
-
-export interface ProcessedImageResponse {
-  byteSize: number;
-  contentHash: string;
-  contentType: string;
-  dataBase64: string;
-  height: number;
-  width: number;
-}
-
-export interface PendingAssetPreview {
-  previewBase64: string;
-  previewMimeType: string;
 }
