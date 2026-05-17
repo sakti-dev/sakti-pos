@@ -24,13 +24,46 @@ describe("Drizzle runtime reflection", () => {
     ).not.toContain("isSynced");
   });
 
-  test("detects Drizzle boolean integer mode", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
-    const products = tables.find((table) => table.tableName === "products");
-    const isActive = products?.columns.find(
-      (column) => column.propertyName === "isActive"
-    );
+  test("throws when fieldOrder references a missing property", () => {
+    expect(() =>
+      reflectSyncTables(localSchema, {
+        ...syncManifest,
+        tables: syncManifest.tables.map((table) =>
+          table.tableName === "products"
+            ? { ...table, fieldOrder: ["id", "missingField"] }
+            : table
+        ),
+      })
+    ).toThrow(/products.*missingField/);
+  });
 
-    expect(isActive?.protoType).toBe("bool");
+  test("throws when fieldOrder omits reflected transport columns", () => {
+    expect(() =>
+      reflectSyncTables(localSchema, {
+        ...syncManifest,
+        tables: syncManifest.tables.map((table) =>
+          table.tableName === "products" ? { ...table, fieldOrder: ["id"] } : table
+        ),
+      })
+    ).toThrow(/products.*fieldOrder.*omits/);
+  });
+
+  test("throws when field alias references a missing property", () => {
+    expect(() =>
+      reflectSyncTables(localSchema, {
+        ...syncManifest,
+        tables: syncManifest.tables.map((table) =>
+          table.tableName === "products"
+            ? {
+                ...table,
+                fieldAliases: {
+                  ...table.fieldAliases,
+                  missingField: { protoName: "missing_field", protoType: "int64" },
+                },
+              }
+            : table
+        ),
+      })
+    ).toThrow(/products.*missingField/);
   });
 });

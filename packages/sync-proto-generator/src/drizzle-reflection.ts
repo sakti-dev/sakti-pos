@@ -104,10 +104,50 @@ export function reflectSyncTables(
         (column) => !manifest.globalExcludeColumns.includes(column.propertyName)
       );
 
+    const reflectedByProperty = new Map<string, (typeof reflectedColumns)[number]>();
+    for (const col of reflectedColumns) {
+      reflectedByProperty.set(col.propertyName, col);
+    }
+
+    if (manifestTable.fieldAliases) {
+      for (const aliasKey of Object.keys(manifestTable.fieldAliases)) {
+        if (!reflectedByProperty.has(aliasKey)) {
+          throw new Error(
+            `Invalid sync manifest for ${manifestTable.tableName}: fieldAlias references missing property ${aliasKey}`
+          );
+        }
+      }
+    }
+
+    if (manifestTable.fieldOrder) {
+      for (const name of manifestTable.fieldOrder) {
+        if (!reflectedByProperty.has(name)) {
+          throw new Error(
+            `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
+          );
+        }
+      }
+
+      const fieldOrderSet = new Set(manifestTable.fieldOrder);
+      for (const col of reflectedColumns) {
+        if (!fieldOrderSet.has(col.propertyName)) {
+          throw new Error(
+            `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder omits reflected transport column ${col.propertyName}`
+          );
+        }
+      }
+    }
+
     const columns = manifestTable.fieldOrder
-      ? manifestTable.fieldOrder
-          .map((name) => reflectedColumns.find((c) => c.propertyName === name))
-          .filter((c): c is ReflectedColumn => !!c)
+      ? manifestTable.fieldOrder.map((name) => {
+          const col = reflectedByProperty.get(name);
+          if (!col) {
+            throw new Error(
+              `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
+            );
+          }
+          return col;
+        })
       : reflectedColumns;
 
     return {
