@@ -244,8 +244,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/photo_1.jpg",
       originalFilename: "photo_1.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "camera",
     });
 
@@ -259,7 +257,7 @@ describe("ProductForm (create mode)", () => {
     ).toBeInTheDocument();
     expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
       "src",
-      "data:image/jpeg;base64,cHJldmlldw=="
+      "asset:///tmp/product_photo_inputs/photo_1.jpg"
     );
   });
 
@@ -268,8 +266,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
 
@@ -285,8 +281,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockCreateProduct.mockResolvedValue({
@@ -348,8 +342,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockCreateProduct.mockResolvedValue({
@@ -385,8 +377,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/photo_1.jpg",
       originalFilename: "photo_1.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "camera",
     });
 
@@ -449,8 +439,6 @@ describe("ProductForm (edit mode)", () => {
       path: "/tmp/product_photo_inputs/edit_photo.jpg",
       originalFilename: "edit_photo.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
 
@@ -469,8 +457,6 @@ describe("ProductForm (edit mode)", () => {
       path: "/tmp/product_photo_inputs/edit_photo.jpg",
       originalFilename: "edit_photo.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockUpdateProduct.mockResolvedValue({

@@ -1,3 +1,4 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Accessor } from "solid-js";
 import { createSignal, onCleanup } from "solid-js";
 import { createLogger } from "~/lib/logger";
@@ -51,13 +52,6 @@ function cleanupTempPhoto(path: string): void {
   );
 }
 
-function previewUrlForPickedPhoto(photo: PickedProductPhoto): string | null {
-  if (!photo.previewBase64) {
-    return null;
-  }
-  return `data:${photo.previewMimeType ?? photo.mimeType};base64,${photo.previewBase64}`;
-}
-
 export function createImageUpload(
   options: CreateImageUploadOptions
 ): ImageUploadState {
@@ -103,14 +97,13 @@ export function createImageUpload(
         mimeType: picked.mimeType,
         originalFilename: picked.originalFilename,
         path: picked.path,
-        previewMimeType: picked.previewMimeType,
         source: picked.source,
       });
 
       cleanupPending();
       setPendingImage(picked);
       setFileName(picked.originalFilename);
-      setStagedPreviewUrl(previewUrlForPickedPhoto(picked));
+      setStagedPreviewUrl(convertFileSrc(picked.path));
     } catch (pickError: unknown) {
       photoLogger.error("processing_failed", pickError, { source });
       setError(

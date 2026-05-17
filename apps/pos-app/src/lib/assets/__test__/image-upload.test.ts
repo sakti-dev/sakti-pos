@@ -1,9 +1,15 @@
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+const mockConvertFileSrc = vi.fn();
 const mockPickProductPhoto = vi.fn();
 const mockDeleteTempProductPhoto = vi.fn();
 const mockEnqueueAssetProcessing = vi.fn();
+const leadingSlashRegex = /^\//;
+
+vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: (...args: unknown[]) => mockConvertFileSrc(...args),
+}));
 
 vi.mock("~/lib/assets/picking", () => ({
   deleteTempProductPhoto: (...args: unknown[]) =>
@@ -19,6 +25,10 @@ vi.mock("~/lib/assets/processing", () => ({
 describe("createImageUpload", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    mockConvertFileSrc.mockImplementation(
+      (path: string) =>
+        `https://asset.localhost/${path.replace(leadingSlashRegex, "")}`
+    );
   });
 
   test("initial state has no image", async () => {
@@ -57,8 +67,6 @@ describe("createImageUpload", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
 
@@ -71,7 +79,8 @@ describe("createImageUpload", () => {
     expect(upload.hasImage()).toBe(true);
     expect(upload.hasStagedImage()).toBe(true);
     expect(upload.fileName()).toBe("menu.png");
-    expect(upload.previewUrl()).toBe("data:image/jpeg;base64,cHJldmlldw==");
+    expect(upload.previewUrl()).toContain("asset.localhost");
+    expect(upload.previewUrl()).toContain("gallery_1.png");
     expect(upload.error()).toBe("");
     expect(mockPickProductPhoto).toHaveBeenCalledWith("gallery");
   });
@@ -97,8 +106,6 @@ describe("createImageUpload", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
 
@@ -154,8 +161,6 @@ describe("createImageUpload", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
@@ -240,16 +245,12 @@ describe("createImageUpload", () => {
         path: "/tmp/product_photo_inputs/gallery_1.png",
         originalFilename: "first.png",
         mimeType: "image/png",
-        previewBase64: "Zmlyc3Q=",
-        previewMimeType: "image/jpeg",
         source: "gallery",
       })
       .mockResolvedValueOnce({
         path: "/tmp/product_photo_inputs/gallery_2.jpg",
         originalFilename: "second.jpg",
         mimeType: "image/jpeg",
-        previewBase64: "c2Vjb25k",
-        previewMimeType: "image/jpeg",
         source: "gallery",
       });
 
@@ -266,7 +267,7 @@ describe("createImageUpload", () => {
     expect(mockDeleteTempProductPhoto).toHaveBeenCalledWith(
       "/tmp/product_photo_inputs/gallery_1.png"
     );
-    expect(upload.previewUrl()).toBe("data:image/jpeg;base64,c2Vjb25k");
+    expect(upload.previewUrl()).toContain("gallery_2.jpg");
   });
 
   test("existingImageUrl falls through when no staged preview", async () => {
@@ -288,8 +289,6 @@ describe("createImageUpload", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "new.png",
       mimeType: "image/png",
-      previewBase64: "bmV3",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
 
@@ -299,6 +298,6 @@ describe("createImageUpload", () => {
     });
 
     await upload.pickImage("gallery");
-    expect(upload.previewUrl()).toBe("data:image/jpeg;base64,bmV3");
+    expect(upload.previewUrl()).toContain("gallery_1.png");
   });
 });

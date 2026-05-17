@@ -6,9 +6,14 @@ import { describe, expect, test, vi } from "vitest";
 import { ImageUpload } from "~/components/image-upload";
 import { createImageUpload } from "~/lib/assets/image-upload";
 
+const mockConvertFileSrc = vi.fn();
 const mockPickProductPhoto = vi.fn();
 const mockDeleteTempProductPhoto = vi.fn();
 const mockEnqueueAssetProcessing = vi.fn();
+
+vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: (...args: unknown[]) => mockConvertFileSrc(...args),
+}));
 
 vi.mock("~/lib/assets/picking", () => ({
   deleteTempProductPhoto: (...args: unknown[]) =>
@@ -38,16 +43,20 @@ vi.mock("~/components/ui/button", () => ({
   ),
 }));
 
+const leadingSlashRegex = /^\//;
+
 const user = userEvent.setup();
 
 describe("ImageUpload", () => {
   test("stages a picked image and enqueues it for a supplied asset target", async () => {
+    mockConvertFileSrc.mockImplementation(
+      (path: string) =>
+        `https://asset.localhost/${path.replace(leadingSlashRegex, "")}`
+    );
     mockPickProductPhoto.mockResolvedValue({
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
@@ -71,7 +80,7 @@ describe("ImageUpload", () => {
     expect(await screen.findByText("menu.png")).toBeInTheDocument();
     expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
       "src",
-      "data:image/jpeg;base64,cHJldmlldw=="
+      "https://asset.localhost/tmp/product_photo_inputs/gallery_1.png"
     );
     expect(
       screen.getByText("Foto akan diproses saat disimpan.")
