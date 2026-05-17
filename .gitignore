@@ -53,4 +53,5 @@ docs/external/
 graphify-out
 .graphifyignore
 .logs
-logs
+.security-key
+*log*

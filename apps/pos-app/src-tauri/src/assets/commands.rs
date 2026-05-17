@@ -34,7 +34,7 @@ pub async fn process_image_to_webp(
     mime_type: String,
     original_filename: String,
 ) -> Result<ProcessedImageResponse, String> {
-    super::process_image_to_webp(data_base64, mime_type, original_filename).await
+    super::process_image_to_webp_inner(data_base64, mime_type, original_filename).await
 }
 
 #[command]
@@ -51,7 +51,7 @@ pub async fn prepare_local_image_asset(
     kind: String,
     data_base64: String,
 ) -> Result<PreparedLocalAssetResponse, String> {
-    super::prepare_local_image_asset(
+    super::prepare_local_image_asset_inner_command(
         app,
         state,
         merchant_id,
@@ -76,7 +76,7 @@ pub async fn prepare_local_image_asset_from_path(
     kind: String,
     path: String,
 ) -> Result<PreparedLocalAssetResponse, String> {
-    super::prepare_local_image_asset_from_path(
+    super::prepare_local_image_asset_from_path_inner_command(
         app,
         state,
         merchant_id,

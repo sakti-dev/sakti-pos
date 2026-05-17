@@ -33,6 +33,22 @@ pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
                         "error" => error
                     );
                 }
+
+                if let Err(error) =
+                    crate::assets::temp_cleanup::cleanup_orphaned_product_photo_inputs(
+                        &handle,
+                        &pool_for_jobs,
+                    )
+                        .await
+                {
+                    crate::pos_log!(
+                        error,
+                        "ASSET",
+                        "TEMP_CLEANUP:FAIL",
+                        "Failed to sweep orphaned product photo inputs",
+                        "error" => error
+                    );
+                }
             });
 
             Ok(())

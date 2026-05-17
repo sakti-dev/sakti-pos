@@ -13,6 +13,10 @@ const [domainVersions, setDomainVersions] = createStore<
   Partial<Record<AssetEntityType, number>>
 >({});
 
+const [pendingPreviewVersions, setPendingPreviewVersions] = createStore<
+  Record<string, number>
+>({});
+
 const assetCacheLogger = createLogger({
   domain: "ASSET",
   module: "asset-cache",
@@ -88,6 +92,9 @@ export function resetAssetCacheVersionsForTest(): void {
   for (const entityType of Object.keys(domainVersions) as AssetEntityType[]) {
     setDomainVersions(entityType, undefined);
   }
+  for (const key of Object.keys(pendingPreviewVersions)) {
+    setPendingPreviewVersions(key, undefined as never);
+  }
 }
 
 export const resetDomainCatalogVersionsForTest = resetAssetCacheVersionsForTest;
@@ -112,5 +119,30 @@ export function notifyAssetAttachmentReady(input: {
       previousVersion: domainVersions.product ?? 0,
     });
     setDomainVersions("product", (version) => (version ?? 0) + 1);
+    setPendingPreviewVersions(
+      getPendingPreviewVersionKey(input.entityType, input.entityId),
+      (version) => (version ?? 0) + 1
+    );
   }
+}
+
+function getPendingPreviewVersionKey(
+  entityType: AssetEntityType,
+  entityId: string
+): string {
+  return `${entityType}:${entityId}`;
+}
+
+export function getPendingPreviewVersion(
+  entityType: AssetEntityType,
+  entityId: string | null | undefined
+): number {
+  if (!entityId) {
+    return 0;
+  }
+
+  return (
+    pendingPreviewVersions[getPendingPreviewVersionKey(entityType, entityId)] ??
+    0
+  );
 }

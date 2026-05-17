@@ -3,6 +3,7 @@ import {
   createContext,
   createSignal,
   type JSX,
+  onCleanup,
   Show,
   useContext,
 } from "solid-js";
@@ -167,6 +168,37 @@ function ImageUploadRoot(props: ImageUploadProps) {
 
 function ImageUploadPreview(props: ImageUploadPreviewProps) {
   const context = useImageUploadContext();
+  let cleanupPreviewImageListener: (() => void) | undefined;
+
+  const registerPreviewImage = (
+    element: HTMLImageElement | undefined
+  ): void => {
+    cleanupPreviewImageListener?.();
+    cleanupPreviewImageListener = undefined;
+
+    if (!element) {
+      return;
+    }
+
+    const handleImageError = (): void => {
+      photoLogger.error("preview_image_failed_to_load", undefined, {
+        alt: props.alt,
+        currentSrc: element.currentSrc || element.src,
+        fileName: context.fileName() || null,
+        hasPendingImage: context.hasImage(),
+      });
+    };
+
+    element.addEventListener("error", handleImageError);
+    cleanupPreviewImageListener = () => {
+      element.removeEventListener("error", handleImageError);
+    };
+  };
+
+  onCleanup(() => {
+    cleanupPreviewImageListener?.();
+  });
+
   return (
     <div class="flex size-24 items-center justify-center overflow-hidden rounded-lg border border-border border-dashed bg-muted">
       <Show
@@ -182,6 +214,7 @@ function ImageUploadPreview(props: ImageUploadPreviewProps) {
             alt={props.alt}
             class="size-full object-cover"
             height="96"
+            ref={registerPreviewImage}
             src={previewUrl()}
             width="96"
           />

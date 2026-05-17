@@ -9,6 +9,7 @@
     "prepare": "husky",
     "api:dev": "bash apps/api/scripts/dev",
     "app:dev": "bash apps/pos-app/scripts/dev",
+    "app:log": "bash logs/capture-adb-logcat.sh",
     "app:build-apk": "bash apps/pos-app/scripts/build-apk",
     "app:resize": "bash apps/pos-app/scripts/resize",
     "app:restart": "bash apps/pos-app/scripts/restart",

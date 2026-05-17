@@ -12,6 +12,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 const {
   getAssetCacheVersion,
   getDomainCatalogVersion,
+  getPendingPreviewVersion,
   notifyAssetCacheReady,
   notifyAssetAttachmentReady,
   resetAssetCacheVersionsForTest,
@@ -47,6 +48,7 @@ describe("asset cache", () => {
 
   test("increments domain catalog version for product asset attachments", () => {
     expect(getDomainCatalogVersion("product")).toBe(0);
+    expect(getPendingPreviewVersion("product", "product-1")).toBe(0);
 
     notifyAssetAttachmentReady({
       assetId: "asset-1",
@@ -56,6 +58,7 @@ describe("asset cache", () => {
     });
 
     expect(getDomainCatalogVersion("product")).toBe(1);
+    expect(getPendingPreviewVersion("product", "product-1")).toBe(1);
   });
 
   test("resolves a cached asset URL via asset protocol", async () => {

@@ -3,6 +3,7 @@ import { type Accessor, createResource } from "solid-js";
 import { createLogger } from "~/lib/logger";
 import {
   getAssetCacheVersion,
+  getPendingPreviewVersion,
   notifyAssetCacheReady,
   resolveAssetUrl,
   resolvePendingPreviewUrl,
@@ -117,6 +118,7 @@ export function createAssetAdapter(config: AssetAdapterConfig): AssetAdapter {
       () => ({
         assetId: assetId(),
         entityId: entityId(),
+        pendingVersion: getPendingPreviewVersion(config.entityType, entityId()),
       }),
       ({ entityId: id }) => getPendingPreviewUrl(id)
     );

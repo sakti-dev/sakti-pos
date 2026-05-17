@@ -1,5 +1,6 @@
 import { createRoot, createSignal } from "solid-js";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { notifyAssetAttachmentReady } from "~/lib/assets/cache";
 
 const mockInvoke = vi.fn();
 const mockConvertFileSrc = vi.fn();
@@ -228,6 +229,64 @@ describe("createAssetAdapter useImageUrl", () => {
 
     await vi.waitFor(() => {
       expect(imageUrl()).toContain("asset.localhost");
+      expect(imageUrl()).toContain("cached.webp");
+    });
+
+    dispose();
+  });
+
+  test("switches from pending preview to cached asset after attachment ready", async () => {
+    let pendingCalls = 0;
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "get_pending_preview_path") {
+        pendingCalls += 1;
+        if (pendingCalls === 1) {
+          return Promise.resolve({
+            previewPath:
+              "/data/cache/product_photo_inputs/pending_preview_job1.jpg",
+            previewMimeType: "image/jpeg",
+          });
+        }
+        return Promise.resolve(null);
+      }
+      if (cmd === "get_cached_asset_path") {
+        return Promise.resolve({
+          localPath: "/data/asset-cache/assets/cached.webp",
+          contentType: "image/webp",
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const adapter = createAssetAdapter({
+      entityType: "product",
+      field: "image_asset_id",
+      pendingPreviewParamName: "productId",
+    });
+
+    const [assetId] = createSignal<string | null>("asset-1");
+    const [entityId] = createSignal<string | null>("product-1");
+
+    let imageUrl: ReturnType<typeof adapter.useImageUrl> = () => null;
+    let dispose: () => void = () => {};
+
+    createRoot((d) => {
+      dispose = d;
+      imageUrl = adapter.useImageUrl(assetId, entityId);
+    });
+
+    await vi.waitFor(() => {
+      expect(imageUrl()).toContain("pending_preview_job1.jpg");
+    });
+
+    notifyAssetAttachmentReady({
+      assetId: "asset-1",
+      entityId: "product-1",
+      entityType: "product",
+      field: "image_asset_id",
+    });
+
+    await vi.waitFor(() => {
       expect(imageUrl()).toContain("cached.webp");
     });
 

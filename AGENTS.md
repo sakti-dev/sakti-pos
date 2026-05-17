@@ -23,6 +23,10 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 - Use stable `[ORIGIN] [DOMAIN:ACTION]` prefixes and include matching `adb logcat` commands when adding investigation logs.
 - Before suggesting log filters or investigation commands, read `docs/knowledge/APP-LOGGING-DOCS.md` so the prefixes match the documented app logs for the issue being investigated.
 - Prefer PID-scoped logcat for app debugging. The useful boundary is the app process, not Android tags; JS logs often appear under a blank tag and Rust logs may appear under module tags, so grep the structured message prefix.
+- For Android log investigations, use `logs/capture-adb-logcat.sh` by default. It clears `adb logcat` first and writes the filtered capture to `logs/app.log`.
+- When a fix or feature implementation is finished, it is MANDATORY to update `LOG_FILTER` in `logs/capture-adb-logcat.sh` for that exact path before handing the change to the user for testing.
+- The goal is always to make the next user log capture useful for the code that was just changed, so the user can send back `logs/app.log` and the next agent can continue from real evidence.
+- Treat `LOG_EXCLUDE` as baseline noise unless the user explicitly asks to extend it.
 - Use two standard patterns:
   - Normal app investigation: `PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image'`
   - Crash or native investigation: add `AndroidRuntime|libc|fatal|exception|crash` to the same PID-scoped command.
