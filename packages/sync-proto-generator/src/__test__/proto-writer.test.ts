@@ -1,0 +1,36 @@
+import * as localSchema from "@repo/database";
+import { describe, expect, test } from "vitest";
+import { reflectSyncTables } from "../drizzle-reflection";
+import { syncManifest } from "../manifest";
+import { renderSyncProto } from "../proto-writer";
+
+describe("proto writer", () => {
+  test("renders product row with current manual field names", () => {
+    const tables = reflectSyncTables(localSchema, syncManifest);
+    const proto = renderSyncProto(syncManifest, tables);
+
+    expect(proto).toContain("message ProductRow");
+    expect(proto).toContain("string merchant_id = 2;");
+    expect(proto).toContain("int64 price_minor_units = 5;");
+    expect(proto).toContain("string image_asset_id = 7;");
+  });
+
+  test("renders change wrappers for every sync table", () => {
+    const tables = reflectSyncTables(localSchema, syncManifest);
+    const proto = renderSyncProto(syncManifest, tables);
+
+    expect(proto).toContain("message StaffChanges");
+    expect(proto).toContain("repeated StaffRow created = 1;");
+    expect(proto).toContain("repeated StaffRow updated = 2;");
+    expect(proto).toContain("repeated string deleted_ids = 3;");
+  });
+
+  test("does not render SyncJsonTableChanges", () => {
+    const tables = reflectSyncTables(localSchema, syncManifest);
+    const proto = renderSyncProto(syncManifest, tables);
+
+    expect(proto).not.toContain("SyncJsonTableChanges");
+    expect(proto).not.toContain("created_json");
+    expect(proto).not.toContain("updated_json");
+  });
+});
