@@ -1,20 +1,25 @@
 import { describe, expect, test, vi } from "vitest";
 
-const mockStartAssetEventListeners = vi.fn();
+const mockStartEventListeners = vi.fn();
 
-vi.mock("~/lib/product-images/asset-events", () => ({
-  startAssetEventListeners: (...args: unknown[]) =>
-    mockStartAssetEventListeners(...args),
+vi.mock("~/lib/assets/adapters/product-images", () => ({
+  productImageAdapter: {
+    startEventListeners: (...args: unknown[]) =>
+      mockStartEventListeners(...args),
+    stopEventListeners: vi.fn(),
+    resolveCachedImageUrl: vi.fn(() => Promise.resolve(null)),
+    getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
+  },
 }));
 
 describe("app event listeners", () => {
   test("starts generic asset event listeners without awaiting startup", async () => {
-    mockStartAssetEventListeners.mockResolvedValue(undefined);
+    mockStartEventListeners.mockResolvedValue(undefined);
 
     const { startAppEventListeners } = await import("~/lib/app/listeners");
 
     startAppEventListeners();
 
-    expect(mockStartAssetEventListeners).toHaveBeenCalledOnce();
+    expect(mockStartEventListeners).toHaveBeenCalledOnce();
   });
 });

@@ -1,47 +1,30 @@
 import {
   type Accessor,
   createContext,
-  createEffect,
   createSignal,
   type JSX,
-  onCleanup,
   Show,
   useContext,
 } from "solid-js";
 
-import { PhotoSourceDrawer } from "~/components/photo-source-drawer";
 import { Button } from "~/components/ui/button";
 import {
-  type AssetAttachmentField,
-  type AssetEntityType,
-  type AssetProcessingKind,
-  type AssetProcessingTarget,
-  deleteTempProductPhoto,
-  type EnqueueAssetProcessingResult,
-  enqueueAssetProcessing,
-  type PickedProductPhoto,
-  type ProductPhotoSource,
-  pickProductPhoto,
-} from "~/lib/assets";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerPortal,
+  DrawerTitle,
+} from "~/components/ui/drawer";
+import type { ImageUploadState } from "~/lib/assets/image-upload";
 import { createLogger } from "~/lib/logger";
 
-export interface ImageUploadController {
-  clear: () => void;
-  enqueueFor: (
-    target: AssetProcessingTarget
-  ) => Promise<EnqueueAssetProcessingResult | null>;
-  hasStagedImage: () => boolean;
-}
+export type { ImageUploadState } from "~/lib/assets/image-upload";
 
 interface ImageUploadProps {
   children: JSX.Element;
-  existingAssetId?: string | null;
-  existingImageUrl?: string | null;
   label: string;
-  onBusyChange?: (busy: boolean) => void;
-  onController?: (controller: ImageUploadController) => void;
-  onExistingAssetClear?: () => void;
-  processingKind: AssetProcessingKind;
+  state: ImageUploadState;
 }
 
 interface ImageUploadPreviewProps {
@@ -65,7 +48,7 @@ interface ImageUploadContextValue {
   error: Accessor<string>;
   fileName: Accessor<string>;
   hasImage: Accessor<boolean>;
-  isPicking: Accessor<boolean>;
+  isBusy: Accessor<boolean>;
   label: Accessor<string>;
   openPhotoSourceDrawer: () => void;
   pickCamera: () => void;
@@ -82,7 +65,7 @@ const photoLogger = createLogger({
 
 const ImageUploadContext = createContext<ImageUploadContextValue>();
 
-function useImageUploadContext() {
+function useImageUploadContext(): ImageUploadContextValue {
   const context = useContext(ImageUploadContext);
   if (!context) {
     throw new Error(
@@ -92,167 +75,33 @@ function useImageUploadContext() {
   return context;
 }
 
-function cleanupTempPhoto(path: string) {
-  Promise.resolve(deleteTempProductPhoto(path)).catch(
-    (cleanupError: unknown) => {
-      photoLogger.warn("temp_photo_cleanup_failed", {
-        error:
-          cleanupError instanceof Error
-            ? cleanupError.message
-            : String(cleanupError),
-        path,
-      });
-    }
-  );
-}
-
-function previewUrlForPickedPhoto(photo: PickedProductPhoto): string | null {
-  if (!photo.previewBase64) {
-    return null;
-  }
-  return `data:${photo.previewMimeType ?? photo.mimeType};base64,${
-    photo.previewBase64
-  }`;
-}
-
 function ImageUploadRoot(props: ImageUploadProps) {
-  const [pendingImage, setPendingImage] =
-    createSignal<PickedProductPhoto | null>(null);
-  const [previewUrl, setPreviewUrl] = createSignal<string | null>(null);
-  const [fileName, setFileName] = createSignal("");
-  const [error, setError] = createSignal("");
-  const [isPicking, setIsPicking] = createSignal(false);
   const [showDrawer, setShowDrawer] = createSignal(false);
 
-  const clearPendingImage = () => {
-    const stagedImage = pendingImage();
-    if (stagedImage) {
-      cleanupTempPhoto(stagedImage.path);
-    }
-    setPendingImage(null);
-    setPreviewUrl(null);
-    setFileName("");
-  };
-
-  const clear = () => {
-    if (pendingImage()) {
-      clearPendingImage();
-    } else if (props.existingAssetId) {
-      props.onExistingAssetClear?.();
-    }
-    setError("");
-  };
-
-  const pickImage = async (source: ProductPhotoSource) => {
-    setIsPicking(true);
-    setError("");
-
-    try {
-      photoLogger.info("native_picker_requested", { source });
-      const picked = await pickProductPhoto(source);
-      photoLogger.info("native_picker_finished", {
-        mimeType: picked.mimeType,
-        originalFilename: picked.originalFilename,
-        path: picked.path,
-        previewMimeType: picked.previewMimeType,
-        source: picked.source,
-      });
-
-      clearPendingImage();
-      setPendingImage(picked);
-      setFileName(picked.originalFilename);
-      setPreviewUrl(previewUrlForPickedPhoto(picked));
-    } catch (pickError) {
-      photoLogger.error("processing_failed", pickError, { source });
-      setError(
-        pickError instanceof Error ? pickError.message : "Gagal memproses foto"
-      );
-      setPendingImage(null);
-      setPreviewUrl(null);
-      setFileName("");
-    } finally {
-      setIsPicking(false);
-    }
-  };
-
-  const controller: ImageUploadController = {
-    clear,
-    enqueueFor: async (
-      target: AssetProcessingTarget
-    ): Promise<EnqueueAssetProcessingResult | null> => {
-      const stagedImage = pendingImage();
-      if (!stagedImage) {
-        return null;
-      }
-
-      photoLogger.info("path_processing_started", {
-        entityId: target.entityId,
-        entityType: target.entityType as AssetEntityType,
-        field: target.field as AssetAttachmentField,
-        name: stagedImage.originalFilename,
-        source: stagedImage.source,
-        sourceMimeType: stagedImage.mimeType,
-        sourcePath: stagedImage.path,
-      });
-
-      const result = await enqueueAssetProcessing({
-        originalFilename: stagedImage.originalFilename,
-        processingKind: props.processingKind,
-        sourceMimeType: stagedImage.mimeType,
-        sourcePath: stagedImage.path,
-        target,
-      });
-
-      photoLogger.info("pending_photo_job_enqueued", {
-        entityId: target.entityId,
-        entityType: target.entityType,
-        jobId: result.jobId,
-      });
-      setPendingImage(null);
-      setPreviewUrl(null);
-      setFileName("");
-      setError("");
-      return result;
-    },
-    hasStagedImage: () => pendingImage() !== null,
-  };
-
-  createEffect(() => {
-    props.onBusyChange?.(isPicking());
-  });
-
-  createEffect(() => {
-    props.onController?.(controller);
-  });
-
-  onCleanup(() => {
-    clearPendingImage();
-  });
-
   const context: ImageUploadContextValue = {
-    clear,
-    error,
-    fileName,
-    hasImage: () => !!(pendingImage() || props.existingAssetId),
-    isPicking,
+    clear: props.state.clear,
+    error: props.state.error,
+    fileName: props.state.fileName,
+    hasImage: props.state.hasImage,
+    isBusy: props.state.isBusy,
     label: () => props.label,
     openPhotoSourceDrawer: () => {
       photoLogger.info("drawer_opened");
       setShowDrawer(true);
     },
     pickCamera: () => {
-      pickImage("camera").catch((pickError: unknown) => {
+      props.state.pickImage("camera").catch((pickError: unknown) => {
         photoLogger.error("processing_failed", pickError, { source: "camera" });
       });
     },
     pickGallery: () => {
-      pickImage("gallery").catch((pickError: unknown) => {
+      props.state.pickImage("gallery").catch((pickError: unknown) => {
         photoLogger.error("processing_failed", pickError, {
           source: "gallery",
         });
       });
     },
-    previewUrl: () => previewUrl() ?? props.existingImageUrl ?? null,
+    previewUrl: props.state.previewUrl,
     setDrawerOpen: (open: boolean) => {
       photoLogger.info("drawer_state_changed", { open });
       setShowDrawer(open);
@@ -268,12 +117,50 @@ function ImageUploadRoot(props: ImageUploadProps) {
           {props.children}
         </div>
       </div>
-      <PhotoSourceDrawer
-        onOpenChange={context.setDrawerOpen}
-        onPickCamera={context.pickCamera}
-        onPickGallery={context.pickGallery}
-        open={showDrawer()}
-      />
+      <Show when={showDrawer()}>
+        <Drawer
+          closeOnEscapeKeyDown={false}
+          closeOnOutsideFocus={false}
+          modal={false}
+          onOpenChange={context.setDrawerOpen}
+          open={showDrawer()}
+          trapFocus={false}
+        >
+          <DrawerPortal>
+            <DrawerOverlay />
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Pilih Foto</DrawerTitle>
+              </DrawerHeader>
+              <p class="mb-4 text-muted-foreground text-sm">
+                Ambil foto baru atau pilih dari galeri.
+              </p>
+              <div class="flex flex-col gap-2">
+                <Button
+                  class="justify-start"
+                  onClick={() => {
+                    context.setDrawerOpen(false);
+                    context.pickCamera();
+                  }}
+                  variant="outline"
+                >
+                  Ambil Foto
+                </Button>
+                <Button
+                  class="justify-start"
+                  onClick={() => {
+                    context.setDrawerOpen(false);
+                    context.pickGallery();
+                  }}
+                  variant="outline"
+                >
+                  Pilih dari Galeri
+                </Button>
+              </div>
+            </DrawerContent>
+          </DrawerPortal>
+        </Drawer>
+      </Show>
     </ImageUploadContext.Provider>
   );
 }
@@ -353,7 +240,7 @@ function ImageUploadActions(props: ImageUploadActionsProps) {
 function ImageUploadTrigger() {
   const context = useImageUploadContext();
   const label = () => {
-    if (context.isPicking()) {
+    if (context.isBusy()) {
       return "Memproses...";
     }
     return context.hasImage() ? "Ganti Foto" : "Pilih Foto";
@@ -361,7 +248,7 @@ function ImageUploadTrigger() {
 
   return (
     <Button
-      disabled={context.isPicking()}
+      disabled={context.isBusy()}
       onClick={context.openPhotoSourceDrawer}
       size="sm"
       type="button"

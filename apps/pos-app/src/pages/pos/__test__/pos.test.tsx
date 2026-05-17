@@ -7,7 +7,7 @@ import type { ProductWithCategory } from "~/db/orders";
 import {
   notifyAssetAttachmentReady,
   resetDomainCatalogVersionsForTest,
-} from "~/store/domain-catalog";
+} from "~/lib/assets/cache";
 
 const mockGroupedData: {
   categoryName: string;

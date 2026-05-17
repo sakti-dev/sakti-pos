@@ -714,7 +714,7 @@ mod tests {
     }
 
     #[test]
-    fn pending_product_photo_preview_reads_generic_asset_job_preview() {
+    fn get_cached_asset_path_returns_path_for_existing_asset() {
         tauri::async_runtime::block_on(async {
             let pool = sqlx::sqlite::SqlitePoolOptions::new()
                 .max_connections(1)
@@ -724,18 +724,113 @@ mod tests {
 
             sqlx::query(
                 r#"
-                CREATE TABLE pending_product_photo_jobs (
-                    product_id TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    preview_base64 TEXT,
-                    preview_mime_type TEXT,
-                    updated_at TEXT NOT NULL
+                CREATE TABLE assets (
+                    id TEXT PRIMARY KEY,
+                    content_type TEXT
                 )
                 "#,
             )
             .execute(&pool)
             .await
-            .expect("legacy preview table should be created");
+            .expect("assets table should be created");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE local_asset_cache (
+                    asset_id TEXT PRIMARY KEY,
+                    local_path TEXT NOT NULL
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("local_asset_cache table should be created");
+
+            let local_path = std::env::temp_dir().join(format!(
+                "sakti-pos-cache-path-test-{}.webp",
+                current_job_id_string()
+            ));
+            std::fs::write(&local_path, b"webp-bytes").expect("cache file should be written");
+
+            sqlx::query(
+                "INSERT INTO assets (id, content_type) VALUES ('asset-1', 'image/webp')",
+            )
+            .execute(&pool)
+            .await
+            .expect("asset row should be inserted");
+
+            sqlx::query("INSERT INTO local_asset_cache (asset_id, local_path) VALUES ('asset-1', ?1)")
+                .bind(local_path.to_string_lossy().as_ref())
+                .execute(&pool)
+                .await
+                .expect("cache row should be inserted");
+
+            let result = cache::get_cached_asset_path("asset-1".to_string(), &pool)
+                .await
+                .expect("path lookup should succeed")
+                .expect("cached asset path should be returned");
+
+            assert_eq!(result.local_path, local_path.to_string_lossy().as_ref());
+            assert_eq!(result.content_type, "image/webp");
+
+            std::fs::remove_file(&local_path).expect("cache file should be cleaned up");
+        });
+    }
+
+    #[test]
+    fn get_cached_asset_path_returns_none_for_missing_file() {
+        tauri::async_runtime::block_on(async {
+            let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .max_connections(1)
+                .connect("sqlite::memory:")
+                .await
+                .expect("sqlite pool should connect");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE assets (
+                    id TEXT PRIMARY KEY,
+                    content_type TEXT
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("assets table should be created");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE local_asset_cache (
+                    asset_id TEXT PRIMARY KEY,
+                    local_path TEXT NOT NULL
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("local_asset_cache table should be created");
+
+            sqlx::query("INSERT INTO local_asset_cache (asset_id, local_path) VALUES ('asset-1', '/nonexistent/path.webp')")
+                .execute(&pool)
+                .await
+                .expect("cache row should be inserted");
+
+            let result = cache::get_cached_asset_path("asset-1".to_string(), &pool)
+                .await
+                .expect("path lookup should succeed");
+
+            assert!(result.is_none());
+        });
+    }
+
+    #[test]
+    fn get_pending_preview_path_returns_path_for_existing_file() {
+        tauri::async_runtime::block_on(async {
+            let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .max_connections(1)
+                .connect("sqlite::memory:")
+                .await
+                .expect("sqlite pool should connect");
 
             sqlx::query(
                 r#"
@@ -756,7 +851,7 @@ mod tests {
 
             let preview_bytes = b"preview-bytes";
             let preview_path = std::env::temp_dir().join(format!(
-                "sakti-pos-preview-test-{}.jpg",
+                "sakti-pos-preview-path-test-{}.jpg",
                 current_job_id_string()
             ));
             std::fs::write(&preview_path, preview_bytes).expect("preview file should be written");
@@ -775,28 +870,73 @@ mod tests {
                 "#,
             )
             .bind(preview_path.to_string_lossy().as_ref())
-            .bind(super::image::ASSET_IMAGE_PREVIEW_MIME_TYPE)
+            .bind("image/jpeg")
             .bind(current_time_iso_string())
             .execute(&pool)
             .await
             .expect("generic preview job should be inserted");
 
-            let result =
-                crate::assets::processing_jobs::get_pending_asset_preview_inner(&pool, "product-1")
-                    .await
-                    .expect("preview lookup should succeed")
-                    .expect("generic asset preview should be returned");
+            let result = processing_jobs::get_pending_preview_path_inner(&pool, "product-1")
+                .await
+                .expect("preview path lookup should succeed")
+                .expect("preview path should be returned");
 
-            assert_eq!(
-                result.preview_mime_type,
-                super::image::ASSET_IMAGE_PREVIEW_MIME_TYPE
-            );
-            assert_eq!(
-                result.preview_base64,
-                general_purpose::STANDARD.encode(preview_bytes)
-            );
+            assert_eq!(result.preview_path, preview_path.to_string_lossy().as_ref());
+            assert_eq!(result.preview_mime_type, "image/jpeg");
 
             std::fs::remove_file(preview_path).expect("preview file should be cleaned up");
+        });
+    }
+
+    #[test]
+    fn get_pending_preview_path_returns_none_for_missing_file() {
+        tauri::async_runtime::block_on(async {
+            let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .max_connections(1)
+                .connect("sqlite::memory:")
+                .await
+                .expect("sqlite pool should connect");
+
+            sqlx::query(
+                r#"
+                CREATE TABLE pending_asset_processing_jobs (
+                    entity_type TEXT NOT NULL,
+                    entity_id TEXT NOT NULL,
+                    attachment_field TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    preview_path TEXT,
+                    preview_mime_type TEXT,
+                    updated_at TEXT NOT NULL
+                )
+                "#,
+            )
+            .execute(&pool)
+            .await
+            .expect("generic asset jobs table should be created");
+
+            sqlx::query(
+                r#"
+                INSERT INTO pending_asset_processing_jobs (
+                    entity_type,
+                    entity_id,
+                    attachment_field,
+                    status,
+                    preview_path,
+                    preview_mime_type,
+                    updated_at
+                ) VALUES ('product', 'product-1', 'image_asset_id', 'pending', '/nonexistent/preview.jpg', 'image/jpeg', ?1)
+                "#,
+            )
+            .bind(current_time_iso_string())
+            .execute(&pool)
+            .await
+            .expect("generic preview job should be inserted");
+
+            let result = processing_jobs::get_pending_preview_path_inner(&pool, "product-1")
+                .await
+                .expect("preview path lookup should succeed");
+
+            assert!(result.is_none());
         });
     }
 

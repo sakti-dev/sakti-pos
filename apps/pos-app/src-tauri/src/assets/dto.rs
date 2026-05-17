@@ -20,13 +20,6 @@ pub struct CachedAssetResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CachedAssetDataResponse {
-    pub content_type: String,
-    pub data_base64: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PreparedAssetRecord {
     pub id: String,
     pub merchant_id: String,
@@ -92,8 +85,15 @@ pub(super) struct AssetCacheReadyPayload {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PendingProductPhotoPreviewResponse {
-    pub preview_base64: String,
+pub struct CachedAssetPathResponse {
+    pub local_path: String,
+    pub content_type: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PendingPreviewPathResponse {
+    pub preview_path: String,
     pub preview_mime_type: String,
 }
 

@@ -9,12 +9,14 @@ vi.mock("~/store/cart", () => ({
   addToCart: vi.fn(),
 }));
 
-vi.mock("~/lib/product-images/cache", () => ({
-  resolveCachedProductImageUrl: vi.fn(() => Promise.resolve(null)),
-}));
-
-vi.mock("~/lib/product-images/pending", () => ({
-  getPendingProductPhotoPreviewUrl: vi.fn(() => Promise.resolve(null)),
+vi.mock("~/lib/assets/adapters/product-images", () => ({
+  productImageAdapter: {
+    resolveCachedImageUrl: vi.fn(() => Promise.resolve(null)),
+    getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
+    startEventListeners: vi.fn(() => Promise.resolve()),
+    stopEventListeners: vi.fn(),
+    useImageUrl: vi.fn(() => () => null),
+  },
 }));
 
 const user = userEvent.setup();

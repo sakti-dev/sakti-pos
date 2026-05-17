@@ -66,22 +66,30 @@ vi.mock("~/store/sync", () => ({
   syncNow: (...args: unknown[]) => mockSyncNow(...args),
 }));
 
-vi.mock("~/lib/assets", () => ({
-  createWebpPreviewUrl: () => "blob:preview-url",
+vi.mock("~/lib/assets/picking", () => ({
   deleteTempProductPhoto: (...args: unknown[]) =>
     mockDeleteTempProductPhoto(...args),
+  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
+}));
+
+vi.mock("~/lib/assets/processing", () => ({
   enqueueAssetProcessing: (...args: unknown[]) =>
     mockEnqueueAssetProcessing(...args),
-  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `asset://${path}`,
 }));
 
-vi.mock("~/lib/product-images/cache", () => ({
-  resolveCachedProductImageUrl: (...args: unknown[]) =>
-    mockResolveCachedProductImageUrl(...args),
+vi.mock("~/lib/assets/adapters/product-images", () => ({
+  productImageAdapter: {
+    resolveCachedImageUrl: (...args: unknown[]) =>
+      mockResolveCachedProductImageUrl(...args),
+    getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
+    startEventListeners: vi.fn(() => Promise.resolve()),
+    stopEventListeners: vi.fn(),
+    useImageUrl: vi.fn(() => () => null),
+  },
 }));
 
 vi.mock("~/components/ui/page-header", () => ({
@@ -237,8 +245,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/photo_1.jpg",
       originalFilename: "photo_1.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "camera",
     });
 
@@ -252,7 +258,7 @@ describe("ProductForm (create mode)", () => {
     ).toBeInTheDocument();
     expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
       "src",
-      "data:image/jpeg;base64,cHJldmlldw=="
+      "asset:///tmp/product_photo_inputs/photo_1.jpg"
     );
   });
 
@@ -261,8 +267,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
 
@@ -278,8 +282,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockCreateProduct.mockResolvedValue({
@@ -341,8 +343,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/gallery_1.png",
       originalFilename: "menu.png",
       mimeType: "image/png",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockCreateProduct.mockResolvedValue({
@@ -378,8 +378,6 @@ describe("ProductForm (create mode)", () => {
       path: "/tmp/product_photo_inputs/photo_1.jpg",
       originalFilename: "photo_1.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "camera",
     });
 
@@ -442,8 +440,6 @@ describe("ProductForm (edit mode)", () => {
       path: "/tmp/product_photo_inputs/edit_photo.jpg",
       originalFilename: "edit_photo.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
 
@@ -462,8 +458,6 @@ describe("ProductForm (edit mode)", () => {
       path: "/tmp/product_photo_inputs/edit_photo.jpg",
       originalFilename: "edit_photo.jpg",
       mimeType: "image/jpeg",
-      previewBase64: "cHJldmlldw==",
-      previewMimeType: "image/jpeg",
       source: "gallery",
     });
     mockUpdateProduct.mockResolvedValue({

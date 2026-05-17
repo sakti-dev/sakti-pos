@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   ASSET_ATTACHMENT_TARGETS,
   createAssetProcessingTarget,
-} from "~/lib/asset-targets";
+} from "~/lib/assets/targets";
 
 describe("asset target helpers", () => {
   test("creates a product image target from the documented target key", () => {
