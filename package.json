@@ -13,7 +13,9 @@
     "app:build-apk": "bash apps/pos-app/scripts/build-apk",
     "app:resize": "bash apps/pos-app/scripts/resize",
     "app:restart": "bash apps/pos-app/scripts/restart",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "generate:sync-proto:compare": "bun --cwd packages/sync-proto-generator run generate:compare",
+    "generate:sync-proto:write": "bun --cwd packages/sync-proto-generator run generate:write"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
