@@ -17,4 +17,20 @@ describe("generator file output", () => {
       )
     ).toBe(true);
   });
+
+  test("write mode targets checked-in API generated mapper", () => {
+    expect(
+      resolveGeneratorOutputPath("write", "api-sync-mappers.ts").endsWith(
+        "apps/api/src/sync/protobuf.generated.ts"
+      )
+    ).toBe(true);
+  });
+
+  test("write mode targets checked-in Rust generated mapper", () => {
+    expect(
+      resolveGeneratorOutputPath("write", "pos-sync-mappers.rs").endsWith(
+        "apps/pos-app/src-tauri/src/sync/protobuf_generated.rs"
+      )
+    ).toBe(true);
+  });
 });

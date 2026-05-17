@@ -21,5 +21,19 @@ export function resolveGeneratorOutputPath(
   if (fileName === "sync.proto") {
     return join(repoRoot, "packages", "protobuf", "proto", fileName);
   }
+  if (fileName === "api-sync-mappers.ts") {
+    return join(repoRoot, "apps", "api", "src", "sync", "protobuf.generated.ts");
+  }
+  if (fileName === "pos-sync-mappers.rs") {
+    return join(
+      repoRoot,
+      "apps",
+      "pos-app",
+      "src-tauri",
+      "src",
+      "sync",
+      "protobuf_generated.rs"
+    );
+  }
   return join(packageRoot, "generated", fileName);
 }
