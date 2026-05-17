@@ -15,6 +15,7 @@ vi.mock("~/lib/assets/adapters/product-images", () => ({
     getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
     startEventListeners: vi.fn(() => Promise.resolve()),
     stopEventListeners: vi.fn(),
+    useImageUrl: vi.fn(() => () => null),
   },
 }));
 

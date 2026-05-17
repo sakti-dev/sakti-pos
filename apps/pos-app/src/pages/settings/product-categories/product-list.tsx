@@ -16,7 +16,7 @@ import {
 } from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
-import { ProductImage } from "~/components/product-image";
+import { ProductImage } from "~/components/image";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { PageHeader } from "~/components/ui/page-header";
@@ -103,8 +103,8 @@ export default function ProductList(
       <ProductImage
         alt={product.name}
         class="size-12 shrink-0 rounded-md"
+        entityId={product.id}
         imageAssetId={product.imageAssetId ?? null}
-        productId={product.id}
       />
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium">{product.name}</p>

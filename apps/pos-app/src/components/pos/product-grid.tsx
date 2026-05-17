@@ -1,6 +1,6 @@
 import type { Component } from "solid-js";
 import { For, Show } from "solid-js";
-import { ProductImage } from "~/components/product-image";
+import { ProductImage } from "~/components/image";
 import { cardVariants } from "~/components/ui/card";
 import type { ProductWithCategory } from "~/db/orders";
 import { cn, formatIDR } from "~/lib/utils";
@@ -34,8 +34,8 @@ export const ProductGrid: Component<ProductGridProps> = (props) => (
             <ProductImage
               alt={product.name}
               class="h-16 w-full rounded-md"
+              entityId={product.id}
               imageAssetId={product.imageAssetId ?? null}
-              productId={product.id}
             />
             <span class="line-clamp-2 w-full font-medium leading-snug">
               {product.name}

@@ -1,3 +1,4 @@
+import { createRoot, createSignal } from "solid-js";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
@@ -185,5 +186,76 @@ describe("createAssetAdapter", () => {
       entityType: "product",
       field: "image_asset_id",
     });
+  });
+});
+
+describe("createAssetAdapter useImageUrl", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockConvertFileSrc.mockImplementation(
+      (path: string) =>
+        `https://asset.localhost/${path.replace(leadingSlashRegex, "")}`
+    );
+  });
+
+  test("returns reactive accessor resolving cached URL", async () => {
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "get_cached_asset_path") {
+        return Promise.resolve({
+          localPath: "/data/asset-cache/assets/cached.webp",
+          contentType: "image/webp",
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    const adapter = createAssetAdapter({
+      entityType: "product",
+      field: "image_asset_id",
+      pendingPreviewParamName: "productId",
+    });
+
+    const [assetId] = createSignal<string | null>("asset-1");
+    const [entityId] = createSignal<string | null>("product-1");
+
+    let imageUrl: ReturnType<typeof adapter.useImageUrl> = () => null;
+    let dispose: () => void = () => {};
+
+    createRoot((d) => {
+      dispose = d;
+      imageUrl = adapter.useImageUrl(assetId, entityId);
+    });
+
+    await vi.waitFor(() => {
+      expect(imageUrl()).toContain("asset.localhost");
+      expect(imageUrl()).toContain("cached.webp");
+    });
+
+    dispose();
+  });
+
+  test("returns null when no asset id provided", async () => {
+    const adapter = createAssetAdapter({
+      entityType: "product",
+      field: "image_asset_id",
+      pendingPreviewParamName: "productId",
+    });
+
+    const [assetId] = createSignal<string | null>(null);
+    const [entityId] = createSignal<string | null>(null);
+
+    let imageUrl: ReturnType<typeof adapter.useImageUrl> = () => null;
+    let dispose: () => void = () => {};
+
+    createRoot((d) => {
+      dispose = d;
+      imageUrl = adapter.useImageUrl(assetId, entityId);
+    });
+
+    await vi.waitFor(() => {
+      expect(imageUrl()).toBeNull();
+    });
+
+    dispose();
   });
 });

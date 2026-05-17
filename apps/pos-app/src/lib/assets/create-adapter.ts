@@ -1,6 +1,8 @@
 import { listen } from "@tauri-apps/api/event";
+import { type Accessor, createResource } from "solid-js";
 import { createLogger } from "~/lib/logger";
 import {
+  getAssetCacheVersion,
   notifyAssetCacheReady,
   resolveAssetUrl,
   resolvePendingPreviewUrl,
@@ -28,6 +30,10 @@ export interface AssetAdapter {
   ) => Promise<string | null>;
   startEventListeners: () => Promise<void>;
   stopEventListeners: () => void;
+  useImageUrl: (
+    assetId: Accessor<string | null | undefined>,
+    entityId: Accessor<string | null | undefined>
+  ) => Accessor<string | null>;
 }
 
 export function createAssetAdapter(config: AssetAdapterConfig): AssetAdapter {
@@ -96,10 +102,32 @@ export function createAssetAdapter(config: AssetAdapterConfig): AssetAdapter {
     unsubscribeFns = [];
   };
 
+  const useImageUrl = (
+    assetId: Accessor<string | null | undefined>,
+    entityId: Accessor<string | null | undefined>
+  ): Accessor<string | null> => {
+    const [cached] = createResource(
+      () => ({
+        assetId: assetId(),
+        version: getAssetCacheVersion(assetId()),
+      }),
+      ({ assetId: id }) => resolveCachedImageUrl(id)
+    );
+    const [pending] = createResource(
+      () => ({
+        assetId: assetId(),
+        entityId: entityId(),
+      }),
+      ({ entityId: id }) => getPendingPreviewUrl(id)
+    );
+    return () => pending() ?? cached() ?? null;
+  };
+
   return {
     resolveCachedImageUrl,
     getPendingPreviewUrl,
     startEventListeners,
     stopEventListeners,
+    useImageUrl,
   };
 }

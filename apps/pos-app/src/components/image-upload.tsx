@@ -7,8 +7,15 @@ import {
   useContext,
 } from "solid-js";
 
-import { PhotoSourceDrawer } from "~/components/photo-source-drawer";
 import { Button } from "~/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerPortal,
+  DrawerTitle,
+} from "~/components/ui/drawer";
 import type { ImageUploadState } from "~/lib/assets/image-upload";
 import { createLogger } from "~/lib/logger";
 
@@ -110,12 +117,50 @@ function ImageUploadRoot(props: ImageUploadProps) {
           {props.children}
         </div>
       </div>
-      <PhotoSourceDrawer
-        onOpenChange={context.setDrawerOpen}
-        onPickCamera={context.pickCamera}
-        onPickGallery={context.pickGallery}
-        open={showDrawer()}
-      />
+      <Show when={showDrawer()}>
+        <Drawer
+          closeOnEscapeKeyDown={false}
+          closeOnOutsideFocus={false}
+          modal={false}
+          onOpenChange={context.setDrawerOpen}
+          open={showDrawer()}
+          trapFocus={false}
+        >
+          <DrawerPortal>
+            <DrawerOverlay />
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Pilih Foto</DrawerTitle>
+              </DrawerHeader>
+              <p class="mb-4 text-muted-foreground text-sm">
+                Ambil foto baru atau pilih dari galeri.
+              </p>
+              <div class="flex flex-col gap-2">
+                <Button
+                  class="justify-start"
+                  onClick={() => {
+                    context.setDrawerOpen(false);
+                    context.pickCamera();
+                  }}
+                  variant="outline"
+                >
+                  Ambil Foto
+                </Button>
+                <Button
+                  class="justify-start"
+                  onClick={() => {
+                    context.setDrawerOpen(false);
+                    context.pickGallery();
+                  }}
+                  variant="outline"
+                >
+                  Pilih dari Galeri
+                </Button>
+              </div>
+            </DrawerContent>
+          </DrawerPortal>
+        </Drawer>
+      </Show>
     </ImageUploadContext.Provider>
   );
 }
