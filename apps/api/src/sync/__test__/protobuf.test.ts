@@ -364,4 +364,35 @@ describe("sync protobuf helpers", () => {
     expect(encoded.assets?.created[0]?.width).toBe(200n);
     expect(encoded.staff?.created[0]?.role).toBe("owner");
   });
+
+  test("encodePullBatchResponse maps all 10 sync tables into typed protobuf fields", () => {
+    const encoded = encodePullBatchResponse({
+      latestEventId: 12,
+      needsFullResync: false,
+      serverTime: "2026-05-17T00:00:00.000Z",
+      hasMore: false,
+      nextPageCursor: "",
+      merchants: { created: [{ id: "merchant-1", name: "Toko" }], updated: [], deletedIds: [] },
+      outlets: { created: [{ id: "outlet-1", merchantId: "merchant-1", name: "Outlet", timezone: "Asia/Jakarta", isActive: true }], updated: [], deletedIds: [] },
+      registers: { created: [{ id: "register-1", outletId: "outlet-1", name: "Kasir", shortId: "R1", isActive: true }], updated: [], deletedIds: [] },
+      categories: { created: [{ id: "cat-1", merchantId: "merchant-1", name: "Minuman", sortOrder: 1, isActive: true }], updated: [], deletedIds: [] },
+      assets: { created: [{ id: "asset-1", merchantId: "merchant-1", objectKey: "assets/1", contentType: "image/jpeg", byteSize: 123, contentHash: "hash", kind: "product_photo", width: 10, height: 20, status: "ready" }], updated: [], deletedIds: [] },
+      products: { created: [{ id: "product-1", merchantId: "merchant-1", name: "Kopi", price: 15000, sortOrder: 1, isActive: true }], updated: [], deletedIds: [] },
+      orders: { created: [{ id: "order-1", outletId: "outlet-1", orderNumber: "001", total: 15000, amountPaid: 20000, changeAmount: 5000, paymentMethod: "cash", status: "paid" }], updated: [], deletedIds: [] },
+      order_items: { created: [{ id: "item-1", orderId: "order-1", outletId: "outlet-1", productName: "Kopi", quantity: 1, unitPrice: 15000, originalPrice: 15000, subtotal: 15000 }], updated: [], deletedIds: [] },
+      outlet_products: { created: [{ id: "op-1", outletId: "outlet-1", productId: "product-1", price: 15000, isAvailable: true, sortOrder: 1 }], updated: [], deletedIds: [] },
+      staff: { created: [{ id: "staff-1", merchantId: "merchant-1", name: "Owner", role: "owner", isActive: true }], updated: [], deletedIds: [] },
+    });
+
+    expect(encoded.merchants?.created).toHaveLength(1);
+    expect(encoded.outlets?.created).toHaveLength(1);
+    expect(encoded.registers?.created).toHaveLength(1);
+    expect(encoded.categories?.created[0]?.sortOrder).toBe(1n);
+    expect(encoded.assets?.created[0]?.byteSize).toBe(123n);
+    expect(encoded.products?.created[0]?.priceMinorUnits).toBe(15000n);
+    expect(encoded.orders?.created[0]?.totalMinorUnits).toBe(15000n);
+    expect(encoded.orderItems?.created[0]?.unitPriceMinorUnits).toBe(15000n);
+    expect(encoded.outletProducts?.created[0]?.priceMinorUnits).toBe(15000n);
+    expect(encoded.staff?.created).toHaveLength(1);
+  });
 });
