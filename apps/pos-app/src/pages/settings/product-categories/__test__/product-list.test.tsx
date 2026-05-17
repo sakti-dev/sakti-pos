@@ -47,7 +47,7 @@ const mockProducts: Product[] = [
   {
     id: "product-1",
     name: "Kopi Susu",
-    price: 15_000,
+    priceMinorUnits: 15_000,
     categoryId: "category-1",
     merchantId: "merchant-1",
     imageUrl: null,
@@ -61,7 +61,7 @@ const mockProducts: Product[] = [
   {
     id: "product-2",
     name: "Teh Manis",
-    price: 8000,
+    priceMinorUnits: 8000,
     categoryId: "category-1",
     merchantId: "merchant-1",
     imageUrl: null,
@@ -75,7 +75,7 @@ const mockProducts: Product[] = [
   {
     id: "product-3",
     name: "Nasi Goreng",
-    price: 20_000,
+    priceMinorUnits: 20_000,
     categoryId: "category-2",
     merchantId: "merchant-1",
     imageUrl: null,

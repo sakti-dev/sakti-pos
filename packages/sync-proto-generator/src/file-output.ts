@@ -8,6 +8,7 @@ const repoRoot = dirname(dirname(packageRoot));
 
 export type GeneratorFileName =
   | "api-sync-mappers.ts"
+  | "api-push-adapters.ts"
   | "pos-sync-mappers.rs"
   | "sync.proto";
 
@@ -29,6 +30,16 @@ export function resolveGeneratorOutputPath(
       "src",
       "sync",
       "protobuf.generated.ts"
+    );
+  }
+  if (fileName === "api-push-adapters.ts") {
+    return join(
+      repoRoot,
+      "apps",
+      "api",
+      "src",
+      "sync",
+      "push-adapters.generated.ts"
     );
   }
   if (fileName === "pos-sync-mappers.rs") {

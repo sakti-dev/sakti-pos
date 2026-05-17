@@ -1,58 +1,30 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
 
-vi.mock("@repo/database", () => ({
-  categories: { name: "name", isActive: "is_active", id: "id" },
-  orderItems: {
-    id: "id",
-    orderId: "order_id",
-    productName: "product_name",
-    quantity: "quantity",
-    subtotal: "subtotal",
-    unitPrice: "unit_price",
-  },
-  orders: {
-    id: "id",
-    orderNumber: "order_number",
-    userId: "user_id",
-    total: "total",
-    paymentMethod: "payment_method",
-    amountPaid: "amount_paid",
-    changeAmount: "change_amount",
-    status: "status",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
-  products: {
-    id: "id",
-    categoryId: "category_id",
-    name: "name",
-    price: "price",
-    imageUrl: "image_url",
-    isActive: "is_active",
-    sortOrder: "sort_order",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
-  staff: { id: "id", name: "name" },
-  users: { id: "id", name: "name" },
-}));
-
 vi.mock("drizzle-orm", () => ({
   and: vi.fn((...args: unknown[]) => args),
+  asc: vi.fn((...args: unknown[]) => args),
   desc: vi.fn((col: unknown) => col),
   eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
+  gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
   gte: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gte" })),
+  inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
   isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
   like: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "like" })),
   lt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "lt" })),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-    strings,
-    values,
-  })),
+  or: vi.fn((...args: unknown[]) => args),
+  sql: Object.assign(
+    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+      strings,
+      values,
+    })),
+    {
+      raw: (value: string) => ({ raw: value }),
+    }
+  ),
 }));
 
 vi.mock("drizzle-orm/sqlite-proxy", () => ({
@@ -61,6 +33,8 @@ vi.mock("drizzle-orm/sqlite-proxy", () => ({
 
 const mockDbSelect = vi.fn();
 const mockRecordLocalChange = vi.fn();
+const syncOutbox = await import("../sync-outbox");
+let recordLocalChangeSpy: ReturnType<typeof vi.spyOn> | undefined;
 vi.mock("../index", () => ({
   db: {
     select: mockDbSelect,
@@ -70,10 +44,6 @@ vi.mock("../index", () => ({
       })),
     })),
   },
-}));
-
-vi.mock("../sync-outbox", () => ({
-  recordLocalChange: (...args: unknown[]) => mockRecordLocalChange(...args),
 }));
 
 vi.mock("~/store/outlet", () => ({
@@ -94,6 +64,20 @@ interface MockedInvoke {
 }
 
 describe("createOrder", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    recordLocalChangeSpy = vi
+      .spyOn(syncOutbox, "recordLocalChange")
+      .mockImplementation((...args: unknown[]) =>
+        mockRecordLocalChange(...args)
+      );
+  });
+
+  afterEach(() => {
+    recordLocalChangeSpy?.mockRestore();
+    recordLocalChangeSpy = undefined;
+  });
+
   test("calls invoke with correct SQL statements and returns order number", async () => {
     const { invoke } = await import("@tauri-apps/api/core");
     const mockedInvoke = invoke as unknown as MockedInvoke;
@@ -110,11 +94,11 @@ describe("createOrder", () => {
 
     const { createOrder } = await import("../orders");
     const orderNumber = await createOrder({
-      amountPaid: 20_000,
-      changeAmount: 0,
+      amountPaidMinorUnits: 20_000,
+      changeAmountMinorUnits: 0,
       items: [
         {
-          price: 10_000,
+          priceMinorUnits: 10_000,
           product_id: "product-1",
           product_name: "Nasi Goreng",
           qty: 2,
@@ -122,7 +106,7 @@ describe("createOrder", () => {
       ],
       paymentMethod: "cash",
       staffId: "staff-1",
-      total: 20_000,
+      totalMinorUnits: 20_000,
     });
 
     expect(orderNumber).toMatch(ORDER_NUMBER_PATTERN);

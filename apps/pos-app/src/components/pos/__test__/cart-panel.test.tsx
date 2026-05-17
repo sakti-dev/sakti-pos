@@ -53,7 +53,7 @@ const user = userEvent.setup();
 const PRODUCT_A: Product = {
   id: "product-1",
   name: "Nasi Goreng",
-  price: 15_000,
+  priceMinorUnits: 15_000,
   categoryId: "category-1",
   merchantId: "merchant-1",
   isActive: true,
@@ -67,7 +67,7 @@ const PRODUCT_A: Product = {
 const PRODUCT_B: Product = {
   id: "product-2",
   name: "Es Teh",
-  price: 5000,
+  priceMinorUnits: 5000,
   categoryId: "category-1",
   merchantId: "merchant-1",
   isActive: true,

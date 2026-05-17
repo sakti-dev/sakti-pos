@@ -1,59 +1,68 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { categories, products } from "@repo/database";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-vi.mock("@repo/database", () => ({
-  categories: {
-    id: "id",
-    name: "name",
-    isActive: "is_active",
-  },
-  products: {
-    id: "id",
-    categoryId: "category_id",
-    name: "name",
-    price: "price",
-    imageUrl: "image_url",
-    isActive: "is_active",
-    sortOrder: "sort_order",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
-}));
+const mocks = vi.hoisted(() => {
+  const mockFrom = vi.fn();
+  const mockSelect = vi.fn(() => ({ from: mockFrom }));
+  const mockInsert = vi.fn();
+  const mockUpdate = vi.fn();
+  const mockDelete = vi.fn();
+  const mockRecordLocalChange = vi.fn();
+  const mockDb = {
+    delete: mockDelete,
+    insert: mockInsert,
+    select: mockSelect,
+    transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+      await fn(mockDb),
+    update: mockUpdate,
+  };
 
-vi.mock("drizzle-orm", () => ({
-  and: vi.fn((...args: unknown[]) => args),
-  eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
-  isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
-}));
+  return {
+    mockDb,
+    mockDelete,
+    mockFrom,
+    mockInsert,
+    mockRecordLocalChange,
+    mockSelect,
+    mockUpdate,
+  };
+});
 
-const mockFrom = vi.fn();
-const mockSelect = vi.fn(() => ({ from: mockFrom }));
-const mockInsert = vi.fn();
-const mockUpdate = vi.fn();
-const mockDelete = vi.fn();
-const mockRecordLocalChange = vi.fn();
-type MockFn = ReturnType<typeof vi.fn>;
-interface MockDb {
-  delete: MockFn;
-  insert: typeof mockInsert;
-  select: typeof mockSelect;
-  transaction: (fn: (tx: MockDb) => Promise<unknown>) => Promise<unknown>;
-  update: typeof mockUpdate;
-}
+vi.mock("drizzle-orm", () => {
+  const sql = vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    strings,
+    values,
+  })) as ReturnType<typeof vi.fn> & {
+    raw?: (value: string) => { raw: string };
+  };
+  sql.raw = (value: string) => ({ raw: value });
 
-const mockDb: MockDb = {
-  delete: mockDelete,
-  insert: mockInsert,
-  select: mockSelect,
-  transaction: async (fn) => await fn(mockDb),
-  update: mockUpdate,
-};
+  return {
+    and: vi.fn((...args: unknown[]) => args),
+    asc: vi.fn((...args: unknown[]) => args),
+    eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
+    gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
+    inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
+    isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
+    or: vi.fn((...args: unknown[]) => args),
+    sql,
+  };
+});
+
+const syncOutbox = await import("../sync-outbox");
+let recordLocalChangeSpy: ReturnType<typeof vi.spyOn> | undefined;
+const { mockFrom, mockInsert, mockRecordLocalChange, mockSelect, mockUpdate } =
+  mocks;
 
 vi.mock("../index", () => ({
-  db: mockDb,
+  db: mocks.mockDb,
 }));
 
-vi.mock("../sync-outbox", () => ({
-  recordLocalChange: (...args: unknown[]) => mockRecordLocalChange(...args),
+vi.mock("~/store/outlet", () => ({
+  currentMerchantId: vi.fn(() => null),
+  currentOutletId: vi.fn(() => null),
+  currentRegisterId: vi.fn(() => null),
+  currentOutletTimezone: vi.fn(() => "Asia/Jakarta"),
 }));
 
 function mockFromOrderBy(data: unknown[]) {
@@ -68,6 +77,16 @@ function mockFromOrderBy(data: unknown[]) {
 describe("menu db", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    recordLocalChangeSpy = vi
+      .spyOn(syncOutbox, "recordLocalChange")
+      .mockImplementation((...args: unknown[]) =>
+        mockRecordLocalChange(...args)
+      );
+  });
+
+  afterEach(() => {
+    recordLocalChangeSpy?.mockRestore();
+    recordLocalChangeSpy = undefined;
   });
 
   test("getCategories returns ordered categories", async () => {
@@ -82,9 +101,7 @@ describe("menu db", () => {
 
     expect(result).toEqual(fakeCategories);
     expect(mockSelect).toHaveBeenCalled();
-    expect(mockFrom).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "id", name: "name" })
-    );
+    expect(mockFrom).toHaveBeenCalledWith(categories);
   });
 
   test("getCategory returns a single category by id", async () => {
@@ -147,9 +164,7 @@ describe("menu db", () => {
     const { deleteCategory } = await import("../menu");
     await deleteCategory("category-1");
 
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "id" })
-    );
+    expect(mockUpdate).toHaveBeenCalledWith(categories);
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({
         deletedAt: expect.any(String),
@@ -226,7 +241,7 @@ describe("menu db", () => {
       id: "product-1",
       merchantId: "",
       name: "Nasi Goreng",
-      price: 15_000,
+      priceMinorUnits: 15_000,
     };
     const mockReturning = vi.fn().mockResolvedValue([newProduct]);
     const mockValues = vi.fn(() => ({ returning: mockReturning }));
@@ -235,14 +250,14 @@ describe("menu db", () => {
     const { createProduct } = await import("../menu");
     const result = await createProduct({
       name: "Nasi Goreng",
-      price: 15_000,
+      priceMinorUnits: 15_000,
     } as never);
 
     expect(result).toEqual(newProduct);
     expect(mockValues).toHaveBeenCalledWith({
       isSynced: false,
       name: "Nasi Goreng",
-      price: 15_000,
+      priceMinorUnits: 15_000,
       merchantId: "",
     });
     expect(mockRecordLocalChange).toHaveBeenCalledWith(
@@ -265,9 +280,7 @@ describe("menu db", () => {
     const { deleteProduct } = await import("../menu");
     await deleteProduct("product-1");
 
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "id", categoryId: "category_id" })
-    );
+    expect(mockUpdate).toHaveBeenCalledWith(products);
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({
         deletedAt: expect.any(String),

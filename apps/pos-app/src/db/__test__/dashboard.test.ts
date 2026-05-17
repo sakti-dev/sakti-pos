@@ -4,53 +4,27 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
 
-vi.mock("@repo/database", () => ({
-  categories: { name: "name", isActive: "is_active", id: "id" },
-  orderItems: {
-    id: "id",
-    orderId: "order_id",
-    productName: "product_name",
-    quantity: "quantity",
-    subtotal: "subtotal",
-    unitPrice: "unit_price",
-    productId: "product_id",
-  },
-  orders: {
-    id: "id",
-    orderNumber: "order_number",
-    userId: "user_id",
-    total: "total",
-    paymentMethod: "payment_method",
-    amountPaid: "amount_paid",
-    changeAmount: "change_amount",
-    status: "status",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
-  products: {
-    id: "id",
-    categoryId: "category_id",
-    name: "name",
-    price: "price",
-    imageUrl: "image_url",
-    isActive: "is_active",
-    sortOrder: "sort_order",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
-  users: { id: "id", name: "name" },
-}));
-
 vi.mock("drizzle-orm", () => ({
   and: vi.fn((...args: unknown[]) => args),
+  asc: vi.fn((...args: unknown[]) => args),
+  desc: vi.fn((col: unknown) => col),
   eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
+  gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
   gte: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gte" })),
+  inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
   isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
+  or: vi.fn((...args: unknown[]) => args),
   lt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "lt" })),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-    strings,
-    values,
-  })),
+  like: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "like" })),
+  sql: Object.assign(
+    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+      strings,
+      values,
+    })),
+    {
+      raw: (value: string) => ({ raw: value }),
+    }
+  ),
 }));
 
 vi.mock("drizzle-orm/sqlite-proxy", () => ({

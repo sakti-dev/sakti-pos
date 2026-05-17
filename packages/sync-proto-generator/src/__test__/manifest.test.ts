@@ -29,6 +29,27 @@ describe("sync manifest", () => {
     ).toEqual(["ProductRow", "OrderRow", "OrderItemRow", "OutletProductRow"]);
   });
 
+  test("hard-cuts minor-unit field order for order items", () => {
+    const orderItems = syncManifest.tables.find(
+      (table) => table.tableName === "order_items"
+    );
+
+    expect(orderItems?.fieldOrder).toEqual([
+      "id",
+      "orderId",
+      "outletId",
+      "productId",
+      "productName",
+      "quantity",
+      "unitPriceMinorUnits",
+      "originalPriceMinorUnits",
+      "subtotalMinorUnits",
+      "deletedAt",
+      "createdAt",
+      "updatedAt",
+    ]);
+  });
+
   test("declares separate runtime names for multi-word sync tables", () => {
     const orderItems = syncManifest.tables.find(
       (table) => table.tableName === "order_items"
@@ -71,5 +92,23 @@ describe("sync manifest", () => {
       serviceKey: "merchants",
       tsProtoFieldName: "merchants",
     });
+  });
+
+  test("does not retain money field aliases", () => {
+    const productKeys = Object.keys(
+      syncManifest.tables.find((table) => table.tableName === "products") ?? {}
+    );
+    const orderKeys = Object.keys(
+      syncManifest.tables.find((table) => table.tableName === "orders") ?? {}
+    );
+    const outletProductKeys = Object.keys(
+      syncManifest.tables.find(
+        (table) => table.tableName === "outlet_products"
+      ) ?? {}
+    );
+
+    expect(productKeys).not.toContain("fieldAliases");
+    expect(orderKeys).not.toContain("fieldAliases");
+    expect(outletProductKeys).not.toContain("fieldAliases");
   });
 });

@@ -111,7 +111,7 @@ export default function ProductForm() {
       initialInput: {
         name: data.name,
         categoryId: data.categoryId ?? "",
-        price: String(data.price),
+        price: String(data.priceMinorUnits),
       },
     });
     setImageAssetId(data.imageAssetId ?? null);
@@ -131,7 +131,7 @@ export default function ProductForm() {
       const data = {
         name: values.name,
         categoryId: values.categoryId,
-        price: values.price,
+        priceMinorUnits: Number(values.price),
         imageAssetId: nextImageAssetId,
       };
       photoLogger.info("submit_started", {

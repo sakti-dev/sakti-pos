@@ -7,18 +7,10 @@ const NON_IDENTIFIER_PATTERN = /[^a-zA-Z0-9]+/g;
 const ROW_SUFFIX_PATTERN = /Row$/;
 const LEADING_UNDERSCORE_PATTERN = /^_/;
 const SNAKE_TO_CAMEL_PATTERN = /_([a-z])/g;
-const CAMEL_TO_SNAKE_PATTERN = /([A-Z])/g;
 
 function snakeToCamel(value: string): string {
   return value.replace(SNAKE_TO_CAMEL_PATTERN, (_, letter: string) =>
     letter.toUpperCase()
-  );
-}
-
-function camelToSnake(value: string): string {
-  return value.replace(
-    CAMEL_TO_SNAKE_PATTERN,
-    (_, letter: string) => `_${letter.toLowerCase()}`
   );
 }
 
@@ -114,18 +106,11 @@ fn value_to_i64(row: &Value, keys: &[&str]) -> i64 {
 }`;
 }
 
-function columnKeys(
-  column: { propertyName: string; protoName: string },
-  isAlias: boolean
-): string {
+function columnKeys(column: {
+  propertyName: string;
+  protoName: string;
+}): string {
   const camelProto = snakeToCamel(column.protoName);
-  if (isAlias) {
-    const aliasSnake = camelToSnake(column.propertyName);
-    if (aliasSnake !== column.propertyName) {
-      return `&["${camelProto}", "${column.propertyName}", "${aliasSnake}"]`;
-    }
-    return `&["${camelProto}", "${column.propertyName}"]`;
-  }
   if (column.protoName.includes("_")) {
     return `&["${camelProto}", "${column.protoName}"]`;
   }
@@ -134,7 +119,7 @@ function columnKeys(
 
 function renderRowFromValue(
   table: ReflectedSyncTable,
-  manifestTable: SyncTableManifest
+  _manifestTable: SyncTableManifest
 ): string {
   const funcName = rowFromValueFuncName(table.rowMessageName);
   const lines = [
@@ -143,10 +128,7 @@ function renderRowFromValue(
   ];
 
   for (const column of table.columns) {
-    const isAlias =
-      manifestTable.fieldAliases &&
-      column.propertyName in manifestTable.fieldAliases;
-    const keys = columnKeys(column, !!isAlias);
+    const keys = columnKeys(column);
     let helper = "value_to_string";
     if (column.protoType === "int64") {
       helper = "value_to_i64";

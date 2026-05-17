@@ -47,7 +47,8 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 
 - Before adding or updating Drizzle schema fields that may sync between API and POS app, read `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
 - Do not hand-edit sync protobuf runtime artifacts for durable changes. Update the Drizzle schema, sync manifest, or generator writers, then run `bun run generate:sync-proto:write`.
-- Runtime generated sync artifacts are `packages/protobuf/proto/sync.proto`, `apps/api/src/sync/protobuf.generated.ts`, and `apps/pos-app/src-tauri/src/sync/protobuf_generated.rs`.
+- Money fields must use explicit `MinorUnits` Drizzle property names and `_minor_units` SQLite columns. Do not keep aliases for hidden-unit names once the schema is cut over.
+- Runtime generated sync artifacts are `packages/protobuf/proto/sync.proto`, `apps/api/src/sync/protobuf.generated.ts`, `apps/api/src/sync/push-adapters.generated.ts`, and `apps/pos-app/src-tauri/src/sync/protobuf_generated.rs`.
 - `bun run generate:sync-proto:compare` writes disposable inspection output to `.logs/sync-proto-compare/`; do not commit compare artifacts or add generated fixture directories.
 - For synced column/table changes, run `bun run sync-proto:check` and the focused API/Rust sync tests listed in `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
 

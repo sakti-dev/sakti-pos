@@ -122,7 +122,7 @@ const PaymentDrawer: Component<PaymentDialogProps> = (props) => {
                       {item.product.name} ×{item.quantity}
                     </span>
                     <span class="shrink-0 font-medium">
-                      {formatIDR(item.product.price * item.quantity)}
+                      {formatIDR(item.product.priceMinorUnits * item.quantity)}
                     </span>
                   </div>
                 )}

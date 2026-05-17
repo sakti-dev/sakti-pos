@@ -41,7 +41,7 @@ export const ProductGrid: Component<ProductGridProps> = (props) => (
               {product.name}
             </span>
             <span class="font-semibold text-primary">
-              {formatIDR(product.price)}
+              {formatIDR(product.priceMinorUnits)}
             </span>
           </button>
         )}

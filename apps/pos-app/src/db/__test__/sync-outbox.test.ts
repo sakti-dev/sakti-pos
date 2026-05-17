@@ -1,22 +1,26 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-vi.mock("@repo/database", () => ({
-  syncOutbox: {
-    changedAt: "changed_at",
-    id: "id",
-    operation: "operation",
-    rowId: "row_id",
-    scopeId: "scope_id",
-    scopeType: "scope_type",
-    syncedAt: "synced_at",
-    tableName: "table_name",
-  },
-}));
-
 vi.mock("drizzle-orm", () => ({
   and: vi.fn((...conditions: unknown[]) => conditions),
+  asc: vi.fn((...args: unknown[]) => args),
+  desc: vi.fn((col: unknown) => col),
   eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
+  gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
+  gte: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gte" })),
+  inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
   isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
+  like: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "like" })),
+  lt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "lt" })),
+  or: vi.fn((...args: unknown[]) => args),
+  sql: Object.assign(
+    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+      strings,
+      values,
+    })),
+    {
+      raw: (value: string) => ({ raw: value }),
+    }
+  ),
 }));
 
 const pendingRows: Record<string, OutboxRow> = {};

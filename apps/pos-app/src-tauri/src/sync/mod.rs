@@ -123,7 +123,7 @@ mod tests {
                 merchant_id TEXT NOT NULL,
                 category_id TEXT,
                 name TEXT NOT NULL,
-                price INTEGER NOT NULL,
+                price_minor_units INTEGER NOT NULL,
                 image_url TEXT,
                 image_asset_id TEXT,
                 is_active INTEGER DEFAULT true NOT NULL,
@@ -178,7 +178,7 @@ mod tests {
                     "id": "product-1",
                     "merchantId": "merchant-1",
                     "name": "Kopi",
-                    "price": 15000,
+                    "priceMinorUnits": 15000,
                     "isActive": true,
                     "sortOrder": 7,
                     "createdAt": "2026-05-17T00:00:00.000Z",
@@ -200,7 +200,7 @@ mod tests {
         tx.commit().await.expect("transaction should commit");
 
         let row = sqlx::query_as::<_, (i64, i64)>(
-            "SELECT price, is_synced FROM products WHERE id = 'product-1'",
+            "SELECT price_minor_units, is_synced FROM products WHERE id = 'product-1'",
         )
         .fetch_one(&pool)
         .await
@@ -229,9 +229,7 @@ mod tests {
             json!([
                 {
                     "id": "product-1",
-                    "merchantId": "merchant-1",
                     "name": "Kopi",
-                    "price": 15000,
                     "priceMinorUnits": 15000,
                     "isActive": true,
                     "sortOrder": 7,

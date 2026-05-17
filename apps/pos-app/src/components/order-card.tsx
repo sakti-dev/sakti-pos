@@ -50,7 +50,7 @@ export const OrderCard: Component<OrderCardProps> = (props) => {
             {props.order.status === "completed" ? "Selesai" : "Batal"}
           </span>
           <span class="font-semibold text-sm">
-            {formatIDR(props.order.total)}
+            {formatIDR(props.order.totalMinorUnits)}
           </span>
         </div>
       </button>
@@ -65,7 +65,7 @@ export const OrderCard: Component<OrderCardProps> = (props) => {
                     {item.productName} ×{item.quantity}
                   </span>
                   <span class="shrink-0 text-muted-foreground">
-                    {formatIDR(item.subtotal)}
+                    {formatIDR(item.subtotalMinorUnits)}
                   </span>
                 </div>
               )}
@@ -82,22 +82,22 @@ export const OrderCard: Component<OrderCardProps> = (props) => {
             <Show
               when={
                 props.order.paymentMethod === "cash" &&
-                props.order.amountPaid != null
+                props.order.amountPaidMinorUnits != null
               }
             >
               <div class="flex justify-between text-sm">
                 <span class="text-muted-foreground">Dibayar</span>
-                <span>{formatIDR(props.order.amountPaid)}</span>
+                <span>{formatIDR(props.order.amountPaidMinorUnits)}</span>
               </div>
               <Show
                 when={
-                  props.order.changeAmount != null &&
-                  props.order.changeAmount > 0
+                  props.order.changeAmountMinorUnits != null &&
+                  props.order.changeAmountMinorUnits > 0
                 }
               >
                 <div class="flex justify-between text-sm">
                   <span class="text-muted-foreground">Kembalian</span>
-                  <span>{formatIDR(props.order.changeAmount)}</span>
+                  <span>{formatIDR(props.order.changeAmountMinorUnits)}</span>
                 </div>
               </Show>
             </Show>

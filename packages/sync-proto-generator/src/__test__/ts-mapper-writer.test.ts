@@ -19,15 +19,16 @@ describe("TypeScript API sync mapper writer", () => {
     ).toBe(true);
   });
 
-  test("renders product money alias from DB field to proto field", () => {
+  test("renders product money field from explicit minor-unit property", () => {
     const source = renderApiSyncMappers(
       syncManifest,
       reflectSyncTables(localSchema, syncManifest)
     );
 
     expect(source).toContain(
-      "priceMinorUnits: int64Field(row.price ?? row.priceMinorUnits"
+      'priceMinorUnits: int64Field(row.priceMinorUnits, "products.priceMinorUnits")'
     );
+    expect(source).not.toContain("row.price ?? row.priceMinorUnits");
   });
 
   test("renders typed decode for all sync tables", () => {

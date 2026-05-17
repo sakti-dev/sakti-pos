@@ -15,16 +15,22 @@ describe("Drizzle runtime reflection", () => {
     );
   });
 
-  test("reflects product columns without local-only isSynced", () => {
+  test("reflects product columns with explicit minor-unit money fields", () => {
     const tables = reflectSyncTables(localSchema, syncManifest);
     const products = tables.find((table) => table.tableName === "products");
 
     expect(products?.columns.map((column) => column.propertyName)).toContain(
-      "price"
+      "priceMinorUnits"
     );
     expect(
       products?.columns.map((column) => column.propertyName)
     ).not.toContain("isSynced");
+    expect(products?.columns.map((column) => column.columnName)).toContain(
+      "price_minor_units"
+    );
+    expect(
+      products?.columns.map((column) => column.propertyName)
+    ).not.toContain("price");
   });
 
   test("throws when fieldOrder references a missing property", () => {
@@ -53,25 +59,15 @@ describe("Drizzle runtime reflection", () => {
     ).toThrow(OMITTED_FIELD_PATTERN);
   });
 
-  test("throws when field alias references a missing property", () => {
-    expect(() =>
-      reflectSyncTables(localSchema, {
-        ...syncManifest,
-        tables: syncManifest.tables.map((table) =>
-          table.tableName === "products"
-            ? {
-                ...table,
-                fieldAliases: {
-                  ...table.fieldAliases,
-                  missingField: {
-                    protoName: "missing_field",
-                    protoType: "int64",
-                  },
-                },
-              }
-            : table
-        ),
-      })
-    ).toThrow(MISSING_FIELD_PATTERN);
+  test("does not retain field aliases in the reflected manifest", () => {
+    const tables = reflectSyncTables(localSchema, syncManifest);
+    const products = tables.find((table) => table.tableName === "products");
+
+    expect(products?.columns.map((column) => column.protoName)).toContain(
+      "price_minor_units"
+    );
+    expect(products?.columns.map((column) => column.protoName)).not.toContain(
+      "price"
+    );
   });
 });

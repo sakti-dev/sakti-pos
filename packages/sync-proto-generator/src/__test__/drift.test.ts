@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
+import { renderApiPushAdapters } from "../api-push-adapter-writer";
 import { reflectSyncTables } from "../drizzle-reflection";
 import { syncManifest } from "../manifest";
 import { renderSyncProto } from "../proto-writer";
@@ -36,6 +37,25 @@ describe("generated sync artifact drift", () => {
     const generated = renderApiSyncMappers(syncManifest, tables);
     const checkedIn = readFileSync(
       join(repoRoot, "apps", "api", "src", "sync", "protobuf.generated.ts"),
+      "utf8"
+    );
+
+    expect(checkedIn).toBe(generated);
+  });
+
+  test("checked-in API push adapter matches generator output", async () => {
+    const localSchema = await import("@repo/database");
+    const tables = reflectSyncTables(localSchema, syncManifest);
+    const generated = renderApiPushAdapters(syncManifest, tables);
+    const checkedIn = readFileSync(
+      join(
+        repoRoot,
+        "apps",
+        "api",
+        "src",
+        "sync",
+        "push-adapters.generated.ts"
+      ),
       "utf8"
     );
 

@@ -9,7 +9,7 @@ import {
   updateQuantity,
 } from "../cart";
 
-const makeProduct = (id: string, price = 10_000) => ({
+const makeProduct = (id: string, priceMinorUnits = 10_000) => ({
   categoryId: "category-1",
   createdAt: "2026-01-01",
   id,
@@ -17,7 +17,7 @@ const makeProduct = (id: string, price = 10_000) => ({
   isActive: true,
   merchantId: "merchant-1",
   name: `Product ${id}`,
-  price,
+  priceMinorUnits,
   sortOrder: 0,
   updatedAt: "2026-01-01",
   deletedAt: null,

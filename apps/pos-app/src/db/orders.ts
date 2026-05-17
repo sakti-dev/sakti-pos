@@ -44,19 +44,19 @@ interface BatchResult {
 }
 
 export async function createOrder(data: {
-  amountPaid: number | null;
-  changeAmount: number | null;
+  amountPaidMinorUnits: number | null;
   createdAt?: string;
   items: {
-    originalPrice?: number;
-    price: number;
+    originalPriceMinorUnits?: number;
+    priceMinorUnits: number;
     product_id: string;
     product_name: string;
     qty: number;
   }[];
   paymentMethod: "cash" | "qris";
   staffId: string;
-  total: number;
+  totalMinorUnits: number;
+  changeAmountMinorUnits: number | null;
   timezone?: string;
 }): Promise<string> {
   const timezone = data.timezone ?? currentOutletTimezone();
@@ -68,17 +68,17 @@ export async function createOrder(data: {
   const orderId = crypto.randomUUID();
 
   const insertOrder: SqlStatement = {
-    sql: `INSERT INTO orders (id, order_number, staff_id, register_id, outlet_id, total, payment_method, amount_paid, change_amount, status, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0)`,
+    sql: `INSERT INTO orders (id, order_number, staff_id, register_id, outlet_id, total_minor_units, payment_method, amount_paid_minor_units, change_amount_minor_units, status, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0)`,
     params: [
       orderId,
       orderNumber,
       data.staffId,
       registerId ?? null,
       outletId ?? null,
-      data.total,
+      data.totalMinorUnits,
       data.paymentMethod,
-      data.amountPaid,
-      data.changeAmount,
+      data.amountPaidMinorUnits,
+      data.changeAmountMinorUnits,
       createdAt,
       createdAt,
     ],
@@ -91,7 +91,7 @@ export async function createOrder(data: {
 
   const itemStatements: SqlStatement[] = orderItemsWithIds.map(
     ({ id, item }) => ({
-      sql: "INSERT INTO order_items (id, order_id, outlet_id, product_id, product_name, quantity, unit_price, original_price, subtotal, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
+      sql: "INSERT INTO order_items (id, order_id, outlet_id, product_id, product_name, quantity, unit_price_minor_units, original_price_minor_units, subtotal_minor_units, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
       params: [
         id,
         orderId,
@@ -99,9 +99,9 @@ export async function createOrder(data: {
         item.product_id,
         item.product_name,
         item.qty,
-        item.price,
-        item.originalPrice ?? null,
-        item.qty * item.price,
+        item.priceMinorUnits,
+        item.originalPriceMinorUnits ?? null,
+        item.qty * item.priceMinorUnits,
         createdAt,
         createdAt,
       ],
@@ -192,7 +192,7 @@ export async function getActiveProductsByCategory(): Promise<
       isSynced: products.isSynced,
       merchantId: products.merchantId,
       name: products.name,
-      price: products.price,
+      priceMinorUnits: products.priceMinorUnits,
       sortOrder: products.sortOrder,
       updatedAt: products.updatedAt,
     })
@@ -215,8 +215,8 @@ export async function getActiveProductsByCategory(): Promise<
 }
 
 export interface OrderRow {
-  amountPaid: number | null;
-  changeAmount: number | null;
+  amountPaidMinorUnits: number | null;
+  changeAmountMinorUnits: number | null;
   createdAt: string;
   id: string;
   orderNumber: string;
@@ -224,15 +224,15 @@ export interface OrderRow {
   staffId: string | null;
   staffName: string;
   status: "completed" | "cancelled";
-  total: number;
+  totalMinorUnits: number;
 }
 
 export interface OrderItemRow {
   id: string;
   productName: string;
   quantity: number;
-  subtotal: number;
-  unitPrice: number;
+  subtotalMinorUnits: number;
+  unitPriceMinorUnits: number;
 }
 
 export type OrderWithItems = OrderRow & { items: OrderItemRow[] };
@@ -264,8 +264,8 @@ export async function getOrders(
 
   const rows = await db
     .select({
-      amountPaid: orders.amountPaid,
-      changeAmount: orders.changeAmount,
+      amountPaidMinorUnits: orders.amountPaidMinorUnits,
+      changeAmountMinorUnits: orders.changeAmountMinorUnits,
       createdAt: orders.createdAt,
       id: orders.id,
       orderNumber: orders.orderNumber,
@@ -273,7 +273,7 @@ export async function getOrders(
       status: orders.status,
       staffId: orders.staffId,
       staffName: staff.name,
-      total: orders.total,
+      totalMinorUnits: orders.totalMinorUnits,
     })
     .from(orders)
     .innerJoin(staff, eq(orders.staffId, staff.id))
@@ -293,8 +293,8 @@ export async function getOrderItems(orderId: string): Promise<OrderItemRow[]> {
       id: orderItems.id,
       productName: orderItems.productName,
       quantity: orderItems.quantity,
-      subtotal: orderItems.subtotal,
-      unitPrice: orderItems.unitPrice,
+      subtotalMinorUnits: orderItems.subtotalMinorUnits,
+      unitPriceMinorUnits: orderItems.unitPriceMinorUnits,
     })
     .from(orderItems)
     .where(and(eq(orderItems.orderId, orderId), isNull(orderItems.deletedAt)));
@@ -344,10 +344,10 @@ export async function getDailySummary(
 
   const rows = await db
     .select({
-      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN ${orders.total} ELSE 0 END), 0)`,
+      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
       orderCount: sql<number>`CAST(COUNT(*) AS INTEGER)`,
-      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN ${orders.total} ELSE 0 END), 0)`,
-      totalRevenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
+      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
+      totalRevenue: sql<number>`COALESCE(SUM(${orders.totalMinorUnits}), 0)`,
     })
     .from(orders)
     .where(and(...conditions));

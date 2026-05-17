@@ -121,8 +121,9 @@ function CartItemRow(props: {
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium text-sm">{props.item.product.name}</p>
         <p class="text-muted-foreground text-xs">
-          {formatIDR(props.item.product.price)} × {props.item.quantity} ={" "}
-          {formatIDR(props.item.product.price * props.item.quantity)}
+          {formatIDR(props.item.product.priceMinorUnits)} ×{" "}
+          {props.item.quantity} ={" "}
+          {formatIDR(props.item.product.priceMinorUnits * props.item.quantity)}
         </p>
       </div>
       <div class="flex items-center gap-1.5">
@@ -186,7 +187,7 @@ const CartSidebar: Component<CartSidebarProps> = (props) => {
                     {item.product.name}
                   </p>
                   <p class="text-muted-foreground text-xs">
-                    {formatIDR(item.product.price)} × {item.quantity}
+                    {formatIDR(item.product.priceMinorUnits)} × {item.quantity}
                   </p>
                 </div>
                 <div class="flex items-center gap-1.5">

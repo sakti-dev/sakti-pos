@@ -389,6 +389,189 @@ describe("handlePushBatch", () => {
     );
   });
 
+  test("preserves staff outletId while server-owning merchantId", async () => {
+    const upsertedRows: Record<string, unknown>[][] = [];
+    const values = vi.fn((rows: Record<string, unknown>[]) => {
+      upsertedRows.push(rows);
+      return {
+        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+        onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+      };
+    });
+    const insert = vi.fn().mockReturnValue({ values });
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          }),
+          insert,
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        staff: {
+          created: [
+            {
+              createdAt: "2026-05-17T00:00:00.000Z",
+              id: "staff-1",
+              isActive: true,
+              merchantId: "client-merchant",
+              name: "Cashier",
+              outletId: "outlet-1",
+              role: "cashier",
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+      },
+      "",
+      "request-hash-staff"
+    );
+
+    expect(upsertedRows.flat()).toContainEqual(
+      expect.objectContaining({
+        id: "staff-1",
+        merchantId: "merchant-1",
+        outletId: "outlet-1",
+      })
+    );
+  });
+
+  test("preserves nullable int64 fields as null instead of zero", async () => {
+    const upsertedRows: Record<string, unknown>[][] = [];
+    const values = vi.fn((rows: Record<string, unknown>[]) => {
+      upsertedRows.push(rows);
+      return {
+        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+        onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+      };
+    });
+    const insert = vi.fn().mockReturnValue({ values });
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          }),
+          insert,
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        orders: {
+          created: [
+            {
+              amountPaidMinorUnits: undefined,
+              changeAmountMinorUnits: "",
+              createdAt: "2026-05-17T00:00:00.000Z",
+              id: "order-null",
+              orderNumber: "001",
+              paymentMethod: "cash",
+              status: "completed",
+              totalMinorUnits: 15_000n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+      },
+      "",
+      "request-hash-null-int"
+    );
+
+    expect(upsertedRows.flat()).toContainEqual(
+      expect.objectContaining({
+        amountPaidMinorUnits: null,
+        changeAmountMinorUnits: null,
+        id: "order-null",
+      })
+    );
+  });
+
+  test("rejects unsafe protobuf int64 values before DB upsert", async () => {
+    const insert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          insert,
+          select: vi.fn(),
+          update: vi.fn(),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await expect(
+      handlePushBatch(
+        "outlet-1",
+        "merchant-1",
+        {
+          products: {
+            created: [
+              {
+                createdAt: "2026-05-17T00:00:00.000Z",
+                id: "product-unsafe",
+                name: "Too Big",
+                priceMinorUnits: BigInt(Number.MAX_SAFE_INTEGER) + 1n,
+                updatedAt: "2026-05-17T00:00:00.000Z",
+              },
+            ],
+            deletedIds: [],
+            updated: [],
+          },
+        },
+        "",
+        "request-hash-unsafe"
+      )
+    ).rejects.toThrow("Exceeds Number.MAX_SAFE_INTEGER");
+    expect(insert).not.toHaveBeenCalled();
+  });
+
   test("batches accepted product updates and sync events", async () => {
     const productRows = Array.from({ length: 100 }, (_, index) => ({
       id: `product-${index}`,
@@ -560,6 +743,178 @@ describe("handlePushBatch", () => {
         "request-hash-2"
       )
     ).rejects.toThrow("idempotency key reused with different request body");
+  });
+
+  test("returns cached response when idempotency insert races with the same request body", async () => {
+    const cachedResponse = {
+      latestEventId: 42,
+      serverTime: "2026-05-17T00:00:00.000Z",
+      tables: [
+        {
+          acceptedCreatedIds: ["product-1"],
+          acceptedDeletedIds: [],
+          acceptedUpdatedIds: [],
+          rejected: [],
+          table: "products",
+        },
+      ],
+    };
+    const uniqueConstraintError = new Error(
+      "UNIQUE constraint failed: sync_batch_requests.idempotency_key"
+    );
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi
+            .fn()
+            .mockReturnValueOnce({
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            })
+            .mockReturnValueOnce({
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([
+                    {
+                      latestEventId: 42,
+                      requestHash: "request-hash-1",
+                      responseJson: JSON.stringify(cachedResponse),
+                      serverTime: "2026-05-17T00:00:00.000Z",
+                    },
+                  ]),
+                }),
+              }),
+            }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockRejectedValue(uniqueConstraintError),
+          }),
+          update: vi.fn(),
+        };
+        return await fn(tx);
+      }
+    );
+
+    const result = await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {},
+      "sync-request-1",
+      "request-hash-1"
+    );
+
+    expect(result).toEqual(cachedResponse);
+  });
+
+  test("does not write rows or sync events when idempotency reservation races", async () => {
+    const cachedResponse = {
+      latestEventId: 42,
+      serverTime: "2026-05-17T00:00:00.000Z",
+      tables: [
+        {
+          acceptedCreatedIds: ["product-1"],
+          acceptedDeletedIds: [],
+          acceptedUpdatedIds: [],
+          rejected: [],
+          table: "products",
+        },
+      ],
+    };
+    const uniqueConstraintError = new Error(
+      "UNIQUE constraint failed: sync_batch_requests.idempotency_key"
+    );
+    const syncEventPayloads: Record<string, unknown>[][] = [];
+    const rowUpsertPayloads: Record<string, unknown>[][] = [];
+    let fallbackCacheVisible = false;
+
+    const values = vi.fn(
+      (payload: Record<string, unknown> | Record<string, unknown>[]) => {
+        if (
+          Array.isArray(payload) &&
+          payload.every((row) => "tableName" in row)
+        ) {
+          syncEventPayloads.push(payload);
+          return Promise.resolve(undefined);
+        }
+        if (Array.isArray(payload)) {
+          rowUpsertPayloads.push(payload);
+          return {
+            onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+          };
+        }
+        if ("responseJson" in payload) {
+          fallbackCacheVisible = true;
+          return Promise.reject(uniqueConstraintError);
+        }
+        return Promise.resolve(undefined);
+      }
+    );
+    const insert = vi.fn().mockReturnValue({ values });
+    const select = vi.fn().mockImplementation(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue(
+            fallbackCacheVisible
+              ? [
+                  {
+                    latestEventId: 42,
+                    requestHash: "request-hash-race",
+                    responseJson: JSON.stringify(cachedResponse),
+                    serverTime: "2026-05-17T00:00:00.000Z",
+                  },
+                ]
+              : []
+          ),
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: 100 }]),
+          }),
+        }),
+      }),
+    }));
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          insert,
+          select,
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    const result = await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        products: {
+          created: [
+            {
+              createdAt: "2026-05-17T00:00:00.000Z",
+              id: "product-1",
+              name: "Kopi",
+              priceMinorUnits: 15_000n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+      },
+      "sync-request-race",
+      "request-hash-race"
+    );
+
+    expect(result).toEqual(cachedResponse);
+    expect(rowUpsertPayloads).toHaveLength(0);
+    expect(syncEventPayloads).toHaveLength(0);
   });
 });
 

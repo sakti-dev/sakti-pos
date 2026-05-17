@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { renderApiPushAdapters } from "./api-push-adapter-writer";
 import { reflectSyncTables } from "./drizzle-reflection";
 import { type GenerateMode, resolveGeneratorOutputPath } from "./file-output";
 import { syncManifest } from "./manifest";
@@ -33,6 +34,15 @@ const mappersPath = resolveGeneratorOutputPath(mode, "api-sync-mappers.ts");
 mkdirSync(dirname(mappersPath), { recursive: true });
 writeFileSync(mappersPath, mappers);
 console.log(`[SYNC_PROTO_GENERATOR] wrote ${mappersPath}`);
+
+const pushAdapters = renderApiPushAdapters(syncManifest, tables);
+const pushAdaptersPath = resolveGeneratorOutputPath(
+  mode,
+  "api-push-adapters.ts"
+);
+mkdirSync(dirname(pushAdaptersPath), { recursive: true });
+writeFileSync(pushAdaptersPath, pushAdapters);
+console.log(`[SYNC_PROTO_GENERATOR] wrote ${pushAdaptersPath}`);
 
 const rustMappers = renderRustSyncMappers(syncManifest, tables);
 const rustPath = resolveGeneratorOutputPath(mode, "pos-sync-mappers.rs");

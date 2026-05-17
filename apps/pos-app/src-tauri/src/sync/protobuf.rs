@@ -37,7 +37,7 @@ mod tests {
                 "id": "product-1",
                 "merchantId": "merchant-1",
                 "name": "Kopi",
-                "price": 15_000,
+                "priceMinorUnits": 15_000,
                 "isActive": true,
                 "sortOrder": 1,
                 "createdAt": "2026-05-17T00:00:00.000Z",
@@ -97,7 +97,7 @@ mod tests {
                 "id": "product-1",
                 "merchantId": "merchant-1",
                 "name": "Kopi",
-                "price": 15_000,
+                "priceMinorUnits": 15_000,
                 "isActive": true,
                 "createdAt": "2026-05-17T00:00:00.000Z",
                 "updatedAt": "2026-05-17T00:00:00.000Z",
@@ -176,9 +176,9 @@ mod tests {
 
         let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
 
-        assert_eq!(tables["products"][0]["price"], json!(15_000));
+        assert_eq!(tables["products"][0]["priceMinorUnits"], json!(15_000));
         assert_eq!(tables["products"][0]["sortOrder"], json!(3));
-        assert!(tables["products"][0].get("priceMinorUnits").is_none());
+        assert!(tables["products"][0].get("price").is_none());
     }
 
     #[test]
@@ -208,10 +208,19 @@ mod tests {
 
         let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
 
-        assert_eq!(tables["order_items"][0]["unitPrice"], json!(15_000));
-        assert_eq!(tables["order_items"][0]["originalPrice"], json!(20_000));
-        assert_eq!(tables["order_items"][0]["subtotal"], json!(30_000));
-        assert!(tables["order_items"][0].get("unitPriceMinorUnits").is_none());
+        assert_eq!(
+            tables["order_items"][0]["unitPriceMinorUnits"],
+            json!(15_000)
+        );
+        assert_eq!(
+            tables["order_items"][0]["originalPriceMinorUnits"],
+            json!(20_000)
+        );
+        assert_eq!(
+            tables["order_items"][0]["subtotalMinorUnits"],
+            json!(30_000)
+        );
+        assert!(tables["order_items"][0].get("unitPrice").is_none());
     }
 
     #[test]
@@ -283,7 +292,7 @@ mod tests {
                 "id": "product-1",
                 "merchantId": "merchant-1",
                 "name": "Kopi",
-                "price": 15_000,
+                "priceMinorUnits": 15_000,
                 "isActive": true,
                 "sortOrder": 1,
                 "createdAt": "2026-05-17T00:00:00.000Z",
@@ -296,10 +305,10 @@ mod tests {
                 "id": "order-1",
                 "outletId": "outlet-1",
                 "orderNumber": "001",
-                "total": 15_000,
+                "totalMinorUnits": 15_000,
                 "paymentMethod": "cash",
-                "amountPaid": 20_000,
-                "changeAmount": 5_000,
+                "amountPaidMinorUnits": 20_000,
+                "changeAmountMinorUnits": 5_000,
                 "status": "paid",
                 "createdAt": "2026-05-17T00:00:00.000Z",
                 "updatedAt": "2026-05-17T00:00:00.000Z",
@@ -313,9 +322,9 @@ mod tests {
                 "outletId": "outlet-1",
                 "productName": "Kopi",
                 "quantity": 1,
-                "unitPrice": 15_000,
-                "originalPrice": 15_000,
-                "subtotal": 15_000,
+                "unitPriceMinorUnits": 15_000,
+                "originalPriceMinorUnits": 15_000,
+                "subtotalMinorUnits": 15_000,
                 "createdAt": "2026-05-17T00:00:00.000Z",
                 "updatedAt": "2026-05-17T00:00:00.000Z",
             })],
@@ -326,7 +335,7 @@ mod tests {
                 "id": "op-1",
                 "outletId": "outlet-1",
                 "productId": "product-1",
-                "price": 15_000,
+                "priceMinorUnits": 15_000,
                 "isAvailable": true,
                 "sortOrder": 1,
                 "createdAt": "2026-05-17T00:00:00.000Z",
@@ -555,10 +564,16 @@ mod tests {
         assert!(tables.contains_key("staff"));
 
         assert_eq!(tables["merchants"][0]["name"], json!("Toko"));
-        assert_eq!(tables["products"][0]["price"], json!(15_000));
-        assert_eq!(tables["orders"][0]["total"], json!(15_000));
-        assert_eq!(tables["order_items"][0]["unitPrice"], json!(15_000));
-        assert_eq!(tables["outlet_products"][0]["price"], json!(15_000));
+        assert_eq!(tables["products"][0]["priceMinorUnits"], json!(15_000));
+        assert_eq!(tables["orders"][0]["totalMinorUnits"], json!(15_000));
+        assert_eq!(
+            tables["order_items"][0]["unitPriceMinorUnits"],
+            json!(15_000)
+        );
+        assert_eq!(
+            tables["outlet_products"][0]["priceMinorUnits"],
+            json!(15_000)
+        );
         assert_eq!(tables["assets"][0]["byteSize"], json!(123));
         assert_eq!(tables["categories"][0]["sortOrder"], json!(1));
         assert_eq!(tables["staff"][0]["role"], json!("owner"));

@@ -8,8 +8,8 @@ const NASI_GORENG = /Nasi Goreng/;
 const PRICE_20K = /Rp 20\.000/;
 
 const mockOrder: OrderRow = {
-  amountPaid: 30_000,
-  changeAmount: 10_000,
+  amountPaidMinorUnits: 30_000,
+  changeAmountMinorUnits: 10_000,
   createdAt: "2026-05-04T10:30:00.000Z",
   id: "order-1",
   orderNumber: "2026-05-04-001",
@@ -17,7 +17,7 @@ const mockOrder: OrderRow = {
   staffId: "staff-1",
   staffName: "Kasir 1",
   status: "completed",
-  total: 20_000,
+  totalMinorUnits: 20_000,
 };
 
 const mockItems: OrderItemRow[] = [
@@ -25,8 +25,8 @@ const mockItems: OrderItemRow[] = [
     id: "item-1",
     productName: "Nasi Goreng",
     quantity: 2,
-    subtotal: 20_000,
-    unitPrice: 10_000,
+    subtotalMinorUnits: 20_000,
+    unitPriceMinorUnits: 10_000,
   },
 ];
 

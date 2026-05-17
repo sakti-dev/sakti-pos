@@ -108,7 +108,9 @@ export default function ProductList(
       />
       <div class="min-w-0 flex-1">
         <p class="truncate font-medium">{product.name}</p>
-        <p class="text-muted-foreground text-xs">{formatIDR(product.price)}</p>
+        <p class="text-muted-foreground text-xs">
+          {formatIDR(product.priceMinorUnits)}
+        </p>
       </div>
       <button
         class={cn(

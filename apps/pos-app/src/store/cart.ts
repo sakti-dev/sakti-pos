@@ -12,7 +12,10 @@ const [items, setItems] = createStore<CartItem[]>([]);
 export const cartItems = () => items;
 
 export const cartTotal = createMemo(() =>
-  items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+  items.reduce(
+    (sum, item) => sum + item.product.priceMinorUnits * item.quantity,
+    0
+  )
 );
 
 export const cartCount = createMemo(() =>

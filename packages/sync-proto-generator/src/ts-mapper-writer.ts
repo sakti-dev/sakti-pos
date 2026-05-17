@@ -41,7 +41,7 @@ function renderHelpers(): string {
 
 function renderRowToProto(
   table: ReflectedSyncTable,
-  manifestTable: SyncTableManifest
+  _manifestTable: SyncTableManifest
 ): string {
   const funcName = rowToProtoFuncName(table.rowMessageName);
   const lines = [
@@ -51,17 +51,10 @@ function renderRowToProto(
 
   for (const column of table.columns) {
     const camelProtoName = snakeToCamel(column.protoName);
-    const isAlias =
-      manifestTable.fieldAliases &&
-      column.propertyName in manifestTable.fieldAliases;
 
     let valueExpr: string;
     if (column.protoType === "int64") {
-      if (isAlias) {
-        valueExpr = `int64Field(row.${column.propertyName} ?? row.${camelProtoName}, "${table.tableName}.${column.propertyName}")`;
-      } else {
-        valueExpr = `int64Field(row.${column.propertyName}, "${table.tableName}.${column.propertyName}")`;
-      }
+      valueExpr = `int64Field(row.${column.propertyName}, "${table.tableName}.${column.propertyName}")`;
     } else if (column.protoType === "bool") {
       valueExpr = `boolField(row.${column.propertyName})`;
     } else {

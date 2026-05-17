@@ -1,57 +1,71 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { staff } from "@repo/database";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-vi.mock("@repo/database", () => ({
-  staff: {
-    cloudUserId: "cloud_user_id",
-    id: "id",
-    isActive: "is_active",
-    merchantId: "merchant_id",
-    name: "name",
-    role: "role",
-    pin: "pin",
-  },
-}));
+const mocks = vi.hoisted(() => {
+  const mockFrom = vi.fn();
+  const mockSelect = vi.fn(() => ({ from: mockFrom }));
+  const mockInsert = vi.fn();
+  const mockUpdate = vi.fn();
+  const mockDelete = vi.fn();
+  const mockRecordLocalChange = vi.fn();
+  const mockDb = {
+    delete: mockDelete,
+    insert: mockInsert,
+    select: mockSelect,
+    transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+      await fn(mockDb),
+    update: mockUpdate,
+  };
+
+  return {
+    mockDb,
+    mockDelete,
+    mockFrom,
+    mockInsert,
+    mockRecordLocalChange,
+    mockSelect,
+    mockUpdate,
+  };
+});
 
 vi.mock("drizzle-orm", () => ({
   and: vi.fn((...conditions: unknown[]) => conditions),
+  asc: vi.fn((...args: unknown[]) => args),
+  desc: vi.fn((col: unknown) => col),
   count: vi.fn(() => "count_placeholder"),
   eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
+  gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
+  gte: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gte" })),
   inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
+  isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
+  lt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "lt" })),
+  or: vi.fn((...args: unknown[]) => args),
+  like: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "like" })),
+  sql: Object.assign(
+    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+      strings,
+      values,
+    })),
+    {
+      raw: (value: string) => ({ raw: value }),
+    }
+  ),
 }));
 
-const mockFrom = vi.fn();
-const mockSelect = vi.fn(() => ({ from: mockFrom }));
-const mockInsert = vi.fn();
-const mockUpdate = vi.fn();
-const mockDelete = vi.fn();
-const mockRecordLocalChange = vi.fn();
-type MockFn = ReturnType<typeof vi.fn>;
-interface MockDb {
-  delete: MockFn;
-  insert: typeof mockInsert;
-  select: typeof mockSelect;
-  transaction: (fn: (tx: MockDb) => Promise<unknown>) => Promise<unknown>;
-  update: typeof mockUpdate;
-}
-
-const mockDb: MockDb = {
-  delete: mockDelete,
-  insert: mockInsert,
-  select: mockSelect,
-  transaction: async (fn) => await fn(mockDb),
-  update: mockUpdate,
-};
+const syncOutbox = await import("../sync-outbox");
+let recordLocalChangeSpy: ReturnType<typeof vi.spyOn> | undefined;
+const { mockFrom, mockInsert, mockRecordLocalChange, mockSelect, mockUpdate } =
+  mocks;
 
 vi.mock("../index", () => ({
-  db: mockDb,
-}));
-
-vi.mock("../sync-outbox", () => ({
-  recordLocalChange: (...args: unknown[]) => mockRecordLocalChange(...args),
+  db: mocks.mockDb,
 }));
 
 vi.mock("~/store/outlet", () => ({
   currentMerchantId: vi.fn(() => null),
+  currentOutletId: vi.fn(() => null),
+  currentRegisterId: vi.fn(() => null),
+  currentOutletTimezone: vi.fn(() => "Asia/Jakarta"),
 }));
 
 function mockFromQuery(data: unknown[]) {
@@ -68,6 +82,16 @@ function mockFromQuery(data: unknown[]) {
 describe("staff db", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    recordLocalChangeSpy = vi
+      .spyOn(syncOutbox, "recordLocalChange")
+      .mockImplementation((...args: unknown[]) =>
+        mockRecordLocalChange(...args)
+      );
+  });
+
+  afterEach(() => {
+    recordLocalChangeSpy?.mockRestore();
+    recordLocalChangeSpy = undefined;
   });
 
   test("getStaff returns ordered staff", async () => {
@@ -82,9 +106,7 @@ describe("staff db", () => {
 
     expect(result).toEqual(fakeStaff);
     expect(mockSelect).toHaveBeenCalled();
-    expect(mockFrom).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "id", name: "name" })
-    );
+    expect(mockFrom).toHaveBeenCalledWith(staff);
   });
 
   test("getStaffMember returns a single staff by id", async () => {

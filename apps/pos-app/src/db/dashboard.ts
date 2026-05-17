@@ -63,7 +63,11 @@ async function getCompletedOrders(
   dateTo: string,
   timezone = currentOutletTimezone()
 ): Promise<
-  { createdAt: string; paymentMethod: "cash" | "qris"; total: number }[]
+  {
+    createdAt: string;
+    paymentMethod: "cash" | "qris";
+    totalMinorUnits: number;
+  }[]
 > {
   const fromRange = toUtcRangeForBusinessDate(dateFrom, timezone);
   const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
@@ -81,7 +85,7 @@ async function getCompletedOrders(
     .select({
       createdAt: orders.createdAt,
       paymentMethod: orders.paymentMethod,
-      total: orders.total,
+      totalMinorUnits: orders.totalMinorUnits,
     })
     .from(orders)
     .where(and(...conditions))
@@ -108,7 +112,7 @@ export async function getDashboardSummary(
   const rows = await db
     .select({
       orderCount: sql<number>`CAST(COUNT(*) AS INTEGER)`,
-      totalRevenue: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
+      totalRevenue: sql<number>`COALESCE(SUM(${orders.totalMinorUnits}), 0)`,
     })
     .from(orders)
     .where(and(...conditions));
@@ -144,9 +148,9 @@ export async function getPaymentBreakdown(
   const rows = await db
     .select({
       cashCount: sql<number>`CAST(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN 1 ELSE 0 END) AS INTEGER)`,
-      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN ${orders.total} ELSE 0 END), 0)`,
+      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
       qrisCount: sql<number>`CAST(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN 1 ELSE 0 END) AS INTEGER)`,
-      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN ${orders.total} ELSE 0 END), 0)`,
+      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
     })
     .from(orders)
     .where(and(...conditions));
@@ -173,7 +177,7 @@ export async function getHourlyBreakdown(
       formatInBusinessTimezone(row.createdAt, timezone, "HH"),
       10
     );
-    map.set(hour, (map.get(hour) ?? 0) + row.total);
+    map.set(hour, (map.get(hour) ?? 0) + row.totalMinorUnits);
   }
 
   return Array.from({ length: 24 }, (_, i) => ({
@@ -196,7 +200,7 @@ export async function getDailyBreakdown(
       timezone,
       "YYYY-MM-DD"
     );
-    map.set(date, (map.get(date) ?? 0) + row.total);
+    map.set(date, (map.get(date) ?? 0) + row.totalMinorUnits);
   }
 
   return Array.from(map.entries())
@@ -219,7 +223,7 @@ export async function getWeeklyBreakdown(
       "YYYY-MM-DD"
     );
     const weekStart = getBusinessWeekStart(localDate, timezone);
-    map.set(weekStart, (map.get(weekStart) ?? 0) + row.total);
+    map.set(weekStart, (map.get(weekStart) ?? 0) + row.totalMinorUnits);
   }
 
   return Array.from(map.entries())
@@ -237,7 +241,7 @@ export async function getMonthlyBreakdown(
   const map = new Map<string, number>();
   for (const row of rows) {
     const month = formatInBusinessTimezone(row.createdAt, timezone, "YYYY-MM");
-    map.set(month, (map.get(month) ?? 0) + row.total);
+    map.set(month, (map.get(month) ?? 0) + row.totalMinorUnits);
   }
 
   return Array.from(map.entries())
@@ -269,13 +273,13 @@ export async function getTopProducts(
     .select({
       productName: orderItems.productName,
       quantity: sql<number>`CAST(SUM(${orderItems.quantity}) AS INTEGER)`,
-      revenue: sql<number>`COALESCE(SUM(${orderItems.subtotal}), 0)`,
+      revenue: sql<number>`COALESCE(SUM(${orderItems.subtotalMinorUnits}), 0)`,
     })
     .from(orderItems)
     .innerJoin(orders, eq(orderItems.orderId, orders.id))
     .where(and(...conditions))
     .groupBy(orderItems.productName)
-    .orderBy(sql`SUM(${orderItems.subtotal}) DESC`)
+    .orderBy(sql`SUM(${orderItems.subtotalMinorUnits}) DESC`)
     .limit(limit);
 
   return rows;
@@ -305,7 +309,7 @@ export async function getSalesByCategory(
   const rows = await db
     .select({
       categoryName: categories.name,
-      revenue: sql<number>`COALESCE(SUM(${orderItems.subtotal}), 0)`,
+      revenue: sql<number>`COALESCE(SUM(${orderItems.subtotalMinorUnits}), 0)`,
     })
     .from(orderItems)
     .innerJoin(orders, eq(orderItems.orderId, orders.id))
@@ -313,7 +317,7 @@ export async function getSalesByCategory(
     .innerJoin(categories, eq(products.categoryId, categories.id))
     .where(and(...conditions))
     .groupBy(categories.name)
-    .orderBy(sql`SUM(${orderItems.subtotal}) DESC`);
+    .orderBy(sql`SUM(${orderItems.subtotalMinorUnits}) DESC`);
 
   return rows;
 }

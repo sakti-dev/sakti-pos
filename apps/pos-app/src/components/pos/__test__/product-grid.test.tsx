@@ -25,7 +25,7 @@ const mockProducts: ProductWithCategory[] = [
   {
     id: "product-1",
     name: "Nasi Goreng",
-    price: 15_000,
+    priceMinorUnits: 15_000,
     categoryId: "category-1",
     categoryName: "Makanan",
     imageUrl: null,
@@ -40,7 +40,7 @@ const mockProducts: ProductWithCategory[] = [
   {
     id: "product-2",
     name: "Es Teh",
-    price: 5000,
+    priceMinorUnits: 5000,
     categoryId: "category-2",
     categoryName: "Minuman",
     imageUrl: null,

@@ -86,18 +86,17 @@ function findSchemaTable(
 function reflectColumns(
   table: AnySQLiteTable,
   manifest: SyncManifest,
-  manifestTable: SyncTableManifest
+  _manifestTable: SyncTableManifest
 ): ReflectedColumn[] {
   return getTableConfig(table)
     .columns.map((column) => {
       const propertyName = getColumnPropertyName(table, column);
-      const alias = manifestTable.fieldAliases?.[propertyName];
       return {
         columnName: column.name,
         notNull: column.notNull,
         propertyName,
-        protoName: alias?.protoName ?? camelToSnake(propertyName),
-        protoType: alias?.protoType ?? inferProtoType(column),
+        protoName: camelToSnake(propertyName),
+        protoType: inferProtoType(column),
       };
     })
     .filter(
@@ -113,19 +112,6 @@ function columnsByProperty(
     reflectedByProperty.set(column.propertyName, column);
   }
   return reflectedByProperty;
-}
-
-function validateAliases(
-  manifestTable: SyncTableManifest,
-  reflectedByProperty: Map<string, ReflectedColumn>
-) {
-  for (const aliasKey of Object.keys(manifestTable.fieldAliases ?? {})) {
-    if (!reflectedByProperty.has(aliasKey)) {
-      throw new Error(
-        `Invalid sync manifest for ${manifestTable.tableName}: fieldAlias references missing property ${aliasKey}`
-      );
-    }
-  }
 }
 
 function validateFieldOrder(input: {
@@ -185,7 +171,6 @@ function reflectSyncTable(
   const reflectedColumns = reflectColumns(table, manifest, manifestTable);
   const reflectedByProperty = columnsByProperty(reflectedColumns);
 
-  validateAliases(manifestTable, reflectedByProperty);
   validateFieldOrder({
     columns: reflectedColumns,
     manifestTable,

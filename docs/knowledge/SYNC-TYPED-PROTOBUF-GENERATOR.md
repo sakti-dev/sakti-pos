@@ -12,6 +12,7 @@ The typed sync protobuf generator (`packages/sync-proto-generator`) produces run
 |---|---|---|
 | `sync.proto` | `packages/protobuf/proto/sync.proto` | `proto-writer.ts` |
 | API mapper | `apps/api/src/sync/protobuf.generated.ts` | `ts-mapper-writer.ts` |
+| API push adapters | `apps/api/src/sync/push-adapters.generated.ts` | `api-push-adapter-writer.ts` |
 | Rust mapper | `apps/pos-app/src-tauri/src/sync/protobuf_generated.rs` | `rust-mapper-writer.ts` |
 
 `compare` mode writes disposable inspection output under `.logs/sync-proto-compare/`. No extra generated comparison artifacts are checked in; drift tests compare fresh generator output directly against the runtime files above.
@@ -37,6 +38,7 @@ Generated runtime files:
 
 - `packages/protobuf/proto/sync.proto`
 - `apps/api/src/sync/protobuf.generated.ts`
+- `apps/api/src/sync/push-adapters.generated.ts`
 - `apps/pos-app/src-tauri/src/sync/protobuf_generated.rs`
 
 For inspection only:
@@ -70,7 +72,7 @@ Use this flow when a column is added on the API and POS app side and should sync
 3. Decide whether the column should sync. If it is local-only, exclude it through the manifest/local-only config and stop here for protobuf.
 4. If it should sync, update `packages/sync-proto-generator/src/manifest.ts`.
 5. Add the column to that table's `fieldOrder`. Field order controls protobuf field numbers, so append new fields unless you intentionally need a reviewed field-number change.
-6. If the wire name or type should differ from the Drizzle property, add `fieldAliases`. Examples: money values such as `price` should map to `priceMinorUnits`; timestamp/string aliases should be explicit.
+6. For money fields, use the explicit `MinorUnits` Drizzle property name and matching `_minor_units` SQLite column name. Do not keep alias mappings for old hidden-unit field names.
 7. Run `bun run generate:sync-proto:write`.
 8. Review the generated diff in the three runtime files. Confirm the new field appears in the row message and both TypeScript/Rust mappers.
 9. Update handwritten sync code only if the column needs custom behavior, validation, normalization, or conflict handling.
@@ -96,6 +98,25 @@ Commit these files together when a synced column changes:
 3. Run `bun run generate:sync-proto:write`.
 4. Update the handwritten API service and Rust callers to handle the new table.
 5. Run all tests.
+
+## API Push Optimization Rules
+
+The API push path is partially generated now. Keep these rules in mind when touching `apps/api/src/sync/service.ts`:
+
+- Generated adapters own table-specific row mapping, conflict reads, upserts, and soft deletes.
+- Reads and writes must be chunked by bind parameter count, not by arbitrary row count alone.
+- Conflict reads should stay narrow: `id` plus the row timestamp used for conflict resolution.
+- Deleted IDs do not need a pre-read existence filter.
+- Sync events are collected globally and inserted after the row-write phase.
+- FK-sensitive writes remain in `PUSH_TABLE_ORDER` and stay sequential inside the transaction unless a verified batch path proves equivalent semantics.
+- Prepared statements are only worth considering for fixed-shape metadata queries like idempotency lookups; do not force them onto variable conflict reads or bulk writes unless the current Drizzle/libSQL types stay clean.
+- Do not hand-edit `apps/api/src/sync/push-adapters.generated.ts`; regenerate it from the manifest and generator writers.
+
+### Prepared Statement Guidance
+
+Do not prepare variable-size sync push bulk upserts or `WHERE id IN (...)` conflict reads. Their SQL shape changes with chunk size.
+
+Prepared statements are only candidates for fixed-shape metadata lookups outside the hot write transaction, such as route-level outlet lookup. Task 15 is intentionally deferred because the hot-path wins come from generated adapters, safe chunked bulk writes, narrow reads, and idempotency correctness.
 
 ## Required Verification Commands
 

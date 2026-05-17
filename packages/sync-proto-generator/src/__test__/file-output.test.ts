@@ -26,6 +26,14 @@ describe("generator file output", () => {
     ).toBe(true);
   });
 
+  test("write mode targets checked-in API push adapter", () => {
+    expect(
+      resolveGeneratorOutputPath("write", "api-push-adapters.ts").endsWith(
+        "apps/api/src/sync/push-adapters.generated.ts"
+      )
+    ).toBe(true);
+  });
+
   test("write mode targets checked-in Rust generated mapper", () => {
     expect(
       resolveGeneratorOutputPath("write", "pos-sync-mappers.rs").endsWith(

@@ -415,22 +415,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "unit_price": {
-          "name": "unit_price",
+        "unit_price_minor_units": {
+          "name": "unit_price_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "original_price": {
-          "name": "original_price",
+        "original_price_minor_units": {
+          "name": "original_price_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "subtotal": {
-          "name": "subtotal",
+        "subtotal_minor_units": {
+          "name": "subtotal_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -510,8 +510,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "total": {
-          "name": "total",
+        "total_minor_units": {
+          "name": "total_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -524,15 +524,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "amount_paid": {
-          "name": "amount_paid",
+        "amount_paid_minor_units": {
+          "name": "amount_paid_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "change_amount": {
-          "name": "change_amount",
+        "change_amount_minor_units": {
+          "name": "change_amount_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -613,8 +613,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "price": {
-          "name": "price",
+        "price_minor_units": {
+          "name": "price_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1035,8 +1035,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "price": {
-          "name": "price",
+        "price_minor_units": {
+          "name": "price_minor_units",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,

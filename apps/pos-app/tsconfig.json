@@ -5,7 +5,7 @@
       "~/*": ["./src/*"],
       "@repo/database": ["../../packages/database/src/schema.ts"]
     },
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
   },
   "include": ["src"],
   "exclude": ["docs/external"],

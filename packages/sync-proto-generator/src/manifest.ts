@@ -1,14 +1,8 @@
 export type SyncScope = "merchant" | "outlet";
 
-export interface FieldAlias {
-  protoName: string;
-  protoType: "bool" | "int64" | "string";
-}
-
 export interface SyncTableManifest {
   changeMessageName: string;
   currentlyManualTyped: boolean;
-  fieldAliases?: Record<string, FieldAlias>;
   fieldOrder?: string[];
   protoFieldName: string;
   rowMessageName: string;
@@ -89,9 +83,6 @@ export const syncManifest: SyncManifest = {
     {
       changeMessageName: "ProductChanges",
       currentlyManualTyped: true,
-      fieldAliases: {
-        price: { protoName: "price_minor_units", protoType: "int64" },
-      },
       protoFieldName: "products",
       rowMessageName: "ProductRow",
       rustFieldName: "products",
@@ -103,17 +94,6 @@ export const syncManifest: SyncManifest = {
     {
       changeMessageName: "OrderChanges",
       currentlyManualTyped: true,
-      fieldAliases: {
-        amountPaid: {
-          protoName: "amount_paid_minor_units",
-          protoType: "int64",
-        },
-        changeAmount: {
-          protoName: "change_amount_minor_units",
-          protoType: "int64",
-        },
-        total: { protoName: "total_minor_units", protoType: "int64" },
-      },
       protoFieldName: "orders",
       rowMessageName: "OrderRow",
       rustFieldName: "orders",
@@ -125,14 +105,6 @@ export const syncManifest: SyncManifest = {
     {
       changeMessageName: "OrderItemChanges",
       currentlyManualTyped: true,
-      fieldAliases: {
-        originalPrice: {
-          protoName: "original_price_minor_units",
-          protoType: "int64",
-        },
-        subtotal: { protoName: "subtotal_minor_units", protoType: "int64" },
-        unitPrice: { protoName: "unit_price_minor_units", protoType: "int64" },
-      },
       fieldOrder: [
         "id",
         "orderId",
@@ -140,9 +112,9 @@ export const syncManifest: SyncManifest = {
         "productId",
         "productName",
         "quantity",
-        "unitPrice",
-        "originalPrice",
-        "subtotal",
+        "unitPriceMinorUnits",
+        "originalPriceMinorUnits",
+        "subtotalMinorUnits",
         "deletedAt",
         "createdAt",
         "updatedAt",
@@ -158,9 +130,6 @@ export const syncManifest: SyncManifest = {
     {
       changeMessageName: "OutletProductChanges",
       currentlyManualTyped: true,
-      fieldAliases: {
-        price: { protoName: "price_minor_units", protoType: "int64" },
-      },
       protoFieldName: "outlet_products",
       rowMessageName: "OutletProductRow",
       rustFieldName: "outlet_products",

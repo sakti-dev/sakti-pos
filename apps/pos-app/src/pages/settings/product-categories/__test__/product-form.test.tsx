@@ -45,7 +45,7 @@ vi.mock("~/db/menu", () => ({
     Promise.resolve({
       id: "product-1",
       name: "Kopi Susu",
-      price: 15_000,
+      priceMinorUnits: 15_000,
       categoryId: "category-1",
       imageAssetId: "asset-existing",
       imageUrl: null,

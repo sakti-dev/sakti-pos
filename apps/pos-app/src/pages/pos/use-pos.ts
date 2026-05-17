@@ -88,18 +88,18 @@ export function usePos(): PosState {
       const createdAt = formatUtcTimestamp();
 
       const orderNumber = await createOrder({
-        amountPaid: data.amountPaid,
-        changeAmount: data.changeAmount,
+        amountPaidMinorUnits: data.amountPaid,
+        changeAmountMinorUnits: data.changeAmount,
         createdAt,
         items: items.map((item) => ({
-          price: item.product.price,
+          priceMinorUnits: item.product.priceMinorUnits,
           product_id: item.product.id,
           product_name: item.product.name,
           qty: item.quantity,
         })),
         paymentMethod: data.paymentMethod,
         timezone: outletTimezone(),
-        total,
+        totalMinorUnits: total,
         staffId: user.id,
       });
 
@@ -119,8 +119,8 @@ export function usePos(): PosState {
         items: items.map((item) => ({
           name: item.product.name,
           quantity: item.quantity,
-          subtotal: item.product.price * item.quantity,
-          unitPrice: item.product.price,
+          subtotal: item.product.priceMinorUnits * item.quantity,
+          unitPrice: item.product.priceMinorUnits,
         })),
         order: {
           cashierName: user.name,

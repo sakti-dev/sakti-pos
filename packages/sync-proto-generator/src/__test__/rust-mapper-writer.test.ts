@@ -24,7 +24,7 @@ describe("Rust POS sync mapper writer", () => {
       "fn product_row_from_value(row: &Value) -> ProductRow"
     );
     expect(source).toContain(
-      'price_minor_units: value_to_i64(row, &["priceMinorUnits", "price"])'
+      'price_minor_units: value_to_i64(row, &["priceMinorUnits", "price_minor_units"])'
     );
   });
 
@@ -58,7 +58,7 @@ describe("Rust POS sync mapper writer", () => {
     expect(source).toContain(
       "fn product_row_to_value(row: &ProductRow) -> Value"
     );
-    expect(source).toContain('"price": row.price_minor_units');
+    expect(source).toContain('"priceMinorUnits": row.price_minor_units');
   });
 
   test("renders Rust snake_case function names for multi-word rows", () => {

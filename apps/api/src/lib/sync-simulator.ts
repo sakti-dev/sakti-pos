@@ -86,7 +86,7 @@ export async function simulateProductChange({
       isActive: true,
       merchantId,
       name: productName,
-      price: DEFAULT_PRICE,
+      priceMinorUnits: DEFAULT_PRICE,
       sortOrder: 999,
       updatedAt: timestamp,
     });
@@ -96,7 +96,7 @@ export async function simulateProductChange({
       id: outletProductId,
       isAvailable: true,
       outletId,
-      price: DEFAULT_PRICE,
+      priceMinorUnits: DEFAULT_PRICE,
       productId,
       sortOrder: 999,
       updatedAt: timestamp,

@@ -13,24 +13,25 @@ import {
   syncEvents,
   userMerchants,
 } from "@repo/database/api-schema";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gt,
-  inArray,
-  or,
-  type SQL,
-  sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, gt, or, type SQL } from "drizzle-orm";
+import { inArray } from "drizzle-orm/sql";
 import { db } from "../db";
 import type {
   SyncEventOperation,
   SyncEventScopeType,
 } from "../lib/sync-events";
 import { ConflictRequestError } from "../lib/validation";
-import { protobufInt64ToSafeNumber } from "./protobuf";
+import {
+  chunkArray,
+  DEFAULT_MAX_EVENTS_PER_INSERT_CHUNK,
+  DEFAULT_MAX_IDS_PER_READ_CHUNK,
+  getWriteChunkSize,
+} from "./chunking";
+import {
+  getPushTableAdapter,
+  type PushTableAdapter,
+  type TransactionLike,
+} from "./push-adapters.generated";
 
 const ALL_SYNC_TABLE_NAMES = [
   "merchants",
@@ -63,6 +64,17 @@ const PULL_BATCH_MAX_LIMIT = 500;
 const PULL_BATCH_CURSOR_PREFIX = "event:";
 
 const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
+const UNIQUE_CONSTRAINT_PATTERN = /(unique|constraint)/i;
+const INVALID_ERROR_PATTERN = /invalid/i;
+const PENDING_PUSH_BATCH_RESPONSE = JSON.stringify({ pending: true });
+
+function getRequiredPushTableAdapter(tableName: string): PushTableAdapter {
+  const adapter = getPushTableAdapter(tableName);
+  if (!adapter) {
+    throw new Error(`Missing push table adapter for ${tableName}`);
+  }
+  return adapter;
+}
 
 export async function verifyOutletAccess(
   sessionUserId: string,
@@ -94,7 +106,7 @@ export async function verifyOutletAccess(
 
 type TransactionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-interface ExistingSyncRow {
+interface ExistingSyncRow extends Record<string, unknown> {
   createdAt?: unknown;
   id: string;
   updatedAt?: unknown;
@@ -158,24 +170,6 @@ interface StoredPushBatchResponse {
   tables: PushBatchTableAck[];
 }
 
-function stripLocalOnlyColumns(
-  row: Record<string, unknown>
-): Record<string, unknown> {
-  const { is_synced: _, ...clean } = row;
-  return clean;
-}
-
-function normalizeEmptyToNull(
-  row: Record<string, unknown>
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(row)) {
-    result[key] =
-      typeof value === "string" && value.length === 0 ? null : value;
-  }
-  return result;
-}
-
 function parseTimestampMs(value: unknown): number {
   if (typeof value === "number") {
     return value;
@@ -214,25 +208,38 @@ export async function handlePushBatch(
       if (cached) {
         return cached;
       }
+
+      const raced = await reservePushBatchResponse(tx, {
+        idempotencyKey,
+        requestHash,
+        outletId,
+      });
+      if (raced) {
+        return raced;
+      }
     }
 
     const tables: PushBatchTableAck[] = [];
+    const syncEventRows: Record<string, unknown>[] = [];
+    // Keep writes inside the interactive transaction. Sequential ordering preserves FK-safe writes and idempotency semantics.
     for (const tableName of PUSH_TABLE_ORDER) {
       const tableChanges = changes[tableName];
       if (!tableChanges) {
         continue;
       }
 
-      tables.push(
-        await processPushBatchTable({
-          merchantId,
-          outletId,
-          tableName,
-          changes: tableChanges,
-          tx,
-        })
-      );
+      const processed = await processPushBatchTable({
+        merchantId,
+        outletId,
+        tableName,
+        changes: tableChanges,
+        tx,
+      });
+      tables.push(processed.ack);
+      syncEventRows.push(...processed.syncEvents);
     }
+
+    await insertSyncEventsChunked(tx, syncEventRows);
 
     const response: StoredPushBatchResponse = {
       latestEventId: await getLatestScopedEventId(tx, merchantId, outletId),
@@ -241,7 +248,7 @@ export async function handlePushBatch(
     };
 
     if (idempotencyKey) {
-      await storePushBatchResponse(tx, {
+      await finalizePushBatchResponse(tx, {
         idempotencyKey,
         outletId,
         requestHash,
@@ -289,11 +296,17 @@ async function loadPushBatchResponse(
   }
 
   try {
-    const parsed = JSON.parse(existing.responseJson) as StoredPushBatchResponse;
+    const parsed = JSON.parse(existing.responseJson) as
+      | StoredPushBatchResponse
+      | { pending?: unknown };
+    if ("pending" in parsed && parsed.pending === true) {
+      throw new ConflictRequestError("sync push is already in progress");
+    }
+    const response = parsed as Partial<StoredPushBatchResponse>;
     return {
       latestEventId: existing.latestEventId,
       serverTime: existing.serverTime,
-      tables: Array.isArray(parsed.tables) ? parsed.tables : [],
+      tables: Array.isArray(response.tables) ? response.tables : [],
     };
   } catch {
     return {
@@ -304,7 +317,47 @@ async function loadPushBatchResponse(
   }
 }
 
-async function storePushBatchResponse(
+async function reservePushBatchResponse(
+  tx: TransactionTx,
+  input: {
+    idempotencyKey: string;
+    requestHash: string;
+    outletId: string;
+  }
+): Promise<StoredPushBatchResponse | null> {
+  const now = new Date().toISOString();
+  try {
+    await tx.insert(syncBatchRequests).values({
+      createdAt: now,
+      idempotencyKey: input.idempotencyKey,
+      latestEventId: 0,
+      requestHash: input.requestHash,
+      responseJson: PENDING_PUSH_BATCH_RESPONSE,
+      scopeId: input.outletId,
+      scopeType: "outlet",
+      serverTime: now,
+      updatedAt: now,
+    });
+    return null;
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) {
+      throw error;
+    }
+
+    const cached = await loadPushBatchResponse(tx, {
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      outletId: input.outletId,
+    });
+    if (cached) {
+      return cached;
+    }
+
+    throw error;
+  }
+}
+
+async function finalizePushBatchResponse(
   tx: TransactionTx,
   input: {
     idempotencyKey: string;
@@ -314,17 +367,22 @@ async function storePushBatchResponse(
   }
 ) {
   const now = new Date().toISOString();
-  await tx.insert(syncBatchRequests).values({
-    createdAt: now,
-    idempotencyKey: input.idempotencyKey,
-    latestEventId: input.response.latestEventId,
-    requestHash: input.requestHash,
-    responseJson: JSON.stringify(input.response),
-    scopeId: input.outletId,
-    scopeType: "outlet",
-    serverTime: input.response.serverTime,
-    updatedAt: now,
-  });
+  await tx
+    .update(syncBatchRequests)
+    .set({
+      latestEventId: input.response.latestEventId,
+      responseJson: JSON.stringify(input.response),
+      serverTime: input.response.serverTime,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(syncBatchRequests.scopeType, "outlet"),
+        eq(syncBatchRequests.scopeId, input.outletId),
+        eq(syncBatchRequests.idempotencyKey, input.idempotencyKey),
+        eq(syncBatchRequests.requestHash, input.requestHash)
+      )
+    );
 }
 
 async function processPushBatchTable(input: {
@@ -333,7 +391,8 @@ async function processPushBatchTable(input: {
   tableName: string;
   changes: TableChangeSet;
   tx: TransactionTx;
-}): Promise<PushBatchTableAck> {
+}): Promise<{ ack: PushBatchTableAck; syncEvents: Record<string, unknown>[] }> {
+  const adapter = getRequiredPushTableAdapter(input.tableName);
   const ack: PushBatchTableAck = {
     acceptedCreatedIds: [],
     acceptedDeletedIds: [],
@@ -342,13 +401,11 @@ async function processPushBatchTable(input: {
     table: input.tableName,
   };
 
-  const acceptedRows = await partitionAcceptedPushRows(input, ack);
-  await bulkUpsertRowsForTableName({
-    merchantId: input.merchantId,
-    outletId: input.outletId,
+  const acceptedRows = await partitionAcceptedPushRows(input, ack, adapter);
+  await upsertRowsChunked({
+    adapter,
     rows: acceptedRows.map((accepted) => accepted.row),
-    tableName: input.tableName,
-    tx: input.tx,
+    tx: input.tx as unknown as TransactionLike,
   });
 
   const syncEventRows = acceptedRows.map((accepted) =>
@@ -361,10 +418,9 @@ async function processPushBatchTable(input: {
     })
   );
 
-  await processTimestamplessDeletedIds(input, ack, syncEventRows);
-  await insertSyncEvents(input.tx, syncEventRows);
+  await processTimestamplessDeletedIds(input, ack, syncEventRows, adapter);
 
-  return ack;
+  return { ack, syncEvents: syncEventRows };
 }
 
 async function partitionAcceptedPushRows(
@@ -375,17 +431,24 @@ async function partitionAcceptedPushRows(
     tableName: string;
     tx: TransactionTx;
   },
-  ack: PushBatchTableAck
+  ack: PushBatchTableAck,
+  adapter: PushTableAdapter
 ): Promise<AcceptedPushRow[]> {
   const candidateRows: CandidatePushRow[] = [
     ...input.changes.created.map((row) => ({
       operation: "insert" as const,
-      row: normalizePushBatchRowForTableName(input.tableName, row),
+      row: adapter.mapRow(row, {
+        merchantId: input.merchantId,
+        outletId: input.outletId,
+      }),
       source: "created" as const,
     })),
     ...input.changes.updated.map((row) => ({
       operation: "update" as const,
-      row: normalizePushBatchRowForTableName(input.tableName, row),
+      row: adapter.mapRow(row, {
+        merchantId: input.merchantId,
+        outletId: input.outletId,
+      }),
       source: "updated" as const,
     })),
   ];
@@ -394,9 +457,9 @@ async function partitionAcceptedPushRows(
     return [];
   }
 
-  const existingRows = await selectExistingRowsForTableName(
-    input.tx,
-    input.tableName,
+  const existingRows = await selectExistingRowsChunked(
+    adapter,
+    input.tx as unknown as TransactionLike,
     candidateRows.map((candidate) => candidate.row.id as string)
   );
   const existingRowsById = new Map(existingRows.map((row) => [row.id, row]));
@@ -438,23 +501,19 @@ async function processTimestamplessDeletedIds(
     tx: TransactionTx;
   },
   ack: PushBatchTableAck,
-  syncEventRows: Record<string, unknown>[]
+  syncEventRows: Record<string, unknown>[],
+  adapter: PushTableAdapter
 ) {
   if (input.changes.deletedIds.length === 0) {
     return;
   }
 
-  const existingDeleteIds = await existingRowIdsForTableName(
-    input.tx,
-    input.tableName,
-    input.changes.deletedIds
-  );
-
-  const idsToSoftDelete = input.changes.deletedIds.filter((id) =>
-    existingDeleteIds.has(id)
-  );
-
-  await softDeleteRowsForTableName(input.tx, input.tableName, idsToSoftDelete);
+  await softDeleteRowsChunked({
+    adapter,
+    ids: input.changes.deletedIds,
+    now: new Date().toISOString(),
+    tx: input.tx as unknown as TransactionLike,
+  });
 
   const scope = getSyncEventScope(
     input.tableName,
@@ -486,214 +545,21 @@ function clientRowWins(
   return clientTimestamp >= serverTimestamp;
 }
 
-async function selectExistingRowsForTableName(
-  tx: TransactionTx,
-  tableName: string,
-  ids: string[]
-): Promise<ExistingSyncRow[]> {
-  if (ids.length === 0) {
-    return [];
-  }
-
-  let rowsResult: unknown;
-  switch (tableName) {
-    case "merchants":
-      rowsResult = tx
-        .select()
-        .from(merchants)
-        .where(inArray(merchants.id, ids));
-      break;
-    case "outlets":
-      rowsResult = tx.select().from(outlets).where(inArray(outlets.id, ids));
-      break;
-    case "registers":
-      rowsResult = tx
-        .select()
-        .from(registers)
-        .where(inArray(registers.id, ids));
-      break;
-    case "categories":
-      rowsResult = tx
-        .select()
-        .from(categories)
-        .where(inArray(categories.id, ids));
-      break;
-    case "assets":
-      rowsResult = tx.select().from(assets).where(inArray(assets.id, ids));
-      break;
-    case "products":
-      rowsResult = tx.select().from(products).where(inArray(products.id, ids));
-      break;
-    case "outlet_products":
-      rowsResult = tx
-        .select()
-        .from(outletProducts)
-        .where(inArray(outletProducts.id, ids));
-      break;
-    case "staff":
-      rowsResult = tx.select().from(staff).where(inArray(staff.id, ids));
-      break;
-    case "orders":
-      rowsResult = tx.select().from(orders).where(inArray(orders.id, ids));
-      break;
-    case "order_items":
-      rowsResult = tx
-        .select()
-        .from(orderItems)
-        .where(inArray(orderItems.id, ids));
-      break;
-    default:
-      rowsResult = [];
-  }
-
-  const rows = await resolveLimitedRows<unknown>(rowsResult, ids.length);
-  return rows.filter(
-    (row): row is ExistingSyncRow =>
-      typeof row === "object" &&
-      row !== null &&
-      "id" in row &&
-      typeof row.id === "string" &&
-      ("updatedAt" in row || "createdAt" in row)
-  );
-}
-
-async function bulkUpsertRowsForTableName(input: {
-  merchantId: string;
-  outletId: string;
+async function upsertRowsChunked(input: {
+  adapter: PushTableAdapter;
   rows: Record<string, unknown>[];
-  tableName: string;
-  tx: TransactionTx;
+  tx: TransactionLike;
 }) {
   if (input.rows.length === 0) {
     return;
   }
 
-  switch (input.tableName) {
-    case "merchants":
-      await bulkUpsertRows(input.tx, merchants, input.rows);
-      break;
-    case "outlets":
-      await bulkUpsertRows(
-        input.tx,
-        outlets,
-        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
-      );
-      break;
-    case "registers":
-      await bulkUpsertRows(
-        input.tx,
-        registers,
-        input.rows.map((row) => ({ ...row, outletId: input.outletId }))
-      );
-      break;
-    case "categories":
-      await bulkUpsertRows(
-        input.tx,
-        categories,
-        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
-      );
-      break;
-    case "assets":
-      await bulkUpsertRows(
-        input.tx,
-        assets,
-        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
-      );
-      break;
-    case "products":
-      await bulkUpsertRows(
-        input.tx,
-        products,
-        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
-      );
-      break;
-    case "outlet_products":
-      await bulkUpsertRows(
-        input.tx,
-        outletProducts,
-        input.rows.map((row) => ({ ...row, outletId: input.outletId }))
-      );
-      break;
-    case "staff":
-      await bulkUpsertRows(
-        input.tx,
-        staff,
-        input.rows.map((row) => ({ ...row, merchantId: input.merchantId }))
-      );
-      break;
-    case "orders":
-      await bulkUpsertRows(
-        input.tx,
-        orders,
-        input.rows.map((row) => ({ ...row, outletId: input.outletId }))
-      );
-      break;
-    case "order_items":
-      await bulkUpsertRows(
-        input.tx,
-        orderItems,
-        input.rows.map((row) => ({
-          ...normalizeOrderItemRow(row),
-          outletId: input.outletId,
-        }))
-      );
-      break;
-    default:
-      break;
+  const chunkSize = getWriteChunkSize({
+    columnCount: input.adapter.writeColumnCount,
+  });
+  for (const rowsChunk of chunkArray(input.rows, chunkSize)) {
+    await input.adapter.upsertRows(input.tx, rowsChunk);
   }
-}
-
-async function bulkUpsertRows(
-  tx: TransactionTx,
-  table:
-    | typeof assets
-    | typeof categories
-    | typeof merchants
-    | typeof orderItems
-    | typeof orders
-    | typeof outletProducts
-    | typeof outlets
-    | typeof products
-    | typeof registers
-    | typeof staff,
-  rows: Record<string, unknown>[]
-) {
-  const set = buildExcludedSet(
-    table as unknown as Record<string, unknown>,
-    rows
-  );
-  if (Object.keys(set).length === 0) {
-    await tx
-      .insert(table)
-      .values(rows as never)
-      .onConflictDoNothing();
-    return;
-  }
-
-  await tx
-    .insert(table)
-    .values(rows as never)
-    .onConflictDoUpdate({ set, target: table.id } as never);
-}
-
-function buildExcludedSet(
-  table: Record<string, unknown>,
-  rows: Record<string, unknown>[]
-): Record<string, SQL> {
-  const keys = new Set(rows.flatMap((row) => Object.keys(row)));
-  keys.delete("id");
-  const tableColumns = table as Record<string, { name?: string }>;
-  const set: Record<string, SQL> = {};
-
-  for (const key of keys) {
-    const columnName = tableColumns[key]?.name;
-    if (!columnName) {
-      continue;
-    }
-    set[key] = sql.raw(`excluded.${columnName}`);
-  }
-
-  return set;
 }
 
 function buildSyncEventRow(input: {
@@ -729,244 +595,61 @@ async function insertSyncEvents(
   }
 }
 
-async function existingRowIdsForTableName(
+async function insertSyncEventsChunked(
   tx: TransactionTx,
-  tableName: string,
-  ids: string[]
-): Promise<Set<string>> {
-  if (ids.length === 0) {
-    return new Set();
-  }
-
-  let rowsResult: unknown;
-  switch (tableName) {
-    case "merchants":
-      rowsResult = await tx
-        .select({ id: merchants.id })
-        .from(merchants)
-        .where(inArray(merchants.id, ids));
-      break;
-    case "outlets":
-      rowsResult = await tx
-        .select({ id: outlets.id })
-        .from(outlets)
-        .where(inArray(outlets.id, ids));
-      break;
-    case "registers":
-      rowsResult = await tx
-        .select({ id: registers.id })
-        .from(registers)
-        .where(inArray(registers.id, ids));
-      break;
-    case "categories":
-      rowsResult = await tx
-        .select({ id: categories.id })
-        .from(categories)
-        .where(inArray(categories.id, ids));
-      break;
-    case "assets":
-      rowsResult = await tx
-        .select({ id: assets.id })
-        .from(assets)
-        .where(inArray(assets.id, ids));
-      break;
-    case "products":
-      rowsResult = await tx
-        .select({ id: products.id })
-        .from(products)
-        .where(inArray(products.id, ids));
-      break;
-    case "outlet_products":
-      rowsResult = await tx
-        .select({ id: outletProducts.id })
-        .from(outletProducts)
-        .where(inArray(outletProducts.id, ids));
-      break;
-    case "staff":
-      rowsResult = await tx
-        .select({ id: staff.id })
-        .from(staff)
-        .where(inArray(staff.id, ids));
-      break;
-    case "orders":
-      rowsResult = await tx
-        .select({ id: orders.id })
-        .from(orders)
-        .where(inArray(orders.id, ids));
-      break;
-    case "order_items":
-      rowsResult = await tx
-        .select({ id: orderItems.id })
-        .from(orderItems)
-        .where(inArray(orderItems.id, ids));
-      break;
-    default:
-      rowsResult = [];
-  }
-
-  const rows = await resolveRowsResult(rowsResult);
-  return new Set(rows.map((row) => row.id));
-}
-
-async function resolveRowsResult(value: unknown): Promise<{ id: string }[]> {
-  if (Array.isArray(value)) {
-    return value.filter(
-      (row): row is { id: string } =>
-        typeof row === "object" &&
-        row !== null &&
-        "id" in row &&
-        typeof row.id === "string"
-    );
-  }
-
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "limit" in value &&
-    typeof value.limit === "function"
-  ) {
-    const limitedRows = await value.limit(1);
-    return resolveRowsResult(limitedRows);
-  }
-
-  return [];
-}
-
-function normalizePushBatchRowForTableName(
-  tableName: string,
-  row: Record<string, unknown>
-): Record<string, unknown> {
-  const base = normalizeEmptyToNull(stripLocalOnlyColumns(row));
-
-  switch (tableName) {
-    case "assets":
-      return {
-        ...base,
-        byteSize: normalizeBatchInt64(row.byteSize),
-        height: normalizeBatchInt64(row.height),
-        width: normalizeBatchInt64(row.width),
-      };
-    case "categories":
-      return {
-        ...base,
-        sortOrder: normalizeBatchInt64(row.sortOrder),
-      };
-    case "products":
-      return {
-        ...base,
-        price: normalizeBatchInt64(row.priceMinorUnits),
-        sortOrder: normalizeBatchInt64(row.sortOrder),
-      };
-    case "outlet_products":
-      return {
-        ...base,
-        price: normalizeBatchInt64(row.priceMinorUnits),
-        sortOrder: normalizeBatchInt64(row.sortOrder),
-      };
-    case "orders":
-      return {
-        ...base,
-        amountPaid: normalizeBatchInt64(row.amountPaidMinorUnits),
-        changeAmount: normalizeBatchInt64(row.changeAmountMinorUnits),
-        total: normalizeBatchInt64(row.totalMinorUnits),
-      };
-    case "order_items":
-      return {
-        ...base,
-        originalPrice: normalizeBatchInt64(row.originalPriceMinorUnits),
-        quantity: normalizeBatchInt64(row.quantity),
-        subtotal: normalizeBatchInt64(row.subtotalMinorUnits),
-        unitPrice: normalizeBatchInt64(row.unitPriceMinorUnits),
-      };
-    default:
-      return base;
-  }
-}
-
-async function softDeleteRowsForTableName(
-  tx: TransactionTx,
-  tableName: string,
-  ids: string[]
+  events: Record<string, unknown>[]
 ) {
-  if (ids.length === 0) {
+  if (events.length === 0) {
     return;
   }
 
-  const now = new Date().toISOString();
-  switch (tableName) {
-    case "merchants":
-      await tx
-        .update(merchants)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(merchants.id, ids));
-      break;
-    case "outlets":
-      await tx
-        .update(outlets)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(outlets.id, ids));
-      break;
-    case "registers":
-      await tx
-        .update(registers)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(registers.id, ids));
-      break;
-    case "categories":
-      await tx
-        .update(categories)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(categories.id, ids));
-      break;
-    case "assets":
-      await tx
-        .update(assets)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(assets.id, ids));
-      break;
-    case "products":
-      await tx
-        .update(products)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(products.id, ids));
-      break;
-    case "outlet_products":
-      await tx
-        .update(outletProducts)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(outletProducts.id, ids));
-      break;
-    case "staff":
-      await tx
-        .update(staff)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(staff.id, ids));
-      break;
-    case "orders":
-      await tx
-        .update(orders)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(orders.id, ids));
-      break;
-    case "order_items":
-      await tx
-        .update(orderItems)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(inArray(orderItems.id, ids));
-      break;
-    default:
-      break;
+  for (const eventChunk of chunkArray(
+    events,
+    DEFAULT_MAX_EVENTS_PER_INSERT_CHUNK
+  )) {
+    await insertSyncEvents(tx, eventChunk);
   }
 }
 
-function normalizeBatchInt64(value: unknown): number {
-  if (typeof value === "bigint") {
-    return protobufInt64ToSafeNumber(value, "int64");
+async function selectExistingRowsChunked(
+  adapter: PushTableAdapter,
+  tx: TransactionLike,
+  ids: string[]
+): Promise<ExistingSyncRow[]> {
+  if (ids.length === 0) {
+    return [];
   }
-  if (typeof value === "number") {
-    return value;
+
+  const rows: ExistingSyncRow[] = [];
+  for (const idChunk of chunkArray(ids, DEFAULT_MAX_IDS_PER_READ_CHUNK)) {
+    const chunkRows = await adapter.selectExistingRows(tx, idChunk);
+    rows.push(
+      ...chunkRows.filter(
+        (row): row is ExistingSyncRow =>
+          typeof row === "object" &&
+          row !== null &&
+          "id" in row &&
+          typeof row.id === "string" &&
+          ("updatedAt" in row || "createdAt" in row)
+      )
+    );
   }
-  return 0;
+  return rows;
+}
+
+async function softDeleteRowsChunked(input: {
+  adapter: PushTableAdapter;
+  ids: string[];
+  now: string;
+  tx: TransactionLike;
+}) {
+  if (input.ids.length === 0) {
+    return;
+  }
+
+  for (const idChunk of chunkArray(input.ids, DEFAULT_MAX_IDS_PER_READ_CHUNK)) {
+    await input.adapter.softDeleteRows(input.tx, idChunk, input.now);
+  }
 }
 
 interface PullBatchEntry {
@@ -1173,12 +856,6 @@ async function normalizePullBatchResult(input: {
   };
 }
 
-function normalizeOrderItemRow(
-  row: Record<string, unknown>
-): Record<string, unknown> {
-  return { ...row, productId: null };
-}
-
 function getAcceptedOperation(
   row: Record<string, unknown>,
   defaultOperation: "insert" | "update"
@@ -1200,6 +877,14 @@ function getSyncEventScope(
     default:
       return { scopeId: merchantId, scopeType: "merchant" };
   }
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    UNIQUE_CONSTRAINT_PATTERN.test(error.message) &&
+    !INVALID_ERROR_PATTERN.test(error.message)
+  );
 }
 
 async function selectBaselineSnapshots(

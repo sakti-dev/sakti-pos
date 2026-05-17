@@ -6,8 +6,8 @@ import type { DailySummary, OrderItemRow, OrderRow } from "~/db/orders";
 
 const mockOrders: OrderRow[] = [
   {
-    amountPaid: 20_000,
-    changeAmount: 0,
+    amountPaidMinorUnits: 20_000,
+    changeAmountMinorUnits: 0,
     createdAt: "2026-05-04T10:00:00.000Z",
     id: "order-1",
     orderNumber: "2026-05-04-001",
@@ -15,11 +15,11 @@ const mockOrders: OrderRow[] = [
     status: "completed",
     staffId: "staff-1",
     staffName: "Kasir 1",
-    total: 20_000,
+    totalMinorUnits: 20_000,
   },
   {
-    amountPaid: 30_000,
-    changeAmount: 5000,
+    amountPaidMinorUnits: 30_000,
+    changeAmountMinorUnits: 5000,
     createdAt: "2026-05-04T11:00:00.000Z",
     id: "order-2",
     orderNumber: "2026-05-04-002",
@@ -27,7 +27,7 @@ const mockOrders: OrderRow[] = [
     status: "cancelled",
     staffId: "staff-2",
     staffName: "Kasir 2",
-    total: 25_000,
+    totalMinorUnits: 25_000,
   },
 ];
 
@@ -37,8 +37,8 @@ const mockItems: Record<string, OrderItemRow[]> = {
       id: "item-1",
       productName: "Kopi Susu",
       quantity: 2,
-      subtotal: 20_000,
-      unitPrice: 10_000,
+      subtotalMinorUnits: 20_000,
+      unitPriceMinorUnits: 10_000,
     },
   ],
   "order-2": [
@@ -46,8 +46,8 @@ const mockItems: Record<string, OrderItemRow[]> = {
       id: "item-2",
       productName: "Nasi Goreng",
       quantity: 1,
-      subtotal: 25_000,
-      unitPrice: 25_000,
+      subtotalMinorUnits: 25_000,
+      unitPriceMinorUnits: 25_000,
     },
   ],
 };
