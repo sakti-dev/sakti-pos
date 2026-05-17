@@ -14,8 +14,8 @@
     "app:resize": "bash apps/pos-app/scripts/resize",
     "app:restart": "bash apps/pos-app/scripts/restart",
     "test": "turbo run test",
-    "generate:sync-proto:compare": "bun --cwd packages/sync-proto-generator run generate:compare",
-    "generate:sync-proto:write": "bun --cwd packages/sync-proto-generator run generate:write"
+    "generate:sync-proto:compare": "bun run packages/sync-proto-generator/src/cli.ts -- --mode compare",
+    "generate:sync-proto:write": "bun run packages/sync-proto-generator/src/cli.ts -- --mode write"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
