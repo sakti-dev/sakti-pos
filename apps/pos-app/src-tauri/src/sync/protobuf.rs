@@ -215,6 +215,356 @@ mod tests {
     }
 
     #[test]
+    fn build_sync_push_batch_request_maps_all_sync_tables() {
+        let merchants = build_merchant_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "merchant-1",
+                "name": "Toko",
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let outlets = build_outlet_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "outlet-1",
+                "merchantId": "merchant-1",
+                "timezone": "Asia/Jakarta",
+                "name": "Outlet",
+                "isActive": true,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let registers = build_register_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "register-1",
+                "outletId": "outlet-1",
+                "name": "Kasir",
+                "shortId": "R1",
+                "isActive": true,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let categories = build_category_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "cat-1",
+                "merchantId": "merchant-1",
+                "name": "Minuman",
+                "sortOrder": 1,
+                "isActive": true,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let assets = build_asset_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "asset-1",
+                "merchantId": "merchant-1",
+                "objectKey": "assets/1",
+                "contentType": "image/jpeg",
+                "byteSize": 123,
+                "contentHash": "hash",
+                "kind": "product_photo",
+                "width": 10,
+                "height": 20,
+                "status": "ready",
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let products = build_product_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "product-1",
+                "merchantId": "merchant-1",
+                "name": "Kopi",
+                "price": 15_000,
+                "isActive": true,
+                "sortOrder": 1,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let orders = build_order_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "order-1",
+                "outletId": "outlet-1",
+                "orderNumber": "001",
+                "total": 15_000,
+                "paymentMethod": "cash",
+                "amountPaid": 20_000,
+                "changeAmount": 5_000,
+                "status": "paid",
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let order_items = build_order_item_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "item-1",
+                "orderId": "order-1",
+                "outletId": "outlet-1",
+                "productName": "Kopi",
+                "quantity": 1,
+                "unitPrice": 15_000,
+                "originalPrice": 15_000,
+                "subtotal": 15_000,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let outlet_products = build_outlet_product_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "op-1",
+                "outletId": "outlet-1",
+                "productId": "product-1",
+                "price": 15_000,
+                "isAvailable": true,
+                "sortOrder": 1,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+        let staff = build_staff_changes(&TablePushChanges {
+            created: vec![json!({
+                "id": "staff-1",
+                "merchantId": "merchant-1",
+                "name": "Owner",
+                "role": "owner",
+                "isActive": true,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z",
+            })],
+            ..Default::default()
+        });
+
+        let request = build_sync_push_batch_request(
+            "outlet-1",
+            "sync-all-tables",
+            Some(merchants),
+            Some(outlets),
+            Some(registers),
+            Some(categories),
+            Some(assets),
+            Some(products),
+            Some(orders),
+            Some(order_items),
+            Some(outlet_products),
+            Some(staff),
+        );
+
+        assert_eq!(request.outlet_id, "outlet-1");
+        assert_eq!(request.idempotency_key, "sync-all-tables");
+        assert!(request.merchants.is_some());
+        assert!(request.outlets.is_some());
+        assert!(request.registers.is_some());
+        assert!(request.categories.is_some());
+        assert!(request.assets.is_some());
+        assert!(request.products.is_some());
+        assert!(request.orders.is_some());
+        assert!(request.order_items.is_some());
+        assert!(request.outlet_products.is_some());
+        assert!(request.staff.is_some());
+
+        assert_eq!(request.merchants.unwrap().created.len(), 1);
+        assert_eq!(request.outlets.unwrap().created.len(), 1);
+        assert_eq!(request.registers.unwrap().created.len(), 1);
+        assert_eq!(request.categories.unwrap().created.len(), 1);
+        assert_eq!(request.assets.unwrap().created.len(), 1);
+        assert_eq!(request.products.unwrap().created.len(), 1);
+        assert_eq!(request.orders.unwrap().created.len(), 1);
+        assert_eq!(request.order_items.unwrap().created.len(), 1);
+        assert_eq!(request.outlet_products.unwrap().created.len(), 1);
+        assert_eq!(request.staff.unwrap().created.len(), 1);
+    }
+
+    #[test]
+    fn decode_pull_batch_response_maps_all_sync_tables() {
+        use super::super::sync_proto::{
+            AssetChanges, AssetRow, CategoryChanges, CategoryRow, MerchantChanges, MerchantRow,
+            OrderChanges, OrderItemChanges, OrderItemRow, OrderRow, OutletChanges,
+            OutletProductChanges, OutletProductRow, OutletRow, ProductChanges, ProductRow,
+            RegisterChanges, RegisterRow, StaffChanges, StaffRow, SyncPullBatchResponse,
+        };
+
+        let response = SyncPullBatchResponse {
+            server_time: "2026-05-17T00:00:00.000Z".to_string(),
+            merchants: Some(MerchantChanges {
+                created: vec![MerchantRow {
+                    id: "merchant-1".to_string(),
+                    name: "Toko".to_string(),
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            outlets: Some(OutletChanges {
+                created: vec![OutletRow {
+                    id: "outlet-1".to_string(),
+                    merchant_id: "merchant-1".to_string(),
+                    timezone: "Asia/Jakarta".to_string(),
+                    name: "Outlet".to_string(),
+                    is_active: true,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            registers: Some(RegisterChanges {
+                created: vec![RegisterRow {
+                    id: "register-1".to_string(),
+                    outlet_id: "outlet-1".to_string(),
+                    name: "Kasir".to_string(),
+                    short_id: "R1".to_string(),
+                    is_active: true,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            categories: Some(CategoryChanges {
+                created: vec![CategoryRow {
+                    id: "cat-1".to_string(),
+                    merchant_id: "merchant-1".to_string(),
+                    name: "Minuman".to_string(),
+                    sort_order: 1,
+                    is_active: true,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            assets: Some(AssetChanges {
+                created: vec![AssetRow {
+                    id: "asset-1".to_string(),
+                    merchant_id: "merchant-1".to_string(),
+                    object_key: "assets/1".to_string(),
+                    content_type: "image/jpeg".to_string(),
+                    byte_size: 123,
+                    content_hash: "hash".to_string(),
+                    kind: "product_photo".to_string(),
+                    width: 10,
+                    height: 20,
+                    status: "ready".to_string(),
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            products: Some(ProductChanges {
+                created: vec![ProductRow {
+                    id: "product-1".to_string(),
+                    merchant_id: "merchant-1".to_string(),
+                    name: "Kopi".to_string(),
+                    price_minor_units: 15_000,
+                    is_active: true,
+                    sort_order: 1,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            orders: Some(OrderChanges {
+                created: vec![OrderRow {
+                    id: "order-1".to_string(),
+                    outlet_id: "outlet-1".to_string(),
+                    order_number: "001".to_string(),
+                    total_minor_units: 15_000,
+                    payment_method: "cash".to_string(),
+                    amount_paid_minor_units: 20_000,
+                    change_amount_minor_units: 5_000,
+                    status: "paid".to_string(),
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            order_items: Some(OrderItemChanges {
+                created: vec![OrderItemRow {
+                    id: "item-1".to_string(),
+                    order_id: "order-1".to_string(),
+                    outlet_id: "outlet-1".to_string(),
+                    product_name: "Kopi".to_string(),
+                    quantity: 1,
+                    unit_price_minor_units: 15_000,
+                    original_price_minor_units: 15_000,
+                    subtotal_minor_units: 15_000,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            outlet_products: Some(OutletProductChanges {
+                created: vec![OutletProductRow {
+                    id: "op-1".to_string(),
+                    outlet_id: "outlet-1".to_string(),
+                    product_id: "product-1".to_string(),
+                    price_minor_units: 15_000,
+                    is_available: true,
+                    sort_order: 1,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            staff: Some(StaffChanges {
+                created: vec![StaffRow {
+                    id: "staff-1".to_string(),
+                    merchant_id: "merchant-1".to_string(),
+                    name: "Owner".to_string(),
+                    role: "owner".to_string(),
+                    is_active: true,
+                    created_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    updated_at: "2026-05-17T00:00:00.000Z".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
+
+        assert!(tables.contains_key("merchants"));
+        assert!(tables.contains_key("outlets"));
+        assert!(tables.contains_key("registers"));
+        assert!(tables.contains_key("categories"));
+        assert!(tables.contains_key("assets"));
+        assert!(tables.contains_key("products"));
+        assert!(tables.contains_key("orders"));
+        assert!(tables.contains_key("order_items"));
+        assert!(tables.contains_key("outlet_products"));
+        assert!(tables.contains_key("staff"));
+
+        assert_eq!(tables["merchants"][0]["name"], json!("Toko"));
+        assert_eq!(tables["products"][0]["price"], json!(15_000));
+        assert_eq!(tables["orders"][0]["total"], json!(15_000));
+        assert_eq!(tables["order_items"][0]["unitPrice"], json!(15_000));
+        assert_eq!(tables["outlet_products"][0]["price"], json!(15_000));
+        assert_eq!(tables["assets"][0]["byteSize"], json!(123));
+        assert_eq!(tables["categories"][0]["sortOrder"], json!(1));
+        assert_eq!(tables["staff"][0]["role"], json!("owner"));
+    }
+
+    #[test]
     fn decode_pull_batch_response_maps_typed_category_to_local_db_columns() {
         use super::super::sync_proto::{CategoryChanges, CategoryRow, SyncPullBatchResponse};
 
