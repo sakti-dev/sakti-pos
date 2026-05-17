@@ -18,6 +18,7 @@ const {
   readCachedAssetData,
   resetAssetCacheVersionsForTest,
   resolveAssetUrl,
+  resolvePendingPreviewUrl,
 } = await import("~/lib/assets/cache");
 
 describe("asset cache", () => {
@@ -133,5 +134,33 @@ describe("asset cache", () => {
   test("returns null for null or undefined asset id", async () => {
     expect(await resolveAssetUrl(null)).toBeNull();
     expect(await resolveAssetUrl(undefined)).toBeNull();
+  });
+
+  test("resolves pending preview URL via asset protocol", async () => {
+    mockInvoke.mockResolvedValue({
+      previewPath:
+        "/data/data/com.sakti-dev.sakti-pos/cache/product_photo_inputs/pending_preview_job1.jpg",
+      previewMimeType: "image/jpeg",
+    });
+
+    const url = await resolvePendingPreviewUrl("product-1");
+
+    expect(url).toContain("asset.localhost");
+    expect(url).toContain("pending_preview_job1.jpg");
+    expect(mockInvoke).toHaveBeenCalledWith("get_pending_preview_path", {
+      productId: "product-1",
+    });
+  });
+
+  test("returns null when no pending preview exists", async () => {
+    mockInvoke.mockResolvedValue(null);
+
+    const url = await resolvePendingPreviewUrl("product-missing");
+    expect(url).toBeNull();
+  });
+
+  test("returns null for null or undefined entity id", async () => {
+    expect(await resolvePendingPreviewUrl(null)).toBeNull();
+    expect(await resolvePendingPreviewUrl(undefined)).toBeNull();
   });
 });

@@ -52,6 +52,25 @@ export async function resolveAssetUrl(
   return `${baseUrl}?v=${version}`;
 }
 
+export async function resolvePendingPreviewUrl(
+  entityId: string | null | undefined
+): Promise<string | null> {
+  if (!entityId) {
+    return null;
+  }
+
+  const result = await invoke<{
+    previewPath: string;
+    previewMimeType: string;
+  } | null>("get_pending_preview_path", { productId: entityId });
+
+  if (!result) {
+    return null;
+  }
+
+  return convertFileSrc(result.previewPath);
+}
+
 export async function persistCachedAsset(input: {
   dataBase64: string;
   objectKey: string;

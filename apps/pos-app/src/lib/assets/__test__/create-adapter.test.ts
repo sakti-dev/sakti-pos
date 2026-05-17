@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockInvoke = vi.fn();
+const mockConvertFileSrc = vi.fn();
 const mockListen = vi.fn();
 const unsubscribeMock = vi.fn();
+const leadingSlashRegex = /^\//;
 
 vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: (...args: unknown[]) => mockConvertFileSrc(...args),
   invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 vi.mock("@tauri-apps/api/event", () => ({
@@ -17,12 +20,16 @@ describe("createAssetAdapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockListen.mockResolvedValue(unsubscribeMock);
+    mockConvertFileSrc.mockImplementation(
+      (path: string) =>
+        `https://asset.localhost/${path.replace(leadingSlashRegex, "")}`
+    );
   });
 
-  test("resolves a cached image URL for the configured entity", async () => {
+  test("resolves a cached image URL via asset protocol", async () => {
     mockInvoke.mockResolvedValue({
+      localPath: "/data/config/asset-cache/merchant-1/assets/abc123.webp",
       contentType: "image/webp",
-      dataBase64: "d2VicA==",
     });
 
     const adapter = createAssetAdapter({
@@ -32,8 +39,10 @@ describe("createAssetAdapter", () => {
     });
 
     const url = await adapter.resolveCachedImageUrl("asset-1");
-    expect(url).toBe("data:image/webp;base64,d2VicA==");
-    expect(mockInvoke).toHaveBeenCalledWith("read_cached_asset_data", {
+    expect(url).toContain("asset.localhost");
+    expect(url).toContain("abc123.webp");
+    expect(url).toContain("?v=0");
+    expect(mockInvoke).toHaveBeenCalledWith("get_cached_asset_path", {
       assetId: "asset-1",
     });
   });
@@ -62,9 +71,9 @@ describe("createAssetAdapter", () => {
     expect(url).toBeNull();
   });
 
-  test("gets pending preview URL for an entity using configured param name", async () => {
+  test("gets pending preview URL via asset protocol", async () => {
     mockInvoke.mockResolvedValue({
-      previewBase64: "cHJldmlldw==",
+      previewPath: "/data/cache/product_photo_inputs/pending_preview_job1.jpg",
       previewMimeType: "image/jpeg",
     });
 
@@ -75,8 +84,9 @@ describe("createAssetAdapter", () => {
     });
 
     const url = await adapter.getPendingPreviewUrl("product-1");
-    expect(url).toBe("data:image/jpeg;base64,cHJldmlldw==");
-    expect(mockInvoke).toHaveBeenCalledWith("get_pending_asset_preview", {
+    expect(url).toContain("asset.localhost");
+    expect(url).toContain("pending_preview_job1.jpg");
+    expect(mockInvoke).toHaveBeenCalledWith("get_pending_preview_path", {
       productId: "product-1",
     });
   });

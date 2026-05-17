@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+const mockConvertFileSrc = vi.fn();
 const mockInvoke = vi.fn();
 const mockListen = vi.fn();
 const unsubscribeMock = vi.fn();
+const leadingSlashRegex = /^\//;
 
 vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: (...args: unknown[]) => mockConvertFileSrc(...args),
   invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 vi.mock("@tauri-apps/api/event", () => ({
@@ -18,27 +21,34 @@ const { productImageAdapter } = await import(
 describe("product image adapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockConvertFileSrc.mockImplementation(
+      (path: string) =>
+        `https://asset.localhost/${path.replace(leadingSlashRegex, "")}`
+    );
     mockListen.mockResolvedValue(unsubscribeMock);
   });
 
   test("resolves a cached product image URL", async () => {
     mockInvoke.mockResolvedValue({
+      localPath: "/data/config/asset-cache/merchant-1/assets/abc123.webp",
       contentType: "image/webp",
-      dataBase64: "d2VicA==",
     });
 
     const url = await productImageAdapter.resolveCachedImageUrl("asset-1");
-    expect(url).toBe("data:image/webp;base64,d2VicA==");
+    expect(url).toContain("asset.localhost");
+    expect(url).toContain("abc123.webp");
+    expect(url).toContain("?v=0");
   });
 
   test("gets pending product photo preview URL", async () => {
     mockInvoke.mockResolvedValue({
-      previewBase64: "cHJldmlldw==",
+      previewPath: "/data/cache/product_photo_inputs/pending_preview_job1.jpg",
       previewMimeType: "image/jpeg",
     });
 
     const url = await productImageAdapter.getPendingPreviewUrl("product-1");
-    expect(url).toBe("data:image/jpeg;base64,cHJldmlldw==");
+    expect(url).toContain("asset.localhost");
+    expect(url).toContain("pending_preview_job1.jpg");
   });
 
   test("starts and stops event listeners", async () => {
