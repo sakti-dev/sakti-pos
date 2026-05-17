@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { createStore } from "solid-js/store";
 import { createLogger } from "~/lib/logger";
 import type {
@@ -29,6 +29,27 @@ export async function readCachedAssetData(
   return await invoke<CachedAssetData | null>("read_cached_asset_data", {
     assetId,
   });
+}
+
+export async function resolveAssetUrl(
+  assetId: string | null | undefined
+): Promise<string | null> {
+  if (!assetId) {
+    return null;
+  }
+
+  const result = await invoke<{
+    localPath: string;
+    contentType: string;
+  } | null>("get_cached_asset_path", { assetId });
+
+  if (!result) {
+    return null;
+  }
+
+  const baseUrl = convertFileSrc(result.localPath);
+  const version = getAssetCacheVersion(assetId);
+  return `${baseUrl}?v=${version}`;
 }
 
 export async function persistCachedAsset(input: {
