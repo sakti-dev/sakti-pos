@@ -15,7 +15,8 @@
     "app:restart": "bash apps/pos-app/scripts/restart",
     "test": "turbo run test",
     "generate:sync-proto:compare": "bun run packages/sync-proto-generator/src/cli.ts -- --mode compare",
-    "generate:sync-proto:write": "bun run packages/sync-proto-generator/src/cli.ts -- --mode write"
+    "generate:sync-proto:write": "bun run packages/sync-proto-generator/src/cli.ts -- --mode write",
+    "sync-proto:check": "cd packages/sync-proto-generator && bun x vitest run src/__test__/drift.test.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",

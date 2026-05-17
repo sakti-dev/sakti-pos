@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "generate:compare": "bun run src/cli.ts --mode compare",
-    "generate:write": "bun run src/cli.ts --mode write"
+    "generate:write": "bun run src/cli.ts --mode write",
+    "check:drift": "vitest run src/__test__/drift.test.ts"
   },
   "dependencies": {
     "@repo/database": "*",
