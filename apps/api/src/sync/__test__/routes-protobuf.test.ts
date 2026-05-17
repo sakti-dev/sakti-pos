@@ -422,6 +422,169 @@ describe("sync protobuf routes", () => {
     expect(decoded.hasOldestAvailableEventId).toBe(false);
   });
 
+  test("POST /api/sync/push decodes multi-word table proto fields into service keys", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockVerifyOutletAccess.mockResolvedValue(true);
+    mockOutletLookup();
+    mockHandlePushBatch.mockResolvedValue({
+      latestEventId: 13,
+      serverTime: "2026-05-17T00:00:00.000Z",
+      tables: [
+        {
+          acceptedCreatedIds: ["item-1"],
+          acceptedDeletedIds: [],
+          acceptedUpdatedIds: [],
+          rejected: [],
+          table: "order_items",
+        },
+        {
+          acceptedCreatedIds: ["op-1"],
+          acceptedDeletedIds: [],
+          acceptedUpdatedIds: [],
+          rejected: [],
+          table: "outlet_products",
+        },
+      ],
+    });
+
+    const body = SyncPushBatchRequest.encode(
+      SyncPushBatchRequest.create({
+        idempotencyKey: "sync-multi-word",
+        orderItems: {
+          created: [
+            {
+              id: "item-1",
+              orderId: "order-1",
+              outletId: "outlet-1",
+              productName: "Kopi",
+              quantity: 1n,
+              unitPriceMinorUnits: 15_000n,
+              originalPriceMinorUnits: 15_000n,
+              subtotalMinorUnits: 15_000n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+        outletProducts: {
+          created: [
+            {
+              id: "op-1",
+              isAvailable: true,
+              outletId: "outlet-1",
+              priceMinorUnits: 15_000n,
+              productId: "product-1",
+              sortOrder: 1n,
+              updatedAt: "2026-05-17T00:00:00.000Z",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+        outletId: "outlet-1",
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/push", body);
+
+    expect(response.status).toBe(200);
+    expect(mockHandlePushBatch).toHaveBeenCalledWith(
+      "outlet-1",
+      "merchant-1",
+      expect.objectContaining({
+        order_items: {
+          created: [
+            expect.objectContaining({
+              id: "item-1",
+              productName: "Kopi",
+            }),
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+        outlet_products: {
+          created: [
+            expect.objectContaining({
+              id: "op-1",
+              productId: "product-1",
+            }),
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+      }),
+      "sync-multi-word",
+      expect.any(String)
+    );
+  });
+
+  test("POST /api/sync/pull encodes multi-word service keys into proto fields", async () => {
+    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
+    mockVerifyOutletAccess.mockResolvedValue(true);
+    mockOutletLookup();
+    mockHandlePullBatch.mockResolvedValue({
+      hasMore: false,
+      latestEventId: 14,
+      needsFullResync: false,
+      nextPageCursor: "",
+      order_items: {
+        created: [
+          {
+            id: "item-1",
+            orderId: "order-1",
+            outletId: "outlet-1",
+            productName: "Kopi",
+            quantity: 1,
+            unitPrice: 15_000,
+            originalPrice: 15_000,
+            subtotal: 15_000,
+            updatedAt: "2026-05-17T00:00:00.000Z",
+          },
+        ],
+        deletedIds: [],
+        updated: [],
+      },
+      outlet_products: {
+        created: [
+          {
+            id: "op-1",
+            outletId: "outlet-1",
+            productId: "product-1",
+            price: 15_000,
+            isAvailable: true,
+            sortOrder: 1,
+            updatedAt: "2026-05-17T00:00:00.000Z",
+          },
+        ],
+        deletedIds: [],
+        updated: [],
+      },
+      serverTime: "2026-05-17T00:00:00.000Z",
+    });
+
+    const body = SyncPullBatchRequest.encode(
+      SyncPullBatchRequest.create({
+        afterEventId: 0n,
+        limit: 100,
+        outletId: "outlet-1",
+        pageCursor: "",
+        tables: ["order_items", "outlet_products"],
+      })
+    ).finish();
+
+    const response = await makeProtobufRequest("/api/sync/pull", body);
+    const decoded = SyncPullBatchResponse.decode(
+      new Uint8Array(await response.arrayBuffer())
+    );
+
+    expect(response.status).toBe(200);
+    expect(decoded.orderItems?.created[0]?.id).toBe("item-1");
+    expect(decoded.orderItems?.created[0]?.unitPriceMinorUnits).toBe(15_000n);
+    expect(decoded.outletProducts?.created[0]?.id).toBe("op-1");
+    expect(decoded.outletProducts?.created[0]?.priceMinorUnits).toBe(15_000n);
+  });
+
   test("POST /api/sync/pull returns protobuf batch changes", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockVerifyOutletAccess.mockResolvedValue(true);
