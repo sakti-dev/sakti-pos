@@ -1,9 +1,14 @@
 import {
+  type AssetChanges,
+  type CategoryChanges,
+  type MerchantChanges,
   type OrderChanges,
   type OrderItemChanges,
+  type OutletChanges,
   type OutletProductChanges,
   type ProductChanges,
-  type SyncJsonTableChanges,
+  type RegisterChanges,
+  type StaffChanges,
   SyncPullBatchResponse,
   SyncPushBatchRequest,
   SyncPushBatchResponse,
@@ -18,7 +23,7 @@ export function protobufInt64ToSafeNumber(
   fieldName: string
 ): number {
   if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error(`${fieldName} exceeds Number.MAX_SAFE_INTEGER`);
+    throw new Error(`Exceeds Number.MAX_SAFE_INTEGER for ${fieldName}`);
   }
   return Number(value);
 }
@@ -38,16 +43,21 @@ export interface PushBatchResult {
 }
 
 export interface PullBatchResult {
-  hasMore?: boolean;
-  jsonTables?: SyncJsonTableChanges[];
+  assets?: TableChangeSet;
+  categories?: TableChangeSet;
+  hasMore: boolean;
   latestEventId: number;
+  merchants?: TableChangeSet;
   needsFullResync: boolean;
-  nextPageCursor?: string;
-  orderItems?: TableChangeSet;
+  nextPageCursor: string;
+  order_items?: TableChangeSet;
   orders?: TableChangeSet;
-  outletProducts?: TableChangeSet;
+  outlet_products?: TableChangeSet;
+  outlets?: TableChangeSet;
   products?: TableChangeSet;
+  registers?: TableChangeSet;
   serverTime: string;
+  staff?: TableChangeSet;
 }
 
 interface SyncStatusResult {
@@ -86,6 +96,81 @@ function boolField(value: unknown): boolean {
   return value === true || value === 1;
 }
 
+function merchantRowToProto(row: Record<string, unknown>) {
+  return {
+    createdAt: stringField(row.createdAt),
+    deletedAt: stringField(row.deletedAt),
+    id: stringField(row.id),
+    name: stringField(row.name),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function outletRowToProto(row: Record<string, unknown>) {
+  return {
+    address: stringField(row.address),
+    createdAt: stringField(row.createdAt),
+    deletedAt: stringField(row.deletedAt),
+    id: stringField(row.id),
+    isActive: boolField(row.isActive),
+    merchantId: stringField(row.merchantId),
+    name: stringField(row.name),
+    receiptAddress: stringField(row.receiptAddress),
+    receiptName: stringField(row.receiptName),
+    timezone: stringField(row.timezone),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function registerRowToProto(row: Record<string, unknown>) {
+  return {
+    createdAt: stringField(row.createdAt),
+    deletedAt: stringField(row.deletedAt),
+    id: stringField(row.id),
+    isActive: boolField(row.isActive),
+    lastSeenAt: stringField(row.lastSeenAt),
+    name: stringField(row.name),
+    outletId: stringField(row.outletId),
+    pairingCode: stringField(row.pairingCode),
+    pairingExpiresAt: stringField(row.pairingExpiresAt),
+    shortId: stringField(row.shortId),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function categoryRowToProto(row: Record<string, unknown>) {
+  return {
+    createdAt: stringField(row.createdAt),
+    deletedAt: stringField(row.deletedAt),
+    id: stringField(row.id),
+    isActive: boolField(row.isActive),
+    merchantId: stringField(row.merchantId),
+    name: stringField(row.name),
+    sortOrder: int64Field(row.sortOrder, "categories.sortOrder"),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function assetRowToProto(row: Record<string, unknown>) {
+  return {
+    byteSize: int64Field(row.byteSize, "assets.byteSize"),
+    contentHash: stringField(row.contentHash),
+    contentType: stringField(row.contentType),
+    createdAt: stringField(row.createdAt),
+    createdByUserId: stringField(row.createdByUserId),
+    deletedAt: stringField(row.deletedAt),
+    height: int64Field(row.height, "assets.height"),
+    id: stringField(row.id),
+    kind: stringField(row.kind),
+    merchantId: stringField(row.merchantId),
+    objectKey: stringField(row.objectKey),
+    originalFilename: stringField(row.originalFilename),
+    status: stringField(row.status),
+    updatedAt: stringField(row.updatedAt),
+    width: int64Field(row.width, "assets.width"),
+  };
+}
+
 function productRowToProto(row: Record<string, unknown>) {
   return {
     categoryId: stringField(row.categoryId),
@@ -102,23 +187,6 @@ function productRowToProto(row: Record<string, unknown>) {
       "products.price"
     ),
     sortOrder: int64Field(row.sortOrder, "products.sortOrder"),
-    updatedAt: stringField(row.updatedAt),
-  };
-}
-
-function outletProductRowToProto(row: Record<string, unknown>) {
-  return {
-    createdAt: stringField(row.createdAt),
-    deletedAt: stringField(row.deletedAt),
-    id: stringField(row.id),
-    isAvailable: boolField(row.isAvailable),
-    outletId: stringField(row.outletId),
-    priceMinorUnits: int64Field(
-      row.price ?? row.priceMinorUnits,
-      "outlet_products.price"
-    ),
-    productId: stringField(row.productId),
-    sortOrder: int64Field(row.sortOrder, "outlet_products.sortOrder"),
     updatedAt: stringField(row.updatedAt),
   };
 }
@@ -176,6 +244,39 @@ function orderItemRowToProto(row: Record<string, unknown>) {
   };
 }
 
+function outletProductRowToProto(row: Record<string, unknown>) {
+  return {
+    createdAt: stringField(row.createdAt),
+    deletedAt: stringField(row.deletedAt),
+    id: stringField(row.id),
+    isAvailable: boolField(row.isAvailable),
+    outletId: stringField(row.outletId),
+    priceMinorUnits: int64Field(
+      row.price ?? row.priceMinorUnits,
+      "outlet_products.price"
+    ),
+    productId: stringField(row.productId),
+    sortOrder: int64Field(row.sortOrder, "outlet_products.sortOrder"),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function staffRowToProto(row: Record<string, unknown>) {
+  return {
+    cloudUserId: stringField(row.cloudUserId),
+    createdAt: stringField(row.createdAt),
+    deletedAt: stringField(row.deletedAt),
+    id: stringField(row.id),
+    isActive: boolField(row.isActive),
+    merchantId: stringField(row.merchantId),
+    name: stringField(row.name),
+    outletId: stringField(row.outletId),
+    pin: stringField(row.pin),
+    role: stringField(row.role),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
 function mapTableChanges<Row>(
   changes: TableChangeSet | undefined,
   mapper: (row: Record<string, unknown>) => Row
@@ -204,63 +305,88 @@ async function sha256Hex(input: Uint8Array): Promise<string> {
   return toHex(new Uint8Array(hash));
 }
 
-function parseJsonRows(
-  table: string,
-  rows: string[]
-): Record<string, unknown>[] {
-  const parsedRows: Record<string, unknown>[] = [];
-  for (const rowJson of rows) {
-    const parsed: unknown = JSON.parse(rowJson);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error(`Invalid JSON row for ${table}`);
-    }
-    parsedRows.push(parsed as Record<string, unknown>);
-  }
-  return parsedRows;
-}
-
 export function decodePushBatchRequest(
   request: SyncPushBatchRequest
 ): PushBatchChanges {
   const changes: PushBatchChanges = {};
 
-  for (const table of request.jsonTables) {
-    changes[table.table] = {
-      created: parseJsonRows(table.table, table.createdJson),
-      updated: parseJsonRows(table.table, table.updatedJson),
-      deletedIds: table.deletedIds,
+  if (request.merchants) {
+    changes.merchants = {
+      created: request.merchants.created.map((row) => ({ ...row })),
+      deletedIds: request.merchants.deletedIds,
+      updated: request.merchants.updated.map((row) => ({ ...row })),
+    };
+  }
+
+  if (request.outlets) {
+    changes.outlets = {
+      created: request.outlets.created.map((row) => ({ ...row })),
+      deletedIds: request.outlets.deletedIds,
+      updated: request.outlets.updated.map((row) => ({ ...row })),
+    };
+  }
+
+  if (request.registers) {
+    changes.registers = {
+      created: request.registers.created.map((row) => ({ ...row })),
+      deletedIds: request.registers.deletedIds,
+      updated: request.registers.updated.map((row) => ({ ...row })),
+    };
+  }
+
+  if (request.categories) {
+    changes.categories = {
+      created: request.categories.created.map((row) => ({ ...row })),
+      deletedIds: request.categories.deletedIds,
+      updated: request.categories.updated.map((row) => ({ ...row })),
+    };
+  }
+
+  if (request.assets) {
+    changes.assets = {
+      created: request.assets.created.map((row) => ({ ...row })),
+      deletedIds: request.assets.deletedIds,
+      updated: request.assets.updated.map((row) => ({ ...row })),
     };
   }
 
   if (request.products) {
     changes.products = {
       created: request.products.created.map((row) => ({ ...row })),
-      updated: request.products.updated.map((row) => ({ ...row })),
       deletedIds: request.products.deletedIds,
-    };
-  }
-
-  if (request.outletProducts) {
-    changes.outlet_products = {
-      created: request.outletProducts.created.map((row) => ({ ...row })),
-      updated: request.outletProducts.updated.map((row) => ({ ...row })),
-      deletedIds: request.outletProducts.deletedIds,
+      updated: request.products.updated.map((row) => ({ ...row })),
     };
   }
 
   if (request.orders) {
     changes.orders = {
       created: request.orders.created.map((row) => ({ ...row })),
-      updated: request.orders.updated.map((row) => ({ ...row })),
       deletedIds: request.orders.deletedIds,
+      updated: request.orders.updated.map((row) => ({ ...row })),
     };
   }
 
   if (request.orderItems) {
     changes.order_items = {
       created: request.orderItems.created.map((row) => ({ ...row })),
-      updated: request.orderItems.updated.map((row) => ({ ...row })),
       deletedIds: request.orderItems.deletedIds,
+      updated: request.orderItems.updated.map((row) => ({ ...row })),
+    };
+  }
+
+  if (request.outletProducts) {
+    changes.outlet_products = {
+      created: request.outletProducts.created.map((row) => ({ ...row })),
+      deletedIds: request.outletProducts.deletedIds,
+      updated: request.outletProducts.updated.map((row) => ({ ...row })),
+    };
+  }
+
+  if (request.staff) {
+    changes.staff = {
+      created: request.staff.created.map((row) => ({ ...row })),
+      deletedIds: request.staff.deletedIds,
+      updated: request.staff.updated.map((row) => ({ ...row })),
     };
   }
 
@@ -300,24 +426,38 @@ export function encodePullBatchResponse(
   result: PullBatchResult
 ): SyncPullBatchResponse {
   return SyncPullBatchResponse.create({
+    assets: mapTableChanges(result.assets, assetRowToProto) as AssetChanges,
+    categories: mapTableChanges(
+      result.categories,
+      categoryRowToProto
+    ) as CategoryChanges,
     hasMore: result.hasMore ?? false,
-    jsonTables: result.jsonTables ?? [],
     latestEventId: coerceBigInt(result.latestEventId),
+    merchants: mapTableChanges(
+      result.merchants,
+      merchantRowToProto
+    ) as MerchantChanges,
     needsFullResync: result.needsFullResync,
     nextPageCursor: result.nextPageCursor ?? "",
     orderItems: mapTableChanges(
-      result.orderItems,
+      result.order_items,
       orderItemRowToProto
     ) as OrderItemChanges,
     orders: mapTableChanges(result.orders, orderRowToProto) as OrderChanges,
     outletProducts: mapTableChanges(
-      result.outletProducts,
+      result.outlet_products,
       outletProductRowToProto
     ) as OutletProductChanges,
+    outlets: mapTableChanges(result.outlets, outletRowToProto) as OutletChanges,
     products: mapTableChanges(
       result.products,
       productRowToProto
     ) as ProductChanges,
+    registers: mapTableChanges(
+      result.registers,
+      registerRowToProto
+    ) as RegisterChanges,
     serverTime: result.serverTime,
+    staff: mapTableChanges(result.staff, staffRowToProto) as StaffChanges,
   });
 }

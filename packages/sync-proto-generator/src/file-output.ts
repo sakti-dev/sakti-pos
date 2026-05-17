@@ -18,5 +18,8 @@ export function resolveGeneratorOutputPath(
   if (mode === "compare") {
     return join(packageRoot, "generated", fileName);
   }
-  return join(repoRoot, "packages", "protobuf", "proto", fileName);
+  if (fileName === "sync.proto") {
+    return join(repoRoot, "packages", "protobuf", "proto", fileName);
+  }
+  return join(packageRoot, "generated", fileName);
 }

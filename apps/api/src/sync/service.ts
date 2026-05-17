@@ -58,13 +58,6 @@ const PUSH_TABLE_ORDER = [
   "order_items",
 ];
 
-const HOT_SYNC_TABLE_NAMES = new Set([
-  "products",
-  "outlet_products",
-  "orders",
-  "order_items",
-]);
-
 const PULL_BATCH_DEFAULT_LIMIT = 250;
 const PULL_BATCH_MAX_LIMIT = 500;
 const PULL_BATCH_CURSOR_PREFIX = "event:";
@@ -126,27 +119,21 @@ interface PullTableChanges {
 }
 
 interface PullBatchResult {
+  assets?: PullTableChanges;
+  categories?: PullTableChanges;
   hasMore: boolean;
-  jsonTables: {
-    createdJson: string[];
-    deletedIds: string[];
-    table: string;
-    updatedJson: string[];
-  }[];
   latestEventId: number;
+  merchants?: PullTableChanges;
   needsFullResync: boolean;
   nextPageCursor: string;
   order_items?: PullTableChanges;
   orders?: PullTableChanges;
   outlet_products?: PullTableChanges;
+  outlets?: PullTableChanges;
   products?: PullTableChanges;
+  registers?: PullTableChanges;
   serverTime: string;
-}
-
-type HotTableName = "order_items" | "orders" | "outlet_products" | "products";
-
-function isHotTableName(table: string): table is HotTableName {
-  return HOT_SYNC_TABLE_NAMES.has(table);
+  staff?: PullTableChanges;
 }
 
 export interface TableChangeSet {
@@ -979,7 +966,6 @@ function normalizeBatchInt64(value: unknown): number {
 }
 
 interface PullBatchEntry {
-  kind: "hot" | "json";
   operation: SyncEventOperation;
   row: Record<string, unknown>;
   rowId: string;
@@ -1066,7 +1052,6 @@ async function buildPullBatchEntries(
       continue;
     }
     entries.push({
-      kind: HOT_SYNC_TABLE_NAMES.has(event.tableName) ? "hot" : "json",
       operation: event.operation,
       row,
       rowId: event.rowId,
@@ -1077,76 +1062,51 @@ async function buildPullBatchEntries(
   return entries;
 }
 
+const TYPED_TABLE_PROPERTY_MAP = {
+  assets: "assets",
+  categories: "categories",
+  merchants: "merchants",
+  order_items: "order_items",
+  orders: "orders",
+  outlet_products: "outlet_products",
+  outlets: "outlets",
+  products: "products",
+  registers: "registers",
+  staff: "staff",
+} as const;
+
+type TypedTableProperty = keyof typeof TYPED_TABLE_PROPERTY_MAP;
+
 function applyPullBatchEntries(
   entries: PullBatchEntry[]
-): Pick<
-  PullBatchResult,
-  "jsonTables" | "order_items" | "orders" | "outlet_products" | "products"
-> {
-  const result: Partial<
-    Pick<
-      PullBatchResult,
-      "order_items" | "orders" | "outlet_products" | "products"
-    >
-  > = {};
-  const jsonTables = new Map<
-    string,
-    {
-      createdJson: string[];
-      deletedIds: string[];
-      table: string;
-      updatedJson: string[];
-    }
-  >();
+): Partial<Pick<PullBatchResult, TypedTableProperty>> {
+  const result: Partial<Pick<PullBatchResult, TypedTableProperty>> = {};
 
   for (const entry of entries) {
-    if (entry.kind === "hot") {
-      if (!isHotTableName(entry.table)) {
-        continue;
-      }
-      const current = (result[entry.table] as
-        | {
-            created: Record<string, unknown>[];
-            deletedIds: string[];
-            updated: Record<string, unknown>[];
-          }
-        | undefined) ?? {
-        created: [],
-        deletedIds: [],
-        updated: [],
-      };
-      if (entry.operation === "insert") {
-        current.created.push(entry.row);
-      } else if (entry.operation === "delete") {
-        current.deletedIds.push(entry.rowId);
-      } else {
-        current.updated.push(entry.row);
-      }
-      result[entry.table] = current;
+    const property =
+      TYPED_TABLE_PROPERTY_MAP[entry.table as TypedTableProperty];
+    if (!property) {
       continue;
     }
 
-    const tableRows = jsonTables.get(entry.table) ?? {
-      createdJson: [],
+    const current = (result[property] as PullTableChanges | undefined) ?? {
+      created: [],
       deletedIds: [],
-      table: entry.table,
-      updatedJson: [],
+      updated: [],
     };
+
     if (entry.operation === "insert") {
-      tableRows.createdJson.push(JSON.stringify(entry.row));
+      current.created.push(entry.row);
     } else if (entry.operation === "delete") {
-      tableRows.deletedIds.push(entry.rowId);
+      current.deletedIds.push(entry.rowId);
     } else {
-      tableRows.updatedJson.push(JSON.stringify(entry.row));
+      current.updated.push(entry.row);
     }
-    jsonTables.set(entry.table, tableRows);
+
+    (result as Record<string, PullTableChanges>)[property] = current;
   }
 
-  if (jsonTables.size > 0) {
-    return { ...result, jsonTables: Array.from(jsonTables.values()) };
-  }
-
-  return { ...result, jsonTables: [] };
+  return result;
 }
 
 async function normalizePullBatchResult(input: {
@@ -1176,7 +1136,6 @@ async function normalizePullBatchResult(input: {
   if (needsFullResync) {
     return {
       hasMore: false,
-      jsonTables: [],
       latestEventId: retainedLatestEventId,
       needsFullResync: true,
       nextPageCursor: "",
@@ -1203,12 +1162,6 @@ async function normalizePullBatchResult(input: {
   return {
     ...pageResult,
     hasMore,
-    jsonTables: (pageResult.jsonTables ?? []) as {
-      createdJson: string[];
-      deletedIds: string[];
-      table: string;
-      updatedJson: string[];
-    }[],
     latestEventId,
     needsFullResync: false,
     nextPageCursor: hasMore ? formatPullBatchCursor(latestEventId) : "",
@@ -1461,7 +1414,7 @@ async function resolveLimitedRows<T>(
 async function buildBaselinePullBatchResult(
   input: PullBatchInput,
   latestEventId: number
-) {
+): Promise<PullBatchResult> {
   const tables = input.tables.length > 0 ? input.tables : ALL_SYNC_TABLE_NAMES;
   const snapshots = await selectBaselineSnapshots(
     input.outletId,
@@ -1479,7 +1432,6 @@ async function buildBaselinePullBatchResult(
         continue;
       }
       entries.push({
-        kind: HOT_SYNC_TABLE_NAMES.has(table) ? "hot" : "json",
         operation: row.deletedAt ? "delete" : "insert",
         row,
         rowId: row.id,
@@ -1491,12 +1443,6 @@ async function buildBaselinePullBatchResult(
   return {
     ...pageResult,
     hasMore: false,
-    jsonTables: (pageResult.jsonTables ?? []) as {
-      createdJson: string[];
-      deletedIds: string[];
-      table: string;
-      updatedJson: string[];
-    }[],
     latestEventId,
     needsFullResync: false,
     nextPageCursor: "",

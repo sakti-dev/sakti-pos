@@ -184,27 +184,63 @@ describe("sync protobuf routes", () => {
     expect(mockVerifyOutletAccess).toHaveBeenCalledWith("user-1", "outlet-1");
   });
 
-  test("POST /api/sync/push returns 400 for malformed JSON fallback rows", async () => {
+  test("POST /api/sync/push accepts typed category rows", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockVerifyOutletAccess.mockResolvedValue(true);
     mockOutletLookup();
+    mockHandlePushBatch.mockResolvedValue({
+      latestEventId: 12,
+      serverTime: "2026-05-17T00:00:00.000Z",
+      tables: [
+        {
+          acceptedCreatedIds: ["cat-1"],
+          acceptedDeletedIds: [],
+          acceptedUpdatedIds: [],
+          rejected: [],
+          table: "categories",
+        },
+      ],
+    });
+
     const body = SyncPushBatchRequest.encode(
       SyncPushBatchRequest.create({
         idempotencyKey: "sync-request-1",
+        categories: {
+          created: [
+            {
+              id: "cat-1",
+              merchantId: "merchant-1",
+              name: "Minuman",
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
         outletId: "outlet-1",
-        jsonTables: [
-          {
-            table: "categories",
-            createdJson: ["{bad-json"],
-          },
-        ],
       })
     ).finish();
 
     const response = await makeProtobufRequest("/api/sync/push", body);
 
-    expect(response.status).toBe(400);
-    expect(mockHandlePushBatch).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(mockHandlePushBatch).toHaveBeenCalledWith(
+      "outlet-1",
+      "merchant-1",
+      {
+        categories: {
+          created: [
+            expect.objectContaining({
+              id: "cat-1",
+              name: "Minuman",
+            }),
+          ],
+          deletedIds: [],
+          updated: [],
+        },
+      },
+      "sync-request-1",
+      expect.any(String)
+    );
   });
 
   test("POST /api/sync/push requires an idempotency key", async () => {
@@ -329,13 +365,18 @@ describe("sync protobuf routes", () => {
     mockOutletLookup();
     const body = SyncPushBatchRequest.encode(
       SyncPushBatchRequest.create({
+        categories: {
+          created: [
+            {
+              id: "cat-1",
+              merchantId: "merchant-1",
+              name: "x".repeat(2 * 1024 * 1024),
+            },
+          ],
+          deletedIds: [],
+          updated: [],
+        },
         idempotencyKey: "sync-request-1",
-        jsonTables: [
-          {
-            createdJson: ["x".repeat(2 * 1024 * 1024)],
-            table: "categories",
-          },
-        ],
         outletId: "outlet-1",
       })
     ).finish();
@@ -386,15 +427,12 @@ describe("sync protobuf routes", () => {
     mockVerifyOutletAccess.mockResolvedValue(true);
     mockOutletLookup();
     mockHandlePullBatch.mockResolvedValue({
+      categories: {
+        created: [],
+        deletedIds: [],
+        updated: [{ id: "cat-1", merchantId: "merchant-1", name: "Minuman" }],
+      },
       hasMore: false,
-      jsonTables: [
-        {
-          createdJson: [],
-          deletedIds: [],
-          table: "categories",
-          updatedJson: [JSON.stringify({ id: "cat-1", name: "Minuman" })],
-        },
-      ],
       latestEventId: 12,
       needsFullResync: false,
       nextPageCursor: "",
@@ -439,6 +477,6 @@ describe("sync protobuf routes", () => {
       tables: ["products", "categories"],
     });
     expect(decoded.products?.updated[0]?.id).toBe("product-1");
-    expect(decoded.jsonTables[0]?.table).toBe("categories");
+    expect(decoded.categories?.updated[0]?.name).toBe("Minuman");
   });
 });

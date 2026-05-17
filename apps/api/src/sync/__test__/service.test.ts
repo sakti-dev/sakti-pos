@@ -571,7 +571,7 @@ describe("handlePullBatch", () => {
     vi.resetAllMocks();
   });
 
-  test("returns typed hot table rows and json fallback rows from events", async () => {
+  test("returns typed table rows from events", async () => {
     mockSelect.mockImplementationOnce(() => ({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -624,10 +624,10 @@ describe("handlePullBatch", () => {
     expect(result.hasMore).toBe(false);
     expect(result.needsFullResync).toBe(false);
     expect(result.products?.updated[0]).toMatchObject({ id: "product-1" });
-    expect(
-      result.jsonTables.find((table) => table.table === "categories")
-        ?.createdJson[0]
-    ).toBeDefined();
+    expect(result.categories?.created[0]).toMatchObject({
+      id: "cat-1",
+      name: "Minuman",
+    });
   });
 
   test("pages rows using the cursor and limit", async () => {

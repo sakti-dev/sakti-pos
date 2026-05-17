@@ -16,13 +16,6 @@ message SyncStatusResponse {
   bool has_oldest_available_event_id = 6;
 }
 
-message SyncJsonTableChanges {
-  string table = 1;
-  repeated string created_json = 2;
-  repeated string updated_json = 3;
-  repeated string deleted_ids = 4;
-}
-
 message SyncRejectedRow {
   string id = 1;
   string reason = 2;
@@ -34,6 +27,71 @@ message SyncTableAck {
   repeated string accepted_updated_ids = 3;
   repeated string accepted_deleted_ids = 4;
   repeated SyncRejectedRow rejected = 5;
+}
+
+message MerchantRow {
+  string id = 1;
+  string name = 2;
+  string deleted_at = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+message OutletRow {
+  string id = 1;
+  string merchant_id = 2;
+  string timezone = 3;
+  string name = 4;
+  string address = 5;
+  string receipt_name = 6;
+  string receipt_address = 7;
+  bool is_active = 8;
+  string deleted_at = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message RegisterRow {
+  string id = 1;
+  string outlet_id = 2;
+  string name = 3;
+  string short_id = 4;
+  string pairing_code = 5;
+  string pairing_expires_at = 6;
+  bool is_active = 7;
+  string last_seen_at = 8;
+  string deleted_at = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message CategoryRow {
+  string id = 1;
+  string merchant_id = 2;
+  string name = 3;
+  int64 sort_order = 4;
+  bool is_active = 5;
+  string deleted_at = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message AssetRow {
+  string id = 1;
+  string merchant_id = 2;
+  string object_key = 3;
+  string original_filename = 4;
+  string content_type = 5;
+  int64 byte_size = 6;
+  string content_hash = 7;
+  string kind = 8;
+  int64 width = 9;
+  int64 height = 10;
+  string status = 11;
+  string created_by_user_id = 12;
+  string deleted_at = 13;
+  string created_at = 14;
+  string updated_at = 15;
 }
 
 message ProductRow {
@@ -49,18 +107,6 @@ message ProductRow {
   string deleted_at = 10;
   string created_at = 11;
   string updated_at = 12;
-}
-
-message OutletProductRow {
-  string id = 1;
-  string outlet_id = 2;
-  string product_id = 3;
-  int64 price_minor_units = 4;
-  bool is_available = 5;
-  int64 sort_order = 6;
-  string deleted_at = 7;
-  string created_at = 8;
-  string updated_at = 9;
 }
 
 message OrderRow {
@@ -94,15 +140,65 @@ message OrderItemRow {
   string updated_at = 12;
 }
 
-message ProductChanges {
-  repeated ProductRow created = 1;
-  repeated ProductRow updated = 2;
+message OutletProductRow {
+  string id = 1;
+  string outlet_id = 2;
+  string product_id = 3;
+  int64 price_minor_units = 4;
+  bool is_available = 5;
+  int64 sort_order = 6;
+  string deleted_at = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message StaffRow {
+  string id = 1;
+  string merchant_id = 2;
+  string cloud_user_id = 3;
+  string outlet_id = 4;
+  string name = 5;
+  string pin = 6;
+  string role = 7;
+  bool is_active = 8;
+  string deleted_at = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message MerchantChanges {
+  repeated MerchantRow created = 1;
+  repeated MerchantRow updated = 2;
   repeated string deleted_ids = 3;
 }
 
-message OutletProductChanges {
-  repeated OutletProductRow created = 1;
-  repeated OutletProductRow updated = 2;
+message OutletChanges {
+  repeated OutletRow created = 1;
+  repeated OutletRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message RegisterChanges {
+  repeated RegisterRow created = 1;
+  repeated RegisterRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message CategoryChanges {
+  repeated CategoryRow created = 1;
+  repeated CategoryRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message AssetChanges {
+  repeated AssetRow created = 1;
+  repeated AssetRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message ProductChanges {
+  repeated ProductRow created = 1;
+  repeated ProductRow updated = 2;
   repeated string deleted_ids = 3;
 }
 
@@ -118,14 +214,31 @@ message OrderItemChanges {
   repeated string deleted_ids = 3;
 }
 
+message OutletProductChanges {
+  repeated OutletProductRow created = 1;
+  repeated OutletProductRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
+message StaffChanges {
+  repeated StaffRow created = 1;
+  repeated StaffRow updated = 2;
+  repeated string deleted_ids = 3;
+}
+
 message SyncPushBatchRequest {
   string outlet_id = 1;
   string idempotency_key = 2;
-  repeated SyncJsonTableChanges json_tables = 3;
-  ProductChanges products = 10;
-  OutletProductChanges outlet_products = 11;
-  OrderChanges orders = 12;
-  OrderItemChanges order_items = 13;
+  MerchantChanges merchants = 10;
+  OutletChanges outlets = 11;
+  RegisterChanges registers = 12;
+  CategoryChanges categories = 13;
+  AssetChanges assets = 14;
+  ProductChanges products = 15;
+  OrderChanges orders = 16;
+  OrderItemChanges order_items = 17;
+  OutletProductChanges outlet_products = 18;
+  StaffChanges staff = 19;
 }
 
 message SyncPushBatchResponse {
@@ -143,14 +256,19 @@ message SyncPullBatchRequest {
 }
 
 message SyncPullBatchResponse {
-  repeated SyncJsonTableChanges json_tables = 1;
-  ProductChanges products = 10;
-  OutletProductChanges outlet_products = 11;
-  OrderChanges orders = 12;
-  OrderItemChanges order_items = 13;
-  int64 latest_event_id = 20;
-  bool needs_full_resync = 21;
-  string server_time = 22;
-  bool has_more = 23;
-  string next_page_cursor = 24;
+  MerchantChanges merchants = 10;
+  OutletChanges outlets = 11;
+  RegisterChanges registers = 12;
+  CategoryChanges categories = 13;
+  AssetChanges assets = 14;
+  ProductChanges products = 15;
+  OrderChanges orders = 16;
+  OrderItemChanges order_items = 17;
+  OutletProductChanges outlet_products = 18;
+  StaffChanges staff = 19;
+  int64 latest_event_id = 100;
+  bool needs_full_resync = 101;
+  string server_time = 102;
+  bool has_more = 103;
+  string next_page_cursor = 104;
 }
