@@ -95,6 +95,29 @@ mod tests {
     }
 
     #[test]
+    fn rejected_ids_by_table_collects_server_newer_rows() {
+        let response = SyncPushBatchResponse {
+            tables: vec![SyncTableAck {
+                table: "products".to_string(),
+                accepted_created_ids: vec![],
+                accepted_updated_ids: vec![],
+                accepted_deleted_ids: vec![],
+                rejected: vec![SyncRejectedRow {
+                    id: "product-1".to_string(),
+                    reason: "server_newer".to_string(),
+                }],
+            }],
+            server_time: "2026-05-18T00:00:00.000Z".to_string(),
+        };
+
+        let rejected = super::push::rejected_ids_by_table(&response);
+        assert!(rejected
+            .get("products")
+            .expect("products rejected ids")
+            .contains("product-1"));
+    }
+
+    #[test]
     fn idempotency_key_is_deterministic_from_outbox_ids() {
         let first = super::push::generate_idempotency_key_from_outbox_ids(&[
             "outbox-2".to_string(),

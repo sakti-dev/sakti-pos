@@ -277,6 +277,24 @@ pub async fn sync_now(
     .await?;
     let push = sync_push_batch_inner(&state.db_pool, &outlet_id, &api_url, &session_token).await?;
 
+    let pull = if push.server_wins_count > 0 {
+        log::info!(
+            "[RUST] [SYNC:TRACE] sync_now: rejected push rows detected, pulling server versions count={}",
+            push.server_wins_count
+        );
+        sync_pull_batch_inner(
+            &state.db_pool,
+            &outlet_id,
+            &api_url,
+            &session_token,
+            &tables,
+            PullStartCursor::Stored,
+        )
+        .await?
+    } else {
+        pull
+    };
+
     let merchant_id: Option<String> = {
         let query = "SELECT merchant_id FROM outlets WHERE id = ?1";
         sqlx::query_scalar::<_, String>(query)

@@ -47,6 +47,19 @@ pub(super) fn accepted_ids_by_table(
     result
 }
 
+pub(super) fn rejected_ids_by_table(
+    response: &SyncPushBatchResponse,
+) -> HashMap<String, HashSet<String>> {
+    let mut result = HashMap::new();
+    for ack in &response.tables {
+        let ids = result.entry(ack.table.clone()).or_insert_with(HashSet::new);
+        for rejected in &ack.rejected {
+            ids.insert(rejected.id.clone());
+        }
+    }
+    result
+}
+
 pub(super) fn chunk_pending_push_tables(
     tables: Vec<PendingTablePush>,
     max_rows: usize,
@@ -584,6 +597,19 @@ pub(super) async fn sync_push_batch_inner(
             "[RUST] [SYNC:TRACE] push_batch: marked_outbox_synced={}",
             marked_outbox
         );
+        let rejected_by_table = rejected_ids_by_table(&result);
+        if !rejected_by_table.is_empty() {
+            let marked_rejected_outbox = super::outbox::mark_outbox_synced_by_row_ids_tx(
+                &mut tx,
+                &synced_at,
+                &rejected_by_table,
+            )
+            .await?;
+            log::info!(
+                "[RUST] [SYNC:TRACE] push_batch: marked_rejected_outbox_synced={}",
+                marked_rejected_outbox
+            );
+        }
         tx.commit()
             .await
             .map_err(|e| format!("Failed to commit push batch transaction: {}", e))?;
