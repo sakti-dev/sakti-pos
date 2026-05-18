@@ -1,5 +1,4 @@
 use prost::Message;
-use serde_json::Value;
 use sqlx::{SqliteConnection, SqlitePool};
 use std::collections::BTreeMap;
 
@@ -8,8 +7,9 @@ use super::local_state::{
     get_last_server_watermark, set_last_server_watermark_tx, set_last_sync_at_tx,
 };
 use super::protobuf::{
-    build_sync_pull_batch_request, decode_pull_batch_response_tables, pull_batch_response_cursor,
-    pull_batch_response_has_more, pull_batch_response_server_time,
+    build_sync_pull_batch_request, decode_pull_batch_response_tables,
+    pull_batch_response_cursor, pull_batch_response_has_more,
+    pull_batch_response_server_time, DecodedPullTable,
 };
 use super::push::{debug_row_summary, upsert_row};
 use super::sync_proto::SyncPullBatchResponse;
@@ -40,20 +40,21 @@ pub(super) async fn apply_pull_batch_tables_tx(
     tx: &mut SqliteConnection,
     outlet_id: &str,
     tables: &[String],
-    tables_map: &BTreeMap<String, Value>,
+    tables_map: &BTreeMap<String, DecodedPullTable>,
     server_time: &str,
     cursor: &str,
 ) -> Result<usize, String> {
     let mut rows_received = 0usize;
 
     for table in tables {
-        if let Some(rows) = tables_map.get(table).and_then(|value| value.as_array()) {
+        if let Some(decoded) = tables_map.get(table) {
             log::info!(
-                "[RUST] [SYNC:TRACE] pull_batch: table={}, rows_from_server={}",
+                "[RUST] [SYNC:TRACE] pull_batch: table={}, changed_rows={}, deleted_ids={}",
                 table,
-                rows.len()
+                decoded.changed_rows.len(),
+                decoded.deleted_ids.len()
             );
-            for row in rows {
+            for row in &decoded.changed_rows {
                 log::info!(
                     "[RUST] [SYNC:TRACE] pull_batch row: table={}, row={}",
                     table,
@@ -62,6 +63,7 @@ pub(super) async fn apply_pull_batch_tables_tx(
                 upsert_row(tx, table, row).await?;
                 rows_received += 1;
             }
+            rows_received += decoded.deleted_ids.len();
         }
         set_last_sync_at_tx(tx, table, outlet_id, server_time).await?;
     }

@@ -400,19 +400,10 @@ fn staff_row_to_value(row: &StaffRow) -> Value {
     })
 }
 
-fn typed_rows_to_json_values<T>(
-    changed_rows: &[T],
-    deleted_ids: &[String],
-    server_time: &str,
-    mapper: impl Fn(&T) -> Value,
-) -> Vec<Value> {
-    let mut rows = changed_rows.iter().map(mapper).collect::<Vec<_>>();
-    rows.extend(
-        deleted_ids
-            .iter()
-            .map(|id| serde_json::json!({ "id": id, "deletedAt": server_time })),
-    );
-    rows
+#[derive(Debug, Clone, Default)]
+pub(super) struct DecodedPullTable {
+    pub changed_rows: Vec<Value>,
+    pub deleted_ids: Vec<String>,
 }
 
 pub(super) fn build_assets_row_changes(changes: &TablePushChanges) -> AssetsChanges {
@@ -561,126 +552,146 @@ pub(super) fn build_sync_push_batch_request(
 
 pub(super) fn decode_pull_batch_response_tables(
     response: &SyncPullBatchResponse,
-) -> Result<std::collections::BTreeMap<String, Value>, String> {
+) -> Result<std::collections::BTreeMap<String, DecodedPullTable>, String> {
     let mut map = std::collections::BTreeMap::new();
 
     if let Some(changes) = &response.assets {
         map.insert(
             "assets".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                assets_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(assets_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.categories {
         map.insert(
             "categories".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                categories_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(categories_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.merchants {
         map.insert(
             "merchants".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                merchants_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(merchants_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.order_items {
         map.insert(
             "order_items".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                order_items_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(order_items_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.orders {
         map.insert(
             "orders".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                orders_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(orders_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.outlet_products {
         map.insert(
             "outlet_products".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                outlet_products_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(outlet_products_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.outlets {
         map.insert(
             "outlets".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                outlets_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(outlets_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.products {
         map.insert(
             "products".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                products_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(products_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.registers {
         map.insert(
             "registers".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                registers_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(registers_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 
     if let Some(changes) = &response.staff {
         map.insert(
             "staff".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.changed_rows,
-                &changes.deleted_ids,
-                &response.server_time,
-                staff_row_to_value,
-            )),
+            DecodedPullTable {
+                changed_rows: changes
+                    .changed_rows
+                    .iter()
+                    .map(staff_row_to_value)
+                    .collect::<Vec<_>>(),
+                deleted_ids: changes.deleted_ids.clone(),
+            },
         );
     }
 

@@ -12,7 +12,7 @@ pub(super) use super::protobuf_generated::{
     build_registers_row_changes as build_register_changes,
     build_staff_row_changes as build_staff_changes, build_sync_push_batch_request,
     decode_pull_batch_response_tables, pull_batch_response_cursor, pull_batch_response_has_more,
-    pull_batch_response_server_time, TablePushChanges,
+    pull_batch_response_server_time, DecodedPullTable, TablePushChanges,
 };
 
 pub(super) fn build_sync_pull_batch_request(
@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_pull_batch_response_turns_deleted_ids_into_tombstone_rows() {
+    fn decode_pull_batch_response_separates_deleted_ids_from_changed_rows() {
         use super::super::sync_proto::{
             CategoriesChanges as CategoryChanges, ProductsChanges as ProductChanges,
             SyncPullBatchResponse,
@@ -139,20 +139,13 @@ mod tests {
 
         let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
 
-        assert_eq!(
-            tables["products"][0],
-            json!({
-                "id": "product-deleted",
-                "deletedAt": "2026-05-17T00:00:00.000Z"
-            })
-        );
-        assert_eq!(
-            tables["categories"][0],
-            json!({
-                "id": "cat-deleted",
-                "deletedAt": "2026-05-17T00:00:00.000Z"
-            })
-        );
+        let products = tables.get("products").expect("products changes");
+        assert!(products.changed_rows.is_empty());
+        assert_eq!(products.deleted_ids, vec!["product-deleted".to_string()]);
+
+        let categories = tables.get("categories").expect("categories changes");
+        assert!(categories.changed_rows.is_empty());
+        assert_eq!(categories.deleted_ids, vec!["cat-deleted".to_string()]);
     }
 
     #[test]
@@ -182,9 +175,9 @@ mod tests {
 
         let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
 
-        assert_eq!(tables["products"][0]["priceMinorUnits"], json!(15_000));
-        assert_eq!(tables["products"][0]["sortOrder"], json!(3));
-        assert!(tables["products"][0].get("price").is_none());
+        assert_eq!(tables["products"].changed_rows[0]["priceMinorUnits"], json!(15_000));
+        assert_eq!(tables["products"].changed_rows[0]["sortOrder"], json!(3));
+        assert!(tables["products"].changed_rows[0].get("price").is_none());
     }
 
     #[test]
@@ -218,18 +211,18 @@ mod tests {
         let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
 
         assert_eq!(
-            tables["order_items"][0]["unitPriceMinorUnits"],
+            tables["order_items"].changed_rows[0]["unitPriceMinorUnits"],
             json!(15_000)
         );
         assert_eq!(
-            tables["order_items"][0]["originalPriceMinorUnits"],
+            tables["order_items"].changed_rows[0]["originalPriceMinorUnits"],
             json!(20_000)
         );
         assert_eq!(
-            tables["order_items"][0]["subtotalMinorUnits"],
+            tables["order_items"].changed_rows[0]["subtotalMinorUnits"],
             json!(30_000)
         );
-        assert!(tables["order_items"][0].get("unitPrice").is_none());
+        assert!(tables["order_items"].changed_rows[0].get("unitPrice").is_none());
     }
 
     #[test]
@@ -579,20 +572,20 @@ mod tests {
         assert!(tables.contains_key("outlet_products"));
         assert!(tables.contains_key("staff"));
 
-        assert_eq!(tables["merchants"][0]["name"], json!("Toko"));
-        assert_eq!(tables["products"][0]["priceMinorUnits"], json!(15_000));
-        assert_eq!(tables["orders"][0]["totalMinorUnits"], json!(15_000));
+        assert_eq!(tables["merchants"].changed_rows[0]["name"], json!("Toko"));
+        assert_eq!(tables["products"].changed_rows[0]["priceMinorUnits"], json!(15_000));
+        assert_eq!(tables["orders"].changed_rows[0]["totalMinorUnits"], json!(15_000));
         assert_eq!(
-            tables["order_items"][0]["unitPriceMinorUnits"],
+            tables["order_items"].changed_rows[0]["unitPriceMinorUnits"],
             json!(15_000)
         );
         assert_eq!(
-            tables["outlet_products"][0]["priceMinorUnits"],
+            tables["outlet_products"].changed_rows[0]["priceMinorUnits"],
             json!(15_000)
         );
-        assert_eq!(tables["assets"][0]["byteSize"], json!(123));
-        assert_eq!(tables["categories"][0]["sortOrder"], json!(1));
-        assert_eq!(tables["staff"][0]["role"], json!("owner"));
+        assert_eq!(tables["assets"].changed_rows[0]["byteSize"], json!(123));
+        assert_eq!(tables["categories"].changed_rows[0]["sortOrder"], json!(1));
+        assert_eq!(tables["staff"].changed_rows[0]["role"], json!("owner"));
     }
 
     #[test]
@@ -622,8 +615,8 @@ mod tests {
 
         let tables = decode_pull_batch_response_tables(&response).expect("response should decode");
 
-        assert_eq!(tables["categories"][0]["name"], json!("Minuman"));
-        assert_eq!(tables["categories"][0]["sortOrder"], json!(1));
-        assert_eq!(tables["categories"][0]["isActive"], json!(true));
+        assert_eq!(tables["categories"].changed_rows[0]["name"], json!("Minuman"));
+        assert_eq!(tables["categories"].changed_rows[0]["sortOrder"], json!(1));
+        assert_eq!(tables["categories"].changed_rows[0]["isActive"], json!(true));
     }
 }

@@ -85,4 +85,21 @@ describe("Rust POS sync mapper writer", () => {
     expect(source).not.toContain("orderItems: Option<OrderItemChanges>");
     expect(source).not.toContain("response.orderItems");
   });
+
+  test("renders DecodedPullTable struct with changed_rows and deleted_ids", () => {
+    const source = renderRustSyncMappers(tables);
+
+    expect(source).toContain("pub(super) struct DecodedPullTable");
+    expect(source).toContain("pub changed_rows: Vec<Value>");
+    expect(source).toContain("pub deleted_ids: Vec<String>");
+  });
+
+  test("decode_pull_batch_response_tables returns DecodedPullTable map", () => {
+    const source = renderRustSyncMappers(tables);
+
+    expect(source).toContain(
+      "Result<std::collections::BTreeMap<String, DecodedPullTable>, String>"
+    );
+    expect(source).not.toContain("typed_rows_to_json_values");
+  });
 });

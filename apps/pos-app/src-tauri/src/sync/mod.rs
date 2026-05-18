@@ -35,6 +35,7 @@ const LOCAL_ONLY_COLUMNS: &[&str] = &["is_synced"];
 #[cfg(test)]
 mod tests {
     use super::pull::{resolve_pull_start_cursor_string, PullStartCursor};
+    use super::protobuf::DecodedPullTable;
     use super::push::build_upsert_query;
     use super::schema::{outbox_rows_to_table_changes, OutboxRowForSync};
     use super::sync_proto::{SyncPushBatchResponse, SyncRejectedRow, SyncTableAck};
@@ -217,8 +218,8 @@ mod tests {
             let mut tables_map = BTreeMap::new();
             tables_map.insert(
                 "products".to_string(),
-                json!([
-                    {
+                DecodedPullTable {
+                    changed_rows: vec![json!({
                         "id": "product-1",
                         "merchantId": "merchant-1",
                         "name": "Kopi",
@@ -227,8 +228,9 @@ mod tests {
                         "sortOrder": 7,
                         "createdAt": "2026-05-17T00:00:00.000Z",
                         "updatedAt": "2026-05-17T00:00:00.000Z"
-                    }
-                ]),
+                    })],
+                    deleted_ids: vec![],
+                },
             );
 
             let applied = super::pull::apply_pull_batch_tables_tx(
@@ -267,11 +269,11 @@ mod tests {
         tauri::async_runtime::block_on(async {
             let pool = test_pool().await;
             let mut tx = pool.begin().await.expect("transaction should begin");
-            let mut tables_map = BTreeMap::<String, Value>::new();
+            let mut tables_map = BTreeMap::new();
             tables_map.insert(
                 "products".to_string(),
-                json!([
-                    {
+                DecodedPullTable {
+                    changed_rows: vec![json!({
                         "id": "product-1",
                         "name": "Kopi",
                         "priceMinorUnits": 15000,
@@ -279,8 +281,9 @@ mod tests {
                         "sortOrder": 7,
                         "createdAt": "2026-05-17T00:00:00.000Z",
                         "updatedAt": "2026-05-17T00:00:00.000Z"
-                    }
-                ]),
+                    })],
+                    deleted_ids: vec![],
+                },
             );
 
             let result = super::pull::apply_pull_batch_tables_tx(

@@ -161,23 +161,6 @@ function renderRowToValue(table: ReflectedSyncTable): string {
   return lines.join("\n");
 }
 
-function renderTypedRowsToJsonValues(): string {
-  return `fn typed_rows_to_json_values<T>(
-    changed_rows: &[T],
-    deleted_ids: &[String],
-    server_time: &str,
-    mapper: impl Fn(&T) -> Value,
-) -> Vec<Value> {
-    let mut rows = changed_rows.iter().map(mapper).collect::<Vec<_>>();
-    rows.extend(
-        deleted_ids
-            .iter()
-            .map(|id| serde_json::json!({ "id": id, "deletedAt": server_time })),
-    );
-    rows
-}`;
-}
-
 function renderBuildChanges(table: ReflectedSyncTable): string {
   const funcName = buildChangesFuncName(table.rowMessageName);
   const rowFunc = rowFromValueFuncName(table.rowMessageName);
@@ -220,11 +203,19 @@ function renderBuildPushRequest(tables: ReflectedSyncTable[]): string {
   ].join("\n");
 }
 
+function renderDecodedPullTableStruct(): string {
+  return `#[derive(Debug, Clone, Default)]
+pub(super) struct DecodedPullTable {
+    pub changed_rows: Vec<Value>,
+    pub deleted_ids: Vec<String>,
+}`;
+}
+
 function renderDecodePullResponse(tables: ReflectedSyncTable[]): string {
   const lines = [
     "pub(super) fn decode_pull_batch_response_tables(",
     "    response: &SyncPullBatchResponse,",
-    ") -> Result<std::collections::BTreeMap<String, Value>, String> {",
+    ") -> Result<std::collections::BTreeMap<String, DecodedPullTable>, String> {",
     "    let mut map = std::collections::BTreeMap::new();",
     "",
   ];
@@ -235,12 +226,12 @@ function renderDecodePullResponse(tables: ReflectedSyncTable[]): string {
     lines.push(`    if let Some(changes) = &response.${rustField} {`);
     lines.push("        map.insert(");
     lines.push(`            "${table.serviceKey}".to_string(),`);
-    lines.push("            Value::Array(typed_rows_to_json_values(");
-    lines.push("                &changes.changed_rows,");
-    lines.push("                &changes.deleted_ids,");
-    lines.push("                &response.server_time,");
-    lines.push(`                ${rowFunc},`);
-    lines.push("            )),");
+    lines.push("            DecodedPullTable {");
+    lines.push(
+      `                changed_rows: changes.changed_rows.iter().map(${rowFunc}).collect::<Vec<_>>(),`
+    );
+    lines.push("                deleted_ids: changes.deleted_ids.clone(),");
+    lines.push("            },");
     lines.push("        );");
     lines.push("    }");
     lines.push("");
@@ -302,7 +293,7 @@ export function renderRustSyncMappers(tables: ReflectedSyncTable[]): string {
     parts.push("");
   }
 
-  parts.push(renderTypedRowsToJsonValues());
+  parts.push(renderDecodedPullTableStruct());
   parts.push("");
 
   for (const table of tables) {
