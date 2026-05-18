@@ -29,9 +29,17 @@ pub(super) async fn mark_outbox_synced_by_accepted_ids_tx(
     synced_at: &str,
     accepted_ids_by_table: &HashMap<String, HashSet<String>>,
 ) -> Result<u64, String> {
+    mark_outbox_synced_by_row_ids_tx(conn, synced_at, accepted_ids_by_table).await
+}
+
+pub(super) async fn mark_outbox_synced_by_row_ids_tx(
+    conn: &mut SqliteConnection,
+    synced_at: &str,
+    ids_by_table: &HashMap<String, HashSet<String>>,
+) -> Result<u64, String> {
     let mut marked = 0_u64;
-    for (table_name, accepted_ids) in accepted_ids_by_table {
-        if accepted_ids.is_empty() {
+    for (table_name, row_ids) in ids_by_table {
+        if row_ids.is_empty() {
             continue;
         }
 
@@ -43,14 +51,14 @@ pub(super) async fn mark_outbox_synced_by_accepted_ids_tx(
             .push_bind(table_name)
             .push(" AND row_id IN (");
         let mut separated = builder.separated(", ");
-        for id in accepted_ids {
+        for id in row_ids {
             separated.push_bind(id);
         }
         separated.push_unseparated(")");
 
         let result = builder.build().execute(&mut *conn).await.map_err(|e| {
             format!(
-                "Failed to mark accepted sync outbox rows synced for {}: {}",
+                "Failed to mark sync outbox rows synced for {}: {}",
                 table_name, e
             )
         })?;

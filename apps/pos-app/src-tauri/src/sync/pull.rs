@@ -1,6 +1,6 @@
 use prost::Message;
 use sqlx::{SqliteConnection, SqlitePool};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::http::build_client;
 use super::local_state::{
@@ -11,7 +11,7 @@ use super::protobuf::{
     pull_batch_response_cursor, pull_batch_response_has_more,
     pull_batch_response_server_time, DecodedPullTable,
 };
-use super::push::{debug_row_summary, upsert_row};
+use super::push::{debug_row_summary, soft_delete_row, upsert_row};
 use super::sync_proto::SyncPullBatchResponse;
 
 #[derive(Debug, serde::Serialize)]
@@ -45,6 +45,7 @@ pub(super) async fn apply_pull_batch_tables_tx(
     cursor: &str,
 ) -> Result<usize, String> {
     let mut rows_received = 0usize;
+    let mut all_deleted_ids_by_table: HashMap<String, HashSet<String>> = HashMap::new();
 
     for table in tables {
         if let Some(decoded) = tables_map.get(table) {
@@ -63,9 +64,30 @@ pub(super) async fn apply_pull_batch_tables_tx(
                 upsert_row(tx, table, row).await?;
                 rows_received += 1;
             }
-            rows_received += decoded.deleted_ids.len();
+            for deleted_id in &decoded.deleted_ids {
+                let affected = soft_delete_row(tx, table, deleted_id, server_time).await?;
+                if affected > 0 {
+                    rows_received += 1;
+                }
+            }
+            if !decoded.deleted_ids.is_empty() {
+                all_deleted_ids_by_table.entry(table.clone()).or_default().extend(decoded.deleted_ids.iter().cloned());
+            }
         }
         set_last_sync_at_tx(tx, table, outlet_id, server_time).await?;
+    }
+
+    if !all_deleted_ids_by_table.is_empty() {
+        let marked = super::outbox::mark_outbox_synced_by_row_ids_tx(
+            tx,
+            server_time,
+            &all_deleted_ids_by_table,
+        )
+        .await?;
+        log::info!(
+            "[RUST] [SYNC:TRACE] pull_batch: marked_outbox_synced_for_deleted_ids={}",
+            marked
+        );
     }
 
     set_last_server_watermark_tx(tx, outlet_id, cursor).await?;

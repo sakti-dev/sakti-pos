@@ -40,7 +40,6 @@ mod tests {
     use super::schema::{outbox_rows_to_table_changes, OutboxRowForSync};
     use super::sync_proto::{SyncPushBatchResponse, SyncRejectedRow, SyncTableAck};
     use serde_json::json;
-    use serde_json::Value;
     use std::collections::BTreeMap;
 
     #[test]
@@ -156,6 +155,26 @@ mod tests {
         );
     }
 
+    async fn test_pool_with_outbox() -> sqlx::SqlitePool {
+        let pool = test_pool().await;
+        sqlx::query(
+            "CREATE TABLE sync_outbox (
+                id TEXT PRIMARY KEY NOT NULL,
+                table_name TEXT NOT NULL,
+                row_id TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                scope_type TEXT NOT NULL,
+                scope_id TEXT NOT NULL,
+                changed_at TEXT NOT NULL,
+                synced_at TEXT
+            )",
+        )
+        .execute(&pool)
+        .await
+        .expect("sync_outbox table should create");
+        pool
+    }
+
     async fn test_pool() -> sqlx::SqlitePool {
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
             .max_connections(1)
@@ -261,6 +280,105 @@ mod tests {
             assert_eq!(applied, 1);
             assert_eq!(row, (15000, 1));
             assert_eq!(cursor, "cursor-42");
+        });
+    }
+
+    #[test]
+    fn soft_delete_row_overwrites_dirty_local_row() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool().await;
+            sqlx::query(
+                "INSERT INTO products (id, merchant_id, name, price_minor_units, is_active, sort_order, is_synced, created_at, updated_at)
+                 VALUES ('product-1', 'merchant-1', 'Dirty', 15000, 1, 0, 0, '2026-05-17T00:00:00.000Z', '2026-05-19T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert product");
+
+            let mut tx = pool.begin().await.expect("tx");
+            super::push::soft_delete_row(
+                &mut tx,
+                "products",
+                "product-1",
+                "2026-05-18T00:00:00.000Z",
+            )
+            .await
+            .expect("soft delete");
+            tx.commit().await.expect("commit");
+
+            let row = sqlx::query_as::<_, (Option<String>, i64)>(
+                "SELECT deleted_at, is_synced FROM products WHERE id = 'product-1'"
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("row");
+
+            assert_eq!(row.0.as_deref(), Some("2026-05-18T00:00:00.000Z"));
+            assert_eq!(row.1, 1);
+        });
+    }
+
+    #[test]
+    fn apply_pull_deleted_ids_clears_stale_outbox() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool_with_outbox().await;
+
+            sqlx::query(
+                "INSERT INTO products (id, merchant_id, name, price_minor_units, is_active, sort_order, is_synced, created_at, updated_at)
+                 VALUES ('product-1', 'merchant-1', 'Dirty', 15000, 1, 0, 0, '2026-05-17T00:00:00.000Z', '2026-05-19T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert product");
+
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES ('outbox-1', 'products', 'product-1', 'update', 'merchant', 'merchant-1', '2026-05-19T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert outbox");
+
+            let mut tables_map = BTreeMap::new();
+            tables_map.insert(
+                "products".to_string(),
+                DecodedPullTable {
+                    changed_rows: vec![],
+                    deleted_ids: vec!["product-1".to_string()],
+                },
+            );
+
+            let mut tx = pool.begin().await.expect("tx");
+            let applied = super::pull::apply_pull_batch_tables_tx(
+                &mut tx,
+                "outlet-1",
+                &["products".to_string()],
+                &tables_map,
+                "2026-05-18T00:00:00.000Z",
+                "cursor-42",
+            )
+            .await
+            .expect("apply");
+            tx.commit().await.expect("commit");
+
+            assert_eq!(applied, 1);
+
+            let product = sqlx::query_as::<_, (Option<String>, i64)>(
+                "SELECT deleted_at, is_synced FROM products WHERE id = 'product-1'"
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("product");
+            assert_eq!(product.0.as_deref(), Some("2026-05-18T00:00:00.000Z"));
+            assert_eq!(product.1, 1);
+
+            let outbox_synced = sqlx::query_scalar::<_, Option<String>>(
+                "SELECT synced_at FROM sync_outbox WHERE id = 'outbox-1'"
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("outbox row");
+            assert!(outbox_synced.is_some());
         });
     }
 

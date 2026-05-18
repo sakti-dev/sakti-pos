@@ -138,6 +138,25 @@ pub(super) fn redact_debug_value(value: &Value) -> Value {
     Value::Object(redacted)
 }
 
+pub(super) async fn soft_delete_row(
+    conn: &mut SqliteConnection,
+    table: &str,
+    id: &str,
+    deleted_at: &str,
+) -> Result<u64, String> {
+    let query = format!(
+        "UPDATE {} SET deleted_at = ?1, updated_at = ?1, is_synced = 1 WHERE id = ?2",
+        table
+    );
+    let result = sqlx::query(&query)
+        .bind(deleted_at)
+        .bind(id)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| format!("Failed to soft delete {} row {}: {}", table, id, e))?;
+    Ok(result.rows_affected())
+}
+
 pub(super) async fn debug_local_table_state(
     conn: &mut SqliteConnection,
     table: &str,
