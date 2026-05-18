@@ -1291,6 +1291,37 @@ describe("handleRowStateSyncStatus", () => {
     expect(result.cursor).toBe("sync:11:orders:order-1");
   });
 
+  test("status selects only id and syncUpdatedAt", async () => {
+    const select = vi.fn().mockReturnValue({
+      from: vi.fn().mockImplementation(() => ({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      })),
+    });
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => await fn({ select })
+    );
+
+    await handleRowStateSyncStatus({
+      cursor: "",
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+    });
+
+    expect(select).toHaveBeenCalled();
+    expect(select.mock.calls.every((call) => call.length === 1)).toBe(true);
+    expect(select.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        id: expect.anything(),
+        syncUpdatedAt: expect.anything(),
+      })
+    );
+  });
+
   test("status uses a transaction for consistent reads", async () => {
     mockTransaction.mockImplementation(
       async (fn: (tx: unknown) => Promise<unknown>) => {

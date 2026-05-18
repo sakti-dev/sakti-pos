@@ -914,6 +914,69 @@ function getRowStateCursorFilter(
   );
 }
 
+async function selectStatusCandidates(input: {
+  cursor: PullBatchCursor | null;
+  limit: number;
+  merchantId: string;
+  outletId: string;
+  tables: string[];
+  tx: TransactionTx;
+}): Promise<RowStateCandidate[]> {
+  const candidates: RowStateCandidate[] = [];
+  const requestedTables =
+    input.tables.length > 0 ? input.tables : Object.keys(SYNC_TABLES);
+
+  for (const tableName of requestedTables) {
+    if (!(tableName in SYNC_TABLES)) {
+      continue;
+    }
+
+    const typedTableName = tableName as keyof typeof SYNC_TABLES;
+    const table = getRequiredSyncTable(typedTableName);
+    const filters = [
+      getRowStateScopeFilter(typedTableName, input.merchantId, input.outletId),
+      getRowStateCursorFilter(typedTableName, input.cursor),
+    ].filter(Boolean);
+
+    const rows = await resolveRowsLike<{
+      id: string;
+      syncUpdatedAt: number | bigint;
+    }>(
+      input.tx
+        .select({ id: table.id, syncUpdatedAt: table.syncUpdatedAt })
+        .from(table)
+        .where(
+          filters.length > 0 ? and(...(filters as [SQL, ...SQL[]])) : undefined
+        )
+        .orderBy(asc(table.syncUpdatedAt), asc(table.id))
+        .limit(input.limit + 1),
+      input.limit + 1
+    );
+
+    for (const row of rows) {
+      if (
+        typeof row.id !== "string" ||
+        (typeof row.syncUpdatedAt !== "number" &&
+          typeof row.syncUpdatedAt !== "bigint")
+      ) {
+        continue;
+      }
+      candidates.push({
+        row: {},
+        rowId: row.id,
+        syncUpdatedAt:
+          typeof row.syncUpdatedAt === "bigint"
+            ? Number(row.syncUpdatedAt)
+            : row.syncUpdatedAt,
+        tableName: typedTableName,
+      });
+    }
+  }
+
+  candidates.sort(compareRowStateCandidates);
+  return candidates;
+}
+
 async function selectRowStateCandidates(input: {
   cursor: PullBatchCursor | null;
   limit: number;
@@ -1053,7 +1116,7 @@ export async function handleRowStateSyncStatus(input: {
   return await db.transaction(async (tx) => {
     const cursor = parsePullBatchCursor(input.cursor);
     const serverTime = new Date().toISOString();
-    const candidates = await selectRowStateCandidates({
+    const candidates = await selectStatusCandidates({
       cursor,
       limit: PULL_BATCH_MAX_LIMIT,
       merchantId: input.merchantId,
