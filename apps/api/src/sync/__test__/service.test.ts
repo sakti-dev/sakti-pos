@@ -1085,7 +1085,7 @@ describe("handleRowStatePullBatch", () => {
     };
     let selectCallCount = 0;
 
-    mockSelect.mockReturnValue({
+    const selectFn = vi.fn().mockReturnValue({
       from: vi.fn().mockImplementation((table: unknown) => {
         const _tableName = getTableConfig(table as never).name;
         selectCallCount++;
@@ -1106,6 +1106,10 @@ describe("handleRowStatePullBatch", () => {
         };
       }),
     });
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) =>
+        await fn({ select: selectFn })
+    );
 
     const result = await handleRowStatePullBatch({
       cursor: "",
@@ -1176,6 +1180,14 @@ describe("handleRowStatePullBatch", () => {
         };
       }),
     });
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          select: mockSelect,
+        };
+        return await fn(tx);
+      }
+    );
 
     const result = await handleRowStatePullBatch({
       cursor: "",
@@ -1189,6 +1201,35 @@ describe("handleRowStatePullBatch", () => {
       expect.objectContaining({ id: "product-active" }),
     ]);
     expect(result.products?.deletedIds).toEqual(["product-deleted"]);
+  });
+
+  test("pull batch uses a transaction for consistent reads", async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await handleRowStatePullBatch({
+      cursor: "",
+      limit: 10,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      tables: ["products"],
+    });
+
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1230,6 +1271,14 @@ describe("handleRowStateSyncStatus", () => {
         };
       }),
     });
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          select: mockSelect,
+        };
+        return await fn(tx);
+      }
+    );
 
     const result = await handleRowStateSyncStatus({
       cursor: "",
@@ -1240,5 +1289,32 @@ describe("handleRowStateSyncStatus", () => {
     expect(result.changedTables).toEqual(["products", "orders"]);
     expect(result.hasChanges).toBe(true);
     expect(result.cursor).toBe("sync:11:orders:order-1");
+  });
+
+  test("status uses a transaction for consistent reads", async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          }),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await handleRowStateSyncStatus({
+      cursor: "",
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+    });
+
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 });

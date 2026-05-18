@@ -920,6 +920,7 @@ async function selectRowStateCandidates(input: {
   merchantId: string;
   outletId: string;
   tables: string[];
+  tx: TransactionTx;
 }): Promise<RowStateCandidate[]> {
   const candidates: RowStateCandidate[] = [];
   const requestedTables =
@@ -937,7 +938,7 @@ async function selectRowStateCandidates(input: {
       getRowStateCursorFilter(typedTableName, input.cursor),
     ].filter(Boolean);
 
-    const query = db
+    const query = input.tx
       .select()
       .from(table)
       .where(
@@ -1023,20 +1024,24 @@ function buildRowStatePullBatchResult(input: {
 }
 
 export async function handleRowStatePullBatch(input: RowStatePullBatchInput) {
-  const cursor = parsePullBatchCursor(input.cursor);
-  const serverTime = new Date().toISOString();
-  const candidates = await selectRowStateCandidates({
-    cursor,
-    limit: normalizePullBatchLimit(input.limit),
-    merchantId: input.merchantId,
-    outletId: input.outletId,
-    tables: input.tables,
-  });
+  return await db.transaction(async (tx) => {
+    const cursor = parsePullBatchCursor(input.cursor);
+    const limit = normalizePullBatchLimit(input.limit);
+    const serverTime = new Date().toISOString();
+    const candidates = await selectRowStateCandidates({
+      cursor,
+      limit,
+      merchantId: input.merchantId,
+      outletId: input.outletId,
+      tables: input.tables,
+      tx,
+    });
 
-  return buildRowStatePullBatchResult({
-    candidates,
-    limit: normalizePullBatchLimit(input.limit),
-    serverTime,
+    return buildRowStatePullBatchResult({
+      candidates,
+      limit,
+      serverTime,
+    });
   });
 }
 
@@ -1045,31 +1050,34 @@ export async function handleRowStateSyncStatus(input: {
   merchantId: string;
   outletId: string;
 }) {
-  const cursor = parsePullBatchCursor(input.cursor);
-  const serverTime = new Date().toISOString();
-  const candidates = await selectRowStateCandidates({
-    cursor,
-    limit: PULL_BATCH_MAX_LIMIT,
-    merchantId: input.merchantId,
-    outletId: input.outletId,
-    tables: Object.keys(SYNC_TABLES),
+  return await db.transaction(async (tx) => {
+    const cursor = parsePullBatchCursor(input.cursor);
+    const serverTime = new Date().toISOString();
+    const candidates = await selectRowStateCandidates({
+      cursor,
+      limit: PULL_BATCH_MAX_LIMIT,
+      merchantId: input.merchantId,
+      outletId: input.outletId,
+      tables: Object.keys(SYNC_TABLES),
+      tx,
+    });
+
+    const changedTables = Array.from(
+      new Set(candidates.map((candidate) => candidate.tableName))
+    );
+    const latestCandidate = candidates.at(-1);
+
+    return {
+      changedTables,
+      cursor: latestCandidate
+        ? formatPullBatchCursor({
+            rowId: latestCandidate.rowId,
+            syncUpdatedAt: latestCandidate.syncUpdatedAt,
+            tableName: latestCandidate.tableName,
+          })
+        : input.cursor,
+      hasChanges: candidates.length > 0,
+      serverTime,
+    };
   });
-
-  const changedTables = Array.from(
-    new Set(candidates.map((candidate) => candidate.tableName))
-  );
-  const latestCandidate = candidates.at(-1);
-
-  return {
-    changedTables,
-    cursor: latestCandidate
-      ? formatPullBatchCursor({
-          rowId: latestCandidate.rowId,
-          syncUpdatedAt: latestCandidate.syncUpdatedAt,
-          tableName: latestCandidate.tableName,
-        })
-      : input.cursor,
-    hasChanges: candidates.length > 0,
-    serverTime,
-  };
 }
