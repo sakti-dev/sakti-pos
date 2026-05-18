@@ -5,16 +5,15 @@ use serde_json::Value;
 use std::convert::TryFrom;
 
 use super::sync_proto::{
-    AssetChanges, AssetRow, CategoryChanges, CategoryRow, MerchantChanges, MerchantRow,
-    OrderChanges, OrderItemChanges, OrderItemRow, OrderRow, OutletChanges, OutletProductChanges,
-    OutletProductRow, OutletRow, ProductChanges, ProductRow, RegisterChanges, RegisterRow,
-    StaffChanges, StaffRow, SyncPullBatchResponse, SyncPushBatchRequest,
+    AssetsChanges, AssetsRow, CategoriesChanges, CategoriesRow, MerchantsChanges, MerchantsRow,
+    OrderItemsChanges, OrderItemsRow, OrdersChanges, OrdersRow, OutletProductsChanges,
+    OutletProductsRow, OutletsChanges, OutletsRow, ProductsChanges, ProductsRow, RegistersChanges,
+    RegistersRow, StaffChanges, StaffRow, SyncPullBatchResponse, SyncPushBatchRequest,
 };
 
 #[derive(Debug, Clone, Default)]
 pub(super) struct TablePushChanges {
-    pub created: Vec<Value>,
-    pub updated: Vec<Value>,
+    pub changed_rows: Vec<Value>,
     pub deleted_ids: Vec<String>,
 }
 
@@ -79,172 +78,160 @@ fn value_to_i64(row: &Value, keys: &[&str]) -> i64 {
     0
 }
 
-fn merchant_row_from_value(row: &Value) -> MerchantRow {
-    MerchantRow {
+fn assets_row_from_value(row: &Value) -> AssetsRow {
+    AssetsRow {
         id: value_to_string(row, &["id"]),
-        name: value_to_string(row, &["name"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
-    }
-}
-
-fn outlet_row_from_value(row: &Value) -> OutletRow {
-    OutletRow {
-        id: value_to_string(row, &["id"]),
-        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
-        timezone: value_to_string(row, &["timezone"]),
-        name: value_to_string(row, &["name"]),
-        address: value_to_string(row, &["address"]),
-        receipt_name: value_to_string(row, &["receiptName", "receipt_name"]),
-        receipt_address: value_to_string(row, &["receiptAddress", "receipt_address"]),
-        is_active: value_to_bool(row, &["isActive", "is_active"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
-    }
-}
-
-fn register_row_from_value(row: &Value) -> RegisterRow {
-    RegisterRow {
-        id: value_to_string(row, &["id"]),
-        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
-        name: value_to_string(row, &["name"]),
-        short_id: value_to_string(row, &["shortId", "short_id"]),
-        pairing_code: value_to_string(row, &["pairingCode", "pairing_code"]),
-        pairing_expires_at: value_to_string(row, &["pairingExpiresAt", "pairing_expires_at"]),
-        is_active: value_to_bool(row, &["isActive", "is_active"]),
-        last_seen_at: value_to_string(row, &["lastSeenAt", "last_seen_at"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
-    }
-}
-
-fn category_row_from_value(row: &Value) -> CategoryRow {
-    CategoryRow {
-        id: value_to_string(row, &["id"]),
-        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
-        name: value_to_string(row, &["name"]),
-        sort_order: value_to_i64(row, &["sortOrder", "sort_order"]),
-        is_active: value_to_bool(row, &["isActive", "is_active"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
-    }
-}
-
-fn asset_row_from_value(row: &Value) -> AssetRow {
-    AssetRow {
-        id: value_to_string(row, &["id"]),
-        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
-        object_key: value_to_string(row, &["objectKey", "object_key"]),
-        original_filename: value_to_string(row, &["originalFilename", "original_filename"]),
-        content_type: value_to_string(row, &["contentType", "content_type"]),
-        byte_size: value_to_i64(row, &["byteSize", "byte_size"]),
-        content_hash: value_to_string(row, &["contentHash", "content_hash"]),
+        merchant_id: value_to_string(row, &["merchantId"]),
+        object_key: value_to_string(row, &["objectKey"]),
+        original_filename: value_to_string(row, &["originalFilename"]),
+        content_type: value_to_string(row, &["contentType"]),
+        byte_size: value_to_i64(row, &["byteSize"]),
+        content_hash: value_to_string(row, &["contentHash"]),
         kind: value_to_string(row, &["kind"]),
         width: value_to_i64(row, &["width"]),
         height: value_to_i64(row, &["height"]),
         status: value_to_string(row, &["status"]),
-        created_by_user_id: value_to_string(row, &["createdByUserId", "created_by_user_id"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+        created_by_user_id: value_to_string(row, &["createdByUserId"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
     }
 }
 
-fn product_row_from_value(row: &Value) -> ProductRow {
-    ProductRow {
+fn categories_row_from_value(row: &Value) -> CategoriesRow {
+    CategoriesRow {
         id: value_to_string(row, &["id"]),
-        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
-        category_id: value_to_string(row, &["categoryId", "category_id"]),
+        merchant_id: value_to_string(row, &["merchantId"]),
         name: value_to_string(row, &["name"]),
-        price_minor_units: value_to_i64(row, &["priceMinorUnits", "price_minor_units"]),
-        image_url: value_to_string(row, &["imageUrl", "image_url"]),
-        image_asset_id: value_to_string(row, &["imageAssetId", "image_asset_id"]),
-        is_active: value_to_bool(row, &["isActive", "is_active"]),
-        sort_order: value_to_i64(row, &["sortOrder", "sort_order"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+        sort_order: value_to_i64(row, &["sortOrder"]),
+        is_active: value_to_bool(row, &["isActive"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
     }
 }
 
-fn order_row_from_value(row: &Value) -> OrderRow {
-    OrderRow {
+fn merchants_row_from_value(row: &Value) -> MerchantsRow {
+    MerchantsRow {
         id: value_to_string(row, &["id"]),
-        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
-        register_id: value_to_string(row, &["registerId", "register_id"]),
-        staff_id: value_to_string(row, &["staffId", "staff_id"]),
-        order_number: value_to_string(row, &["orderNumber", "order_number"]),
-        total_minor_units: value_to_i64(row, &["totalMinorUnits", "total_minor_units"]),
-        payment_method: value_to_string(row, &["paymentMethod", "payment_method"]),
-        amount_paid_minor_units: value_to_i64(
-            row,
-            &["amountPaidMinorUnits", "amount_paid_minor_units"],
-        ),
-        change_amount_minor_units: value_to_i64(
-            row,
-            &["changeAmountMinorUnits", "change_amount_minor_units"],
-        ),
-        status: value_to_string(row, &["status"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+        name: value_to_string(row, &["name"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
     }
 }
 
-fn order_item_row_from_value(row: &Value) -> OrderItemRow {
-    OrderItemRow {
+fn order_items_row_from_value(row: &Value) -> OrderItemsRow {
+    OrderItemsRow {
         id: value_to_string(row, &["id"]),
-        order_id: value_to_string(row, &["orderId", "order_id"]),
-        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
-        product_id: value_to_string(row, &["productId", "product_id"]),
-        product_name: value_to_string(row, &["productName", "product_name"]),
+        order_id: value_to_string(row, &["orderId"]),
+        outlet_id: value_to_string(row, &["outletId"]),
+        product_id: value_to_string(row, &["productId"]),
+        product_name: value_to_string(row, &["productName"]),
         quantity: value_to_i64(row, &["quantity"]),
-        unit_price_minor_units: value_to_i64(
-            row,
-            &["unitPriceMinorUnits", "unit_price_minor_units"],
-        ),
-        original_price_minor_units: value_to_i64(
-            row,
-            &["originalPriceMinorUnits", "original_price_minor_units"],
-        ),
-        subtotal_minor_units: value_to_i64(row, &["subtotalMinorUnits", "subtotal_minor_units"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+        unit_price_minor_units: value_to_i64(row, &["unitPriceMinorUnits"]),
+        original_price_minor_units: value_to_i64(row, &["originalPriceMinorUnits"]),
+        subtotal_minor_units: value_to_i64(row, &["subtotalMinorUnits"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
     }
 }
 
-fn outlet_product_row_from_value(row: &Value) -> OutletProductRow {
-    OutletProductRow {
+fn orders_row_from_value(row: &Value) -> OrdersRow {
+    OrdersRow {
         id: value_to_string(row, &["id"]),
-        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
-        product_id: value_to_string(row, &["productId", "product_id"]),
-        price_minor_units: value_to_i64(row, &["priceMinorUnits", "price_minor_units"]),
-        is_available: value_to_bool(row, &["isAvailable", "is_available"]),
-        sort_order: value_to_i64(row, &["sortOrder", "sort_order"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+        outlet_id: value_to_string(row, &["outletId"]),
+        register_id: value_to_string(row, &["registerId"]),
+        staff_id: value_to_string(row, &["staffId"]),
+        order_number: value_to_string(row, &["orderNumber"]),
+        total_minor_units: value_to_i64(row, &["totalMinorUnits"]),
+        payment_method: value_to_string(row, &["paymentMethod"]),
+        amount_paid_minor_units: value_to_i64(row, &["amountPaidMinorUnits"]),
+        change_amount_minor_units: value_to_i64(row, &["changeAmountMinorUnits"]),
+        status: value_to_string(row, &["status"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
+    }
+}
+
+fn outlet_products_row_from_value(row: &Value) -> OutletProductsRow {
+    OutletProductsRow {
+        id: value_to_string(row, &["id"]),
+        outlet_id: value_to_string(row, &["outletId"]),
+        product_id: value_to_string(row, &["productId"]),
+        price_minor_units: value_to_i64(row, &["priceMinorUnits"]),
+        is_available: value_to_bool(row, &["isAvailable"]),
+        sort_order: value_to_i64(row, &["sortOrder"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
+    }
+}
+
+fn outlets_row_from_value(row: &Value) -> OutletsRow {
+    OutletsRow {
+        id: value_to_string(row, &["id"]),
+        merchant_id: value_to_string(row, &["merchantId"]),
+        timezone: value_to_string(row, &["timezone"]),
+        name: value_to_string(row, &["name"]),
+        address: value_to_string(row, &["address"]),
+        receipt_name: value_to_string(row, &["receiptName"]),
+        receipt_address: value_to_string(row, &["receiptAddress"]),
+        is_active: value_to_bool(row, &["isActive"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
+    }
+}
+
+fn products_row_from_value(row: &Value) -> ProductsRow {
+    ProductsRow {
+        id: value_to_string(row, &["id"]),
+        merchant_id: value_to_string(row, &["merchantId"]),
+        category_id: value_to_string(row, &["categoryId"]),
+        name: value_to_string(row, &["name"]),
+        price_minor_units: value_to_i64(row, &["priceMinorUnits"]),
+        image_url: value_to_string(row, &["imageUrl"]),
+        image_asset_id: value_to_string(row, &["imageAssetId"]),
+        is_active: value_to_bool(row, &["isActive"]),
+        sort_order: value_to_i64(row, &["sortOrder"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
+    }
+}
+
+fn registers_row_from_value(row: &Value) -> RegistersRow {
+    RegistersRow {
+        id: value_to_string(row, &["id"]),
+        outlet_id: value_to_string(row, &["outletId"]),
+        name: value_to_string(row, &["name"]),
+        short_id: value_to_string(row, &["shortId"]),
+        pairing_code: value_to_string(row, &["pairingCode"]),
+        pairing_expires_at: value_to_string(row, &["pairingExpiresAt"]),
+        is_active: value_to_bool(row, &["isActive"]),
+        last_seen_at: value_to_string(row, &["lastSeenAt"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
     }
 }
 
 fn staff_row_from_value(row: &Value) -> StaffRow {
     StaffRow {
         id: value_to_string(row, &["id"]),
-        merchant_id: value_to_string(row, &["merchantId", "merchant_id"]),
-        cloud_user_id: value_to_string(row, &["cloudUserId", "cloud_user_id"]),
-        outlet_id: value_to_string(row, &["outletId", "outlet_id"]),
+        merchant_id: value_to_string(row, &["merchantId"]),
+        cloud_user_id: value_to_string(row, &["cloudUserId"]),
+        outlet_id: value_to_string(row, &["outletId"]),
         name: value_to_string(row, &["name"]),
         pin: value_to_string(row, &["pin"]),
         role: value_to_string(row, &["role"]),
-        is_active: value_to_bool(row, &["isActive", "is_active"]),
-        deleted_at: value_to_string(row, &["deletedAt", "deleted_at"]),
-        created_at: value_to_string(row, &["createdAt", "created_at"]),
-        updated_at: value_to_string(row, &["updatedAt", "updated_at"]),
+        is_active: value_to_bool(row, &["isActive"]),
+        deleted_at: value_to_string(row, &["deletedAt"]),
+        created_at: value_to_string(row, &["createdAt"]),
+        updated_at: value_to_string(row, &["updatedAt"]),
     }
 }
 
@@ -256,62 +243,7 @@ fn empty_string_to_null(value: &str) -> Value {
     }
 }
 
-fn merchant_row_to_value(row: &MerchantRow) -> Value {
-    serde_json::json!({
-        "id": row.id,
-        "name": row.name,
-        "deletedAt": empty_string_to_null(&row.deleted_at),
-        "createdAt": row.created_at,
-        "updatedAt": row.updated_at,
-    })
-}
-
-fn outlet_row_to_value(row: &OutletRow) -> Value {
-    serde_json::json!({
-        "id": row.id,
-        "merchantId": row.merchant_id,
-        "timezone": row.timezone,
-        "name": row.name,
-        "address": empty_string_to_null(&row.address),
-        "receiptName": empty_string_to_null(&row.receipt_name),
-        "receiptAddress": empty_string_to_null(&row.receipt_address),
-        "isActive": row.is_active,
-        "deletedAt": empty_string_to_null(&row.deleted_at),
-        "createdAt": row.created_at,
-        "updatedAt": row.updated_at,
-    })
-}
-
-fn register_row_to_value(row: &RegisterRow) -> Value {
-    serde_json::json!({
-        "id": row.id,
-        "outletId": row.outlet_id,
-        "name": row.name,
-        "shortId": row.short_id,
-        "pairingCode": empty_string_to_null(&row.pairing_code),
-        "pairingExpiresAt": empty_string_to_null(&row.pairing_expires_at),
-        "isActive": row.is_active,
-        "lastSeenAt": empty_string_to_null(&row.last_seen_at),
-        "deletedAt": empty_string_to_null(&row.deleted_at),
-        "createdAt": row.created_at,
-        "updatedAt": row.updated_at,
-    })
-}
-
-fn category_row_to_value(row: &CategoryRow) -> Value {
-    serde_json::json!({
-        "id": row.id,
-        "merchantId": row.merchant_id,
-        "name": row.name,
-        "sortOrder": row.sort_order,
-        "isActive": row.is_active,
-        "deletedAt": empty_string_to_null(&row.deleted_at),
-        "createdAt": row.created_at,
-        "updatedAt": row.updated_at,
-    })
-}
-
-fn asset_row_to_value(row: &AssetRow) -> Value {
+fn assets_row_to_value(row: &AssetsRow) -> Value {
     serde_json::json!({
         "id": row.id,
         "merchantId": row.merchant_id,
@@ -331,24 +263,47 @@ fn asset_row_to_value(row: &AssetRow) -> Value {
     })
 }
 
-fn product_row_to_value(row: &ProductRow) -> Value {
+fn categories_row_to_value(row: &CategoriesRow) -> Value {
     serde_json::json!({
         "id": row.id,
         "merchantId": row.merchant_id,
-        "categoryId": empty_string_to_null(&row.category_id),
         "name": row.name,
-        "priceMinorUnits": row.price_minor_units,
-        "imageUrl": empty_string_to_null(&row.image_url),
-        "imageAssetId": empty_string_to_null(&row.image_asset_id),
-        "isActive": row.is_active,
         "sortOrder": row.sort_order,
+        "isActive": row.is_active,
         "deletedAt": empty_string_to_null(&row.deleted_at),
         "createdAt": row.created_at,
         "updatedAt": row.updated_at,
     })
 }
 
-fn order_row_to_value(row: &OrderRow) -> Value {
+fn merchants_row_to_value(row: &MerchantsRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "name": row.name,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn order_items_row_to_value(row: &OrderItemsRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "orderId": row.order_id,
+        "outletId": row.outlet_id,
+        "productId": empty_string_to_null(&row.product_id),
+        "productName": row.product_name,
+        "quantity": row.quantity,
+        "unitPriceMinorUnits": row.unit_price_minor_units,
+        "originalPriceMinorUnits": row.original_price_minor_units,
+        "subtotalMinorUnits": row.subtotal_minor_units,
+        "updatedAt": row.updated_at,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+    })
+}
+
+fn orders_row_to_value(row: &OrdersRow) -> Value {
     serde_json::json!({
         "id": row.id,
         "outletId": row.outlet_id,
@@ -366,24 +321,7 @@ fn order_row_to_value(row: &OrderRow) -> Value {
     })
 }
 
-fn order_item_row_to_value(row: &OrderItemRow) -> Value {
-    serde_json::json!({
-        "id": row.id,
-        "orderId": row.order_id,
-        "outletId": row.outlet_id,
-        "productId": empty_string_to_null(&row.product_id),
-        "productName": row.product_name,
-        "quantity": row.quantity,
-        "unitPriceMinorUnits": row.unit_price_minor_units,
-        "originalPriceMinorUnits": row.original_price_minor_units,
-        "subtotalMinorUnits": row.subtotal_minor_units,
-        "deletedAt": empty_string_to_null(&row.deleted_at),
-        "createdAt": row.created_at,
-        "updatedAt": row.updated_at,
-    })
-}
-
-fn outlet_product_row_to_value(row: &OutletProductRow) -> Value {
+fn outlet_products_row_to_value(row: &OutletProductsRow) -> Value {
     serde_json::json!({
         "id": row.id,
         "outletId": row.outlet_id,
@@ -391,6 +329,55 @@ fn outlet_product_row_to_value(row: &OutletProductRow) -> Value {
         "priceMinorUnits": row.price_minor_units,
         "isAvailable": row.is_available,
         "sortOrder": row.sort_order,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn outlets_row_to_value(row: &OutletsRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "merchantId": row.merchant_id,
+        "timezone": row.timezone,
+        "name": row.name,
+        "address": empty_string_to_null(&row.address),
+        "receiptName": empty_string_to_null(&row.receipt_name),
+        "receiptAddress": empty_string_to_null(&row.receipt_address),
+        "isActive": row.is_active,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn products_row_to_value(row: &ProductsRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "merchantId": row.merchant_id,
+        "categoryId": empty_string_to_null(&row.category_id),
+        "name": row.name,
+        "priceMinorUnits": row.price_minor_units,
+        "imageUrl": empty_string_to_null(&row.image_url),
+        "imageAssetId": empty_string_to_null(&row.image_asset_id),
+        "isActive": row.is_active,
+        "sortOrder": row.sort_order,
+        "deletedAt": empty_string_to_null(&row.deleted_at),
+        "createdAt": row.created_at,
+        "updatedAt": row.updated_at,
+    })
+}
+
+fn registers_row_to_value(row: &RegistersRow) -> Value {
+    serde_json::json!({
+        "id": row.id,
+        "outletId": row.outlet_id,
+        "name": row.name,
+        "shortId": row.short_id,
+        "pairingCode": empty_string_to_null(&row.pairing_code),
+        "pairingExpiresAt": empty_string_to_null(&row.pairing_expires_at),
+        "isActive": row.is_active,
+        "lastSeenAt": empty_string_to_null(&row.last_seen_at),
         "deletedAt": empty_string_to_null(&row.deleted_at),
         "createdAt": row.created_at,
         "updatedAt": row.updated_at,
@@ -414,17 +401,12 @@ fn staff_row_to_value(row: &StaffRow) -> Value {
 }
 
 fn typed_rows_to_json_values<T>(
-    created: &[T],
-    updated: &[T],
+    changed_rows: &[T],
     deleted_ids: &[String],
     server_time: &str,
     mapper: impl Fn(&T) -> Value,
 ) -> Vec<Value> {
-    let mut rows = created
-        .iter()
-        .chain(updated.iter())
-        .map(mapper)
-        .collect::<Vec<_>>();
+    let mut rows = changed_rows.iter().map(mapper).collect::<Vec<_>>();
     rows.extend(
         deleted_ids
             .iter()
@@ -433,192 +415,144 @@ fn typed_rows_to_json_values<T>(
     rows
 }
 
-pub(super) fn build_merchant_changes(changes: &TablePushChanges) -> MerchantChanges {
-    MerchantChanges {
-        created: changes
-            .created
+pub(super) fn build_assets_row_changes(changes: &TablePushChanges) -> AssetsChanges {
+    AssetsChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(merchant_row_from_value)
+            .map(assets_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(merchant_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_outlet_changes(changes: &TablePushChanges) -> OutletChanges {
-    OutletChanges {
-        created: changes
-            .created
+pub(super) fn build_categories_row_changes(changes: &TablePushChanges) -> CategoriesChanges {
+    CategoriesChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(outlet_row_from_value)
+            .map(categories_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(outlet_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_register_changes(changes: &TablePushChanges) -> RegisterChanges {
-    RegisterChanges {
-        created: changes
-            .created
+pub(super) fn build_merchants_row_changes(changes: &TablePushChanges) -> MerchantsChanges {
+    MerchantsChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(register_row_from_value)
+            .map(merchants_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(register_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_category_changes(changes: &TablePushChanges) -> CategoryChanges {
-    CategoryChanges {
-        created: changes
-            .created
+pub(super) fn build_order_items_row_changes(changes: &TablePushChanges) -> OrderItemsChanges {
+    OrderItemsChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(category_row_from_value)
+            .map(order_items_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(category_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_asset_changes(changes: &TablePushChanges) -> AssetChanges {
-    AssetChanges {
-        created: changes
-            .created
+pub(super) fn build_orders_row_changes(changes: &TablePushChanges) -> OrdersChanges {
+    OrdersChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(asset_row_from_value)
+            .map(orders_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(asset_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_product_changes(changes: &TablePushChanges) -> ProductChanges {
-    ProductChanges {
-        created: changes
-            .created
+pub(super) fn build_outlet_products_row_changes(
+    changes: &TablePushChanges,
+) -> OutletProductsChanges {
+    OutletProductsChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(product_row_from_value)
+            .map(outlet_products_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(product_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_order_changes(changes: &TablePushChanges) -> OrderChanges {
-    OrderChanges {
-        created: changes
-            .created
+pub(super) fn build_outlets_row_changes(changes: &TablePushChanges) -> OutletsChanges {
+    OutletsChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(order_row_from_value)
+            .map(outlets_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(order_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_order_item_changes(changes: &TablePushChanges) -> OrderItemChanges {
-    OrderItemChanges {
-        created: changes
-            .created
+pub(super) fn build_products_row_changes(changes: &TablePushChanges) -> ProductsChanges {
+    ProductsChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(order_item_row_from_value)
+            .map(products_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(order_item_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_outlet_product_changes(changes: &TablePushChanges) -> OutletProductChanges {
-    OutletProductChanges {
-        created: changes
-            .created
+pub(super) fn build_registers_row_changes(changes: &TablePushChanges) -> RegistersChanges {
+    RegistersChanges {
+        changed_rows: changes
+            .changed_rows
             .iter()
-            .map(outlet_product_row_from_value)
+            .map(registers_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(outlet_product_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
-pub(super) fn build_staff_changes(changes: &TablePushChanges) -> StaffChanges {
+pub(super) fn build_staff_row_changes(changes: &TablePushChanges) -> StaffChanges {
     StaffChanges {
-        created: changes
-            .created
+        changed_rows: changes
+            .changed_rows
             .iter()
             .map(staff_row_from_value)
             .collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes
-            .updated
-            .iter()
-            .map(staff_row_from_value)
-            .collect::<Vec<_>>(),
     }
 }
 
 pub(super) fn build_sync_push_batch_request(
     outlet_id: &str,
     idempotency_key: &str,
-    merchants: Option<MerchantChanges>,
-    outlets: Option<OutletChanges>,
-    registers: Option<RegisterChanges>,
-    categories: Option<CategoryChanges>,
-    assets: Option<AssetChanges>,
-    products: Option<ProductChanges>,
-    orders: Option<OrderChanges>,
-    order_items: Option<OrderItemChanges>,
-    outlet_products: Option<OutletProductChanges>,
+    assets: Option<AssetsChanges>,
+    categories: Option<CategoriesChanges>,
+    merchants: Option<MerchantsChanges>,
+    order_items: Option<OrderItemsChanges>,
+    orders: Option<OrdersChanges>,
+    outlet_products: Option<OutletProductsChanges>,
+    outlets: Option<OutletsChanges>,
+    products: Option<ProductsChanges>,
+    registers: Option<RegistersChanges>,
     staff: Option<StaffChanges>,
 ) -> SyncPushBatchRequest {
     SyncPushBatchRequest {
         outlet_id: outlet_id.to_string(),
         idempotency_key: idempotency_key.to_string(),
-        merchants,
-        outlets,
-        registers,
-        categories,
         assets,
-        products,
-        orders,
+        categories,
+        merchants,
         order_items,
+        orders,
         outlet_products,
+        outlets,
+        products,
+        registers,
         staff,
     }
 }
@@ -628,41 +562,14 @@ pub(super) fn decode_pull_batch_response_tables(
 ) -> Result<std::collections::BTreeMap<String, Value>, String> {
     let mut map = std::collections::BTreeMap::new();
 
-    if let Some(changes) = &response.merchants {
+    if let Some(changes) = &response.assets {
         map.insert(
-            "merchants".to_string(),
+            "assets".to_string(),
             Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
+                &changes.changed_rows,
                 &changes.deleted_ids,
                 &response.server_time,
-                merchant_row_to_value,
-            )),
-        );
-    }
-
-    if let Some(changes) = &response.outlets {
-        map.insert(
-            "outlets".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
-                &changes.deleted_ids,
-                &response.server_time,
-                outlet_row_to_value,
-            )),
-        );
-    }
-
-    if let Some(changes) = &response.registers {
-        map.insert(
-            "registers".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
-                &changes.deleted_ids,
-                &response.server_time,
-                register_row_to_value,
+                assets_row_to_value,
             )),
         );
     }
@@ -671,50 +578,22 @@ pub(super) fn decode_pull_batch_response_tables(
         map.insert(
             "categories".to_string(),
             Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
+                &changes.changed_rows,
                 &changes.deleted_ids,
                 &response.server_time,
-                category_row_to_value,
+                categories_row_to_value,
             )),
         );
     }
 
-    if let Some(changes) = &response.assets {
+    if let Some(changes) = &response.merchants {
         map.insert(
-            "assets".to_string(),
+            "merchants".to_string(),
             Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
+                &changes.changed_rows,
                 &changes.deleted_ids,
                 &response.server_time,
-                asset_row_to_value,
-            )),
-        );
-    }
-
-    if let Some(changes) = &response.products {
-        map.insert(
-            "products".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
-                &changes.deleted_ids,
-                &response.server_time,
-                product_row_to_value,
-            )),
-        );
-    }
-
-    if let Some(changes) = &response.orders {
-        map.insert(
-            "orders".to_string(),
-            Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
-                &changes.deleted_ids,
-                &response.server_time,
-                order_row_to_value,
+                merchants_row_to_value,
             )),
         );
     }
@@ -723,11 +602,22 @@ pub(super) fn decode_pull_batch_response_tables(
         map.insert(
             "order_items".to_string(),
             Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
+                &changes.changed_rows,
                 &changes.deleted_ids,
                 &response.server_time,
-                order_item_row_to_value,
+                order_items_row_to_value,
+            )),
+        );
+    }
+
+    if let Some(changes) = &response.orders {
+        map.insert(
+            "orders".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.changed_rows,
+                &changes.deleted_ids,
+                &response.server_time,
+                orders_row_to_value,
             )),
         );
     }
@@ -736,11 +626,46 @@ pub(super) fn decode_pull_batch_response_tables(
         map.insert(
             "outlet_products".to_string(),
             Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
+                &changes.changed_rows,
                 &changes.deleted_ids,
                 &response.server_time,
-                outlet_product_row_to_value,
+                outlet_products_row_to_value,
+            )),
+        );
+    }
+
+    if let Some(changes) = &response.outlets {
+        map.insert(
+            "outlets".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.changed_rows,
+                &changes.deleted_ids,
+                &response.server_time,
+                outlets_row_to_value,
+            )),
+        );
+    }
+
+    if let Some(changes) = &response.products {
+        map.insert(
+            "products".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.changed_rows,
+                &changes.deleted_ids,
+                &response.server_time,
+                products_row_to_value,
+            )),
+        );
+    }
+
+    if let Some(changes) = &response.registers {
+        map.insert(
+            "registers".to_string(),
+            Value::Array(typed_rows_to_json_values(
+                &changes.changed_rows,
+                &changes.deleted_ids,
+                &response.server_time,
+                registers_row_to_value,
             )),
         );
     }
@@ -749,8 +674,7 @@ pub(super) fn decode_pull_batch_response_tables(
         map.insert(
             "staff".to_string(),
             Value::Array(typed_rows_to_json_values(
-                &changes.created,
-                &changes.updated,
+                &changes.changed_rows,
                 &changes.deleted_ids,
                 &response.server_time,
                 staff_row_to_value,

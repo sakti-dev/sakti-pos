@@ -100,12 +100,11 @@ mod tests {
         }])
         .expect("delete row should group");
 
-        assert!(changes.created.is_empty());
         assert!(changes.deleted_ids.is_empty());
-        assert_eq!(changes.updated.len(), 1);
-        assert_eq!(changes.updated[0]["id"], json!("product-1"));
+        assert_eq!(changes.changed_rows.len(), 1);
+        assert_eq!(changes.changed_rows[0]["id"], json!("product-1"));
         assert_eq!(
-            changes.updated[0]["deletedAt"],
+            changes.changed_rows[0]["deletedAt"],
             json!("2026-05-17T00:00:00.000Z")
         );
     }

@@ -145,9 +145,8 @@ describe("typed protobuf sync payload size", () => {
         idempotencyKey: "idem-1",
         outletId: "outlet-1",
         products: {
-          created: rows,
+          changedRows: rows,
           deletedIds: [],
-          updated: [],
         },
       })
     ).finish().byteLength;
@@ -182,26 +181,24 @@ describe("typed protobuf sync payload size", () => {
 
     const typedBytes = SyncPushBatchRequest.encode(
       SyncPushBatchRequest.create({
-        assets: { created: rows.assets, deletedIds: [], updated: [] },
+        assets: { changedRows: rows.assets, deletedIds: [] },
         categories: {
-          created: rows.categories,
+          changedRows: rows.categories,
           deletedIds: [],
-          updated: [],
         },
         idempotencyKey: "idem-all",
-        merchants: { created: rows.merchants, deletedIds: [], updated: [] },
-        orderItems: { created: rows.order_items, deletedIds: [], updated: [] },
-        orders: { created: rows.orders, deletedIds: [], updated: [] },
+        merchants: { changedRows: rows.merchants, deletedIds: [] },
+        order_items: { changedRows: rows.order_items, deletedIds: [] },
+        orders: { changedRows: rows.orders, deletedIds: [] },
         outletId: "outlet-1",
-        outletProducts: {
-          created: rows.outlet_products,
+        outlet_products: {
+          changedRows: rows.outlet_products,
           deletedIds: [],
-          updated: [],
         },
-        outlets: { created: rows.outlets, deletedIds: [], updated: [] },
-        products: { created: rows.products, deletedIds: [], updated: [] },
-        registers: { created: rows.registers, deletedIds: [], updated: [] },
-        staff: { created: rows.staff, deletedIds: [], updated: [] },
+        outlets: { changedRows: rows.outlets, deletedIds: [] },
+        products: { changedRows: rows.products, deletedIds: [] },
+        registers: { changedRows: rows.registers, deletedIds: [] },
+        staff: { changedRows: rows.staff, deletedIds: [] },
       })
     ).finish().byteLength;
 

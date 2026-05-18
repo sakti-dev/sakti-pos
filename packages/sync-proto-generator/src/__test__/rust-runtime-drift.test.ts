@@ -2,8 +2,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
+import {
+  syncGeneratorConfig,
+  syncProtoSchemas,
+} from "../../../protobuf/sync-proto.config";
 import { reflectSyncTables } from "../drizzle-reflection";
-import { syncManifest } from "../manifest";
 import { formatGeneratedRust } from "../rust-format";
 import { renderRustSyncMappers } from "../rust-mapper-writer";
 
@@ -14,14 +17,15 @@ const repoRoot = join(
   "..",
   ".."
 );
-const localSchema = await import("@repo/database");
 
 describe("generated Rust mapper drift", () => {
   test("runtime Rust generated mapper matches generator output", () => {
     const generated = formatGeneratedRust(
       renderRustSyncMappers(
-        syncManifest,
-        reflectSyncTables(localSchema, syncManifest)
+        reflectSyncTables({
+          config: syncGeneratorConfig,
+          schemaModule: syncProtoSchemas.localSyncedSchema,
+        })
       )
     );
     const checkedIn = readFileSync(

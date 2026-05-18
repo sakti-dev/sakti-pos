@@ -2,13 +2,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
-
+import {
+  syncGeneratorConfig,
+  syncProtoSchemas,
+} from "../../../protobuf/sync-proto.config";
 import { reflectSyncTables } from "../drizzle-reflection";
-import { syncManifest } from "../manifest";
 import { formatGeneratedRust } from "../rust-format";
 import { renderRustSyncMappers } from "../rust-mapper-writer";
-
-const localSchema = await import("@repo/database");
 
 const posAppSyncDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -74,9 +74,12 @@ function extractRowToValueFunc(
   return fields;
 }
 
-describe("generated Rust mapper comparison with manual hot-table logic", () => {
-  const tables = reflectSyncTables(localSchema, syncManifest);
-  const generatedRawSource = renderRustSyncMappers(syncManifest, tables);
+describe("generated Rust mapper runtime logic", () => {
+  const tables = reflectSyncTables({
+    config: syncGeneratorConfig,
+    schemaModule: syncProtoSchemas.localSyncedSchema,
+  });
+  const generatedRawSource = renderRustSyncMappers(tables);
   const generatedSource = formatGeneratedRust(generatedRawSource);
   const runtimeSource = readFileSync(
     join(posAppSyncDir, "protobuf_generated.rs"),
@@ -90,11 +93,11 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   test("generated product_row_from_value matches manual field key ordering", () => {
     const generated = extractRowFromValueFunc(
       generatedSource,
-      "product_row_from_value"
+      "products_row_from_value"
     );
     const manual = extractRowFromValueFunc(
       runtimeSource,
-      "product_row_from_value"
+      "products_row_from_value"
     );
 
     const hotFieldNames = [
@@ -133,11 +136,11 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   test("generated order_item_row_from_value matches manual field key ordering", () => {
     const generated = extractRowFromValueFunc(
       generatedSource,
-      "order_item_row_from_value"
+      "order_items_row_from_value"
     );
     const manual = extractRowFromValueFunc(
       runtimeSource,
-      "order_item_row_from_value"
+      "order_items_row_from_value"
     );
 
     const hotFieldNames = [
@@ -176,11 +179,11 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   test("generated order_row_from_value matches manual field key ordering", () => {
     const generated = extractRowFromValueFunc(
       generatedSource,
-      "order_row_from_value"
+      "orders_row_from_value"
     );
     const manual = extractRowFromValueFunc(
       runtimeSource,
-      "order_row_from_value"
+      "orders_row_from_value"
     );
 
     const hotFieldNames = [
@@ -220,11 +223,11 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   test("generated outlet_product_row_from_value matches manual field key ordering", () => {
     const generated = extractRowFromValueFunc(
       generatedSource,
-      "outlet_product_row_from_value"
+      "outlet_products_row_from_value"
     );
     const manual = extractRowFromValueFunc(
       runtimeSource,
-      "outlet_product_row_from_value"
+      "outlet_products_row_from_value"
     );
 
     const hotFieldNames = [
@@ -260,9 +263,12 @@ describe("generated Rust mapper comparison with manual hot-table logic", () => {
   test("generated product_row_to_value maps proto fields to DB property names", () => {
     const generated = extractRowToValueFunc(
       generatedSource,
-      "product_row_to_value"
+      "products_row_to_value"
     );
-    const manual = extractRowToValueFunc(runtimeSource, "product_row_to_value");
+    const manual = extractRowToValueFunc(
+      runtimeSource,
+      "products_row_to_value"
+    );
 
     const moneyAliasFields = [
       "price",

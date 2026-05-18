@@ -1,73 +1,148 @@
+import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { describe, expect, test } from "vitest";
+import {
+  syncGeneratorConfig,
+  syncProtoSchemas,
+} from "../../../protobuf/sync-proto.config";
 import { reflectSyncTables } from "../drizzle-reflection";
-import { syncManifest } from "../manifest";
 
-const localSchema = await import("@repo/database");
-const MISSING_FIELD_PATTERN = /products.*missingField/;
-const OMITTED_FIELD_PATTERN = /products.*fieldOrder.*omits/;
+const syncedSchema = syncProtoSchemas.localSyncedSchema;
+
+function getTableNames() {
+  return reflectSyncTables({
+    config: syncGeneratorConfig,
+    schemaModule: syncProtoSchemas.localSyncedSchema,
+  }).map((table) => table.tableName);
+}
 
 describe("Drizzle runtime reflection", () => {
-  test("reflects all manifest tables from local schema", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
-
-    expect(tables.map((table) => table.tableName)).toEqual(
-      syncManifest.tables.map((table) => table.tableName)
-    );
+  test("reflects all synced schema tables", () => {
+    expect(getTableNames()).toEqual([
+      "assets",
+      "categories",
+      "merchants",
+      "order_items",
+      "orders",
+      "outlet_products",
+      "outlets",
+      "products",
+      "registers",
+      "staff",
+    ]);
   });
 
-  test("reflects product columns with explicit minor-unit money fields", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
+  test("derives table and message names mechanically from SQLite table names", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const orderItems = tables.find(
+      (table) => table.tableName === "order_items"
+    );
+    const outletProducts = tables.find(
+      (table) => table.tableName === "outlet_products"
+    );
+
+    expect(orderItems).toMatchObject({
+      changeMessageName: "order_items_changes",
+      protoFieldName: "order_items",
+      rowMessageName: "order_items_row",
+      rustFieldName: "order_items",
+      serviceKey: "order_items",
+      tsProtoFieldName: "order_items",
+    });
+    expect(outletProducts).toMatchObject({
+      changeMessageName: "outlet_products_changes",
+      protoFieldName: "outlet_products",
+      rowMessageName: "outlet_products_row",
+      rustFieldName: "outlet_products",
+      serviceKey: "outlet_products",
+      tsProtoFieldName: "outlet_products",
+    });
+  });
+
+  test("orders reflected columns in Drizzle column order", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const orderItems = tables.find(
+      (table) => table.tableName === "order_items"
+    );
+
+    expect(orderItems?.columns.map((column) => column.propertyName)).toEqual([
+      "id",
+      "orderId",
+      "outletId",
+      "productId",
+      "productName",
+      "quantity",
+      "unitPriceMinorUnits",
+      "originalPriceMinorUnits",
+      "subtotalMinorUnits",
+      "updatedAt",
+      "deletedAt",
+      "createdAt",
+    ]);
+  });
+
+  test("excludes configured local-only columns", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const products = tables.find((table) => table.tableName === "products");
+
+    expect(
+      products?.columns.map((column) => column.propertyName)
+    ).not.toContain("isSynced");
+  });
+
+  test("reflects Drizzle property aliases instead of SQLite column names", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
     const products = tables.find((table) => table.tableName === "products");
 
     expect(products?.columns.map((column) => column.propertyName)).toContain(
       "priceMinorUnits"
     );
-    expect(
-      products?.columns.map((column) => column.propertyName)
-    ).not.toContain("isSynced");
     expect(products?.columns.map((column) => column.columnName)).toContain(
       "price_minor_units"
     );
-    expect(
-      products?.columns.map((column) => column.propertyName)
-    ).not.toContain("price");
-  });
-
-  test("throws when fieldOrder references a missing property", () => {
-    expect(() =>
-      reflectSyncTables(localSchema, {
-        ...syncManifest,
-        tables: syncManifest.tables.map((table) =>
-          table.tableName === "products"
-            ? { ...table, fieldOrder: ["id", "missingField"] }
-            : table
-        ),
-      })
-    ).toThrow(MISSING_FIELD_PATTERN);
-  });
-
-  test("throws when fieldOrder omits reflected transport columns", () => {
-    expect(() =>
-      reflectSyncTables(localSchema, {
-        ...syncManifest,
-        tables: syncManifest.tables.map((table) =>
-          table.tableName === "products"
-            ? { ...table, fieldOrder: ["id"] }
-            : table
-        ),
-      })
-    ).toThrow(OMITTED_FIELD_PATTERN);
-  });
-
-  test("does not retain field aliases in the reflected manifest", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
-    const products = tables.find((table) => table.tableName === "products");
-
     expect(products?.columns.map((column) => column.protoName)).toContain(
-      "price_minor_units"
+      "priceMinorUnits"
     );
-    expect(products?.columns.map((column) => column.protoName)).not.toContain(
-      "price"
+  });
+
+  test("does not require the sync manifest", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+
+    expect(tables).toHaveLength(10);
+  });
+
+  test("captures column metadata from getTableConfig", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const products = tables.find((table) => table.tableName === "products");
+    const table = Object.values(syncedSchema).find(
+      (value) =>
+        value &&
+        typeof value === "object" &&
+        getTableConfig(value as never).name === "products"
+    );
+
+    expect(table).toBeDefined();
+    expect(products?.columns.map((column) => column.columnName)).toEqual(
+      getTableConfig(table as never)
+        .columns.filter((column) => column.name !== "is_synced")
+        .map((column) => column.name)
     );
   });
 });

@@ -1,46 +1,33 @@
 import type { ReflectedSyncTable } from "./drizzle-reflection";
-import type { SyncManifest, SyncTableManifest } from "./manifest";
-
-const ACRONYM_BOUNDARY_PATTERN = /([A-Z]+)([A-Z][a-z])/g;
-const LOWER_TO_UPPER_PATTERN = /([a-z0-9])([A-Z])/g;
-const NON_IDENTIFIER_PATTERN = /[^a-zA-Z0-9]+/g;
-const ROW_SUFFIX_PATTERN = /Row$/;
-const LEADING_UNDERSCORE_PATTERN = /^_/;
-const SNAKE_TO_CAMEL_PATTERN = /_([a-z])/g;
-
-function snakeToCamel(value: string): string {
-  return value.replace(SNAKE_TO_CAMEL_PATTERN, (_, letter: string) =>
-    letter.toUpperCase()
-  );
-}
-
-function toRustSnakeIdentifier(value: string): string {
-  return value
-    .replace(ROW_SUFFIX_PATTERN, "")
-    .replace(ACRONYM_BOUNDARY_PATTERN, "$1_$2")
-    .replace(LOWER_TO_UPPER_PATTERN, "$1_$2")
-    .replace(NON_IDENTIFIER_PATTERN, "_")
-    .toLowerCase()
-    .replace(LEADING_UNDERSCORE_PATTERN, "");
-}
 
 function rowFromValueFuncName(rowMessageName: string): string {
-  return `${toRustSnakeIdentifier(rowMessageName)}_row_from_value`;
+  return `${rowMessageName}_from_value`;
 }
 
 function rowToValueFuncName(rowMessageName: string): string {
-  return `${toRustSnakeIdentifier(rowMessageName)}_row_to_value`;
+  return `${rowMessageName}_to_value`;
 }
 
 function buildChangesFuncName(rowMessageName: string): string {
-  return `build_${toRustSnakeIdentifier(rowMessageName)}_changes`;
+  return `build_${rowMessageName}_changes`;
+}
+
+function toRustPascalName(name: string): string {
+  return name
+    .split("_")
+    .filter(Boolean)
+    .map((part) => `${part.at(0)?.toUpperCase() ?? ""}${part.slice(1)}`)
+    .join("");
+}
+
+function toRustFieldName(name: string): string {
+  return name.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`);
 }
 
 function renderHelpers(): string {
   return `#[derive(Debug, Clone, Default)]
 pub(super) struct TablePushChanges {
-    pub created: Vec<Value>,
-    pub updated: Vec<Value>,
+    pub changed_rows: Vec<Value>,
     pub deleted_ids: Vec<String>,
 }
 
@@ -110,21 +97,15 @@ function columnKeys(column: {
   propertyName: string;
   protoName: string;
 }): string {
-  const camelProto = snakeToCamel(column.protoName);
-  if (column.protoName.includes("_")) {
-    return `&["${camelProto}", "${column.protoName}"]`;
-  }
   return `&["${column.propertyName}"]`;
 }
 
-function renderRowFromValue(
-  table: ReflectedSyncTable,
-  _manifestTable: SyncTableManifest
-): string {
+function renderRowFromValue(table: ReflectedSyncTable): string {
   const funcName = rowFromValueFuncName(table.rowMessageName);
+  const rowTypeName = toRustPascalName(table.rowMessageName);
   const lines = [
-    `fn ${funcName}(row: &Value) -> ${table.rowMessageName} {`,
-    `    ${table.rowMessageName} {`,
+    `fn ${funcName}(row: &Value) -> ${rowTypeName} {`,
+    `    ${rowTypeName} {`,
   ];
 
   for (const column of table.columns) {
@@ -135,7 +116,9 @@ function renderRowFromValue(
     } else if (column.protoType === "bool") {
       helper = "value_to_bool";
     }
-    lines.push(`        ${column.protoName}: ${helper}(row, ${keys}),`);
+    lines.push(
+      `        ${toRustFieldName(column.protoName)}: ${helper}(row, ${keys}),`
+    );
   }
 
   lines.push("    }", "}");
@@ -152,19 +135,17 @@ function renderEmptyStringToNull(): string {
 }`;
 }
 
-function renderRowToValue(
-  table: ReflectedSyncTable,
-  _manifestTable: SyncTableManifest
-): string {
+function renderRowToValue(table: ReflectedSyncTable): string {
   const funcName = rowToValueFuncName(table.rowMessageName);
+  const rowTypeName = toRustPascalName(table.rowMessageName);
   const lines = [
-    `fn ${funcName}(row: &${table.rowMessageName}) -> Value {`,
+    `fn ${funcName}(row: &${rowTypeName}) -> Value {`,
     "    serde_json::json!({",
   ];
 
   for (const column of table.columns) {
     const jsonKey = column.propertyName;
-    const protoField = column.protoName;
+    const protoField = toRustFieldName(column.protoName);
     const needsNullWrap = !column.notNull && column.protoType === "string";
 
     if (needsNullWrap) {
@@ -182,13 +163,12 @@ function renderRowToValue(
 
 function renderTypedRowsToJsonValues(): string {
   return `fn typed_rows_to_json_values<T>(
-    created: &[T],
-    updated: &[T],
+    changed_rows: &[T],
     deleted_ids: &[String],
     server_time: &str,
     mapper: impl Fn(&T) -> Value,
 ) -> Vec<Value> {
-    let mut rows = created.iter().chain(updated.iter()).map(mapper).collect::<Vec<_>>();
+    let mut rows = changed_rows.iter().map(mapper).collect::<Vec<_>>();
     rows.extend(
         deleted_ids
             .iter()
@@ -201,25 +181,25 @@ function renderTypedRowsToJsonValues(): string {
 function renderBuildChanges(table: ReflectedSyncTable): string {
   const funcName = buildChangesFuncName(table.rowMessageName);
   const rowFunc = rowFromValueFuncName(table.rowMessageName);
-  return `pub(super) fn ${funcName}(changes: &TablePushChanges) -> ${table.changeMessageName} {
-    ${table.changeMessageName} {
-        created: changes.created.iter().map(${rowFunc}).collect::<Vec<_>>(),
+  const changeTypeName = toRustPascalName(table.changeMessageName);
+  return `pub(super) fn ${funcName}(changes: &TablePushChanges) -> ${changeTypeName} {
+    ${changeTypeName} {
+        changed_rows: changes.changed_rows.iter().map(${rowFunc}).collect::<Vec<_>>(),
         deleted_ids: changes.deleted_ids.clone(),
-        updated: changes.updated.iter().map(${rowFunc}).collect::<Vec<_>>(),
     }
 }`;
 }
 
-function renderBuildPushRequest(manifest: SyncManifest): string {
+function renderBuildPushRequest(tables: ReflectedSyncTable[]): string {
   const params = ["outlet_id: &str", "idempotency_key: &str"];
   const fields = [
     "outlet_id: outlet_id.to_string()",
     "idempotency_key: idempotency_key.to_string()",
   ];
 
-  for (const table of manifest.tables) {
+  for (const table of tables) {
     const rustField = table.rustFieldName;
-    const paramType = table.changeMessageName;
+    const paramType = toRustPascalName(table.changeMessageName);
     params.push(`${rustField}: Option<${paramType}>`);
     fields.push(`${rustField}`);
   }
@@ -251,8 +231,7 @@ function renderDecodePullResponse(tables: ReflectedSyncTable[]): string {
     lines.push("        map.insert(");
     lines.push(`            "${table.serviceKey}".to_string(),`);
     lines.push("            Value::Array(typed_rows_to_json_values(");
-    lines.push("                &changes.created,");
-    lines.push("                &changes.updated,");
+    lines.push("                &changes.changed_rows,");
     lines.push("                &changes.deleted_ids,");
     lines.push("                &response.server_time,");
     lines.push(`                ${rowFunc},`);
@@ -288,19 +267,11 @@ pub(super) fn pull_batch_response_needs_full_resync(response: &SyncPullBatchResp
 }`;
 }
 
-export function renderRustSyncMappers(
-  manifest: SyncManifest,
-  tables: ReflectedSyncTable[]
-): string {
-  const manifestMap = new Map<string, SyncTableManifest>();
-  for (const t of manifest.tables) {
-    manifestMap.set(t.tableName, t);
-  }
-
+export function renderRustSyncMappers(tables: ReflectedSyncTable[]): string {
   const imports = [
     ...new Set([
-      ...tables.map((t) => t.changeMessageName),
-      ...tables.map((t) => t.rowMessageName),
+      ...tables.map((t) => toRustPascalName(t.changeMessageName)),
+      ...tables.map((t) => toRustPascalName(t.rowMessageName)),
       "SyncPushBatchRequest",
       "SyncPullBatchResponse",
     ]),
@@ -322,11 +293,7 @@ export function renderRustSyncMappers(
   ];
 
   for (const table of tables) {
-    const manifestTable = manifestMap.get(table.tableName);
-    if (!manifestTable) {
-      throw new Error(`No manifest entry for table ${table.tableName}`);
-    }
-    parts.push(renderRowFromValue(table, manifestTable));
+    parts.push(renderRowFromValue(table));
     parts.push("");
   }
 
@@ -334,11 +301,7 @@ export function renderRustSyncMappers(
   parts.push("");
 
   for (const table of tables) {
-    const manifestTable = manifestMap.get(table.tableName);
-    if (!manifestTable) {
-      throw new Error(`No manifest entry for table ${table.tableName}`);
-    }
-    parts.push(renderRowToValue(table, manifestTable));
+    parts.push(renderRowToValue(table));
     parts.push("");
   }
 
@@ -350,7 +313,7 @@ export function renderRustSyncMappers(
     parts.push("");
   }
 
-  parts.push(renderBuildPushRequest(manifest));
+  parts.push(renderBuildPushRequest(tables));
   parts.push("");
 
   parts.push(renderDecodePullResponse(tables));

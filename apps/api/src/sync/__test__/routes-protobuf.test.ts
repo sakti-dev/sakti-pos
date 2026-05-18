@@ -106,7 +106,7 @@ describe("sync protobuf routes", () => {
         idempotencyKey: "sync-request-1",
         outletId: "outlet-1",
         products: {
-          created: [
+          changedRows: [
             {
               id: "product-1",
               merchantId: "merchant-1",
@@ -116,7 +116,6 @@ describe("sync protobuf routes", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
       })
     ).finish();
@@ -130,18 +129,17 @@ describe("sync protobuf routes", () => {
     expect(mockHandlePushBatch).toHaveBeenCalledWith(
       "outlet-1",
       "merchant-1",
-      {
-        products: {
-          created: [
+      expect.objectContaining({
+        products: expect.objectContaining({
+          changedRows: [
             expect.objectContaining({
               id: "product-1",
               name: "Kopi",
             }),
           ],
           deletedIds: [],
-          updated: [],
-        },
-      },
+        }),
+      }),
       "sync-request-1",
       expect.any(String)
     );
@@ -206,7 +204,7 @@ describe("sync protobuf routes", () => {
       SyncPushBatchRequest.create({
         idempotencyKey: "sync-request-1",
         categories: {
-          created: [
+          changedRows: [
             {
               id: "cat-1",
               merchantId: "merchant-1",
@@ -214,7 +212,6 @@ describe("sync protobuf routes", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
         outletId: "outlet-1",
       })
@@ -226,18 +223,17 @@ describe("sync protobuf routes", () => {
     expect(mockHandlePushBatch).toHaveBeenCalledWith(
       "outlet-1",
       "merchant-1",
-      {
-        categories: {
-          created: [
+      expect.objectContaining({
+        categories: expect.objectContaining({
+          changedRows: [
             expect.objectContaining({
               id: "cat-1",
               name: "Minuman",
             }),
           ],
           deletedIds: [],
-          updated: [],
-        },
-      },
+        }),
+      }),
       "sync-request-1",
       expect.any(String)
     );
@@ -343,12 +339,10 @@ describe("sync protobuf routes", () => {
         idempotencyKey: "sync-request-1",
         outletId: "outlet-1",
         products: {
-          created: [],
           deletedIds: Array.from(
             { length: 2001 },
             (_, index) => `product-${index}`
           ),
-          updated: [],
         },
       })
     ).finish();
@@ -366,7 +360,7 @@ describe("sync protobuf routes", () => {
     const body = SyncPushBatchRequest.encode(
       SyncPushBatchRequest.create({
         categories: {
-          created: [
+          changedRows: [
             {
               id: "cat-1",
               merchantId: "merchant-1",
@@ -374,7 +368,6 @@ describe("sync protobuf routes", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
         idempotencyKey: "sync-request-1",
         outletId: "outlet-1",
@@ -450,8 +443,8 @@ describe("sync protobuf routes", () => {
     const body = SyncPushBatchRequest.encode(
       SyncPushBatchRequest.create({
         idempotencyKey: "sync-multi-word",
-        orderItems: {
-          created: [
+        order_items: {
+          changedRows: [
             {
               id: "item-1",
               orderId: "order-1",
@@ -465,10 +458,9 @@ describe("sync protobuf routes", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
-        outletProducts: {
-          created: [
+        outlet_products: {
+          changedRows: [
             {
               id: "op-1",
               isAvailable: true,
@@ -480,7 +472,6 @@ describe("sync protobuf routes", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
         outletId: "outlet-1",
       })
@@ -493,26 +484,24 @@ describe("sync protobuf routes", () => {
       "outlet-1",
       "merchant-1",
       expect.objectContaining({
-        order_items: {
-          created: [
+        order_items: expect.objectContaining({
+          changedRows: [
             expect.objectContaining({
               id: "item-1",
               productName: "Kopi",
             }),
           ],
           deletedIds: [],
-          updated: [],
-        },
-        outlet_products: {
-          created: [
+        }),
+        outlet_products: expect.objectContaining({
+          changedRows: [
             expect.objectContaining({
               id: "op-1",
               productId: "product-1",
             }),
           ],
           deletedIds: [],
-          updated: [],
-        },
+        }),
       }),
       "sync-multi-word",
       expect.any(String)
@@ -529,7 +518,7 @@ describe("sync protobuf routes", () => {
       needsFullResync: false,
       nextPageCursor: "",
       order_items: {
-        created: [
+        changedRows: [
           {
             id: "item-1",
             orderId: "order-1",
@@ -543,10 +532,9 @@ describe("sync protobuf routes", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       outlet_products: {
-        created: [
+        changedRows: [
           {
             id: "op-1",
             outletId: "outlet-1",
@@ -558,7 +546,6 @@ describe("sync protobuf routes", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
     });
@@ -579,10 +566,14 @@ describe("sync protobuf routes", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(decoded.orderItems?.created[0]?.id).toBe("item-1");
-    expect(decoded.orderItems?.created[0]?.unitPriceMinorUnits).toBe(15_000n);
-    expect(decoded.outletProducts?.created[0]?.id).toBe("op-1");
-    expect(decoded.outletProducts?.created[0]?.priceMinorUnits).toBe(15_000n);
+    expect(decoded.order_items?.changedRows[0]?.id).toBe("item-1");
+    expect(decoded.order_items?.changedRows[0]?.unitPriceMinorUnits).toBe(
+      15_000n
+    );
+    expect(decoded.outlet_products?.changedRows[0]?.id).toBe("op-1");
+    expect(decoded.outlet_products?.changedRows[0]?.priceMinorUnits).toBe(
+      15_000n
+    );
   });
 
   test("POST /api/sync/pull returns protobuf batch changes", async () => {
@@ -591,18 +582,18 @@ describe("sync protobuf routes", () => {
     mockOutletLookup();
     mockHandlePullBatch.mockResolvedValue({
       categories: {
-        created: [],
         deletedIds: [],
-        updated: [{ id: "cat-1", merchantId: "merchant-1", name: "Minuman" }],
+        changedRows: [
+          { id: "cat-1", merchantId: "merchant-1", name: "Minuman" },
+        ],
       },
       hasMore: false,
       latestEventId: 12,
       needsFullResync: false,
       nextPageCursor: "",
       products: {
-        created: [],
         deletedIds: [],
-        updated: [
+        changedRows: [
           {
             id: "product-1",
             merchantId: "merchant-1",
@@ -639,7 +630,7 @@ describe("sync protobuf routes", () => {
       pageCursor: "",
       tables: ["products", "categories"],
     });
-    expect(decoded.products?.updated[0]?.id).toBe("product-1");
-    expect(decoded.categories?.updated[0]?.name).toBe("Minuman");
+    expect(decoded.products?.changedRows[0]?.id).toBe("product-1");
+    expect(decoded.categories?.changedRows[0]?.name).toBe("Minuman");
   });
 });

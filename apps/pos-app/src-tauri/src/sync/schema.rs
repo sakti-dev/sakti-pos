@@ -126,17 +126,17 @@ pub(super) fn outbox_rows_to_table_changes(
                 let row = entry
                     .row
                     .ok_or_else(|| format!("Inserted sync row {} is missing payload", row_id))?;
-                changes.created.push(row);
+                changes.changed_rows.push(row);
             }
             "update" => {
                 let row = entry
                     .row
                     .ok_or_else(|| format!("Updated sync row {} is missing payload", row_id))?;
-                changes.updated.push(row);
+                changes.changed_rows.push(row);
             }
             "delete" => {
                 if let Some(row) = entry.row {
-                    changes.updated.push(row);
+                    changes.changed_rows.push(row);
                 } else {
                     changes.deleted_ids.push(row_id);
                 }

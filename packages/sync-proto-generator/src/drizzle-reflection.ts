@@ -1,5 +1,5 @@
 import { type AnySQLiteTable, getTableConfig } from "drizzle-orm/sqlite-core";
-import type { SyncManifest, SyncTableManifest } from "./manifest";
+import type { SyncGeneratorConfig } from "./config-types";
 
 export type ProtoScalarType = "bool" | "int64" | "string";
 
@@ -17,15 +17,22 @@ export interface ReflectedSyncTable {
   protoFieldName: string;
   rowMessageName: string;
   rustFieldName: string;
+  schemaBindingName: string;
   serviceKey: string;
   tableName: string;
   tsProtoFieldName: string;
+}
+
+export interface ReflectSyncTablesInput {
+  config: SyncGeneratorConfig;
+  schemaModule: Record<string, unknown>;
 }
 
 function isSQLiteTable(value: unknown): value is AnySQLiteTable {
   if (!value || typeof value !== "object") {
     return false;
   }
+
   try {
     getTableConfig(value as AnySQLiteTable);
     return true;
@@ -35,22 +42,15 @@ function isSQLiteTable(value: unknown): value is AnySQLiteTable {
 }
 
 function getColumnPropertyName(table: AnySQLiteTable, column: unknown): string {
-  const columns = table as unknown as Record<string, unknown>;
-  for (const [propertyName, candidate] of Object.entries(columns)) {
+  for (const [propertyName, candidate] of Object.entries(
+    table as unknown as Record<string, unknown>
+  )) {
     if (candidate === column) {
       return propertyName;
     }
   }
+
   throw new Error("Unable to resolve Drizzle column property name");
-}
-
-const CAMEL_TO_SNAKE_PATTERN = /[A-Z]/g;
-
-function camelToSnake(value: string): string {
-  return value.replace(
-    CAMEL_TO_SNAKE_PATTERN,
-    (letter) => `_${letter.toLowerCase()}`
-  );
 }
 
 function inferProtoType(column: unknown): ProtoScalarType {
@@ -70,136 +70,69 @@ function inferProtoType(column: unknown): ProtoScalarType {
   return "string";
 }
 
-function findSchemaTable(
-  schemaTables: AnySQLiteTable[],
-  tableName: string
-): AnySQLiteTable {
-  const table = schemaTables.find(
-    (schemaTable) => getTableConfig(schemaTable).name === tableName
-  );
-  if (!table) {
-    throw new Error(`Missing Drizzle table for sync table ${tableName}`);
-  }
-  return table;
-}
-
 function reflectColumns(
   table: AnySQLiteTable,
-  manifest: SyncManifest,
-  _manifestTable: SyncTableManifest
+  config: SyncGeneratorConfig
 ): ReflectedColumn[] {
   return getTableConfig(table)
     .columns.map((column) => {
       const propertyName = getColumnPropertyName(table, column);
       return {
         columnName: column.name,
-        notNull: column.notNull,
+        notNull: column.notNull || column.primary,
         propertyName,
-        protoName: camelToSnake(propertyName),
+        protoName: propertyName,
         protoType: inferProtoType(column),
       };
     })
-    .filter(
-      (column) => !manifest.globalExcludeColumns.includes(column.propertyName)
-    );
-}
-
-function columnsByProperty(
-  columns: ReflectedColumn[]
-): Map<string, ReflectedColumn> {
-  const reflectedByProperty = new Map<string, ReflectedColumn>();
-  for (const column of columns) {
-    reflectedByProperty.set(column.propertyName, column);
-  }
-  return reflectedByProperty;
-}
-
-function validateFieldOrder(input: {
-  columns: ReflectedColumn[];
-  manifestTable: SyncTableManifest;
-  reflectedByProperty: Map<string, ReflectedColumn>;
-}) {
-  const { columns, manifestTable, reflectedByProperty } = input;
-  if (!manifestTable.fieldOrder) {
-    return;
-  }
-
-  for (const name of manifestTable.fieldOrder) {
-    if (!reflectedByProperty.has(name)) {
-      throw new Error(
-        `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
-      );
-    }
-  }
-
-  const fieldOrderSet = new Set(manifestTable.fieldOrder);
-  for (const column of columns) {
-    if (!fieldOrderSet.has(column.propertyName)) {
-      throw new Error(
-        `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder omits reflected transport column ${column.propertyName}`
-      );
-    }
-  }
-}
-
-function orderedColumns(
-  manifestTable: SyncTableManifest,
-  reflectedColumns: ReflectedColumn[],
-  reflectedByProperty: Map<string, ReflectedColumn>
-): ReflectedColumn[] {
-  if (!manifestTable.fieldOrder) {
-    return reflectedColumns;
-  }
-
-  return manifestTable.fieldOrder.map((name) => {
-    const column = reflectedByProperty.get(name);
-    if (!column) {
-      throw new Error(
-        `Invalid sync manifest for ${manifestTable.tableName}: fieldOrder references missing property ${name}`
-      );
-    }
-    return column;
-  });
+    .filter((column) => !config.localOnlyColumns.includes(column.propertyName));
 }
 
 function reflectSyncTable(
-  schemaTables: AnySQLiteTable[],
-  manifest: SyncManifest,
-  manifestTable: SyncTableManifest
+  table: AnySQLiteTable,
+  config: SyncGeneratorConfig,
+  schemaBindingName: string
 ): ReflectedSyncTable {
-  const table = findSchemaTable(schemaTables, manifestTable.tableName);
-  const reflectedColumns = reflectColumns(table, manifest, manifestTable);
-  const reflectedByProperty = columnsByProperty(reflectedColumns);
-
-  validateFieldOrder({
-    columns: reflectedColumns,
-    manifestTable,
-    reflectedByProperty,
-  });
+  const tableName = getTableConfig(table).name;
 
   return {
-    changeMessageName: manifestTable.changeMessageName,
-    columns: orderedColumns(
-      manifestTable,
-      reflectedColumns,
-      reflectedByProperty
-    ),
-    protoFieldName: manifestTable.protoFieldName,
-    rowMessageName: manifestTable.rowMessageName,
-    rustFieldName: manifestTable.rustFieldName,
-    serviceKey: manifestTable.serviceKey,
-    tableName: manifestTable.tableName,
-    tsProtoFieldName: manifestTable.tsProtoFieldName,
+    changeMessageName: `${tableName}${config.changeMessageSuffix}`,
+    columns: reflectColumns(table, config),
+    schemaBindingName,
+    protoFieldName: tableName,
+    rowMessageName: `${tableName}${config.rowMessageSuffix}`,
+    rustFieldName: tableName,
+    serviceKey: tableName,
+    tableName,
+    tsProtoFieldName: tableName,
   };
 }
 
-export function reflectSyncTables(
+function reflectTablesFromSchema(
   schemaModule: Record<string, unknown>,
-  manifest: SyncManifest
+  config: SyncGeneratorConfig
 ): ReflectedSyncTable[] {
-  const schemaTables = Object.values(schemaModule).filter(isSQLiteTable);
+  return Object.entries(schemaModule)
+    .filter(([, value]) => isSQLiteTable(value))
+    .sort((left, right) => {
+      const leftTable = getTableConfig(left[1] as AnySQLiteTable).name;
+      const rightTable = getTableConfig(right[1] as AnySQLiteTable).name;
+      return leftTable.localeCompare(rightTable);
+    })
+    .map(([schemaBindingName, value]) =>
+      reflectSyncTable(value as AnySQLiteTable, config, schemaBindingName)
+    );
+}
 
-  return manifest.tables.map((manifestTable) =>
-    reflectSyncTable(schemaTables, manifest, manifestTable)
-  );
+export function reflectSyncTables(
+  input: ReflectSyncTablesInput
+): ReflectedSyncTable[];
+export function reflectSyncTables(
+  input: ReflectSyncTablesInput
+): ReflectedSyncTable[] {
+  if (!input || typeof input !== "object" || !("schemaModule" in input)) {
+    throw new Error("reflectSyncTables requires a schemaModule");
+  }
+
+  return reflectTablesFromSchema(input.schemaModule, input.config);
 }

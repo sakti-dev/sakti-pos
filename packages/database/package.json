@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/local-schema.ts",
-    "./api-schema": "./src/api-schema.ts"
+    "./api-schema": "./src/api-schema.ts",
+    "./api-synced-schema": "./src/api-synced-schema.ts",
+    "./synced-schema": "./src/synced-schema.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

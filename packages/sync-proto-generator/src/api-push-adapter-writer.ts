@@ -1,53 +1,25 @@
 import type { ReflectedSyncTable } from "./drizzle-reflection";
-import type { SyncManifest } from "./manifest";
-
-const SNAKE_TO_CAMEL_PATTERN = /_([a-z])/g;
-const PUSH_TABLE_ORDER = [
-  "merchants",
-  "outlets",
-  "registers",
-  "staff",
-  "categories",
-  "assets",
-  "products",
-  "outlet_products",
-  "orders",
-  "order_items",
-] as const;
-
-function snakeToCamel(value: string): string {
-  return value.replace(SNAKE_TO_CAMEL_PATTERN, (_, letter: string) =>
-    letter.toUpperCase()
-  );
-}
-
-function toPascalCase(value: string): string {
-  const camel = snakeToCamel(value);
-  return camel.charAt(0).toUpperCase() + camel.slice(1);
-}
+import { computeSyncTableOrder } from "./fk-order";
 
 function toAdapterConstName(tableName: string): string {
-  return `${toPascalCase(tableName)}PushTableAdapter`;
+  return `${tableName}_sync_table_adapter`;
 }
 
-function toRowMapperName(tableName: string): string {
-  return `${snakeToCamel(tableName)}RowToInsertRow`;
-}
-
-function toSelectRowsName(tableName: string): string {
-  return `${snakeToCamel(tableName)}SelectExistingRows`;
+function toMapProtoRowName(tableName: string): string {
+  return `${tableName}_map_proto_row`;
 }
 
 function toUpsertRowsName(tableName: string): string {
-  return `${snakeToCamel(tableName)}UpsertRows`;
+  return `${tableName}_upsert_rows`;
 }
 
-function toSoftDeleteRowsName(tableName: string): string {
-  return `${snakeToCamel(tableName)}SoftDeleteRows`;
+function toDeleteRowsName(tableName: string): string {
+  return `${tableName}_delete_rows`;
 }
 
 function renderHelpers(): string {
   return [
+    "const SQLITE_BIND_LIMIT = 999;",
     "const INTEGER_STRING_PATTERN = /^-?\\d+$/;",
     "",
     'import type { SQLiteTable } from "drizzle-orm/sqlite-core";',
@@ -55,50 +27,61 @@ function renderHelpers(): string {
     "export type TransactionLike = {",
     "  insert: <TTable extends SQLiteTable>(table: TTable) => {",
     "    values: (rows: Record<string, unknown>[]) => {",
-    "      onConflictDoNothing: () => Promise<unknown> | unknown;",
     "      onConflictDoUpdate: (input: { set: Record<string, unknown>; target: unknown }) => Promise<unknown> | unknown;",
     "    };",
     "  };",
-    "  select: <TFields extends Record<string, unknown>>(fields: TFields) => {",
-    "    from: <TTable extends SQLiteTable>(table: TTable) => {",
-    "      where: (condition: unknown) => Promise<unknown[]> | { limit: (value: number) => Promise<unknown[]> | unknown };",
+    "  select: <TSelection extends Record<string, unknown>>(fields: TSelection) => {",
+    "    from: (table: SQLiteTable) => {",
+    "      where: (condition: unknown) => unknown;",
     "    };",
     "  };",
     "  update: <TTable extends SQLiteTable>(table: TTable) => {",
-    "    set: (patch: Record<string, unknown>) => {",
-    "      where: (condition: unknown) => Promise<unknown> | unknown;",
+    "    set: (values: Record<string, unknown>) => {",
+    "      where: (condition: unknown) => unknown;",
     "    };",
+    "  };",
+    "  delete: <TTable extends SQLiteTable>(table: TTable) => {",
+    "    where: (condition: unknown) => Promise<unknown> | unknown;",
     "  };",
     "};",
     "",
-    "export interface PushAdapterContext {",
-    "  merchantId: string;",
-    "  outletId: string;",
+    "export interface GenericSyncTableAdapter {",
+    "  deleteRows(tx: TransactionLike, ids: string[]): Promise<void>;",
+    "  mapProtoRow(row: Record<string, unknown>): Record<string, unknown>;",
+    "  tableName: string;",
+    "  upsertRows(tx: TransactionLike, rows: Record<string, unknown>[]): Promise<void>;",
+    "  writeColumnCount: number;",
     "}",
     "",
-    "export interface PushTableAdapter {",
-    '  readonly scope: "merchant" | "outlet";',
-    "  readonly serviceKey: string;",
-    "  readonly tableName: string;",
-    "  readonly writeColumnCount: number;",
-    "  mapRow(row: Record<string, unknown>, context: PushAdapterContext): Record<string, unknown>;",
-    "  selectExistingRows(tx: TransactionLike, ids: string[]): Promise<Record<string, unknown>[]>;",
-    "  upsertRows(tx: TransactionLike, rows: Record<string, unknown>[]): Promise<void>;",
-    "  softDeleteRows(tx: TransactionLike, ids: string[], now: string): Promise<void>;",
+    "function chunkRows<T>(rows: T[], chunkSize: number): T[][] {",
+    "  const chunks: T[][] = [];",
+    "  if (chunkSize <= 0) return chunks;",
+    "  for (let index = 0; index < rows.length; index += chunkSize) {",
+    "    chunks.push(rows.slice(index, index + chunkSize));",
+    "  }",
+    "  return chunks;",
+    "}",
+    "",
+    "function getWriteChunkSize(writeColumnCount: number): number {",
+    "  return Math.max(1, Math.floor(SQLITE_BIND_LIMIT / writeColumnCount));",
+    "}",
+    "",
+    "function boolField(value: unknown): boolean {",
+    "  return value === true || value === 1;",
+    "}",
+    "",
+    "function nullableStringField(value: unknown): string | null {",
+    "  if (value == null) return null;",
+    '  return typeof value === "string" && value.length > 0 ? value : null;',
     "}",
     "",
     "function stringField(value: unknown): string {",
     '  return typeof value === "string" ? value : "";',
     "}",
     "",
-    "function nullableStringField(value: unknown): string | null {",
-    "  if (value == null) return null;",
-    '  if (typeof value === "string") return value.length === 0 ? null : value;',
-    "  return null;",
-    "}",
-    "",
-    "function boolField(value: unknown): boolean {",
-    "  return value === true || value === 1;",
+    "function nullableInt64NumberField(value: unknown, fieldName: string): number | null {",
+    '  if (value == null || value === "") return null;',
+    "  return requiredInt64NumberField(value, fieldName);",
     "}",
     "",
     "function requiredInt64NumberField(value: unknown, fieldName: string): number {",
@@ -108,109 +91,34 @@ function renderHelpers(): string {
     "  return 0;",
     "}",
     "",
-    "function nullableInt64NumberField(value: unknown, fieldName: string): number | null {",
-    '  if (value == null || value === "") return null;',
-    "  return requiredInt64NumberField(value, fieldName);",
-    "}",
-    "",
-    "function applyContextOwnership(",
-    "  row: Record<string, unknown>,",
-    "  context: PushAdapterContext,",
-    '  ownershipColumn: "merchantId" | "outletId" | null',
-    "): Record<string, unknown> {",
-    "  if (!ownershipColumn) return row;",
-    "  return {",
-    "    ...row,",
-    '    [ownershipColumn]: ownershipColumn === "merchantId" ? context.merchantId : context.outletId,',
-    "  };",
-    "}",
-    "",
-    "async function selectExistingRowsById(",
+    "async function deleteRowsByAdapter(",
     "  tx: TransactionLike,",
     "  table: SQLiteTable,",
-    "  projection: Record<string, unknown>,",
     "  ids: string[]",
-    "): Promise<Record<string, unknown>[]> {",
-    "  if (ids.length === 0) return [];",
-    "  const idColumn = (table as unknown as { id: never }).id;",
-    "  const rows = await resolveRowsLike(",
-    "    tx.select(projection).from(table).where(inArray(idColumn, ids)),",
-    "    ids.length",
-    "  );",
-    "  return Array.isArray(rows) ? rows as Record<string, unknown>[] : [];",
-    "}",
-    "",
-    "async function resolveRowsLike(value: unknown, limit: number): Promise<unknown> {",
-    "  if (Array.isArray(value)) return value;",
-    '  if (typeof value === "object" && value !== null && "limit" in value && typeof (value as { limit: unknown }).limit === "function") {',
-    "    return await resolveRowsLike(await (value as { limit: (value: number) => unknown }).limit(limit), limit);",
-    "  }",
-    "  return await value;",
-    "}",
-    "",
-    "async function upsertRowsByAdapter(",
-    "  tx: TransactionLike,",
-    "  table: SQLiteTable,",
-    "  set: Record<string, unknown>,",
-    "  rows: Record<string, unknown>[]",
-    "): Promise<void> {",
-    "  if (rows.length === 0) return;",
-    "  const idColumn = (table as unknown as { id: never }).id;",
-    "  await tx.insert(table).values(rows).onConflictDoUpdate({ set, target: idColumn });",
-    "}",
-    "",
-    "async function softDeleteRowsByAdapter(",
-    "  tx: TransactionLike,",
-    "  table: SQLiteTable,",
-    "  ids: string[],",
-    "  now: string",
     "): Promise<void> {",
     "  if (ids.length === 0) return;",
+    "  const chunkSize = getWriteChunkSize(1);",
     "  const idColumn = (table as unknown as { id: never }).id;",
-    "  await tx.update(table).set({ deletedAt: now, updatedAt: now }).where(inArray(idColumn, ids));",
+    "  for (const chunk of chunkRows(ids, chunkSize)) {",
+    "    await tx.delete(table).where(inArray(idColumn, chunk));",
+    "  }",
     "}",
   ].join("\n");
 }
 
-function ownershipColumnForTable(
-  table: ReflectedSyncTable
-): "merchantId" | "outletId" | null {
-  switch (table.tableName) {
-    case "outlets":
-    case "categories":
-    case "assets":
-    case "products":
-    case "staff":
-      return "merchantId";
-    case "registers":
-    case "orders":
-    case "order_items":
-    case "outlet_products":
-      return "outletId";
-    default:
-      return null;
-  }
-}
-
 function renderRowMapper(table: ReflectedSyncTable): string {
-  const funcName = toRowMapperName(table.tableName);
-  const ownershipColumn = ownershipColumnForTable(table);
+  const funcName = toMapProtoRowName(table.tableName);
   const lines = [
-    `function ${funcName}(row: Record<string, unknown>, context: PushAdapterContext) {`,
-    "  const normalized = {",
+    `function ${funcName}(row: Record<string, unknown>) {`,
+    "  return {",
   ];
 
   for (const column of table.columns) {
-    if (column.propertyName === ownershipColumn) {
-      continue;
-    }
-
-    let expr = `row.${column.propertyName}`;
+    let expr: string;
     if (column.protoType === "int64") {
-      const helper = column.notNull
-        ? "requiredInt64NumberField"
-        : "nullableInt64NumberField";
-      expr = `${helper}(row.${column.propertyName}, "${table.tableName}.${column.propertyName}")`;
+      expr = column.notNull
+        ? `requiredInt64NumberField(row.${column.propertyName}, "${table.tableName}.${column.propertyName}")`
+        : `nullableInt64NumberField(row.${column.propertyName}, "${table.tableName}.${column.propertyName}")`;
     } else if (column.protoType === "bool") {
       expr = `boolField(row.${column.propertyName})`;
     } else if (column.notNull) {
@@ -223,95 +131,104 @@ function renderRowMapper(table: ReflectedSyncTable): string {
   }
 
   lines.push("  };");
-  lines.push(
-    `  return applyContextOwnership(normalized, context, ${
-      ownershipColumn ? `"${ownershipColumn}"` : "null"
-    });`
-  );
   lines.push("}");
   return lines.join("\n");
 }
 
-function renderUpsertSet(table: ReflectedSyncTable): string {
-  const lines = ["{"];
-  for (const column of table.columns) {
-    if (column.propertyName === "id") {
-      continue;
-    }
-    lines.push(
-      `    ${column.propertyName}: sql.raw("excluded.${column.columnName}"),`
+function renderUpsertRows(table: ReflectedSyncTable): string {
+  const functionName = toUpsertRowsName(table.tableName);
+  const tableVarName = table.schemaBindingName;
+  const setLines = table.columns
+    .filter((column) => column.propertyName !== "id")
+    .map(
+      (column) =>
+        `      ${column.propertyName}: sql.raw("excluded.${column.columnName}"),`
     );
-  }
-  lines.push("  }");
-  return lines.join("\n");
-}
-
-function renderTableAdapter(
-  table: ReflectedSyncTable,
-  scope: "merchant" | "outlet"
-): string {
-  const rowMapper = toRowMapperName(table.tableName);
-  const selectName = toSelectRowsName(table.tableName);
-  const upsertName = toUpsertRowsName(table.tableName);
-  const deleteName = toSoftDeleteRowsName(table.tableName);
-  const adapterName = toAdapterConstName(table.tableName);
-  const tableIdentifier = table.tsProtoFieldName;
-  const projectionFields =
-    table.tableName === "order_items"
-      ? `{ id: ${tableIdentifier}.id, createdAt: ${tableIdentifier}.createdAt }`
-      : `{ id: ${tableIdentifier}.id, updatedAt: ${tableIdentifier}.updatedAt }`;
-  const writeColumns = table.columns.map((column) => column.propertyName);
-  const upsertSet = renderUpsertSet(table);
 
   return [
-    `function ${selectName}(tx: TransactionLike, ids: string[]) {`,
-    `  return selectExistingRowsById(tx, ${tableIdentifier}, ${projectionFields}, ids);`,
+    `async function ${functionName}(tx: TransactionLike, rows: Record<string, unknown>[]) {`,
+    "  if (rows.length === 0) return;",
+    `  const chunkSize = getWriteChunkSize(${table.columns.length});`,
+    "  for (const chunk of chunkRows(rows, chunkSize)) {",
+    "    await tx.insert(",
+    `      ${tableVarName}`,
+    "    ).values(chunk).onConflictDoUpdate({",
+    `      target: ${tableVarName}.id,`,
+    "      set: {",
+    ...setLines,
+    "      },",
+    "    });",
+    "  }",
     "}",
-    "",
-    `function ${upsertName}(tx: TransactionLike, rows: Record<string, unknown>[]) {`,
-    `  return upsertRowsByAdapter(tx, ${tableIdentifier}, ${upsertSet}, rows);`,
+  ].join("\n");
+}
+
+function renderDeleteRows(table: ReflectedSyncTable): string {
+  const functionName = toDeleteRowsName(table.tableName);
+  const tableVarName = table.schemaBindingName;
+  return [
+    `async function ${functionName}(tx: TransactionLike, ids: string[]) {`,
+    `  return deleteRowsByAdapter(tx, ${tableVarName}, ids);`,
     "}",
-    "",
-    `function ${deleteName}(tx: TransactionLike, ids: string[], now: string) {`,
-    `  return softDeleteRowsByAdapter(tx, ${tableIdentifier}, ids, now);`,
-    "}",
-    "",
+  ].join("\n");
+}
+
+function renderAdapter(table: ReflectedSyncTable): string {
+  const adapterName = toAdapterConstName(table.tableName);
+  const mapProtoRow = toMapProtoRowName(table.tableName);
+  const upsertRows = toUpsertRowsName(table.tableName);
+  const deleteRows = toDeleteRowsName(table.tableName);
+
+  return [
     `function ${adapterName}() {`,
     "  return {",
-    `    mapRow: ${rowMapper},`,
-    `    scope: "${scope}",`,
-    `    selectExistingRows: ${selectName},`,
-    `    serviceKey: "${table.serviceKey}",`,
-    `    softDeleteRows: ${deleteName},`,
+    `    deleteRows: ${deleteRows},`,
+    `    mapProtoRow: ${mapProtoRow},`,
     `    tableName: "${table.tableName}",`,
-    `    upsertRows: ${upsertName},`,
-    `    writeColumnCount: ${writeColumns.length},`,
+    `    upsertRows: ${upsertRows},`,
+    `    writeColumnCount: ${table.columns.length},`,
     "  } as const;",
     "}",
-    "",
+  ].join("\n");
+}
+
+function renderOrderConstants(orderedTableNames: string[]): string {
+  return [
+    `export const SYNC_UPSERT_ORDER = [${orderedTableNames
+      .map((tableName) => `"${tableName}"`)
+      .join(", ")}] as const;`,
+    `export const SYNC_DELETE_ORDER = [${[...orderedTableNames]
+      .reverse()
+      .map((tableName) => `"${tableName}"`)
+      .join(", ")}] as const;`,
   ].join("\n");
 }
 
 export function renderApiPushAdapters(
-  manifest: SyncManifest,
-  tables: ReflectedSyncTable[]
+  tables: ReflectedSyncTable[],
+  schemaModule: Record<string, unknown>
 ): string {
-  const scopeByTableName = new Map(
-    manifest.tables.map((table) => [table.tableName, table.scope] as const)
-  );
   const tableByName = new Map(tables.map((table) => [table.tableName, table]));
-  const orderedTables = PUSH_TABLE_ORDER.map((tableName) => {
+  const orderedTableNames = computeSyncTableOrder({
+    schemaModule,
+    syncedTableNames: tables.map((table) => table.tableName),
+  }).upsertOrder;
+  const orderedTables = orderedTableNames.map((tableName) => {
     const table = tableByName.get(tableName);
     if (!table) {
       throw new Error(`Missing reflected sync table for ${tableName}`);
     }
+
     return table;
   });
+
   const parts: string[] = [
     "// AUTO-GENERATED FILE. DO NOT EDIT.",
     "// Generated by @repo/sync-proto-generator.",
     "",
-    'import { assets, categories, merchants, orderItems, orders, outletProducts, outlets, products, registers, staff } from "@repo/database/api-schema";',
+    `import { ${orderedTables
+      .map((table) => table.schemaBindingName)
+      .join(", ")} } from "@repo/database/api-synced-schema";`,
     'import { inArray, sql } from "drizzle-orm";',
     'import { protobufInt64ToSafeNumber } from "./protobuf";',
     "",
@@ -322,17 +239,19 @@ export function renderApiPushAdapters(
   for (const table of orderedTables) {
     parts.push(renderRowMapper(table));
     parts.push("");
-    parts.push(
-      renderTableAdapter(
-        table,
-        scopeByTableName.get(table.tableName) ?? "merchant"
-      )
-    );
+    parts.push(renderUpsertRows(table));
+    parts.push("");
+    parts.push(renderDeleteRows(table));
+    parts.push("");
+    parts.push(renderAdapter(table));
+    parts.push("");
   }
 
+  parts.push(renderOrderConstants(orderedTableNames));
+  parts.push("");
   parts.push("export const PUSH_TABLE_ADAPTERS = [");
-  for (const table of orderedTables) {
-    parts.push(`  ${toAdapterConstName(table.tableName)}(),`);
+  for (const tableName of orderedTableNames) {
+    parts.push(`  ${toAdapterConstName(tableName)}(),`);
   }
   parts.push("] as const;");
   parts.push("");

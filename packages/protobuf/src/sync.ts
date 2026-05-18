@@ -36,54 +36,7 @@ export interface SyncTableAck {
   rejected: SyncRejectedRow[];
 }
 
-export interface MerchantRow {
-  id: string;
-  name: string;
-  deletedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OutletRow {
-  id: string;
-  merchantId: string;
-  timezone: string;
-  name: string;
-  address: string;
-  receiptName: string;
-  receiptAddress: string;
-  isActive: boolean;
-  deletedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface RegisterRow {
-  id: string;
-  outletId: string;
-  name: string;
-  shortId: string;
-  pairingCode: string;
-  pairingExpiresAt: string;
-  isActive: boolean;
-  lastSeenAt: string;
-  deletedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CategoryRow {
-  id: string;
-  merchantId: string;
-  name: string;
-  sortOrder: bigint;
-  isActive: boolean;
-  deletedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AssetRow {
+export interface assets_row {
   id: string;
   merchantId: string;
   objectKey: string;
@@ -101,22 +54,41 @@ export interface AssetRow {
   updatedAt: string;
 }
 
-export interface ProductRow {
+export interface categories_row {
   id: string;
   merchantId: string;
-  categoryId: string;
   name: string;
-  priceMinorUnits: bigint;
-  imageUrl: string;
-  imageAssetId: string;
-  isActive: boolean;
   sortOrder: bigint;
+  isActive: boolean;
   deletedAt: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface OrderRow {
+export interface merchants_row {
+  id: string;
+  name: string;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface order_items_row {
+  id: string;
+  orderId: string;
+  outletId: string;
+  productId: string;
+  productName: string;
+  quantity: bigint;
+  unitPriceMinorUnits: bigint;
+  originalPriceMinorUnits: bigint;
+  subtotalMinorUnits: bigint;
+  updatedAt: string;
+  deletedAt: string;
+  createdAt: string;
+}
+
+export interface orders_row {
   id: string;
   outletId: string;
   registerId: string;
@@ -132,22 +104,7 @@ export interface OrderRow {
   updatedAt: string;
 }
 
-export interface OrderItemRow {
-  id: string;
-  orderId: string;
-  outletId: string;
-  productId: string;
-  productName: string;
-  quantity: bigint;
-  unitPriceMinorUnits: bigint;
-  originalPriceMinorUnits: bigint;
-  subtotalMinorUnits: bigint;
-  deletedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OutletProductRow {
+export interface outlet_products_row {
   id: string;
   outletId: string;
   productId: string;
@@ -159,7 +116,50 @@ export interface OutletProductRow {
   updatedAt: string;
 }
 
-export interface StaffRow {
+export interface outlets_row {
+  id: string;
+  merchantId: string;
+  timezone: string;
+  name: string;
+  address: string;
+  receiptName: string;
+  receiptAddress: string;
+  isActive: boolean;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface products_row {
+  id: string;
+  merchantId: string;
+  categoryId: string;
+  name: string;
+  priceMinorUnits: bigint;
+  imageUrl: string;
+  imageAssetId: string;
+  isActive: boolean;
+  sortOrder: bigint;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface registers_row {
+  id: string;
+  outletId: string;
+  name: string;
+  shortId: string;
+  pairingCode: string;
+  pairingExpiresAt: string;
+  isActive: boolean;
+  lastSeenAt: string;
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface staff_row {
   id: string;
   merchantId: string;
   cloudUserId: string;
@@ -173,79 +173,69 @@ export interface StaffRow {
   updatedAt: string;
 }
 
-export interface MerchantChanges {
-  created: MerchantRow[];
-  updated: MerchantRow[];
+export interface assets_changes {
+  changedRows: assets_row[];
   deletedIds: string[];
 }
 
-export interface OutletChanges {
-  created: OutletRow[];
-  updated: OutletRow[];
+export interface categories_changes {
+  changedRows: categories_row[];
   deletedIds: string[];
 }
 
-export interface RegisterChanges {
-  created: RegisterRow[];
-  updated: RegisterRow[];
+export interface merchants_changes {
+  changedRows: merchants_row[];
   deletedIds: string[];
 }
 
-export interface CategoryChanges {
-  created: CategoryRow[];
-  updated: CategoryRow[];
+export interface order_items_changes {
+  changedRows: order_items_row[];
   deletedIds: string[];
 }
 
-export interface AssetChanges {
-  created: AssetRow[];
-  updated: AssetRow[];
+export interface orders_changes {
+  changedRows: orders_row[];
   deletedIds: string[];
 }
 
-export interface ProductChanges {
-  created: ProductRow[];
-  updated: ProductRow[];
+export interface outlet_products_changes {
+  changedRows: outlet_products_row[];
   deletedIds: string[];
 }
 
-export interface OrderChanges {
-  created: OrderRow[];
-  updated: OrderRow[];
+export interface outlets_changes {
+  changedRows: outlets_row[];
   deletedIds: string[];
 }
 
-export interface OrderItemChanges {
-  created: OrderItemRow[];
-  updated: OrderItemRow[];
+export interface products_changes {
+  changedRows: products_row[];
   deletedIds: string[];
 }
 
-export interface OutletProductChanges {
-  created: OutletProductRow[];
-  updated: OutletProductRow[];
+export interface registers_changes {
+  changedRows: registers_row[];
   deletedIds: string[];
 }
 
-export interface StaffChanges {
-  created: StaffRow[];
-  updated: StaffRow[];
+export interface staff_changes {
+  changedRows: staff_row[];
   deletedIds: string[];
 }
 
 export interface SyncPushBatchRequest {
   outletId: string;
   idempotencyKey: string;
-  merchants: MerchantChanges | undefined;
-  outlets: OutletChanges | undefined;
-  registers: RegisterChanges | undefined;
-  categories: CategoryChanges | undefined;
-  assets: AssetChanges | undefined;
-  products: ProductChanges | undefined;
-  orders: OrderChanges | undefined;
-  orderItems: OrderItemChanges | undefined;
-  outletProducts: OutletProductChanges | undefined;
-  staff: StaffChanges | undefined;
+  assets: assets_changes | undefined;
+  categories: categories_changes | undefined;
+  merchants: merchants_changes | undefined;
+  order_items: order_items_changes | undefined;
+  orders: orders_changes | undefined;
+  outlet_products: outlet_products_changes | undefined;
+  outlets: outlets_changes | undefined;
+  products: products_changes | undefined;
+  registers: registers_changes | undefined;
+  staff: staff_changes | undefined;
 }
 
 export interface SyncPushBatchResponse {
@@ -263,16 +253,16 @@ export interface SyncPullBatchRequest {
 }
 
 export interface SyncPullBatchResponse {
-  merchants: MerchantChanges | undefined;
-  outlets: OutletChanges | undefined;
-  registers: RegisterChanges | undefined;
-  categories: CategoryChanges | undefined;
-  assets: AssetChanges | undefined;
-  products: ProductChanges | undefined;
-  orders: OrderChanges | undefined;
-  orderItems: OrderItemChanges | undefined;
-  outletProducts: OutletProductChanges | undefined;
-  staff: StaffChanges | undefined;
+  assets: assets_changes | undefined;
+  categories: categories_changes | undefined;
+  merchants: merchants_changes | undefined;
+  order_items: order_items_changes | undefined;
+  orders: orders_changes | undefined;
+  outlet_products: outlet_products_changes | undefined;
+  outlets: outlets_changes | undefined;
+  products: products_changes | undefined;
+  registers: registers_changes | undefined;
+  staff: staff_changes | undefined;
   latestEventId: bigint;
   needsFullResync: boolean;
   serverTime: string;
@@ -332,16 +322,8 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
 
   fromJSON(object: any): SyncStatusRequest {
     return {
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      lastServerEventId: isSet(object.lastServerEventId)
-        ? BigInt(object.lastServerEventId)
-        : isSet(object.last_server_event_id)
-        ? BigInt(object.last_server_event_id)
-        : 0n,
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      lastServerEventId: isSet(object.lastServerEventId) ? BigInt(object.lastServerEventId) : 0n,
     };
   },
 
@@ -475,33 +457,13 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
     return {
       changedTables: globalThis.Array.isArray(object?.changedTables)
         ? object.changedTables.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.changed_tables)
-        ? object.changed_tables.map((e: any) => globalThis.String(e))
         : [],
-      hasChanges: isSet(object.hasChanges)
-        ? globalThis.Boolean(object.hasChanges)
-        : isSet(object.has_changes)
-        ? globalThis.Boolean(object.has_changes)
-        : false,
-      latestEventId: isSet(object.latestEventId)
-        ? BigInt(object.latestEventId)
-        : isSet(object.latest_event_id)
-        ? BigInt(object.latest_event_id)
-        : 0n,
-      needsFullResync: isSet(object.needsFullResync)
-        ? globalThis.Boolean(object.needsFullResync)
-        : isSet(object.needs_full_resync)
-        ? globalThis.Boolean(object.needs_full_resync)
-        : false,
-      oldestAvailableEventId: isSet(object.oldestAvailableEventId)
-        ? BigInt(object.oldestAvailableEventId)
-        : isSet(object.oldest_available_event_id)
-        ? BigInt(object.oldest_available_event_id)
-        : 0n,
+      hasChanges: isSet(object.hasChanges) ? globalThis.Boolean(object.hasChanges) : false,
+      latestEventId: isSet(object.latestEventId) ? BigInt(object.latestEventId) : 0n,
+      needsFullResync: isSet(object.needsFullResync) ? globalThis.Boolean(object.needsFullResync) : false,
+      oldestAvailableEventId: isSet(object.oldestAvailableEventId) ? BigInt(object.oldestAvailableEventId) : 0n,
       hasOldestAvailableEventId: isSet(object.hasOldestAvailableEventId)
         ? globalThis.Boolean(object.hasOldestAvailableEventId)
-        : isSet(object.has_oldest_available_event_id)
-        ? globalThis.Boolean(object.has_oldest_available_event_id)
         : false,
     };
   },
@@ -705,18 +667,12 @@ export const SyncTableAck: MessageFns<SyncTableAck> = {
       table: isSet(object.table) ? globalThis.String(object.table) : "",
       acceptedCreatedIds: globalThis.Array.isArray(object?.acceptedCreatedIds)
         ? object.acceptedCreatedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.accepted_created_ids)
-        ? object.accepted_created_ids.map((e: any) => globalThis.String(e))
         : [],
       acceptedUpdatedIds: globalThis.Array.isArray(object?.acceptedUpdatedIds)
         ? object.acceptedUpdatedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.accepted_updated_ids)
-        ? object.accepted_updated_ids.map((e: any) => globalThis.String(e))
         : [],
       acceptedDeletedIds: globalThis.Array.isArray(object?.acceptedDeletedIds)
         ? object.acceptedDeletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.accepted_deleted_ids)
-        ? object.accepted_deleted_ids.map((e: any) => globalThis.String(e))
         : [],
       rejected: globalThis.Array.isArray(object?.rejected)
         ? object.rejected.map((e: any) => SyncRejectedRow.fromJSON(e))
@@ -758,879 +714,7 @@ export const SyncTableAck: MessageFns<SyncTableAck> = {
   },
 };
 
-function createBaseMerchantRow(): MerchantRow {
-  return { id: "", name: "", deletedAt: "", createdAt: "", updatedAt: "" };
-}
-
-export const MerchantRow: MessageFns<MerchantRow> = {
-  encode(message: MerchantRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.name !== "") {
-      writer.uint32(18).string(message.name);
-    }
-    if (message.deletedAt !== "") {
-      writer.uint32(26).string(message.deletedAt);
-    }
-    if (message.createdAt !== "") {
-      writer.uint32(34).string(message.createdAt);
-    }
-    if (message.updatedAt !== "") {
-      writer.uint32(42).string(message.updatedAt);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): MerchantRow {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMerchantRow();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.deletedAt = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.createdAt = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.updatedAt = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): MerchantRow {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
-    };
-  },
-
-  toJSON(message: MerchantRow): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.deletedAt !== "") {
-      obj.deletedAt = message.deletedAt;
-    }
-    if (message.createdAt !== "") {
-      obj.createdAt = message.createdAt;
-    }
-    if (message.updatedAt !== "") {
-      obj.updatedAt = message.updatedAt;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<MerchantRow>): MerchantRow {
-    return MerchantRow.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<MerchantRow>): MerchantRow {
-    const message = createBaseMerchantRow();
-    message.id = object.id ?? "";
-    message.name = object.name ?? "";
-    message.deletedAt = object.deletedAt ?? "";
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
-    return message;
-  },
-};
-
-function createBaseOutletRow(): OutletRow {
-  return {
-    id: "",
-    merchantId: "",
-    timezone: "",
-    name: "",
-    address: "",
-    receiptName: "",
-    receiptAddress: "",
-    isActive: false,
-    deletedAt: "",
-    createdAt: "",
-    updatedAt: "",
-  };
-}
-
-export const OutletRow: MessageFns<OutletRow> = {
-  encode(message: OutletRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.merchantId !== "") {
-      writer.uint32(18).string(message.merchantId);
-    }
-    if (message.timezone !== "") {
-      writer.uint32(26).string(message.timezone);
-    }
-    if (message.name !== "") {
-      writer.uint32(34).string(message.name);
-    }
-    if (message.address !== "") {
-      writer.uint32(42).string(message.address);
-    }
-    if (message.receiptName !== "") {
-      writer.uint32(50).string(message.receiptName);
-    }
-    if (message.receiptAddress !== "") {
-      writer.uint32(58).string(message.receiptAddress);
-    }
-    if (message.isActive !== false) {
-      writer.uint32(64).bool(message.isActive);
-    }
-    if (message.deletedAt !== "") {
-      writer.uint32(74).string(message.deletedAt);
-    }
-    if (message.createdAt !== "") {
-      writer.uint32(82).string(message.createdAt);
-    }
-    if (message.updatedAt !== "") {
-      writer.uint32(90).string(message.updatedAt);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): OutletRow {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutletRow();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.merchantId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.timezone = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.address = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
-
-          message.receiptName = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
-
-          message.receiptAddress = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 64) {
-            break;
-          }
-
-          message.isActive = reader.bool();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
-
-          message.deletedAt = reader.string();
-          continue;
-        }
-        case 10: {
-          if (tag !== 82) {
-            break;
-          }
-
-          message.createdAt = reader.string();
-          continue;
-        }
-        case 11: {
-          if (tag !== 90) {
-            break;
-          }
-
-          message.updatedAt = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): OutletRow {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      merchantId: isSet(object.merchantId)
-        ? globalThis.String(object.merchantId)
-        : isSet(object.merchant_id)
-        ? globalThis.String(object.merchant_id)
-        : "",
-      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      address: isSet(object.address) ? globalThis.String(object.address) : "",
-      receiptName: isSet(object.receiptName)
-        ? globalThis.String(object.receiptName)
-        : isSet(object.receipt_name)
-        ? globalThis.String(object.receipt_name)
-        : "",
-      receiptAddress: isSet(object.receiptAddress)
-        ? globalThis.String(object.receiptAddress)
-        : isSet(object.receipt_address)
-        ? globalThis.String(object.receipt_address)
-        : "",
-      isActive: isSet(object.isActive)
-        ? globalThis.Boolean(object.isActive)
-        : isSet(object.is_active)
-        ? globalThis.Boolean(object.is_active)
-        : false,
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
-    };
-  },
-
-  toJSON(message: OutletRow): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.merchantId !== "") {
-      obj.merchantId = message.merchantId;
-    }
-    if (message.timezone !== "") {
-      obj.timezone = message.timezone;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.address !== "") {
-      obj.address = message.address;
-    }
-    if (message.receiptName !== "") {
-      obj.receiptName = message.receiptName;
-    }
-    if (message.receiptAddress !== "") {
-      obj.receiptAddress = message.receiptAddress;
-    }
-    if (message.isActive !== false) {
-      obj.isActive = message.isActive;
-    }
-    if (message.deletedAt !== "") {
-      obj.deletedAt = message.deletedAt;
-    }
-    if (message.createdAt !== "") {
-      obj.createdAt = message.createdAt;
-    }
-    if (message.updatedAt !== "") {
-      obj.updatedAt = message.updatedAt;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<OutletRow>): OutletRow {
-    return OutletRow.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<OutletRow>): OutletRow {
-    const message = createBaseOutletRow();
-    message.id = object.id ?? "";
-    message.merchantId = object.merchantId ?? "";
-    message.timezone = object.timezone ?? "";
-    message.name = object.name ?? "";
-    message.address = object.address ?? "";
-    message.receiptName = object.receiptName ?? "";
-    message.receiptAddress = object.receiptAddress ?? "";
-    message.isActive = object.isActive ?? false;
-    message.deletedAt = object.deletedAt ?? "";
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
-    return message;
-  },
-};
-
-function createBaseRegisterRow(): RegisterRow {
-  return {
-    id: "",
-    outletId: "",
-    name: "",
-    shortId: "",
-    pairingCode: "",
-    pairingExpiresAt: "",
-    isActive: false,
-    lastSeenAt: "",
-    deletedAt: "",
-    createdAt: "",
-    updatedAt: "",
-  };
-}
-
-export const RegisterRow: MessageFns<RegisterRow> = {
-  encode(message: RegisterRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.outletId !== "") {
-      writer.uint32(18).string(message.outletId);
-    }
-    if (message.name !== "") {
-      writer.uint32(26).string(message.name);
-    }
-    if (message.shortId !== "") {
-      writer.uint32(34).string(message.shortId);
-    }
-    if (message.pairingCode !== "") {
-      writer.uint32(42).string(message.pairingCode);
-    }
-    if (message.pairingExpiresAt !== "") {
-      writer.uint32(50).string(message.pairingExpiresAt);
-    }
-    if (message.isActive !== false) {
-      writer.uint32(56).bool(message.isActive);
-    }
-    if (message.lastSeenAt !== "") {
-      writer.uint32(66).string(message.lastSeenAt);
-    }
-    if (message.deletedAt !== "") {
-      writer.uint32(74).string(message.deletedAt);
-    }
-    if (message.createdAt !== "") {
-      writer.uint32(82).string(message.createdAt);
-    }
-    if (message.updatedAt !== "") {
-      writer.uint32(90).string(message.updatedAt);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRow {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRegisterRow();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.outletId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.shortId = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.pairingCode = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
-
-          message.pairingExpiresAt = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
-            break;
-          }
-
-          message.isActive = reader.bool();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
-
-          message.lastSeenAt = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
-
-          message.deletedAt = reader.string();
-          continue;
-        }
-        case 10: {
-          if (tag !== 82) {
-            break;
-          }
-
-          message.createdAt = reader.string();
-          continue;
-        }
-        case 11: {
-          if (tag !== 90) {
-            break;
-          }
-
-          message.updatedAt = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): RegisterRow {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      shortId: isSet(object.shortId)
-        ? globalThis.String(object.shortId)
-        : isSet(object.short_id)
-        ? globalThis.String(object.short_id)
-        : "",
-      pairingCode: isSet(object.pairingCode)
-        ? globalThis.String(object.pairingCode)
-        : isSet(object.pairing_code)
-        ? globalThis.String(object.pairing_code)
-        : "",
-      pairingExpiresAt: isSet(object.pairingExpiresAt)
-        ? globalThis.String(object.pairingExpiresAt)
-        : isSet(object.pairing_expires_at)
-        ? globalThis.String(object.pairing_expires_at)
-        : "",
-      isActive: isSet(object.isActive)
-        ? globalThis.Boolean(object.isActive)
-        : isSet(object.is_active)
-        ? globalThis.Boolean(object.is_active)
-        : false,
-      lastSeenAt: isSet(object.lastSeenAt)
-        ? globalThis.String(object.lastSeenAt)
-        : isSet(object.last_seen_at)
-        ? globalThis.String(object.last_seen_at)
-        : "",
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
-    };
-  },
-
-  toJSON(message: RegisterRow): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.outletId !== "") {
-      obj.outletId = message.outletId;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.shortId !== "") {
-      obj.shortId = message.shortId;
-    }
-    if (message.pairingCode !== "") {
-      obj.pairingCode = message.pairingCode;
-    }
-    if (message.pairingExpiresAt !== "") {
-      obj.pairingExpiresAt = message.pairingExpiresAt;
-    }
-    if (message.isActive !== false) {
-      obj.isActive = message.isActive;
-    }
-    if (message.lastSeenAt !== "") {
-      obj.lastSeenAt = message.lastSeenAt;
-    }
-    if (message.deletedAt !== "") {
-      obj.deletedAt = message.deletedAt;
-    }
-    if (message.createdAt !== "") {
-      obj.createdAt = message.createdAt;
-    }
-    if (message.updatedAt !== "") {
-      obj.updatedAt = message.updatedAt;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<RegisterRow>): RegisterRow {
-    return RegisterRow.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<RegisterRow>): RegisterRow {
-    const message = createBaseRegisterRow();
-    message.id = object.id ?? "";
-    message.outletId = object.outletId ?? "";
-    message.name = object.name ?? "";
-    message.shortId = object.shortId ?? "";
-    message.pairingCode = object.pairingCode ?? "";
-    message.pairingExpiresAt = object.pairingExpiresAt ?? "";
-    message.isActive = object.isActive ?? false;
-    message.lastSeenAt = object.lastSeenAt ?? "";
-    message.deletedAt = object.deletedAt ?? "";
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
-    return message;
-  },
-};
-
-function createBaseCategoryRow(): CategoryRow {
-  return {
-    id: "",
-    merchantId: "",
-    name: "",
-    sortOrder: 0n,
-    isActive: false,
-    deletedAt: "",
-    createdAt: "",
-    updatedAt: "",
-  };
-}
-
-export const CategoryRow: MessageFns<CategoryRow> = {
-  encode(message: CategoryRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.merchantId !== "") {
-      writer.uint32(18).string(message.merchantId);
-    }
-    if (message.name !== "") {
-      writer.uint32(26).string(message.name);
-    }
-    if (message.sortOrder !== 0n) {
-      if (BigInt.asIntN(64, message.sortOrder) !== message.sortOrder) {
-        throw new globalThis.Error("value provided for field message.sortOrder of type int64 too large");
-      }
-      writer.uint32(32).int64(message.sortOrder);
-    }
-    if (message.isActive !== false) {
-      writer.uint32(40).bool(message.isActive);
-    }
-    if (message.deletedAt !== "") {
-      writer.uint32(50).string(message.deletedAt);
-    }
-    if (message.createdAt !== "") {
-      writer.uint32(58).string(message.createdAt);
-    }
-    if (message.updatedAt !== "") {
-      writer.uint32(66).string(message.updatedAt);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CategoryRow {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCategoryRow();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.merchantId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.sortOrder = reader.int64() as bigint;
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
-
-          message.isActive = reader.bool();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
-
-          message.deletedAt = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
-
-          message.createdAt = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
-
-          message.updatedAt = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): CategoryRow {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      merchantId: isSet(object.merchantId)
-        ? globalThis.String(object.merchantId)
-        : isSet(object.merchant_id)
-        ? globalThis.String(object.merchant_id)
-        : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      sortOrder: isSet(object.sortOrder)
-        ? BigInt(object.sortOrder)
-        : isSet(object.sort_order)
-        ? BigInt(object.sort_order)
-        : 0n,
-      isActive: isSet(object.isActive)
-        ? globalThis.Boolean(object.isActive)
-        : isSet(object.is_active)
-        ? globalThis.Boolean(object.is_active)
-        : false,
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
-    };
-  },
-
-  toJSON(message: CategoryRow): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.merchantId !== "") {
-      obj.merchantId = message.merchantId;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.sortOrder !== 0n) {
-      obj.sortOrder = message.sortOrder.toString();
-    }
-    if (message.isActive !== false) {
-      obj.isActive = message.isActive;
-    }
-    if (message.deletedAt !== "") {
-      obj.deletedAt = message.deletedAt;
-    }
-    if (message.createdAt !== "") {
-      obj.createdAt = message.createdAt;
-    }
-    if (message.updatedAt !== "") {
-      obj.updatedAt = message.updatedAt;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<CategoryRow>): CategoryRow {
-    return CategoryRow.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<CategoryRow>): CategoryRow {
-    const message = createBaseCategoryRow();
-    message.id = object.id ?? "";
-    message.merchantId = object.merchantId ?? "";
-    message.name = object.name ?? "";
-    message.sortOrder = object.sortOrder ?? 0n;
-    message.isActive = object.isActive ?? false;
-    message.deletedAt = object.deletedAt ?? "";
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
-    return message;
-  },
-};
-
-function createBaseAssetRow(): AssetRow {
+function createBaseassets_row(): assets_row {
   return {
     id: "",
     merchantId: "",
@@ -1650,8 +734,8 @@ function createBaseAssetRow(): AssetRow {
   };
 }
 
-export const AssetRow: MessageFns<AssetRow> = {
-  encode(message: AssetRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const assets_row: MessageFns<assets_row> = {
+  encode(message: assets_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -1709,10 +793,10 @@ export const AssetRow: MessageFns<AssetRow> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AssetRow {
+  decode(input: BinaryReader | Uint8Array, length?: number): assets_row {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAssetRow();
+    const message = createBaseassets_row();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1845,67 +929,27 @@ export const AssetRow: MessageFns<AssetRow> = {
     return message;
   },
 
-  fromJSON(object: any): AssetRow {
+  fromJSON(object: any): assets_row {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
-      merchantId: isSet(object.merchantId)
-        ? globalThis.String(object.merchantId)
-        : isSet(object.merchant_id)
-        ? globalThis.String(object.merchant_id)
-        : "",
-      objectKey: isSet(object.objectKey)
-        ? globalThis.String(object.objectKey)
-        : isSet(object.object_key)
-        ? globalThis.String(object.object_key)
-        : "",
-      originalFilename: isSet(object.originalFilename)
-        ? globalThis.String(object.originalFilename)
-        : isSet(object.original_filename)
-        ? globalThis.String(object.original_filename)
-        : "",
-      contentType: isSet(object.contentType)
-        ? globalThis.String(object.contentType)
-        : isSet(object.content_type)
-        ? globalThis.String(object.content_type)
-        : "",
-      byteSize: isSet(object.byteSize)
-        ? BigInt(object.byteSize)
-        : isSet(object.byte_size)
-        ? BigInt(object.byte_size)
-        : 0n,
-      contentHash: isSet(object.contentHash)
-        ? globalThis.String(object.contentHash)
-        : isSet(object.content_hash)
-        ? globalThis.String(object.content_hash)
-        : "",
+      merchantId: isSet(object.merchantId) ? globalThis.String(object.merchantId) : "",
+      objectKey: isSet(object.objectKey) ? globalThis.String(object.objectKey) : "",
+      originalFilename: isSet(object.originalFilename) ? globalThis.String(object.originalFilename) : "",
+      contentType: isSet(object.contentType) ? globalThis.String(object.contentType) : "",
+      byteSize: isSet(object.byteSize) ? BigInt(object.byteSize) : 0n,
+      contentHash: isSet(object.contentHash) ? globalThis.String(object.contentHash) : "",
       kind: isSet(object.kind) ? globalThis.String(object.kind) : "",
       width: isSet(object.width) ? BigInt(object.width) : 0n,
       height: isSet(object.height) ? BigInt(object.height) : 0n,
       status: isSet(object.status) ? globalThis.String(object.status) : "",
-      createdByUserId: isSet(object.createdByUserId)
-        ? globalThis.String(object.createdByUserId)
-        : isSet(object.created_by_user_id)
-        ? globalThis.String(object.created_by_user_id)
-        : "",
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+      createdByUserId: isSet(object.createdByUserId) ? globalThis.String(object.createdByUserId) : "",
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
     };
   },
 
-  toJSON(message: AssetRow): unknown {
+  toJSON(message: assets_row): unknown {
     const obj: any = {};
     if (message.id !== "") {
       obj.id = message.id;
@@ -1955,11 +999,11 @@ export const AssetRow: MessageFns<AssetRow> = {
     return obj;
   },
 
-  create(base?: DeepPartial<AssetRow>): AssetRow {
-    return AssetRow.fromPartial(base ?? {});
+  create(base?: DeepPartial<assets_row>): assets_row {
+    return assets_row.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<AssetRow>): AssetRow {
-    const message = createBaseAssetRow();
+  fromPartial(object: DeepPartial<assets_row>): assets_row {
+    const message = createBaseassets_row();
     message.id = object.id ?? "";
     message.merchantId = object.merchantId ?? "";
     message.objectKey = object.objectKey ?? "";
@@ -1979,74 +1023,55 @@ export const AssetRow: MessageFns<AssetRow> = {
   },
 };
 
-function createBaseProductRow(): ProductRow {
+function createBasecategories_row(): categories_row {
   return {
     id: "",
     merchantId: "",
-    categoryId: "",
     name: "",
-    priceMinorUnits: 0n,
-    imageUrl: "",
-    imageAssetId: "",
-    isActive: false,
     sortOrder: 0n,
+    isActive: false,
     deletedAt: "",
     createdAt: "",
     updatedAt: "",
   };
 }
 
-export const ProductRow: MessageFns<ProductRow> = {
-  encode(message: ProductRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const categories_row: MessageFns<categories_row> = {
+  encode(message: categories_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
     if (message.merchantId !== "") {
       writer.uint32(18).string(message.merchantId);
     }
-    if (message.categoryId !== "") {
-      writer.uint32(26).string(message.categoryId);
-    }
     if (message.name !== "") {
-      writer.uint32(34).string(message.name);
-    }
-    if (message.priceMinorUnits !== 0n) {
-      if (BigInt.asIntN(64, message.priceMinorUnits) !== message.priceMinorUnits) {
-        throw new globalThis.Error("value provided for field message.priceMinorUnits of type int64 too large");
-      }
-      writer.uint32(40).int64(message.priceMinorUnits);
-    }
-    if (message.imageUrl !== "") {
-      writer.uint32(50).string(message.imageUrl);
-    }
-    if (message.imageAssetId !== "") {
-      writer.uint32(58).string(message.imageAssetId);
-    }
-    if (message.isActive !== false) {
-      writer.uint32(64).bool(message.isActive);
+      writer.uint32(26).string(message.name);
     }
     if (message.sortOrder !== 0n) {
       if (BigInt.asIntN(64, message.sortOrder) !== message.sortOrder) {
         throw new globalThis.Error("value provided for field message.sortOrder of type int64 too large");
       }
-      writer.uint32(72).int64(message.sortOrder);
+      writer.uint32(32).int64(message.sortOrder);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(40).bool(message.isActive);
     }
     if (message.deletedAt !== "") {
-      writer.uint32(82).string(message.deletedAt);
+      writer.uint32(50).string(message.deletedAt);
     }
     if (message.createdAt !== "") {
-      writer.uint32(90).string(message.createdAt);
+      writer.uint32(58).string(message.createdAt);
     }
     if (message.updatedAt !== "") {
-      writer.uint32(98).string(message.updatedAt);
+      writer.uint32(66).string(message.updatedAt);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ProductRow {
+  decode(input: BinaryReader | Uint8Array, length?: number): categories_row {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseProductRow();
+    const message = createBasecategories_row();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2071,15 +1096,15 @@ export const ProductRow: MessageFns<ProductRow> = {
             break;
           }
 
-          message.categoryId = reader.string();
+          message.name = reader.string();
           continue;
         }
         case 4: {
-          if (tag !== 34) {
+          if (tag !== 32) {
             break;
           }
 
-          message.name = reader.string();
+          message.sortOrder = reader.int64() as bigint;
           continue;
         }
         case 5: {
@@ -2087,7 +1112,7 @@ export const ProductRow: MessageFns<ProductRow> = {
             break;
           }
 
-          message.priceMinorUnits = reader.int64() as bigint;
+          message.isActive = reader.bool();
           continue;
         }
         case 6: {
@@ -2095,7 +1120,7 @@ export const ProductRow: MessageFns<ProductRow> = {
             break;
           }
 
-          message.imageUrl = reader.string();
+          message.deletedAt = reader.string();
           continue;
         }
         case 7: {
@@ -2103,43 +1128,11 @@ export const ProductRow: MessageFns<ProductRow> = {
             break;
           }
 
-          message.imageAssetId = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 64) {
-            break;
-          }
-
-          message.isActive = reader.bool();
-          continue;
-        }
-        case 9: {
-          if (tag !== 72) {
-            break;
-          }
-
-          message.sortOrder = reader.int64() as bigint;
-          continue;
-        }
-        case 10: {
-          if (tag !== 82) {
-            break;
-          }
-
-          message.deletedAt = reader.string();
-          continue;
-        }
-        case 11: {
-          if (tag !== 90) {
-            break;
-          }
-
           message.createdAt = reader.string();
           continue;
         }
-        case 12: {
-          if (tag !== 98) {
+        case 8: {
+          if (tag !== 66) {
             break;
           }
 
@@ -2155,64 +1148,20 @@ export const ProductRow: MessageFns<ProductRow> = {
     return message;
   },
 
-  fromJSON(object: any): ProductRow {
+  fromJSON(object: any): categories_row {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
-      merchantId: isSet(object.merchantId)
-        ? globalThis.String(object.merchantId)
-        : isSet(object.merchant_id)
-        ? globalThis.String(object.merchant_id)
-        : "",
-      categoryId: isSet(object.categoryId)
-        ? globalThis.String(object.categoryId)
-        : isSet(object.category_id)
-        ? globalThis.String(object.category_id)
-        : "",
+      merchantId: isSet(object.merchantId) ? globalThis.String(object.merchantId) : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
-      priceMinorUnits: isSet(object.priceMinorUnits)
-        ? BigInt(object.priceMinorUnits)
-        : isSet(object.price_minor_units)
-        ? BigInt(object.price_minor_units)
-        : 0n,
-      imageUrl: isSet(object.imageUrl)
-        ? globalThis.String(object.imageUrl)
-        : isSet(object.image_url)
-        ? globalThis.String(object.image_url)
-        : "",
-      imageAssetId: isSet(object.imageAssetId)
-        ? globalThis.String(object.imageAssetId)
-        : isSet(object.image_asset_id)
-        ? globalThis.String(object.image_asset_id)
-        : "",
-      isActive: isSet(object.isActive)
-        ? globalThis.Boolean(object.isActive)
-        : isSet(object.is_active)
-        ? globalThis.Boolean(object.is_active)
-        : false,
-      sortOrder: isSet(object.sortOrder)
-        ? BigInt(object.sortOrder)
-        : isSet(object.sort_order)
-        ? BigInt(object.sort_order)
-        : 0n,
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+      sortOrder: isSet(object.sortOrder) ? BigInt(object.sortOrder) : 0n,
+      isActive: isSet(object.isActive) ? globalThis.Boolean(object.isActive) : false,
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
     };
   },
 
-  toJSON(message: ProductRow): unknown {
+  toJSON(message: categories_row): unknown {
     const obj: any = {};
     if (message.id !== "") {
       obj.id = message.id;
@@ -2220,26 +1169,14 @@ export const ProductRow: MessageFns<ProductRow> = {
     if (message.merchantId !== "") {
       obj.merchantId = message.merchantId;
     }
-    if (message.categoryId !== "") {
-      obj.categoryId = message.categoryId;
-    }
     if (message.name !== "") {
       obj.name = message.name;
     }
-    if (message.priceMinorUnits !== 0n) {
-      obj.priceMinorUnits = message.priceMinorUnits.toString();
-    }
-    if (message.imageUrl !== "") {
-      obj.imageUrl = message.imageUrl;
-    }
-    if (message.imageAssetId !== "") {
-      obj.imageAssetId = message.imageAssetId;
+    if (message.sortOrder !== 0n) {
+      obj.sortOrder = message.sortOrder.toString();
     }
     if (message.isActive !== false) {
       obj.isActive = message.isActive;
-    }
-    if (message.sortOrder !== 0n) {
-      obj.sortOrder = message.sortOrder.toString();
     }
     if (message.deletedAt !== "") {
       obj.deletedAt = message.deletedAt;
@@ -2253,20 +1190,16 @@ export const ProductRow: MessageFns<ProductRow> = {
     return obj;
   },
 
-  create(base?: DeepPartial<ProductRow>): ProductRow {
-    return ProductRow.fromPartial(base ?? {});
+  create(base?: DeepPartial<categories_row>): categories_row {
+    return categories_row.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<ProductRow>): ProductRow {
-    const message = createBaseProductRow();
+  fromPartial(object: DeepPartial<categories_row>): categories_row {
+    const message = createBasecategories_row();
     message.id = object.id ?? "";
     message.merchantId = object.merchantId ?? "";
-    message.categoryId = object.categoryId ?? "";
     message.name = object.name ?? "";
-    message.priceMinorUnits = object.priceMinorUnits ?? 0n;
-    message.imageUrl = object.imageUrl ?? "";
-    message.imageAssetId = object.imageAssetId ?? "";
-    message.isActive = object.isActive ?? false;
     message.sortOrder = object.sortOrder ?? 0n;
+    message.isActive = object.isActive ?? false;
     message.deletedAt = object.deletedAt ?? "";
     message.createdAt = object.createdAt ?? "";
     message.updatedAt = object.updatedAt ?? "";
@@ -2274,7 +1207,392 @@ export const ProductRow: MessageFns<ProductRow> = {
   },
 };
 
-function createBaseOrderRow(): OrderRow {
+function createBasemerchants_row(): merchants_row {
+  return { id: "", name: "", deletedAt: "", createdAt: "", updatedAt: "" };
+}
+
+export const merchants_row: MessageFns<merchants_row> = {
+  encode(message: merchants_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(26).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(34).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(42).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): merchants_row {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasemerchants_row();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): merchants_row {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
+    };
+  },
+
+  toJSON(message: merchants_row): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<merchants_row>): merchants_row {
+    return merchants_row.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<merchants_row>): merchants_row {
+    const message = createBasemerchants_row();
+    message.id = object.id ?? "";
+    message.name = object.name ?? "";
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseorder_items_row(): order_items_row {
+  return {
+    id: "",
+    orderId: "",
+    outletId: "",
+    productId: "",
+    productName: "",
+    quantity: 0n,
+    unitPriceMinorUnits: 0n,
+    originalPriceMinorUnits: 0n,
+    subtotalMinorUnits: 0n,
+    updatedAt: "",
+    deletedAt: "",
+    createdAt: "",
+  };
+}
+
+export const order_items_row: MessageFns<order_items_row> = {
+  encode(message: order_items_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.orderId !== "") {
+      writer.uint32(18).string(message.orderId);
+    }
+    if (message.outletId !== "") {
+      writer.uint32(26).string(message.outletId);
+    }
+    if (message.productId !== "") {
+      writer.uint32(34).string(message.productId);
+    }
+    if (message.productName !== "") {
+      writer.uint32(42).string(message.productName);
+    }
+    if (message.quantity !== 0n) {
+      if (BigInt.asIntN(64, message.quantity) !== message.quantity) {
+        throw new globalThis.Error("value provided for field message.quantity of type int64 too large");
+      }
+      writer.uint32(48).int64(message.quantity);
+    }
+    if (message.unitPriceMinorUnits !== 0n) {
+      if (BigInt.asIntN(64, message.unitPriceMinorUnits) !== message.unitPriceMinorUnits) {
+        throw new globalThis.Error("value provided for field message.unitPriceMinorUnits of type int64 too large");
+      }
+      writer.uint32(56).int64(message.unitPriceMinorUnits);
+    }
+    if (message.originalPriceMinorUnits !== 0n) {
+      if (BigInt.asIntN(64, message.originalPriceMinorUnits) !== message.originalPriceMinorUnits) {
+        throw new globalThis.Error("value provided for field message.originalPriceMinorUnits of type int64 too large");
+      }
+      writer.uint32(64).int64(message.originalPriceMinorUnits);
+    }
+    if (message.subtotalMinorUnits !== 0n) {
+      if (BigInt.asIntN(64, message.subtotalMinorUnits) !== message.subtotalMinorUnits) {
+        throw new globalThis.Error("value provided for field message.subtotalMinorUnits of type int64 too large");
+      }
+      writer.uint32(72).int64(message.subtotalMinorUnits);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(82).string(message.updatedAt);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(90).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(98).string(message.createdAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): order_items_row {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseorder_items_row();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.orderId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.outletId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.productId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.productName = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.quantity = reader.int64() as bigint;
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.unitPriceMinorUnits = reader.int64() as bigint;
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.originalPriceMinorUnits = reader.int64() as bigint;
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.subtotalMinorUnits = reader.int64() as bigint;
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): order_items_row {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      orderId: isSet(object.orderId) ? globalThis.String(object.orderId) : "",
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      productId: isSet(object.productId) ? globalThis.String(object.productId) : "",
+      productName: isSet(object.productName) ? globalThis.String(object.productName) : "",
+      quantity: isSet(object.quantity) ? BigInt(object.quantity) : 0n,
+      unitPriceMinorUnits: isSet(object.unitPriceMinorUnits) ? BigInt(object.unitPriceMinorUnits) : 0n,
+      originalPriceMinorUnits: isSet(object.originalPriceMinorUnits) ? BigInt(object.originalPriceMinorUnits) : 0n,
+      subtotalMinorUnits: isSet(object.subtotalMinorUnits) ? BigInt(object.subtotalMinorUnits) : 0n,
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+    };
+  },
+
+  toJSON(message: order_items_row): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.orderId !== "") {
+      obj.orderId = message.orderId;
+    }
+    if (message.outletId !== "") {
+      obj.outletId = message.outletId;
+    }
+    if (message.productId !== "") {
+      obj.productId = message.productId;
+    }
+    if (message.productName !== "") {
+      obj.productName = message.productName;
+    }
+    if (message.quantity !== 0n) {
+      obj.quantity = message.quantity.toString();
+    }
+    if (message.unitPriceMinorUnits !== 0n) {
+      obj.unitPriceMinorUnits = message.unitPriceMinorUnits.toString();
+    }
+    if (message.originalPriceMinorUnits !== 0n) {
+      obj.originalPriceMinorUnits = message.originalPriceMinorUnits.toString();
+    }
+    if (message.subtotalMinorUnits !== 0n) {
+      obj.subtotalMinorUnits = message.subtotalMinorUnits.toString();
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<order_items_row>): order_items_row {
+    return order_items_row.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<order_items_row>): order_items_row {
+    const message = createBaseorder_items_row();
+    message.id = object.id ?? "";
+    message.orderId = object.orderId ?? "";
+    message.outletId = object.outletId ?? "";
+    message.productId = object.productId ?? "";
+    message.productName = object.productName ?? "";
+    message.quantity = object.quantity ?? 0n;
+    message.unitPriceMinorUnits = object.unitPriceMinorUnits ?? 0n;
+    message.originalPriceMinorUnits = object.originalPriceMinorUnits ?? 0n;
+    message.subtotalMinorUnits = object.subtotalMinorUnits ?? 0n;
+    message.updatedAt = object.updatedAt ?? "";
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    return message;
+  },
+};
+
+function createBaseorders_row(): orders_row {
   return {
     id: "",
     outletId: "",
@@ -2292,8 +1610,8 @@ function createBaseOrderRow(): OrderRow {
   };
 }
 
-export const OrderRow: MessageFns<OrderRow> = {
-  encode(message: OrderRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const orders_row: MessageFns<orders_row> = {
+  encode(message: orders_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -2345,10 +1663,10 @@ export const OrderRow: MessageFns<OrderRow> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OrderRow {
+  decode(input: BinaryReader | Uint8Array, length?: number): orders_row {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOrderRow();
+    const message = createBaseorders_row();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2465,69 +1783,25 @@ export const OrderRow: MessageFns<OrderRow> = {
     return message;
   },
 
-  fromJSON(object: any): OrderRow {
+  fromJSON(object: any): orders_row {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      registerId: isSet(object.registerId)
-        ? globalThis.String(object.registerId)
-        : isSet(object.register_id)
-        ? globalThis.String(object.register_id)
-        : "",
-      staffId: isSet(object.staffId)
-        ? globalThis.String(object.staffId)
-        : isSet(object.staff_id)
-        ? globalThis.String(object.staff_id)
-        : "",
-      orderNumber: isSet(object.orderNumber)
-        ? globalThis.String(object.orderNumber)
-        : isSet(object.order_number)
-        ? globalThis.String(object.order_number)
-        : "",
-      totalMinorUnits: isSet(object.totalMinorUnits)
-        ? BigInt(object.totalMinorUnits)
-        : isSet(object.total_minor_units)
-        ? BigInt(object.total_minor_units)
-        : 0n,
-      paymentMethod: isSet(object.paymentMethod)
-        ? globalThis.String(object.paymentMethod)
-        : isSet(object.payment_method)
-        ? globalThis.String(object.payment_method)
-        : "",
-      amountPaidMinorUnits: isSet(object.amountPaidMinorUnits)
-        ? BigInt(object.amountPaidMinorUnits)
-        : isSet(object.amount_paid_minor_units)
-        ? BigInt(object.amount_paid_minor_units)
-        : 0n,
-      changeAmountMinorUnits: isSet(object.changeAmountMinorUnits)
-        ? BigInt(object.changeAmountMinorUnits)
-        : isSet(object.change_amount_minor_units)
-        ? BigInt(object.change_amount_minor_units)
-        : 0n,
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      registerId: isSet(object.registerId) ? globalThis.String(object.registerId) : "",
+      staffId: isSet(object.staffId) ? globalThis.String(object.staffId) : "",
+      orderNumber: isSet(object.orderNumber) ? globalThis.String(object.orderNumber) : "",
+      totalMinorUnits: isSet(object.totalMinorUnits) ? BigInt(object.totalMinorUnits) : 0n,
+      paymentMethod: isSet(object.paymentMethod) ? globalThis.String(object.paymentMethod) : "",
+      amountPaidMinorUnits: isSet(object.amountPaidMinorUnits) ? BigInt(object.amountPaidMinorUnits) : 0n,
+      changeAmountMinorUnits: isSet(object.changeAmountMinorUnits) ? BigInt(object.changeAmountMinorUnits) : 0n,
       status: isSet(object.status) ? globalThis.String(object.status) : "",
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
     };
   },
 
-  toJSON(message: OrderRow): unknown {
+  toJSON(message: orders_row): unknown {
     const obj: any = {};
     if (message.id !== "") {
       obj.id = message.id;
@@ -2571,11 +1845,11 @@ export const OrderRow: MessageFns<OrderRow> = {
     return obj;
   },
 
-  create(base?: DeepPartial<OrderRow>): OrderRow {
-    return OrderRow.fromPartial(base ?? {});
+  create(base?: DeepPartial<orders_row>): orders_row {
+    return orders_row.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<OrderRow>): OrderRow {
-    const message = createBaseOrderRow();
+  fromPartial(object: DeepPartial<orders_row>): orders_row {
+    const message = createBaseorders_row();
     message.id = object.id ?? "";
     message.outletId = object.outletId ?? "";
     message.registerId = object.registerId ?? "";
@@ -2593,308 +1867,7 @@ export const OrderRow: MessageFns<OrderRow> = {
   },
 };
 
-function createBaseOrderItemRow(): OrderItemRow {
-  return {
-    id: "",
-    orderId: "",
-    outletId: "",
-    productId: "",
-    productName: "",
-    quantity: 0n,
-    unitPriceMinorUnits: 0n,
-    originalPriceMinorUnits: 0n,
-    subtotalMinorUnits: 0n,
-    deletedAt: "",
-    createdAt: "",
-    updatedAt: "",
-  };
-}
-
-export const OrderItemRow: MessageFns<OrderItemRow> = {
-  encode(message: OrderItemRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.orderId !== "") {
-      writer.uint32(18).string(message.orderId);
-    }
-    if (message.outletId !== "") {
-      writer.uint32(26).string(message.outletId);
-    }
-    if (message.productId !== "") {
-      writer.uint32(34).string(message.productId);
-    }
-    if (message.productName !== "") {
-      writer.uint32(42).string(message.productName);
-    }
-    if (message.quantity !== 0n) {
-      if (BigInt.asIntN(64, message.quantity) !== message.quantity) {
-        throw new globalThis.Error("value provided for field message.quantity of type int64 too large");
-      }
-      writer.uint32(48).int64(message.quantity);
-    }
-    if (message.unitPriceMinorUnits !== 0n) {
-      if (BigInt.asIntN(64, message.unitPriceMinorUnits) !== message.unitPriceMinorUnits) {
-        throw new globalThis.Error("value provided for field message.unitPriceMinorUnits of type int64 too large");
-      }
-      writer.uint32(56).int64(message.unitPriceMinorUnits);
-    }
-    if (message.originalPriceMinorUnits !== 0n) {
-      if (BigInt.asIntN(64, message.originalPriceMinorUnits) !== message.originalPriceMinorUnits) {
-        throw new globalThis.Error("value provided for field message.originalPriceMinorUnits of type int64 too large");
-      }
-      writer.uint32(64).int64(message.originalPriceMinorUnits);
-    }
-    if (message.subtotalMinorUnits !== 0n) {
-      if (BigInt.asIntN(64, message.subtotalMinorUnits) !== message.subtotalMinorUnits) {
-        throw new globalThis.Error("value provided for field message.subtotalMinorUnits of type int64 too large");
-      }
-      writer.uint32(72).int64(message.subtotalMinorUnits);
-    }
-    if (message.deletedAt !== "") {
-      writer.uint32(82).string(message.deletedAt);
-    }
-    if (message.createdAt !== "") {
-      writer.uint32(90).string(message.createdAt);
-    }
-    if (message.updatedAt !== "") {
-      writer.uint32(98).string(message.updatedAt);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): OrderItemRow {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOrderItemRow();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.orderId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.outletId = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.productId = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
-
-          message.productName = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
-
-          message.quantity = reader.int64() as bigint;
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
-            break;
-          }
-
-          message.unitPriceMinorUnits = reader.int64() as bigint;
-          continue;
-        }
-        case 8: {
-          if (tag !== 64) {
-            break;
-          }
-
-          message.originalPriceMinorUnits = reader.int64() as bigint;
-          continue;
-        }
-        case 9: {
-          if (tag !== 72) {
-            break;
-          }
-
-          message.subtotalMinorUnits = reader.int64() as bigint;
-          continue;
-        }
-        case 10: {
-          if (tag !== 82) {
-            break;
-          }
-
-          message.deletedAt = reader.string();
-          continue;
-        }
-        case 11: {
-          if (tag !== 90) {
-            break;
-          }
-
-          message.createdAt = reader.string();
-          continue;
-        }
-        case 12: {
-          if (tag !== 98) {
-            break;
-          }
-
-          message.updatedAt = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): OrderItemRow {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      orderId: isSet(object.orderId)
-        ? globalThis.String(object.orderId)
-        : isSet(object.order_id)
-        ? globalThis.String(object.order_id)
-        : "",
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      productId: isSet(object.productId)
-        ? globalThis.String(object.productId)
-        : isSet(object.product_id)
-        ? globalThis.String(object.product_id)
-        : "",
-      productName: isSet(object.productName)
-        ? globalThis.String(object.productName)
-        : isSet(object.product_name)
-        ? globalThis.String(object.product_name)
-        : "",
-      quantity: isSet(object.quantity) ? BigInt(object.quantity) : 0n,
-      unitPriceMinorUnits: isSet(object.unitPriceMinorUnits)
-        ? BigInt(object.unitPriceMinorUnits)
-        : isSet(object.unit_price_minor_units)
-        ? BigInt(object.unit_price_minor_units)
-        : 0n,
-      originalPriceMinorUnits: isSet(object.originalPriceMinorUnits)
-        ? BigInt(object.originalPriceMinorUnits)
-        : isSet(object.original_price_minor_units)
-        ? BigInt(object.original_price_minor_units)
-        : 0n,
-      subtotalMinorUnits: isSet(object.subtotalMinorUnits)
-        ? BigInt(object.subtotalMinorUnits)
-        : isSet(object.subtotal_minor_units)
-        ? BigInt(object.subtotal_minor_units)
-        : 0n,
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
-    };
-  },
-
-  toJSON(message: OrderItemRow): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.orderId !== "") {
-      obj.orderId = message.orderId;
-    }
-    if (message.outletId !== "") {
-      obj.outletId = message.outletId;
-    }
-    if (message.productId !== "") {
-      obj.productId = message.productId;
-    }
-    if (message.productName !== "") {
-      obj.productName = message.productName;
-    }
-    if (message.quantity !== 0n) {
-      obj.quantity = message.quantity.toString();
-    }
-    if (message.unitPriceMinorUnits !== 0n) {
-      obj.unitPriceMinorUnits = message.unitPriceMinorUnits.toString();
-    }
-    if (message.originalPriceMinorUnits !== 0n) {
-      obj.originalPriceMinorUnits = message.originalPriceMinorUnits.toString();
-    }
-    if (message.subtotalMinorUnits !== 0n) {
-      obj.subtotalMinorUnits = message.subtotalMinorUnits.toString();
-    }
-    if (message.deletedAt !== "") {
-      obj.deletedAt = message.deletedAt;
-    }
-    if (message.createdAt !== "") {
-      obj.createdAt = message.createdAt;
-    }
-    if (message.updatedAt !== "") {
-      obj.updatedAt = message.updatedAt;
-    }
-    return obj;
-  },
-
-  create(base?: DeepPartial<OrderItemRow>): OrderItemRow {
-    return OrderItemRow.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<OrderItemRow>): OrderItemRow {
-    const message = createBaseOrderItemRow();
-    message.id = object.id ?? "";
-    message.orderId = object.orderId ?? "";
-    message.outletId = object.outletId ?? "";
-    message.productId = object.productId ?? "";
-    message.productName = object.productName ?? "";
-    message.quantity = object.quantity ?? 0n;
-    message.unitPriceMinorUnits = object.unitPriceMinorUnits ?? 0n;
-    message.originalPriceMinorUnits = object.originalPriceMinorUnits ?? 0n;
-    message.subtotalMinorUnits = object.subtotalMinorUnits ?? 0n;
-    message.deletedAt = object.deletedAt ?? "";
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
-    return message;
-  },
-};
-
-function createBaseOutletProductRow(): OutletProductRow {
+function createBaseoutlet_products_row(): outlet_products_row {
   return {
     id: "",
     outletId: "",
@@ -2908,8 +1881,8 @@ function createBaseOutletProductRow(): OutletProductRow {
   };
 }
 
-export const OutletProductRow: MessageFns<OutletProductRow> = {
-  encode(message: OutletProductRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const outlet_products_row: MessageFns<outlet_products_row> = {
+  encode(message: outlet_products_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -2946,10 +1919,10 @@ export const OutletProductRow: MessageFns<OutletProductRow> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OutletProductRow {
+  decode(input: BinaryReader | Uint8Array, length?: number): outlet_products_row {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutletProductRow();
+    const message = createBaseoutlet_products_row();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3034,53 +2007,21 @@ export const OutletProductRow: MessageFns<OutletProductRow> = {
     return message;
   },
 
-  fromJSON(object: any): OutletProductRow {
+  fromJSON(object: any): outlet_products_row {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      productId: isSet(object.productId)
-        ? globalThis.String(object.productId)
-        : isSet(object.product_id)
-        ? globalThis.String(object.product_id)
-        : "",
-      priceMinorUnits: isSet(object.priceMinorUnits)
-        ? BigInt(object.priceMinorUnits)
-        : isSet(object.price_minor_units)
-        ? BigInt(object.price_minor_units)
-        : 0n,
-      isAvailable: isSet(object.isAvailable)
-        ? globalThis.Boolean(object.isAvailable)
-        : isSet(object.is_available)
-        ? globalThis.Boolean(object.is_available)
-        : false,
-      sortOrder: isSet(object.sortOrder)
-        ? BigInt(object.sortOrder)
-        : isSet(object.sort_order)
-        ? BigInt(object.sort_order)
-        : 0n,
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      productId: isSet(object.productId) ? globalThis.String(object.productId) : "",
+      priceMinorUnits: isSet(object.priceMinorUnits) ? BigInt(object.priceMinorUnits) : 0n,
+      isAvailable: isSet(object.isAvailable) ? globalThis.Boolean(object.isAvailable) : false,
+      sortOrder: isSet(object.sortOrder) ? BigInt(object.sortOrder) : 0n,
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
     };
   },
 
-  toJSON(message: OutletProductRow): unknown {
+  toJSON(message: outlet_products_row): unknown {
     const obj: any = {};
     if (message.id !== "") {
       obj.id = message.id;
@@ -3112,11 +2053,11 @@ export const OutletProductRow: MessageFns<OutletProductRow> = {
     return obj;
   },
 
-  create(base?: DeepPartial<OutletProductRow>): OutletProductRow {
-    return OutletProductRow.fromPartial(base ?? {});
+  create(base?: DeepPartial<outlet_products_row>): outlet_products_row {
+    return outlet_products_row.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<OutletProductRow>): OutletProductRow {
-    const message = createBaseOutletProductRow();
+  fromPartial(object: DeepPartial<outlet_products_row>): outlet_products_row {
+    const message = createBaseoutlet_products_row();
     message.id = object.id ?? "";
     message.outletId = object.outletId ?? "";
     message.productId = object.productId ?? "";
@@ -3130,7 +2071,726 @@ export const OutletProductRow: MessageFns<OutletProductRow> = {
   },
 };
 
-function createBaseStaffRow(): StaffRow {
+function createBaseoutlets_row(): outlets_row {
+  return {
+    id: "",
+    merchantId: "",
+    timezone: "",
+    name: "",
+    address: "",
+    receiptName: "",
+    receiptAddress: "",
+    isActive: false,
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const outlets_row: MessageFns<outlets_row> = {
+  encode(message: outlets_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.merchantId !== "") {
+      writer.uint32(18).string(message.merchantId);
+    }
+    if (message.timezone !== "") {
+      writer.uint32(26).string(message.timezone);
+    }
+    if (message.name !== "") {
+      writer.uint32(34).string(message.name);
+    }
+    if (message.address !== "") {
+      writer.uint32(42).string(message.address);
+    }
+    if (message.receiptName !== "") {
+      writer.uint32(50).string(message.receiptName);
+    }
+    if (message.receiptAddress !== "") {
+      writer.uint32(58).string(message.receiptAddress);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(64).bool(message.isActive);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(74).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): outlets_row {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseoutlets_row();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.merchantId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.address = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.receiptName = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.receiptAddress = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): outlets_row {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      merchantId: isSet(object.merchantId) ? globalThis.String(object.merchantId) : "",
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      address: isSet(object.address) ? globalThis.String(object.address) : "",
+      receiptName: isSet(object.receiptName) ? globalThis.String(object.receiptName) : "",
+      receiptAddress: isSet(object.receiptAddress) ? globalThis.String(object.receiptAddress) : "",
+      isActive: isSet(object.isActive) ? globalThis.Boolean(object.isActive) : false,
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
+    };
+  },
+
+  toJSON(message: outlets_row): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.merchantId !== "") {
+      obj.merchantId = message.merchantId;
+    }
+    if (message.timezone !== "") {
+      obj.timezone = message.timezone;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.address !== "") {
+      obj.address = message.address;
+    }
+    if (message.receiptName !== "") {
+      obj.receiptName = message.receiptName;
+    }
+    if (message.receiptAddress !== "") {
+      obj.receiptAddress = message.receiptAddress;
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<outlets_row>): outlets_row {
+    return outlets_row.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<outlets_row>): outlets_row {
+    const message = createBaseoutlets_row();
+    message.id = object.id ?? "";
+    message.merchantId = object.merchantId ?? "";
+    message.timezone = object.timezone ?? "";
+    message.name = object.name ?? "";
+    message.address = object.address ?? "";
+    message.receiptName = object.receiptName ?? "";
+    message.receiptAddress = object.receiptAddress ?? "";
+    message.isActive = object.isActive ?? false;
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseproducts_row(): products_row {
+  return {
+    id: "",
+    merchantId: "",
+    categoryId: "",
+    name: "",
+    priceMinorUnits: 0n,
+    imageUrl: "",
+    imageAssetId: "",
+    isActive: false,
+    sortOrder: 0n,
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const products_row: MessageFns<products_row> = {
+  encode(message: products_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.merchantId !== "") {
+      writer.uint32(18).string(message.merchantId);
+    }
+    if (message.categoryId !== "") {
+      writer.uint32(26).string(message.categoryId);
+    }
+    if (message.name !== "") {
+      writer.uint32(34).string(message.name);
+    }
+    if (message.priceMinorUnits !== 0n) {
+      if (BigInt.asIntN(64, message.priceMinorUnits) !== message.priceMinorUnits) {
+        throw new globalThis.Error("value provided for field message.priceMinorUnits of type int64 too large");
+      }
+      writer.uint32(40).int64(message.priceMinorUnits);
+    }
+    if (message.imageUrl !== "") {
+      writer.uint32(50).string(message.imageUrl);
+    }
+    if (message.imageAssetId !== "") {
+      writer.uint32(58).string(message.imageAssetId);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(64).bool(message.isActive);
+    }
+    if (message.sortOrder !== 0n) {
+      if (BigInt.asIntN(64, message.sortOrder) !== message.sortOrder) {
+        throw new globalThis.Error("value provided for field message.sortOrder of type int64 too large");
+      }
+      writer.uint32(72).int64(message.sortOrder);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(82).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(90).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(98).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): products_row {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseproducts_row();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.merchantId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.categoryId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.priceMinorUnits = reader.int64() as bigint;
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.imageUrl = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.imageAssetId = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.sortOrder = reader.int64() as bigint;
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): products_row {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      merchantId: isSet(object.merchantId) ? globalThis.String(object.merchantId) : "",
+      categoryId: isSet(object.categoryId) ? globalThis.String(object.categoryId) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      priceMinorUnits: isSet(object.priceMinorUnits) ? BigInt(object.priceMinorUnits) : 0n,
+      imageUrl: isSet(object.imageUrl) ? globalThis.String(object.imageUrl) : "",
+      imageAssetId: isSet(object.imageAssetId) ? globalThis.String(object.imageAssetId) : "",
+      isActive: isSet(object.isActive) ? globalThis.Boolean(object.isActive) : false,
+      sortOrder: isSet(object.sortOrder) ? BigInt(object.sortOrder) : 0n,
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
+    };
+  },
+
+  toJSON(message: products_row): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.merchantId !== "") {
+      obj.merchantId = message.merchantId;
+    }
+    if (message.categoryId !== "") {
+      obj.categoryId = message.categoryId;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.priceMinorUnits !== 0n) {
+      obj.priceMinorUnits = message.priceMinorUnits.toString();
+    }
+    if (message.imageUrl !== "") {
+      obj.imageUrl = message.imageUrl;
+    }
+    if (message.imageAssetId !== "") {
+      obj.imageAssetId = message.imageAssetId;
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.sortOrder !== 0n) {
+      obj.sortOrder = message.sortOrder.toString();
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<products_row>): products_row {
+    return products_row.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<products_row>): products_row {
+    const message = createBaseproducts_row();
+    message.id = object.id ?? "";
+    message.merchantId = object.merchantId ?? "";
+    message.categoryId = object.categoryId ?? "";
+    message.name = object.name ?? "";
+    message.priceMinorUnits = object.priceMinorUnits ?? 0n;
+    message.imageUrl = object.imageUrl ?? "";
+    message.imageAssetId = object.imageAssetId ?? "";
+    message.isActive = object.isActive ?? false;
+    message.sortOrder = object.sortOrder ?? 0n;
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseregisters_row(): registers_row {
+  return {
+    id: "",
+    outletId: "",
+    name: "",
+    shortId: "",
+    pairingCode: "",
+    pairingExpiresAt: "",
+    isActive: false,
+    lastSeenAt: "",
+    deletedAt: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const registers_row: MessageFns<registers_row> = {
+  encode(message: registers_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.outletId !== "") {
+      writer.uint32(18).string(message.outletId);
+    }
+    if (message.name !== "") {
+      writer.uint32(26).string(message.name);
+    }
+    if (message.shortId !== "") {
+      writer.uint32(34).string(message.shortId);
+    }
+    if (message.pairingCode !== "") {
+      writer.uint32(42).string(message.pairingCode);
+    }
+    if (message.pairingExpiresAt !== "") {
+      writer.uint32(50).string(message.pairingExpiresAt);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(56).bool(message.isActive);
+    }
+    if (message.lastSeenAt !== "") {
+      writer.uint32(66).string(message.lastSeenAt);
+    }
+    if (message.deletedAt !== "") {
+      writer.uint32(74).string(message.deletedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): registers_row {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseregisters_row();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.outletId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.shortId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.pairingCode = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.pairingExpiresAt = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.lastSeenAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.deletedAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): registers_row {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      shortId: isSet(object.shortId) ? globalThis.String(object.shortId) : "",
+      pairingCode: isSet(object.pairingCode) ? globalThis.String(object.pairingCode) : "",
+      pairingExpiresAt: isSet(object.pairingExpiresAt) ? globalThis.String(object.pairingExpiresAt) : "",
+      isActive: isSet(object.isActive) ? globalThis.Boolean(object.isActive) : false,
+      lastSeenAt: isSet(object.lastSeenAt) ? globalThis.String(object.lastSeenAt) : "",
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
+    };
+  },
+
+  toJSON(message: registers_row): unknown {
+    const obj: any = {};
+    if (message.id !== "") {
+      obj.id = message.id;
+    }
+    if (message.outletId !== "") {
+      obj.outletId = message.outletId;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.shortId !== "") {
+      obj.shortId = message.shortId;
+    }
+    if (message.pairingCode !== "") {
+      obj.pairingCode = message.pairingCode;
+    }
+    if (message.pairingExpiresAt !== "") {
+      obj.pairingExpiresAt = message.pairingExpiresAt;
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.lastSeenAt !== "") {
+      obj.lastSeenAt = message.lastSeenAt;
+    }
+    if (message.deletedAt !== "") {
+      obj.deletedAt = message.deletedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<registers_row>): registers_row {
+    return registers_row.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<registers_row>): registers_row {
+    const message = createBaseregisters_row();
+    message.id = object.id ?? "";
+    message.outletId = object.outletId ?? "";
+    message.name = object.name ?? "";
+    message.shortId = object.shortId ?? "";
+    message.pairingCode = object.pairingCode ?? "";
+    message.pairingExpiresAt = object.pairingExpiresAt ?? "";
+    message.isActive = object.isActive ?? false;
+    message.lastSeenAt = object.lastSeenAt ?? "";
+    message.deletedAt = object.deletedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBasestaff_row(): staff_row {
   return {
     id: "",
     merchantId: "",
@@ -3146,8 +2806,8 @@ function createBaseStaffRow(): StaffRow {
   };
 }
 
-export const StaffRow: MessageFns<StaffRow> = {
-  encode(message: StaffRow, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const staff_row: MessageFns<staff_row> = {
+  encode(message: staff_row, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
@@ -3184,10 +2844,10 @@ export const StaffRow: MessageFns<StaffRow> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StaffRow {
+  decode(input: BinaryReader | Uint8Array, length?: number): staff_row {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStaffRow();
+    const message = createBasestaff_row();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3288,51 +2948,23 @@ export const StaffRow: MessageFns<StaffRow> = {
     return message;
   },
 
-  fromJSON(object: any): StaffRow {
+  fromJSON(object: any): staff_row {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
-      merchantId: isSet(object.merchantId)
-        ? globalThis.String(object.merchantId)
-        : isSet(object.merchant_id)
-        ? globalThis.String(object.merchant_id)
-        : "",
-      cloudUserId: isSet(object.cloudUserId)
-        ? globalThis.String(object.cloudUserId)
-        : isSet(object.cloud_user_id)
-        ? globalThis.String(object.cloud_user_id)
-        : "",
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
+      merchantId: isSet(object.merchantId) ? globalThis.String(object.merchantId) : "",
+      cloudUserId: isSet(object.cloudUserId) ? globalThis.String(object.cloudUserId) : "",
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       pin: isSet(object.pin) ? globalThis.String(object.pin) : "",
       role: isSet(object.role) ? globalThis.String(object.role) : "",
-      isActive: isSet(object.isActive)
-        ? globalThis.Boolean(object.isActive)
-        : isSet(object.is_active)
-        ? globalThis.Boolean(object.is_active)
-        : false,
-      deletedAt: isSet(object.deletedAt)
-        ? globalThis.String(object.deletedAt)
-        : isSet(object.deleted_at)
-        ? globalThis.String(object.deleted_at)
-        : "",
-      createdAt: isSet(object.createdAt)
-        ? globalThis.String(object.createdAt)
-        : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
-      updatedAt: isSet(object.updatedAt)
-        ? globalThis.String(object.updatedAt)
-        : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+      isActive: isSet(object.isActive) ? globalThis.Boolean(object.isActive) : false,
+      deletedAt: isSet(object.deletedAt) ? globalThis.String(object.deletedAt) : "",
+      createdAt: isSet(object.createdAt) ? globalThis.String(object.createdAt) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
     };
   },
 
-  toJSON(message: StaffRow): unknown {
+  toJSON(message: staff_row): unknown {
     const obj: any = {};
     if (message.id !== "") {
       obj.id = message.id;
@@ -3370,11 +3002,11 @@ export const StaffRow: MessageFns<StaffRow> = {
     return obj;
   },
 
-  create(base?: DeepPartial<StaffRow>): StaffRow {
-    return StaffRow.fromPartial(base ?? {});
+  create(base?: DeepPartial<staff_row>): staff_row {
+    return staff_row.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<StaffRow>): StaffRow {
-    const message = createBaseStaffRow();
+  fromPartial(object: DeepPartial<staff_row>): staff_row {
+    const message = createBasestaff_row();
     message.id = object.id ?? "";
     message.merchantId = object.merchantId ?? "";
     message.cloudUserId = object.cloudUserId ?? "";
@@ -3390,28 +3022,25 @@ export const StaffRow: MessageFns<StaffRow> = {
   },
 };
 
-function createBaseMerchantChanges(): MerchantChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBaseassets_changes(): assets_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const MerchantChanges: MessageFns<MerchantChanges> = {
-  encode(message: MerchantChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      MerchantRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      MerchantRow.encode(v!, writer.uint32(18).fork()).join();
+export const assets_changes: MessageFns<assets_changes> = {
+  encode(message: assets_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      assets_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MerchantChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): assets_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMerchantChanges();
+    const message = createBaseassets_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3420,19 +3049,11 @@ export const MerchantChanges: MessageFns<MerchantChanges> = {
             break;
           }
 
-          message.created.push(MerchantRow.decode(reader, reader.uint32()));
+          message.changedRows.push(assets_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(MerchantRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -3448,25 +3069,21 @@ export const MerchantChanges: MessageFns<MerchantChanges> = {
     return message;
   },
 
-  fromJSON(object: any): MerchantChanges {
+  fromJSON(object: any): assets_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => MerchantRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => MerchantRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => assets_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: MerchantChanges): unknown {
+  toJSON(message: assets_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => MerchantRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => MerchantRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => assets_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -3474,40 +3091,36 @@ export const MerchantChanges: MessageFns<MerchantChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<MerchantChanges>): MerchantChanges {
-    return MerchantChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<assets_changes>): assets_changes {
+    return assets_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<MerchantChanges>): MerchantChanges {
-    const message = createBaseMerchantChanges();
-    message.created = object.created?.map((e) => MerchantRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => MerchantRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<assets_changes>): assets_changes {
+    const message = createBaseassets_changes();
+    message.changedRows = object.changedRows?.map((e) => assets_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseOutletChanges(): OutletChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBasecategories_changes(): categories_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const OutletChanges: MessageFns<OutletChanges> = {
-  encode(message: OutletChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      OutletRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      OutletRow.encode(v!, writer.uint32(18).fork()).join();
+export const categories_changes: MessageFns<categories_changes> = {
+  encode(message: categories_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      categories_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OutletChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): categories_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutletChanges();
+    const message = createBasecategories_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3516,19 +3129,11 @@ export const OutletChanges: MessageFns<OutletChanges> = {
             break;
           }
 
-          message.created.push(OutletRow.decode(reader, reader.uint32()));
+          message.changedRows.push(categories_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(OutletRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -3544,25 +3149,21 @@ export const OutletChanges: MessageFns<OutletChanges> = {
     return message;
   },
 
-  fromJSON(object: any): OutletChanges {
+  fromJSON(object: any): categories_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => OutletRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => OutletRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => categories_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: OutletChanges): unknown {
+  toJSON(message: categories_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => OutletRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => OutletRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => categories_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -3570,40 +3171,36 @@ export const OutletChanges: MessageFns<OutletChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<OutletChanges>): OutletChanges {
-    return OutletChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<categories_changes>): categories_changes {
+    return categories_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<OutletChanges>): OutletChanges {
-    const message = createBaseOutletChanges();
-    message.created = object.created?.map((e) => OutletRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => OutletRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<categories_changes>): categories_changes {
+    const message = createBasecategories_changes();
+    message.changedRows = object.changedRows?.map((e) => categories_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseRegisterChanges(): RegisterChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBasemerchants_changes(): merchants_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const RegisterChanges: MessageFns<RegisterChanges> = {
-  encode(message: RegisterChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      RegisterRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      RegisterRow.encode(v!, writer.uint32(18).fork()).join();
+export const merchants_changes: MessageFns<merchants_changes> = {
+  encode(message: merchants_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      merchants_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): RegisterChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): merchants_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRegisterChanges();
+    const message = createBasemerchants_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3612,19 +3209,11 @@ export const RegisterChanges: MessageFns<RegisterChanges> = {
             break;
           }
 
-          message.created.push(RegisterRow.decode(reader, reader.uint32()));
+          message.changedRows.push(merchants_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(RegisterRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -3640,25 +3229,21 @@ export const RegisterChanges: MessageFns<RegisterChanges> = {
     return message;
   },
 
-  fromJSON(object: any): RegisterChanges {
+  fromJSON(object: any): merchants_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => RegisterRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => RegisterRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => merchants_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: RegisterChanges): unknown {
+  toJSON(message: merchants_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => RegisterRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => RegisterRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => merchants_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -3666,40 +3251,36 @@ export const RegisterChanges: MessageFns<RegisterChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<RegisterChanges>): RegisterChanges {
-    return RegisterChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<merchants_changes>): merchants_changes {
+    return merchants_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<RegisterChanges>): RegisterChanges {
-    const message = createBaseRegisterChanges();
-    message.created = object.created?.map((e) => RegisterRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => RegisterRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<merchants_changes>): merchants_changes {
+    const message = createBasemerchants_changes();
+    message.changedRows = object.changedRows?.map((e) => merchants_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseCategoryChanges(): CategoryChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBaseorder_items_changes(): order_items_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const CategoryChanges: MessageFns<CategoryChanges> = {
-  encode(message: CategoryChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      CategoryRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      CategoryRow.encode(v!, writer.uint32(18).fork()).join();
+export const order_items_changes: MessageFns<order_items_changes> = {
+  encode(message: order_items_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      order_items_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CategoryChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): order_items_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCategoryChanges();
+    const message = createBaseorder_items_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3708,19 +3289,11 @@ export const CategoryChanges: MessageFns<CategoryChanges> = {
             break;
           }
 
-          message.created.push(CategoryRow.decode(reader, reader.uint32()));
+          message.changedRows.push(order_items_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(CategoryRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -3736,25 +3309,21 @@ export const CategoryChanges: MessageFns<CategoryChanges> = {
     return message;
   },
 
-  fromJSON(object: any): CategoryChanges {
+  fromJSON(object: any): order_items_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => CategoryRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => CategoryRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => order_items_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: CategoryChanges): unknown {
+  toJSON(message: order_items_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => CategoryRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => CategoryRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => order_items_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -3762,40 +3331,36 @@ export const CategoryChanges: MessageFns<CategoryChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<CategoryChanges>): CategoryChanges {
-    return CategoryChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<order_items_changes>): order_items_changes {
+    return order_items_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<CategoryChanges>): CategoryChanges {
-    const message = createBaseCategoryChanges();
-    message.created = object.created?.map((e) => CategoryRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => CategoryRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<order_items_changes>): order_items_changes {
+    const message = createBaseorder_items_changes();
+    message.changedRows = object.changedRows?.map((e) => order_items_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseAssetChanges(): AssetChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBaseorders_changes(): orders_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const AssetChanges: MessageFns<AssetChanges> = {
-  encode(message: AssetChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      AssetRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      AssetRow.encode(v!, writer.uint32(18).fork()).join();
+export const orders_changes: MessageFns<orders_changes> = {
+  encode(message: orders_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      orders_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AssetChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): orders_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAssetChanges();
+    const message = createBaseorders_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3804,19 +3369,11 @@ export const AssetChanges: MessageFns<AssetChanges> = {
             break;
           }
 
-          message.created.push(AssetRow.decode(reader, reader.uint32()));
+          message.changedRows.push(orders_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(AssetRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -3832,25 +3389,21 @@ export const AssetChanges: MessageFns<AssetChanges> = {
     return message;
   },
 
-  fromJSON(object: any): AssetChanges {
+  fromJSON(object: any): orders_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => AssetRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => AssetRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => orders_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: AssetChanges): unknown {
+  toJSON(message: orders_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => AssetRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => AssetRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => orders_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -3858,40 +3411,36 @@ export const AssetChanges: MessageFns<AssetChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<AssetChanges>): AssetChanges {
-    return AssetChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<orders_changes>): orders_changes {
+    return orders_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<AssetChanges>): AssetChanges {
-    const message = createBaseAssetChanges();
-    message.created = object.created?.map((e) => AssetRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => AssetRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<orders_changes>): orders_changes {
+    const message = createBaseorders_changes();
+    message.changedRows = object.changedRows?.map((e) => orders_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseProductChanges(): ProductChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBaseoutlet_products_changes(): outlet_products_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const ProductChanges: MessageFns<ProductChanges> = {
-  encode(message: ProductChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      ProductRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      ProductRow.encode(v!, writer.uint32(18).fork()).join();
+export const outlet_products_changes: MessageFns<outlet_products_changes> = {
+  encode(message: outlet_products_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      outlet_products_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ProductChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): outlet_products_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseProductChanges();
+    const message = createBaseoutlet_products_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3900,19 +3449,11 @@ export const ProductChanges: MessageFns<ProductChanges> = {
             break;
           }
 
-          message.created.push(ProductRow.decode(reader, reader.uint32()));
+          message.changedRows.push(outlet_products_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(ProductRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -3928,25 +3469,21 @@ export const ProductChanges: MessageFns<ProductChanges> = {
     return message;
   },
 
-  fromJSON(object: any): ProductChanges {
+  fromJSON(object: any): outlet_products_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => ProductRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => ProductRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => outlet_products_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: ProductChanges): unknown {
+  toJSON(message: outlet_products_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => ProductRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => ProductRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => outlet_products_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -3954,40 +3491,36 @@ export const ProductChanges: MessageFns<ProductChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<ProductChanges>): ProductChanges {
-    return ProductChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<outlet_products_changes>): outlet_products_changes {
+    return outlet_products_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<ProductChanges>): ProductChanges {
-    const message = createBaseProductChanges();
-    message.created = object.created?.map((e) => ProductRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => ProductRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<outlet_products_changes>): outlet_products_changes {
+    const message = createBaseoutlet_products_changes();
+    message.changedRows = object.changedRows?.map((e) => outlet_products_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseOrderChanges(): OrderChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBaseoutlets_changes(): outlets_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const OrderChanges: MessageFns<OrderChanges> = {
-  encode(message: OrderChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      OrderRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      OrderRow.encode(v!, writer.uint32(18).fork()).join();
+export const outlets_changes: MessageFns<outlets_changes> = {
+  encode(message: outlets_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      outlets_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OrderChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): outlets_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOrderChanges();
+    const message = createBaseoutlets_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3996,19 +3529,11 @@ export const OrderChanges: MessageFns<OrderChanges> = {
             break;
           }
 
-          message.created.push(OrderRow.decode(reader, reader.uint32()));
+          message.changedRows.push(outlets_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(OrderRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -4024,25 +3549,21 @@ export const OrderChanges: MessageFns<OrderChanges> = {
     return message;
   },
 
-  fromJSON(object: any): OrderChanges {
+  fromJSON(object: any): outlets_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => OrderRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => OrderRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => outlets_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: OrderChanges): unknown {
+  toJSON(message: outlets_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => OrderRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => OrderRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => outlets_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -4050,40 +3571,36 @@ export const OrderChanges: MessageFns<OrderChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<OrderChanges>): OrderChanges {
-    return OrderChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<outlets_changes>): outlets_changes {
+    return outlets_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<OrderChanges>): OrderChanges {
-    const message = createBaseOrderChanges();
-    message.created = object.created?.map((e) => OrderRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => OrderRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<outlets_changes>): outlets_changes {
+    const message = createBaseoutlets_changes();
+    message.changedRows = object.changedRows?.map((e) => outlets_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseOrderItemChanges(): OrderItemChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBaseproducts_changes(): products_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const OrderItemChanges: MessageFns<OrderItemChanges> = {
-  encode(message: OrderItemChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      OrderItemRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      OrderItemRow.encode(v!, writer.uint32(18).fork()).join();
+export const products_changes: MessageFns<products_changes> = {
+  encode(message: products_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      products_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OrderItemChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): products_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOrderItemChanges();
+    const message = createBaseproducts_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -4092,19 +3609,11 @@ export const OrderItemChanges: MessageFns<OrderItemChanges> = {
             break;
           }
 
-          message.created.push(OrderItemRow.decode(reader, reader.uint32()));
+          message.changedRows.push(products_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(OrderItemRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -4120,29 +3629,21 @@ export const OrderItemChanges: MessageFns<OrderItemChanges> = {
     return message;
   },
 
-  fromJSON(object: any): OrderItemChanges {
+  fromJSON(object: any): products_changes {
     return {
-      created: globalThis.Array.isArray(object?.created)
-        ? object.created.map((e: any) => OrderItemRow.fromJSON(e))
-        : [],
-      updated: globalThis.Array.isArray(object?.updated)
-        ? object.updated.map((e: any) => OrderItemRow.fromJSON(e))
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => products_row.fromJSON(e))
         : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: OrderItemChanges): unknown {
+  toJSON(message: products_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => OrderItemRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => OrderItemRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => products_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -4150,40 +3651,36 @@ export const OrderItemChanges: MessageFns<OrderItemChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<OrderItemChanges>): OrderItemChanges {
-    return OrderItemChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<products_changes>): products_changes {
+    return products_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<OrderItemChanges>): OrderItemChanges {
-    const message = createBaseOrderItemChanges();
-    message.created = object.created?.map((e) => OrderItemRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => OrderItemRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<products_changes>): products_changes {
+    const message = createBaseproducts_changes();
+    message.changedRows = object.changedRows?.map((e) => products_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseOutletProductChanges(): OutletProductChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBaseregisters_changes(): registers_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const OutletProductChanges: MessageFns<OutletProductChanges> = {
-  encode(message: OutletProductChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      OutletProductRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      OutletProductRow.encode(v!, writer.uint32(18).fork()).join();
+export const registers_changes: MessageFns<registers_changes> = {
+  encode(message: registers_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      registers_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OutletProductChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): registers_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutletProductChanges();
+    const message = createBaseregisters_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -4192,19 +3689,11 @@ export const OutletProductChanges: MessageFns<OutletProductChanges> = {
             break;
           }
 
-          message.created.push(OutletProductRow.decode(reader, reader.uint32()));
+          message.changedRows.push(registers_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(OutletProductRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -4220,29 +3709,21 @@ export const OutletProductChanges: MessageFns<OutletProductChanges> = {
     return message;
   },
 
-  fromJSON(object: any): OutletProductChanges {
+  fromJSON(object: any): registers_changes {
     return {
-      created: globalThis.Array.isArray(object?.created)
-        ? object.created.map((e: any) => OutletProductRow.fromJSON(e))
-        : [],
-      updated: globalThis.Array.isArray(object?.updated)
-        ? object.updated.map((e: any) => OutletProductRow.fromJSON(e))
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => registers_row.fromJSON(e))
         : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: OutletProductChanges): unknown {
+  toJSON(message: registers_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => OutletProductRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => OutletProductRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => registers_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -4250,40 +3731,36 @@ export const OutletProductChanges: MessageFns<OutletProductChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<OutletProductChanges>): OutletProductChanges {
-    return OutletProductChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<registers_changes>): registers_changes {
+    return registers_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<OutletProductChanges>): OutletProductChanges {
-    const message = createBaseOutletProductChanges();
-    message.created = object.created?.map((e) => OutletProductRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => OutletProductRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<registers_changes>): registers_changes {
+    const message = createBaseregisters_changes();
+    message.changedRows = object.changedRows?.map((e) => registers_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
 };
 
-function createBaseStaffChanges(): StaffChanges {
-  return { created: [], updated: [], deletedIds: [] };
+function createBasestaff_changes(): staff_changes {
+  return { changedRows: [], deletedIds: [] };
 }
 
-export const StaffChanges: MessageFns<StaffChanges> = {
-  encode(message: StaffChanges, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.created) {
-      StaffRow.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.updated) {
-      StaffRow.encode(v!, writer.uint32(18).fork()).join();
+export const staff_changes: MessageFns<staff_changes> = {
+  encode(message: staff_changes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.changedRows) {
+      staff_row.encode(v!, writer.uint32(10).fork()).join();
     }
     for (const v of message.deletedIds) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StaffChanges {
+  decode(input: BinaryReader | Uint8Array, length?: number): staff_changes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStaffChanges();
+    const message = createBasestaff_changes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -4292,19 +3769,11 @@ export const StaffChanges: MessageFns<StaffChanges> = {
             break;
           }
 
-          message.created.push(StaffRow.decode(reader, reader.uint32()));
+          message.changedRows.push(staff_row.decode(reader, reader.uint32()));
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.updated.push(StaffRow.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -4320,25 +3789,21 @@ export const StaffChanges: MessageFns<StaffChanges> = {
     return message;
   },
 
-  fromJSON(object: any): StaffChanges {
+  fromJSON(object: any): staff_changes {
     return {
-      created: globalThis.Array.isArray(object?.created) ? object.created.map((e: any) => StaffRow.fromJSON(e)) : [],
-      updated: globalThis.Array.isArray(object?.updated) ? object.updated.map((e: any) => StaffRow.fromJSON(e)) : [],
+      changedRows: globalThis.Array.isArray(object?.changedRows)
+        ? object.changedRows.map((e: any) => staff_row.fromJSON(e))
+        : [],
       deletedIds: globalThis.Array.isArray(object?.deletedIds)
         ? object.deletedIds.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.deleted_ids)
-        ? object.deleted_ids.map((e: any) => globalThis.String(e))
         : [],
     };
   },
 
-  toJSON(message: StaffChanges): unknown {
+  toJSON(message: staff_changes): unknown {
     const obj: any = {};
-    if (message.created?.length) {
-      obj.created = message.created.map((e) => StaffRow.toJSON(e));
-    }
-    if (message.updated?.length) {
-      obj.updated = message.updated.map((e) => StaffRow.toJSON(e));
+    if (message.changedRows?.length) {
+      obj.changedRows = message.changedRows.map((e) => staff_row.toJSON(e));
     }
     if (message.deletedIds?.length) {
       obj.deletedIds = message.deletedIds;
@@ -4346,13 +3811,12 @@ export const StaffChanges: MessageFns<StaffChanges> = {
     return obj;
   },
 
-  create(base?: DeepPartial<StaffChanges>): StaffChanges {
-    return StaffChanges.fromPartial(base ?? {});
+  create(base?: DeepPartial<staff_changes>): staff_changes {
+    return staff_changes.fromPartial(base ?? {});
   },
-  fromPartial(object: DeepPartial<StaffChanges>): StaffChanges {
-    const message = createBaseStaffChanges();
-    message.created = object.created?.map((e) => StaffRow.fromPartial(e)) || [];
-    message.updated = object.updated?.map((e) => StaffRow.fromPartial(e)) || [];
+  fromPartial(object: DeepPartial<staff_changes>): staff_changes {
+    const message = createBasestaff_changes();
+    message.changedRows = object.changedRows?.map((e) => staff_row.fromPartial(e)) || [];
     message.deletedIds = object.deletedIds?.map((e) => e) || [];
     return message;
   },
@@ -4362,15 +3826,15 @@ function createBaseSyncPushBatchRequest(): SyncPushBatchRequest {
   return {
     outletId: "",
     idempotencyKey: "",
-    merchants: undefined,
-    outlets: undefined,
-    registers: undefined,
-    categories: undefined,
     assets: undefined,
-    products: undefined,
+    categories: undefined,
+    merchants: undefined,
+    order_items: undefined,
     orders: undefined,
-    orderItems: undefined,
-    outletProducts: undefined,
+    outlet_products: undefined,
+    outlets: undefined,
+    products: undefined,
+    registers: undefined,
     staff: undefined,
   };
 }
@@ -4383,35 +3847,35 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     if (message.idempotencyKey !== "") {
       writer.uint32(18).string(message.idempotencyKey);
     }
-    if (message.merchants !== undefined) {
-      MerchantChanges.encode(message.merchants, writer.uint32(82).fork()).join();
-    }
-    if (message.outlets !== undefined) {
-      OutletChanges.encode(message.outlets, writer.uint32(90).fork()).join();
-    }
-    if (message.registers !== undefined) {
-      RegisterChanges.encode(message.registers, writer.uint32(98).fork()).join();
+    if (message.assets !== undefined) {
+      assets_changes.encode(message.assets, writer.uint32(82).fork()).join();
     }
     if (message.categories !== undefined) {
-      CategoryChanges.encode(message.categories, writer.uint32(106).fork()).join();
+      categories_changes.encode(message.categories, writer.uint32(90).fork()).join();
     }
-    if (message.assets !== undefined) {
-      AssetChanges.encode(message.assets, writer.uint32(114).fork()).join();
+    if (message.merchants !== undefined) {
+      merchants_changes.encode(message.merchants, writer.uint32(98).fork()).join();
     }
-    if (message.products !== undefined) {
-      ProductChanges.encode(message.products, writer.uint32(122).fork()).join();
+    if (message.order_items !== undefined) {
+      order_items_changes.encode(message.order_items, writer.uint32(106).fork()).join();
     }
     if (message.orders !== undefined) {
-      OrderChanges.encode(message.orders, writer.uint32(130).fork()).join();
+      orders_changes.encode(message.orders, writer.uint32(114).fork()).join();
     }
-    if (message.orderItems !== undefined) {
-      OrderItemChanges.encode(message.orderItems, writer.uint32(138).fork()).join();
+    if (message.outlet_products !== undefined) {
+      outlet_products_changes.encode(message.outlet_products, writer.uint32(122).fork()).join();
     }
-    if (message.outletProducts !== undefined) {
-      OutletProductChanges.encode(message.outletProducts, writer.uint32(146).fork()).join();
+    if (message.outlets !== undefined) {
+      outlets_changes.encode(message.outlets, writer.uint32(130).fork()).join();
+    }
+    if (message.products !== undefined) {
+      products_changes.encode(message.products, writer.uint32(138).fork()).join();
+    }
+    if (message.registers !== undefined) {
+      registers_changes.encode(message.registers, writer.uint32(146).fork()).join();
     }
     if (message.staff !== undefined) {
-      StaffChanges.encode(message.staff, writer.uint32(154).fork()).join();
+      staff_changes.encode(message.staff, writer.uint32(154).fork()).join();
     }
     return writer;
   },
@@ -4444,7 +3908,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.merchants = MerchantChanges.decode(reader, reader.uint32());
+          message.assets = assets_changes.decode(reader, reader.uint32());
           continue;
         }
         case 11: {
@@ -4452,7 +3916,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.outlets = OutletChanges.decode(reader, reader.uint32());
+          message.categories = categories_changes.decode(reader, reader.uint32());
           continue;
         }
         case 12: {
@@ -4460,7 +3924,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.registers = RegisterChanges.decode(reader, reader.uint32());
+          message.merchants = merchants_changes.decode(reader, reader.uint32());
           continue;
         }
         case 13: {
@@ -4468,7 +3932,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.categories = CategoryChanges.decode(reader, reader.uint32());
+          message.order_items = order_items_changes.decode(reader, reader.uint32());
           continue;
         }
         case 14: {
@@ -4476,7 +3940,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.assets = AssetChanges.decode(reader, reader.uint32());
+          message.orders = orders_changes.decode(reader, reader.uint32());
           continue;
         }
         case 15: {
@@ -4484,7 +3948,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.products = ProductChanges.decode(reader, reader.uint32());
+          message.outlet_products = outlet_products_changes.decode(reader, reader.uint32());
           continue;
         }
         case 16: {
@@ -4492,7 +3956,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.orders = OrderChanges.decode(reader, reader.uint32());
+          message.outlets = outlets_changes.decode(reader, reader.uint32());
           continue;
         }
         case 17: {
@@ -4500,7 +3964,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.orderItems = OrderItemChanges.decode(reader, reader.uint32());
+          message.products = products_changes.decode(reader, reader.uint32());
           continue;
         }
         case 18: {
@@ -4508,7 +3972,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.outletProducts = OutletProductChanges.decode(reader, reader.uint32());
+          message.registers = registers_changes.decode(reader, reader.uint32());
           continue;
         }
         case 19: {
@@ -4516,7 +3980,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
             break;
           }
 
-          message.staff = StaffChanges.decode(reader, reader.uint32());
+          message.staff = staff_changes.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -4530,34 +3994,26 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
 
   fromJSON(object: any): SyncPushBatchRequest {
     return {
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      idempotencyKey: isSet(object.idempotencyKey)
-        ? globalThis.String(object.idempotencyKey)
-        : isSet(object.idempotency_key)
-        ? globalThis.String(object.idempotency_key)
-        : "",
-      merchants: isSet(object.merchants) ? MerchantChanges.fromJSON(object.merchants) : undefined,
-      outlets: isSet(object.outlets) ? OutletChanges.fromJSON(object.outlets) : undefined,
-      registers: isSet(object.registers) ? RegisterChanges.fromJSON(object.registers) : undefined,
-      categories: isSet(object.categories) ? CategoryChanges.fromJSON(object.categories) : undefined,
-      assets: isSet(object.assets) ? AssetChanges.fromJSON(object.assets) : undefined,
-      products: isSet(object.products) ? ProductChanges.fromJSON(object.products) : undefined,
-      orders: isSet(object.orders) ? OrderChanges.fromJSON(object.orders) : undefined,
-      orderItems: isSet(object.orderItems)
-        ? OrderItemChanges.fromJSON(object.orderItems)
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      idempotencyKey: isSet(object.idempotencyKey) ? globalThis.String(object.idempotencyKey) : "",
+      assets: isSet(object.assets) ? assets_changes.fromJSON(object.assets) : undefined,
+      categories: isSet(object.categories) ? categories_changes.fromJSON(object.categories) : undefined,
+      merchants: isSet(object.merchants) ? merchants_changes.fromJSON(object.merchants) : undefined,
+      order_items: isSet(object.orderItems)
+        ? order_items_changes.fromJSON(object.orderItems)
         : isSet(object.order_items)
-        ? OrderItemChanges.fromJSON(object.order_items)
+        ? order_items_changes.fromJSON(object.order_items)
         : undefined,
-      outletProducts: isSet(object.outletProducts)
-        ? OutletProductChanges.fromJSON(object.outletProducts)
+      orders: isSet(object.orders) ? orders_changes.fromJSON(object.orders) : undefined,
+      outlet_products: isSet(object.outletProducts)
+        ? outlet_products_changes.fromJSON(object.outletProducts)
         : isSet(object.outlet_products)
-        ? OutletProductChanges.fromJSON(object.outlet_products)
+        ? outlet_products_changes.fromJSON(object.outlet_products)
         : undefined,
-      staff: isSet(object.staff) ? StaffChanges.fromJSON(object.staff) : undefined,
+      outlets: isSet(object.outlets) ? outlets_changes.fromJSON(object.outlets) : undefined,
+      products: isSet(object.products) ? products_changes.fromJSON(object.products) : undefined,
+      registers: isSet(object.registers) ? registers_changes.fromJSON(object.registers) : undefined,
+      staff: isSet(object.staff) ? staff_changes.fromJSON(object.staff) : undefined,
     };
   },
 
@@ -4569,35 +4025,35 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     if (message.idempotencyKey !== "") {
       obj.idempotencyKey = message.idempotencyKey;
     }
-    if (message.merchants !== undefined) {
-      obj.merchants = MerchantChanges.toJSON(message.merchants);
-    }
-    if (message.outlets !== undefined) {
-      obj.outlets = OutletChanges.toJSON(message.outlets);
-    }
-    if (message.registers !== undefined) {
-      obj.registers = RegisterChanges.toJSON(message.registers);
+    if (message.assets !== undefined) {
+      obj.assets = assets_changes.toJSON(message.assets);
     }
     if (message.categories !== undefined) {
-      obj.categories = CategoryChanges.toJSON(message.categories);
+      obj.categories = categories_changes.toJSON(message.categories);
     }
-    if (message.assets !== undefined) {
-      obj.assets = AssetChanges.toJSON(message.assets);
+    if (message.merchants !== undefined) {
+      obj.merchants = merchants_changes.toJSON(message.merchants);
     }
-    if (message.products !== undefined) {
-      obj.products = ProductChanges.toJSON(message.products);
+    if (message.order_items !== undefined) {
+      obj.orderItems = order_items_changes.toJSON(message.order_items);
     }
     if (message.orders !== undefined) {
-      obj.orders = OrderChanges.toJSON(message.orders);
+      obj.orders = orders_changes.toJSON(message.orders);
     }
-    if (message.orderItems !== undefined) {
-      obj.orderItems = OrderItemChanges.toJSON(message.orderItems);
+    if (message.outlet_products !== undefined) {
+      obj.outletProducts = outlet_products_changes.toJSON(message.outlet_products);
     }
-    if (message.outletProducts !== undefined) {
-      obj.outletProducts = OutletProductChanges.toJSON(message.outletProducts);
+    if (message.outlets !== undefined) {
+      obj.outlets = outlets_changes.toJSON(message.outlets);
+    }
+    if (message.products !== undefined) {
+      obj.products = products_changes.toJSON(message.products);
+    }
+    if (message.registers !== undefined) {
+      obj.registers = registers_changes.toJSON(message.registers);
     }
     if (message.staff !== undefined) {
-      obj.staff = StaffChanges.toJSON(message.staff);
+      obj.staff = staff_changes.toJSON(message.staff);
     }
     return obj;
   },
@@ -4609,35 +4065,35 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     const message = createBaseSyncPushBatchRequest();
     message.outletId = object.outletId ?? "";
     message.idempotencyKey = object.idempotencyKey ?? "";
-    message.merchants = (object.merchants !== undefined && object.merchants !== null)
-      ? MerchantChanges.fromPartial(object.merchants)
-      : undefined;
-    message.outlets = (object.outlets !== undefined && object.outlets !== null)
-      ? OutletChanges.fromPartial(object.outlets)
-      : undefined;
-    message.registers = (object.registers !== undefined && object.registers !== null)
-      ? RegisterChanges.fromPartial(object.registers)
+    message.assets = (object.assets !== undefined && object.assets !== null)
+      ? assets_changes.fromPartial(object.assets)
       : undefined;
     message.categories = (object.categories !== undefined && object.categories !== null)
-      ? CategoryChanges.fromPartial(object.categories)
+      ? categories_changes.fromPartial(object.categories)
       : undefined;
-    message.assets = (object.assets !== undefined && object.assets !== null)
-      ? AssetChanges.fromPartial(object.assets)
+    message.merchants = (object.merchants !== undefined && object.merchants !== null)
+      ? merchants_changes.fromPartial(object.merchants)
       : undefined;
-    message.products = (object.products !== undefined && object.products !== null)
-      ? ProductChanges.fromPartial(object.products)
+    message.order_items = (object.order_items !== undefined && object.order_items !== null)
+      ? order_items_changes.fromPartial(object.order_items)
       : undefined;
     message.orders = (object.orders !== undefined && object.orders !== null)
-      ? OrderChanges.fromPartial(object.orders)
+      ? orders_changes.fromPartial(object.orders)
       : undefined;
-    message.orderItems = (object.orderItems !== undefined && object.orderItems !== null)
-      ? OrderItemChanges.fromPartial(object.orderItems)
+    message.outlet_products = (object.outlet_products !== undefined && object.outlet_products !== null)
+      ? outlet_products_changes.fromPartial(object.outlet_products)
       : undefined;
-    message.outletProducts = (object.outletProducts !== undefined && object.outletProducts !== null)
-      ? OutletProductChanges.fromPartial(object.outletProducts)
+    message.outlets = (object.outlets !== undefined && object.outlets !== null)
+      ? outlets_changes.fromPartial(object.outlets)
+      : undefined;
+    message.products = (object.products !== undefined && object.products !== null)
+      ? products_changes.fromPartial(object.products)
+      : undefined;
+    message.registers = (object.registers !== undefined && object.registers !== null)
+      ? registers_changes.fromPartial(object.registers)
       : undefined;
     message.staff = (object.staff !== undefined && object.staff !== null)
-      ? StaffChanges.fromPartial(object.staff)
+      ? staff_changes.fromPartial(object.staff)
       : undefined;
     return message;
   },
@@ -4707,16 +4163,8 @@ export const SyncPushBatchResponse: MessageFns<SyncPushBatchResponse> = {
   fromJSON(object: any): SyncPushBatchResponse {
     return {
       tables: globalThis.Array.isArray(object?.tables) ? object.tables.map((e: any) => SyncTableAck.fromJSON(e)) : [],
-      serverTime: isSet(object.serverTime)
-        ? globalThis.String(object.serverTime)
-        : isSet(object.server_time)
-        ? globalThis.String(object.server_time)
-        : "",
-      latestEventId: isSet(object.latestEventId)
-        ? BigInt(object.latestEventId)
-        : isSet(object.latest_event_id)
-        ? BigInt(object.latest_event_id)
-        : 0n,
+      serverTime: isSet(object.serverTime) ? globalThis.String(object.serverTime) : "",
+      latestEventId: isSet(object.latestEventId) ? BigInt(object.latestEventId) : 0n,
     };
   },
 
@@ -4831,23 +4279,11 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
 
   fromJSON(object: any): SyncPullBatchRequest {
     return {
-      outletId: isSet(object.outletId)
-        ? globalThis.String(object.outletId)
-        : isSet(object.outlet_id)
-        ? globalThis.String(object.outlet_id)
-        : "",
-      afterEventId: isSet(object.afterEventId)
-        ? BigInt(object.afterEventId)
-        : isSet(object.after_event_id)
-        ? BigInt(object.after_event_id)
-        : 0n,
+      outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      afterEventId: isSet(object.afterEventId) ? BigInt(object.afterEventId) : 0n,
       tables: globalThis.Array.isArray(object?.tables) ? object.tables.map((e: any) => globalThis.String(e)) : [],
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
-      pageCursor: isSet(object.pageCursor)
-        ? globalThis.String(object.pageCursor)
-        : isSet(object.page_cursor)
-        ? globalThis.String(object.page_cursor)
-        : "",
+      pageCursor: isSet(object.pageCursor) ? globalThis.String(object.pageCursor) : "",
     };
   },
 
@@ -4887,15 +4323,15 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
 
 function createBaseSyncPullBatchResponse(): SyncPullBatchResponse {
   return {
-    merchants: undefined,
-    outlets: undefined,
-    registers: undefined,
-    categories: undefined,
     assets: undefined,
-    products: undefined,
+    categories: undefined,
+    merchants: undefined,
+    order_items: undefined,
     orders: undefined,
-    orderItems: undefined,
-    outletProducts: undefined,
+    outlet_products: undefined,
+    outlets: undefined,
+    products: undefined,
+    registers: undefined,
     staff: undefined,
     latestEventId: 0n,
     needsFullResync: false,
@@ -4907,35 +4343,35 @@ function createBaseSyncPullBatchResponse(): SyncPullBatchResponse {
 
 export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
   encode(message: SyncPullBatchResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.merchants !== undefined) {
-      MerchantChanges.encode(message.merchants, writer.uint32(82).fork()).join();
-    }
-    if (message.outlets !== undefined) {
-      OutletChanges.encode(message.outlets, writer.uint32(90).fork()).join();
-    }
-    if (message.registers !== undefined) {
-      RegisterChanges.encode(message.registers, writer.uint32(98).fork()).join();
+    if (message.assets !== undefined) {
+      assets_changes.encode(message.assets, writer.uint32(82).fork()).join();
     }
     if (message.categories !== undefined) {
-      CategoryChanges.encode(message.categories, writer.uint32(106).fork()).join();
+      categories_changes.encode(message.categories, writer.uint32(90).fork()).join();
     }
-    if (message.assets !== undefined) {
-      AssetChanges.encode(message.assets, writer.uint32(114).fork()).join();
+    if (message.merchants !== undefined) {
+      merchants_changes.encode(message.merchants, writer.uint32(98).fork()).join();
     }
-    if (message.products !== undefined) {
-      ProductChanges.encode(message.products, writer.uint32(122).fork()).join();
+    if (message.order_items !== undefined) {
+      order_items_changes.encode(message.order_items, writer.uint32(106).fork()).join();
     }
     if (message.orders !== undefined) {
-      OrderChanges.encode(message.orders, writer.uint32(130).fork()).join();
+      orders_changes.encode(message.orders, writer.uint32(114).fork()).join();
     }
-    if (message.orderItems !== undefined) {
-      OrderItemChanges.encode(message.orderItems, writer.uint32(138).fork()).join();
+    if (message.outlet_products !== undefined) {
+      outlet_products_changes.encode(message.outlet_products, writer.uint32(122).fork()).join();
     }
-    if (message.outletProducts !== undefined) {
-      OutletProductChanges.encode(message.outletProducts, writer.uint32(146).fork()).join();
+    if (message.outlets !== undefined) {
+      outlets_changes.encode(message.outlets, writer.uint32(130).fork()).join();
+    }
+    if (message.products !== undefined) {
+      products_changes.encode(message.products, writer.uint32(138).fork()).join();
+    }
+    if (message.registers !== undefined) {
+      registers_changes.encode(message.registers, writer.uint32(146).fork()).join();
     }
     if (message.staff !== undefined) {
-      StaffChanges.encode(message.staff, writer.uint32(154).fork()).join();
+      staff_changes.encode(message.staff, writer.uint32(154).fork()).join();
     }
     if (message.latestEventId !== 0n) {
       if (BigInt.asIntN(64, message.latestEventId) !== message.latestEventId) {
@@ -4970,7 +4406,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.merchants = MerchantChanges.decode(reader, reader.uint32());
+          message.assets = assets_changes.decode(reader, reader.uint32());
           continue;
         }
         case 11: {
@@ -4978,7 +4414,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.outlets = OutletChanges.decode(reader, reader.uint32());
+          message.categories = categories_changes.decode(reader, reader.uint32());
           continue;
         }
         case 12: {
@@ -4986,7 +4422,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.registers = RegisterChanges.decode(reader, reader.uint32());
+          message.merchants = merchants_changes.decode(reader, reader.uint32());
           continue;
         }
         case 13: {
@@ -4994,7 +4430,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.categories = CategoryChanges.decode(reader, reader.uint32());
+          message.order_items = order_items_changes.decode(reader, reader.uint32());
           continue;
         }
         case 14: {
@@ -5002,7 +4438,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.assets = AssetChanges.decode(reader, reader.uint32());
+          message.orders = orders_changes.decode(reader, reader.uint32());
           continue;
         }
         case 15: {
@@ -5010,7 +4446,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.products = ProductChanges.decode(reader, reader.uint32());
+          message.outlet_products = outlet_products_changes.decode(reader, reader.uint32());
           continue;
         }
         case 16: {
@@ -5018,7 +4454,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.orders = OrderChanges.decode(reader, reader.uint32());
+          message.outlets = outlets_changes.decode(reader, reader.uint32());
           continue;
         }
         case 17: {
@@ -5026,7 +4462,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.orderItems = OrderItemChanges.decode(reader, reader.uint32());
+          message.products = products_changes.decode(reader, reader.uint32());
           continue;
         }
         case 18: {
@@ -5034,7 +4470,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.outletProducts = OutletProductChanges.decode(reader, reader.uint32());
+          message.registers = registers_changes.decode(reader, reader.uint32());
           continue;
         }
         case 19: {
@@ -5042,7 +4478,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.staff = StaffChanges.decode(reader, reader.uint32());
+          message.staff = staff_changes.decode(reader, reader.uint32());
           continue;
         }
         case 100: {
@@ -5096,83 +4532,63 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
 
   fromJSON(object: any): SyncPullBatchResponse {
     return {
-      merchants: isSet(object.merchants) ? MerchantChanges.fromJSON(object.merchants) : undefined,
-      outlets: isSet(object.outlets) ? OutletChanges.fromJSON(object.outlets) : undefined,
-      registers: isSet(object.registers) ? RegisterChanges.fromJSON(object.registers) : undefined,
-      categories: isSet(object.categories) ? CategoryChanges.fromJSON(object.categories) : undefined,
-      assets: isSet(object.assets) ? AssetChanges.fromJSON(object.assets) : undefined,
-      products: isSet(object.products) ? ProductChanges.fromJSON(object.products) : undefined,
-      orders: isSet(object.orders) ? OrderChanges.fromJSON(object.orders) : undefined,
-      orderItems: isSet(object.orderItems)
-        ? OrderItemChanges.fromJSON(object.orderItems)
+      assets: isSet(object.assets) ? assets_changes.fromJSON(object.assets) : undefined,
+      categories: isSet(object.categories) ? categories_changes.fromJSON(object.categories) : undefined,
+      merchants: isSet(object.merchants) ? merchants_changes.fromJSON(object.merchants) : undefined,
+      order_items: isSet(object.orderItems)
+        ? order_items_changes.fromJSON(object.orderItems)
         : isSet(object.order_items)
-        ? OrderItemChanges.fromJSON(object.order_items)
+        ? order_items_changes.fromJSON(object.order_items)
         : undefined,
-      outletProducts: isSet(object.outletProducts)
-        ? OutletProductChanges.fromJSON(object.outletProducts)
+      orders: isSet(object.orders) ? orders_changes.fromJSON(object.orders) : undefined,
+      outlet_products: isSet(object.outletProducts)
+        ? outlet_products_changes.fromJSON(object.outletProducts)
         : isSet(object.outlet_products)
-        ? OutletProductChanges.fromJSON(object.outlet_products)
+        ? outlet_products_changes.fromJSON(object.outlet_products)
         : undefined,
-      staff: isSet(object.staff) ? StaffChanges.fromJSON(object.staff) : undefined,
-      latestEventId: isSet(object.latestEventId)
-        ? BigInt(object.latestEventId)
-        : isSet(object.latest_event_id)
-        ? BigInt(object.latest_event_id)
-        : 0n,
-      needsFullResync: isSet(object.needsFullResync)
-        ? globalThis.Boolean(object.needsFullResync)
-        : isSet(object.needs_full_resync)
-        ? globalThis.Boolean(object.needs_full_resync)
-        : false,
-      serverTime: isSet(object.serverTime)
-        ? globalThis.String(object.serverTime)
-        : isSet(object.server_time)
-        ? globalThis.String(object.server_time)
-        : "",
-      hasMore: isSet(object.hasMore)
-        ? globalThis.Boolean(object.hasMore)
-        : isSet(object.has_more)
-        ? globalThis.Boolean(object.has_more)
-        : false,
-      nextPageCursor: isSet(object.nextPageCursor)
-        ? globalThis.String(object.nextPageCursor)
-        : isSet(object.next_page_cursor)
-        ? globalThis.String(object.next_page_cursor)
-        : "",
+      outlets: isSet(object.outlets) ? outlets_changes.fromJSON(object.outlets) : undefined,
+      products: isSet(object.products) ? products_changes.fromJSON(object.products) : undefined,
+      registers: isSet(object.registers) ? registers_changes.fromJSON(object.registers) : undefined,
+      staff: isSet(object.staff) ? staff_changes.fromJSON(object.staff) : undefined,
+      latestEventId: isSet(object.latestEventId) ? BigInt(object.latestEventId) : 0n,
+      needsFullResync: isSet(object.needsFullResync) ? globalThis.Boolean(object.needsFullResync) : false,
+      serverTime: isSet(object.serverTime) ? globalThis.String(object.serverTime) : "",
+      hasMore: isSet(object.hasMore) ? globalThis.Boolean(object.hasMore) : false,
+      nextPageCursor: isSet(object.nextPageCursor) ? globalThis.String(object.nextPageCursor) : "",
     };
   },
 
   toJSON(message: SyncPullBatchResponse): unknown {
     const obj: any = {};
-    if (message.merchants !== undefined) {
-      obj.merchants = MerchantChanges.toJSON(message.merchants);
-    }
-    if (message.outlets !== undefined) {
-      obj.outlets = OutletChanges.toJSON(message.outlets);
-    }
-    if (message.registers !== undefined) {
-      obj.registers = RegisterChanges.toJSON(message.registers);
+    if (message.assets !== undefined) {
+      obj.assets = assets_changes.toJSON(message.assets);
     }
     if (message.categories !== undefined) {
-      obj.categories = CategoryChanges.toJSON(message.categories);
+      obj.categories = categories_changes.toJSON(message.categories);
     }
-    if (message.assets !== undefined) {
-      obj.assets = AssetChanges.toJSON(message.assets);
+    if (message.merchants !== undefined) {
+      obj.merchants = merchants_changes.toJSON(message.merchants);
     }
-    if (message.products !== undefined) {
-      obj.products = ProductChanges.toJSON(message.products);
+    if (message.order_items !== undefined) {
+      obj.orderItems = order_items_changes.toJSON(message.order_items);
     }
     if (message.orders !== undefined) {
-      obj.orders = OrderChanges.toJSON(message.orders);
+      obj.orders = orders_changes.toJSON(message.orders);
     }
-    if (message.orderItems !== undefined) {
-      obj.orderItems = OrderItemChanges.toJSON(message.orderItems);
+    if (message.outlet_products !== undefined) {
+      obj.outletProducts = outlet_products_changes.toJSON(message.outlet_products);
     }
-    if (message.outletProducts !== undefined) {
-      obj.outletProducts = OutletProductChanges.toJSON(message.outletProducts);
+    if (message.outlets !== undefined) {
+      obj.outlets = outlets_changes.toJSON(message.outlets);
+    }
+    if (message.products !== undefined) {
+      obj.products = products_changes.toJSON(message.products);
+    }
+    if (message.registers !== undefined) {
+      obj.registers = registers_changes.toJSON(message.registers);
     }
     if (message.staff !== undefined) {
-      obj.staff = StaffChanges.toJSON(message.staff);
+      obj.staff = staff_changes.toJSON(message.staff);
     }
     if (message.latestEventId !== 0n) {
       obj.latestEventId = message.latestEventId.toString();
@@ -5197,35 +4613,35 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
   },
   fromPartial(object: DeepPartial<SyncPullBatchResponse>): SyncPullBatchResponse {
     const message = createBaseSyncPullBatchResponse();
-    message.merchants = (object.merchants !== undefined && object.merchants !== null)
-      ? MerchantChanges.fromPartial(object.merchants)
-      : undefined;
-    message.outlets = (object.outlets !== undefined && object.outlets !== null)
-      ? OutletChanges.fromPartial(object.outlets)
-      : undefined;
-    message.registers = (object.registers !== undefined && object.registers !== null)
-      ? RegisterChanges.fromPartial(object.registers)
+    message.assets = (object.assets !== undefined && object.assets !== null)
+      ? assets_changes.fromPartial(object.assets)
       : undefined;
     message.categories = (object.categories !== undefined && object.categories !== null)
-      ? CategoryChanges.fromPartial(object.categories)
+      ? categories_changes.fromPartial(object.categories)
       : undefined;
-    message.assets = (object.assets !== undefined && object.assets !== null)
-      ? AssetChanges.fromPartial(object.assets)
+    message.merchants = (object.merchants !== undefined && object.merchants !== null)
+      ? merchants_changes.fromPartial(object.merchants)
       : undefined;
-    message.products = (object.products !== undefined && object.products !== null)
-      ? ProductChanges.fromPartial(object.products)
+    message.order_items = (object.order_items !== undefined && object.order_items !== null)
+      ? order_items_changes.fromPartial(object.order_items)
       : undefined;
     message.orders = (object.orders !== undefined && object.orders !== null)
-      ? OrderChanges.fromPartial(object.orders)
+      ? orders_changes.fromPartial(object.orders)
       : undefined;
-    message.orderItems = (object.orderItems !== undefined && object.orderItems !== null)
-      ? OrderItemChanges.fromPartial(object.orderItems)
+    message.outlet_products = (object.outlet_products !== undefined && object.outlet_products !== null)
+      ? outlet_products_changes.fromPartial(object.outlet_products)
       : undefined;
-    message.outletProducts = (object.outletProducts !== undefined && object.outletProducts !== null)
-      ? OutletProductChanges.fromPartial(object.outletProducts)
+    message.outlets = (object.outlets !== undefined && object.outlets !== null)
+      ? outlets_changes.fromPartial(object.outlets)
+      : undefined;
+    message.products = (object.products !== undefined && object.products !== null)
+      ? products_changes.fromPartial(object.products)
+      : undefined;
+    message.registers = (object.registers !== undefined && object.registers !== null)
+      ? registers_changes.fromPartial(object.registers)
       : undefined;
     message.staff = (object.staff !== undefined && object.staff !== null)
-      ? StaffChanges.fromPartial(object.staff)
+      ? staff_changes.fromPartial(object.staff)
       : undefined;
     message.latestEventId = object.latestEventId ?? 0n;
     message.needsFullResync = object.needsFullResync ?? false;

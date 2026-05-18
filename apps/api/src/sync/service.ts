@@ -28,10 +28,13 @@ import {
   getWriteChunkSize,
 } from "./chunking";
 import {
+  type GenericSyncTableAdapter,
   getPushTableAdapter,
-  type PushTableAdapter,
+  SYNC_UPSERT_ORDER,
   type TransactionLike,
 } from "./push-adapters.generated";
+
+type PushTableAdapter = GenericSyncTableAdapter;
 
 const ALL_SYNC_TABLE_NAMES = [
   "merchants",
@@ -46,18 +49,18 @@ const ALL_SYNC_TABLE_NAMES = [
   "order_items",
 ];
 
-const PUSH_TABLE_ORDER = [
-  "merchants",
-  "outlets",
-  "registers",
-  "staff",
-  "categories",
-  "assets",
-  "products",
-  "outlet_products",
-  "orders",
-  "order_items",
-];
+const SYNC_TABLES = {
+  assets,
+  categories,
+  merchants,
+  order_items: orderItems,
+  orders,
+  outlet_products: outletProducts,
+  outlets,
+  products,
+  registers,
+  staff,
+} as const;
 
 const PULL_BATCH_DEFAULT_LIMIT = 250;
 const PULL_BATCH_MAX_LIMIT = 500;
@@ -74,6 +77,39 @@ function getRequiredPushTableAdapter(tableName: string): PushTableAdapter {
     throw new Error(`Missing push table adapter for ${tableName}`);
   }
   return adapter;
+}
+
+function getRequiredSyncTable(tableName: string) {
+  const table = SYNC_TABLES[tableName as keyof typeof SYNC_TABLES];
+  if (!table) {
+    throw new Error(`Unknown sync table ${tableName}`);
+  }
+  return table;
+}
+
+function applyTenantContextToRow(input: {
+  merchantId: string;
+  outletId: string;
+  row: Record<string, unknown>;
+  tableName: string;
+}): Record<string, unknown> {
+  switch (input.tableName) {
+    case "merchants":
+      return { ...input.row, id: input.merchantId };
+    case "outlets":
+    case "categories":
+    case "assets":
+    case "products":
+    case "staff":
+      return { ...input.row, merchantId: input.merchantId };
+    case "registers":
+    case "orders":
+    case "order_items":
+    case "outlet_products":
+      return { ...input.row, outletId: input.outletId };
+    default:
+      return input.row;
+  }
 }
 
 export async function verifyOutletAccess(
@@ -104,7 +140,7 @@ export async function verifyOutletAccess(
   return !!membership;
 }
 
-type TransactionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type TransactionTx = Pick<typeof db, "insert" | "select" | "update">;
 
 interface ExistingSyncRow extends Record<string, unknown> {
   createdAt?: unknown;
@@ -115,19 +151,11 @@ interface ExistingSyncRow extends Record<string, unknown> {
 interface AcceptedPushRow {
   operation: SyncEventOperation;
   row: Record<string, unknown>;
-  source: "created" | "updated";
-}
-
-interface CandidatePushRow {
-  operation: "insert" | "update";
-  row: Record<string, unknown>;
-  source: "created" | "updated";
 }
 
 interface PullTableChanges {
-  created: Record<string, unknown>[];
+  changedRows: Record<string, unknown>[];
   deletedIds: string[];
-  updated: Record<string, unknown>[];
 }
 
 interface PullBatchResult {
@@ -149,9 +177,8 @@ interface PullBatchResult {
 }
 
 export interface TableChangeSet {
-  created: Record<string, unknown>[];
+  changedRows: Record<string, unknown>[];
   deletedIds: string[];
-  updated: Record<string, unknown>[];
 }
 
 export type PushBatchChanges = Record<string, TableChangeSet>;
@@ -222,7 +249,7 @@ export async function handlePushBatch(
     const tables: PushBatchTableAck[] = [];
     const syncEventRows: Record<string, unknown>[] = [];
     // Keep writes inside the interactive transaction. Sequential ordering preserves FK-safe writes and idempotency semantics.
-    for (const tableName of PUSH_TABLE_ORDER) {
+    for (const tableName of SYNC_UPSERT_ORDER) {
       const tableChanges = changes[tableName];
       if (!tableChanges) {
         continue;
@@ -308,7 +335,10 @@ async function loadPushBatchResponse(
       serverTime: existing.serverTime,
       tables: Array.isArray(response.tables) ? response.tables : [],
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof ConflictRequestError) {
+      throw error;
+    }
     return {
       latestEventId: existing.latestEventId,
       serverTime: existing.serverTime,
@@ -418,7 +448,7 @@ async function processPushBatchTable(input: {
     })
   );
 
-  await processTimestamplessDeletedIds(input, ack, syncEventRows, adapter);
+  await processTimestamplessDeletedIds(input, ack, syncEventRows);
 
   return { ack, syncEvents: syncEventRows };
 }
@@ -434,58 +464,48 @@ async function partitionAcceptedPushRows(
   ack: PushBatchTableAck,
   adapter: PushTableAdapter
 ): Promise<AcceptedPushRow[]> {
-  const candidateRows: CandidatePushRow[] = [
-    ...input.changes.created.map((row) => ({
-      operation: "insert" as const,
-      row: adapter.mapRow(row, {
-        merchantId: input.merchantId,
-        outletId: input.outletId,
-      }),
-      source: "created" as const,
-    })),
-    ...input.changes.updated.map((row) => ({
-      operation: "update" as const,
-      row: adapter.mapRow(row, {
-        merchantId: input.merchantId,
-        outletId: input.outletId,
-      }),
-      source: "updated" as const,
-    })),
-  ];
+  const candidateRows = input.changes.changedRows.map((row) =>
+    applyTenantContextToRow({
+      merchantId: input.merchantId,
+      outletId: input.outletId,
+      row: adapter.mapProtoRow(row),
+      tableName: input.tableName,
+    })
+  );
 
   if (candidateRows.length === 0) {
     return [];
   }
 
   const existingRows = await selectExistingRowsChunked(
-    adapter,
+    input.tableName,
     input.tx as unknown as TransactionLike,
-    candidateRows.map((candidate) => candidate.row.id as string)
+    candidateRows.map((candidate) => candidate.id as string)
   );
   const existingRowsById = new Map(existingRows.map((row) => [row.id, row]));
   const acceptedRows: AcceptedPushRow[] = [];
 
-  for (const candidate of candidateRows) {
-    const id = candidate.row.id as string;
+  for (const candidateRow of candidateRows) {
+    const id = candidateRow.id as string;
     const existing = existingRowsById.get(id);
-    const defaultOperation = existing ? "update" : candidate.operation;
+    const defaultOperation = existing ? "update" : "insert";
     const acceptedOperation = getAcceptedOperation(
-      candidate.row,
+      candidateRow,
       defaultOperation
     );
 
-    if (existing && !clientRowWins(input.tableName, candidate.row, existing)) {
+    if (existing && !clientRowWins(input.tableName, candidateRow, existing)) {
       ack.rejected.push({ id, reason: "server_newer" });
       continue;
     }
 
-    acceptedRows.push({ ...candidate, operation: acceptedOperation });
+    acceptedRows.push({ operation: acceptedOperation, row: candidateRow });
     if (acceptedOperation === "delete") {
       ack.acceptedDeletedIds.push(id);
-    } else if (candidate.source === "created") {
-      ack.acceptedCreatedIds.push(id);
-    } else {
+    } else if (existing) {
       ack.acceptedUpdatedIds.push(id);
+    } else {
+      ack.acceptedCreatedIds.push(id);
     }
   }
 
@@ -501,17 +521,18 @@ async function processTimestamplessDeletedIds(
     tx: TransactionTx;
   },
   ack: PushBatchTableAck,
-  syncEventRows: Record<string, unknown>[],
-  adapter: PushTableAdapter
+  syncEventRows: Record<string, unknown>[]
 ) {
   if (input.changes.deletedIds.length === 0) {
     return;
   }
 
-  await softDeleteRowsChunked({
-    adapter,
+  const acceptedDeletedIds = await softDeleteRowsChunked({
+    merchantId: input.merchantId,
+    tableName: input.tableName,
     ids: input.changes.deletedIds,
     now: new Date().toISOString(),
+    outletId: input.outletId,
     tx: input.tx as unknown as TransactionLike,
   });
 
@@ -520,7 +541,7 @@ async function processTimestamplessDeletedIds(
     input.merchantId,
     input.outletId
   );
-  for (const id of input.changes.deletedIds) {
+  for (const id of acceptedDeletedIds) {
     ack.acceptedDeletedIds.push(id);
     syncEventRows.push({
       changedAt: new Date().toISOString(),
@@ -612,7 +633,7 @@ async function insertSyncEventsChunked(
 }
 
 async function selectExistingRowsChunked(
-  adapter: PushTableAdapter,
+  tableName: string,
   tx: TransactionLike,
   ids: string[]
 ): Promise<ExistingSyncRow[]> {
@@ -620,9 +641,20 @@ async function selectExistingRowsChunked(
     return [];
   }
 
+  const table = getRequiredSyncTable(tableName);
   const rows: ExistingSyncRow[] = [];
   for (const idChunk of chunkArray(ids, DEFAULT_MAX_IDS_PER_READ_CHUNK)) {
-    const chunkRows = await adapter.selectExistingRows(tx, idChunk);
+    const chunkRows = await resolveRowsLike<ExistingSyncRow>(
+      tx
+        .select({
+          createdAt: table.createdAt,
+          id: table.id,
+          updatedAt: table.updatedAt,
+        })
+        .from(table)
+        .where(inArray(table.id, idChunk)),
+      idChunk.length
+    );
     rows.push(
       ...chunkRows.filter(
         (row): row is ExistingSyncRow =>
@@ -637,18 +669,210 @@ async function selectExistingRowsChunked(
   return rows;
 }
 
-async function softDeleteRowsChunked(input: {
-  adapter: PushTableAdapter;
-  ids: string[];
-  now: string;
-  tx: TransactionLike;
-}) {
-  if (input.ids.length === 0) {
-    return;
+async function resolveRowsLike<T>(value: unknown, limit: number): Promise<T[]> {
+  if (Array.isArray(value)) {
+    return value as T[];
   }
 
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "limit" in value &&
+    typeof (value as { limit: unknown }).limit === "function"
+  ) {
+    return await resolveRowsLike<T>(
+      await (value as { limit: (value: number) => unknown }).limit(limit),
+      limit
+    );
+  }
+
+  return (await value) as T[];
+}
+
+async function softDeleteRowsChunked(input: {
+  merchantId: string;
+  tableName: string;
+  ids: string[];
+  now: string;
+  outletId: string;
+  tx: TransactionLike;
+}): Promise<string[]> {
+  if (input.ids.length === 0) {
+    return [];
+  }
+
+  const table = getRequiredSyncTable(input.tableName);
+  const acceptedIds: string[] = [];
   for (const idChunk of chunkArray(input.ids, DEFAULT_MAX_IDS_PER_READ_CHUNK)) {
-    await input.adapter.softDeleteRows(input.tx, idChunk, input.now);
+    const scopedRows = await selectScopedDeleteIds({
+      ids: idChunk,
+      merchantId: input.merchantId,
+      outletId: input.outletId,
+      tableName: input.tableName,
+      tx: input.tx,
+    });
+    const scopedIds = scopedRows.map((row) => row.id);
+    if (scopedIds.length === 0) {
+      continue;
+    }
+
+    await input.tx
+      .update(table)
+      .set({
+        deletedAt: input.now,
+        updatedAt: input.now,
+      })
+      .where(inArray(table.id, scopedIds));
+    acceptedIds.push(...scopedIds);
+  }
+
+  return acceptedIds;
+}
+
+async function selectScopedDeleteIds(input: {
+  ids: string[];
+  merchantId: string;
+  outletId: string;
+  tableName: string;
+  tx: TransactionLike;
+}): Promise<Array<{ id: string }>> {
+  if (input.ids.length === 0) {
+    return [];
+  }
+
+  switch (input.tableName) {
+    case "merchants":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: merchants.id })
+          .from(merchants)
+          .where(
+            and(
+              eq(merchants.id, input.merchantId),
+              inArray(merchants.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "outlets":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: outlets.id })
+          .from(outlets)
+          .where(
+            and(
+              eq(outlets.merchantId, input.merchantId),
+              inArray(outlets.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "registers":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: registers.id })
+          .from(registers)
+          .where(
+            and(
+              eq(registers.outletId, input.outletId),
+              inArray(registers.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "categories":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: categories.id })
+          .from(categories)
+          .where(
+            and(
+              eq(categories.merchantId, input.merchantId),
+              inArray(categories.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "assets":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: assets.id })
+          .from(assets)
+          .where(
+            and(
+              eq(assets.merchantId, input.merchantId),
+              inArray(assets.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "products":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: products.id })
+          .from(products)
+          .where(
+            and(
+              eq(products.merchantId, input.merchantId),
+              inArray(products.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "outlet_products":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: outletProducts.id })
+          .from(outletProducts)
+          .where(
+            and(
+              eq(outletProducts.outletId, input.outletId),
+              inArray(outletProducts.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "staff":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: staff.id })
+          .from(staff)
+          .where(
+            and(
+              eq(staff.merchantId, input.merchantId),
+              inArray(staff.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "orders":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: orders.id })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.outletId, input.outletId),
+              inArray(orders.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    case "order_items":
+      return await resolveRowsLike<{ id: string }>(
+        input.tx
+          .select({ id: orderItems.id })
+          .from(orderItems)
+          .where(
+            and(
+              eq(orderItems.outletId, input.outletId),
+              inArray(orderItems.id, input.ids)
+            )
+          ),
+        input.ids.length
+      );
+    default:
+      return [];
   }
 }
 
@@ -777,17 +1001,16 @@ function applyPullBatchEntries(
     }
 
     const current = (result[property] as PullTableChanges | undefined) ?? {
-      created: [],
+      changedRows: [],
       deletedIds: [],
-      updated: [],
     };
 
     if (entry.operation === "insert") {
-      current.created.push(entry.row);
+      current.changedRows.push(entry.row);
     } else if (entry.operation === "delete") {
       current.deletedIds.push(entry.rowId);
     } else {
-      current.updated.push(entry.row);
+      current.changedRows.push(entry.row);
     }
 
     (result as Record<string, PullTableChanges>)[property] = current;
@@ -1135,7 +1358,7 @@ async function buildBaselinePullBatchResult(
     latestEventId,
     needsFullResync: false,
     nextPageCursor: "",
-    serverTime: String(snapshots.serverTime),
+    serverTime: new Date().toISOString(),
   };
 }
 

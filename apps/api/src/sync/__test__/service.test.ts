@@ -124,7 +124,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         orders: {
-          created: [
+          changedRows: [
             {
               id: "order-1",
               outletId: "outlet-1",
@@ -133,11 +133,10 @@ describe("handlePushBatch", () => {
               updatedAt: "2026-05-17T00:00:00.000Z",
             },
           ],
-          updated: [],
           deletedIds: [],
         },
         products: {
-          created: [
+          changedRows: [
             {
               id: "product-1",
               merchantId: "merchant-1",
@@ -146,7 +145,6 @@ describe("handlePushBatch", () => {
               updatedAt: "2026-05-17T00:00:00.000Z",
             },
           ],
-          updated: [],
           deletedIds: [],
         },
       },
@@ -205,8 +203,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         products: {
-          created: [],
-          updated: [
+          changedRows: [
             {
               id: "product-1",
               merchantId: "merchant-1",
@@ -281,8 +278,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         products: {
-          created: [],
-          updated: [],
+          changedRows: [],
           deletedIds: ["product-1"],
         },
       },
@@ -293,6 +289,60 @@ describe("handlePushBatch", () => {
     expect(result.tables[0]?.acceptedDeletedIds).toEqual(["product-1"]);
     expect(result.tables[0]?.rejected).toEqual([]);
     expect(update).toHaveBeenCalled();
+  });
+
+  test("ignores out-of-scope deletedIds without writing delete events", async () => {
+    const update = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+    const insert = vi.fn().mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
+    });
+    let selectCallCount = 0;
+
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockImplementation(() => ({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockImplementation(() => {
+                selectCallCount++;
+                if (selectCallCount === 1) {
+                  return [];
+                }
+                return {
+                  orderBy: vi.fn().mockReturnValue({
+                    limit: vi.fn().mockResolvedValue([]),
+                  }),
+                };
+              }),
+            }),
+          })),
+          insert,
+          update,
+        };
+        return await fn(tx);
+      }
+    );
+
+    const result = await handlePushBatch(
+      "outlet-1",
+      "merchant-1",
+      {
+        products: {
+          changedRows: [],
+          deletedIds: ["product-outside-scope"],
+        },
+      },
+      "",
+      "request-hash-delete-outside-scope"
+    );
+
+    expect(result.tables[0]?.acceptedDeletedIds).toEqual([]);
+    expect(update).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
   });
 
   test("normalizes protobuf bigint int64 fields before DB upsert", async () => {
@@ -335,7 +385,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         assets: {
-          created: [
+          changedRows: [
             {
               byteSize: 1_024n,
               contentHash: "hash",
@@ -351,10 +401,9 @@ describe("handlePushBatch", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
         categories: {
-          created: [
+          changedRows: [
             {
               id: "cat-1",
               isActive: true,
@@ -365,7 +414,6 @@ describe("handlePushBatch", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
       },
       "idem-bigint-normalize",
@@ -429,7 +477,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         staff: {
-          created: [
+          changedRows: [
             {
               createdAt: "2026-05-17T00:00:00.000Z",
               id: "staff-1",
@@ -442,7 +490,6 @@ describe("handlePushBatch", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
       },
       "",
@@ -498,7 +545,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         orders: {
-          created: [
+          changedRows: [
             {
               amountPaidMinorUnits: undefined,
               changeAmountMinorUnits: "",
@@ -512,7 +559,6 @@ describe("handlePushBatch", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
       },
       "",
@@ -552,7 +598,7 @@ describe("handlePushBatch", () => {
         "merchant-1",
         {
           products: {
-            created: [
+            changedRows: [
               {
                 createdAt: "2026-05-17T00:00:00.000Z",
                 id: "product-unsafe",
@@ -562,7 +608,6 @@ describe("handlePushBatch", () => {
               },
             ],
             deletedIds: [],
-            updated: [],
           },
         },
         "",
@@ -619,8 +664,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         products: {
-          created: [],
-          updated: productRows,
+          changedRows: productRows,
           deletedIds: [],
         },
       },
@@ -743,6 +787,42 @@ describe("handlePushBatch", () => {
         "request-hash-2"
       )
     ).rejects.toThrow("idempotency key reused with different request body");
+  });
+
+  test("rejects cached retries while the same idempotency key is pending", async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<void>) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([
+                  {
+                    latestEventId: 0,
+                    requestHash: "request-hash-1",
+                    responseJson: JSON.stringify({ pending: true }),
+                    serverTime: "2026-05-17T00:00:00.000Z",
+                  },
+                ]),
+              }),
+            }),
+          }),
+          insert: vi.fn(),
+          update: vi.fn(),
+        };
+        return await fn(tx);
+      }
+    );
+
+    await expect(
+      handlePushBatch(
+        "outlet-1",
+        "merchant-1",
+        {},
+        "sync-request-1",
+        "request-hash-1"
+      )
+    ).rejects.toThrow("sync push is already in progress");
   });
 
   test("returns cached response when idempotency insert races with the same request body", async () => {
@@ -895,7 +975,7 @@ describe("handlePushBatch", () => {
       "merchant-1",
       {
         products: {
-          created: [
+          changedRows: [
             {
               createdAt: "2026-05-17T00:00:00.000Z",
               id: "product-1",
@@ -905,7 +985,6 @@ describe("handlePushBatch", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
       },
       "sync-request-race",
@@ -1084,8 +1163,8 @@ describe("handlePullBatch", () => {
     expect(result.latestEventId).toBe(11);
     expect(result.hasMore).toBe(false);
     expect(result.needsFullResync).toBe(false);
-    expect(result.products?.updated[0]).toMatchObject({ id: "product-1" });
-    expect(result.categories?.created[0]).toMatchObject({
+    expect(result.products?.changedRows[0]).toMatchObject({ id: "product-1" });
+    expect(result.categories?.changedRows[0]).toMatchObject({
       id: "cat-1",
       name: "Minuman",
     });
@@ -1162,11 +1241,11 @@ describe("handlePullBatch", () => {
     expect(firstPage.hasMore).toBe(true);
     expect(firstPage.latestEventId).toBe(10);
     expect(firstPage.nextPageCursor).toBe("event:10");
-    expect(firstPage.products?.updated[0]?.id).toBe("product-1");
+    expect(firstPage.products?.changedRows[0]?.id).toBe("product-1");
     expect(secondPage.hasMore).toBe(false);
     expect(secondPage.latestEventId).toBe(11);
     expect(secondPage.nextPageCursor).toBe("");
-    expect(secondPage.products?.updated[0]?.id).toBe("product-2");
+    expect(secondPage.products?.changedRows[0]?.id).toBe("product-2");
   });
 
   test("fetches only one bounded event page from the database", async () => {
@@ -1244,7 +1323,7 @@ describe("handlePullBatch", () => {
 
     expect(result.latestEventId).toBe(12);
     expect(result.products?.deletedIds).toEqual(["product-deleted"]);
-    expect(result.products?.updated).toEqual([]);
+    expect(result.products?.changedRows).toEqual([]);
   });
 
   test("returns baseline snapshots when pulling from cursor zero", async () => {
@@ -1283,7 +1362,7 @@ describe("handlePullBatch", () => {
 
     expect(result.latestEventId).toBe(12);
     expect(result.hasMore).toBe(false);
-    expect(result.products?.created[0]).toMatchObject({ id: "product-1" });
+    expect(result.products?.changedRows[0]).toMatchObject({ id: "product-1" });
   });
 });
 
@@ -1380,6 +1459,6 @@ describe("smart sync simulation", () => {
 
     expect(pull.needsFullResync).toBe(false);
     expect(pull.latestEventId).toBe(1);
-    expect(pull.products?.created).toEqual([changedProduct]);
+    expect(pull.products?.changedRows).toEqual([changedProduct]);
   });
 });

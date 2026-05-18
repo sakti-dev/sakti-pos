@@ -272,15 +272,14 @@ pub(super) async fn sync_push_batch_inner(
     for table in SYNC_TABLES {
         let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
         let changes = read_unsynced_table_changes_from_outbox(pool, table, filter_value).await?;
-        let row_count = changes.created.len() + changes.updated.len() + changes.deleted_ids.len();
+        let row_count = changes.changed_rows.len() + changes.deleted_ids.len();
         log::info!(
-            "[RUST] [SYNC:TRACE] push_batch: table={}, created={}, updated={}, deleted={}",
+            "[RUST] [SYNC:TRACE] push_batch: table={}, changed_rows={}, deleted={}",
             table,
-            changes.created.len(),
-            changes.updated.len(),
+            changes.changed_rows.len(),
             changes.deleted_ids.len()
         );
-        for row in changes.created.iter().chain(changes.updated.iter()) {
+        for row in changes.changed_rows.iter() {
             log::info!(
                 "[RUST] [SYNC:TRACE] push_batch row: table={}, row={}",
                 table,
@@ -313,15 +312,15 @@ pub(super) async fn sync_push_batch_inner(
     let request = build_sync_push_batch_request(
         outlet_id,
         &idempotency_key,
-        Some(build_merchant_changes(&merchant_changes)),
-        Some(build_outlet_changes(&outlet_changes)),
-        Some(build_register_changes(&register_changes)),
-        Some(build_category_changes(&category_changes)),
         Some(build_asset_changes(&asset_changes)),
-        Some(build_product_changes(&product_changes)),
-        Some(build_order_changes(&order_changes)),
+        Some(build_category_changes(&category_changes)),
+        Some(build_merchant_changes(&merchant_changes)),
         Some(build_order_item_changes(&order_item_changes)),
+        Some(build_order_changes(&order_changes)),
         Some(build_outlet_product_changes(&outlet_product_changes)),
+        Some(build_outlet_changes(&outlet_changes)),
+        Some(build_product_changes(&product_changes)),
+        Some(build_register_changes(&register_changes)),
         Some(build_staff_changes(&staff_changes)),
     );
     let request_body = request.encode_to_vec();

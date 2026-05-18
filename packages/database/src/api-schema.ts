@@ -80,11 +80,13 @@ export const syncBatchRequests = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
-  (table) => ({
-    scopeIdempotencyKey: uniqueIndex(
-      "sync_batch_requests_scope_idempotency_key_unique"
-    ).on(table.scopeType, table.scopeId, table.idempotencyKey),
-  })
+  (table) => [
+    uniqueIndex("sync_batch_requests_scope_idempotency_key_unique").on(
+      table.scopeType,
+      table.scopeId,
+      table.idempotencyKey
+    ),
+  ]
 );
 
 export const outlets = sqliteTable("outlets", {

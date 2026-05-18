@@ -26,6 +26,9 @@ describe("typed sync contract cleanup", () => {
     expect(proto).not.toContain("created_json");
     expect(proto).not.toContain("updated_json");
     expect(proto).not.toContain("json_tables");
+    expect(proto).not.toContain(" created = ");
+    expect(proto).not.toContain(" updated = ");
+    expect(proto).toContain("changedRows");
   });
 
   test("generated API mapper has no JSON row references", () => {

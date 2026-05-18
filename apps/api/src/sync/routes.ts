@@ -44,10 +44,7 @@ function countPushBatchRows(
 ) {
   let total = 0;
   for (const tableChanges of Object.values(changes)) {
-    total +=
-      tableChanges.created.length +
-      tableChanges.updated.length +
-      tableChanges.deletedIds.length;
+    total += tableChanges.changedRows.length + tableChanges.deletedIds.length;
   }
   return total;
 }

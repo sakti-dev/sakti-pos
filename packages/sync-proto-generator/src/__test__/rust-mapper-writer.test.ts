@@ -1,14 +1,19 @@
 import { describe, expect, test } from "vitest";
+import {
+  syncGeneratorConfig,
+  syncProtoSchemas,
+} from "../../../protobuf/sync-proto.config";
 import { reflectSyncTables } from "../drizzle-reflection";
-import { syncManifest } from "../manifest";
 import { renderRustSyncMappers } from "../rust-mapper-writer";
 
-const localSchema = await import("@repo/database");
-const tables = reflectSyncTables(localSchema, syncManifest);
+const tables = reflectSyncTables({
+  config: syncGeneratorConfig,
+  schemaModule: syncProtoSchemas.localSyncedSchema,
+});
 
 describe("Rust POS sync mapper writer", () => {
   test("renders generated file warning header", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+    const source = renderRustSyncMappers(tables);
 
     expect(
       source.startsWith(
@@ -17,27 +22,27 @@ describe("Rust POS sync mapper writer", () => {
     ).toBe(true);
   });
 
-  test("renders product mapper from serde_json value to ProductRow", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+  test("renders product mapper from serde_json value to products_row", () => {
+    const source = renderRustSyncMappers(tables);
 
     expect(source).toContain(
-      "fn product_row_from_value(row: &Value) -> ProductRow"
+      "fn products_row_from_value(row: &Value) -> ProductsRow"
     );
     expect(source).toContain(
-      'price_minor_units: value_to_i64(row, &["priceMinorUnits", "price_minor_units"])'
+      'price_minor_units: value_to_i64(row, &["priceMinorUnits"])'
     );
   });
 
   test("renders typed changes builders for every sync table", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+    const source = renderRustSyncMappers(tables);
 
-    expect(source).toContain("pub(super) fn build_staff_changes");
+    expect(source).toContain("pub(super) fn build_staff_row_changes");
     expect(source).toContain("StaffChanges {");
     expect(source).not.toContain("build_json_table_changes");
   });
 
   test("renders decode pull batch response for every sync table", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+    const source = renderRustSyncMappers(tables);
 
     expect(source).toContain("pub(super) fn decode_pull_batch_response_tables");
     expect(source).toContain('"merchants".to_string()');
@@ -45,36 +50,36 @@ describe("Rust POS sync mapper writer", () => {
   });
 
   test("renders build push request with typed fields for all tables", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+    const source = renderRustSyncMappers(tables);
 
     expect(source).toContain("pub(super) fn build_sync_push_batch_request(");
-    expect(source).toContain("merchants: Option<MerchantChanges>");
+    expect(source).toContain("merchants: Option<MerchantsChanges>");
     expect(source).toContain("staff: Option<StaffChanges>");
   });
 
   test("renders row-to-value mappers for pull direction", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+    const source = renderRustSyncMappers(tables);
 
     expect(source).toContain(
-      "fn product_row_to_value(row: &ProductRow) -> Value"
+      "fn products_row_to_value(row: &ProductsRow) -> Value"
     );
     expect(source).toContain('"priceMinorUnits": row.price_minor_units');
   });
 
   test("renders Rust snake_case function names for multi-word rows", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+    const source = renderRustSyncMappers(tables);
 
-    expect(source).toContain("fn order_item_row_from_value(row: &Value)");
-    expect(source).toContain("fn outlet_product_row_from_value(row: &Value)");
-    expect(source).not.toContain("fn orderItem_row_from_value");
-    expect(source).not.toContain("fn outletProduct_row_from_value");
+    expect(source).toContain("fn order_items_row_from_value(row: &Value)");
+    expect(source).toContain("fn outlet_products_row_from_value(row: &Value)");
+    expect(source).not.toContain("fn orderItems_row_from_value");
+    expect(source).not.toContain("fn outletProducts_row_from_value");
   });
 
   test("renders Prost snake_case fields for multi-word table changes", () => {
-    const source = renderRustSyncMappers(syncManifest, tables);
+    const source = renderRustSyncMappers(tables);
 
-    expect(source).toContain("order_items: Option<OrderItemChanges>");
-    expect(source).toContain("outlet_products: Option<OutletProductChanges>");
+    expect(source).toContain("order_items: Option<OrderItemsChanges>");
+    expect(source).toContain("outlet_products: Option<OutletProductsChanges>");
     expect(source).toContain("response.order_items");
     expect(source).toContain("response.outlet_products");
     expect(source).not.toContain("orderItems: Option<OrderItemChanges>");

@@ -1,14 +1,18 @@
 import { describe, expect, test } from "vitest";
+import {
+  syncGeneratorConfig,
+  syncProtoSchemas,
+} from "../../../protobuf/sync-proto.config";
 import { reflectSyncTables } from "../drizzle-reflection";
-import { syncManifest } from "../manifest";
 import { renderSyncProto } from "../proto-writer";
-
-const localSchema = await import("@repo/database");
 
 describe("proto writer", () => {
   test("renders generated file warning header", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
-    const proto = renderSyncProto(syncManifest, tables);
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const proto = renderSyncProto(syncGeneratorConfig, tables);
 
     expect(
       proto.startsWith(
@@ -18,31 +22,41 @@ describe("proto writer", () => {
   });
 
   test("renders product row with current manual field names", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
-    const proto = renderSyncProto(syncManifest, tables);
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const proto = renderSyncProto(syncGeneratorConfig, tables);
 
-    expect(proto).toContain("message ProductRow");
-    expect(proto).toContain("string merchant_id = 2;");
-    expect(proto).toContain("int64 price_minor_units = 5;");
-    expect(proto).toContain("string image_asset_id = 7;");
+    expect(proto).toContain("message products_row");
+    expect(proto).toContain("string merchantId = 2;");
+    expect(proto).toContain("int64 priceMinorUnits = 5;");
+    expect(proto).toContain("string imageAssetId = 7;");
   });
 
   test("renders change wrappers for every sync table", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
-    const proto = renderSyncProto(syncManifest, tables);
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const proto = renderSyncProto(syncGeneratorConfig, tables);
 
-    expect(proto).toContain("message StaffChanges");
-    expect(proto).toContain("repeated StaffRow created = 1;");
-    expect(proto).toContain("repeated StaffRow updated = 2;");
-    expect(proto).toContain("repeated string deleted_ids = 3;");
+    expect(proto).toContain("message staff_changes");
+    expect(proto).toContain("repeated staff_row changedRows = 1;");
+    expect(proto).toContain("repeated string deletedIds = 2;");
   });
 
-  test("does not render SyncJsonTableChanges", () => {
-    const tables = reflectSyncTables(localSchema, syncManifest);
-    const proto = renderSyncProto(syncManifest, tables);
+  test("does not render legacy json or changed_rows aliases", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const proto = renderSyncProto(syncGeneratorConfig, tables);
 
     expect(proto).not.toContain("SyncJsonTableChanges");
     expect(proto).not.toContain("created_json");
     expect(proto).not.toContain("updated_json");
+    expect(proto).not.toContain(" created = ");
+    expect(proto).not.toContain(" updated = ");
   });
 });

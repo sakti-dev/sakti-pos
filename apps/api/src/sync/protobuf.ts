@@ -21,9 +21,8 @@ export function protobufInt64ToSafeNumber(
 }
 
 export interface TableChangeSet {
-  created: Record<string, unknown>[];
+  changedRows: Record<string, unknown>[];
   deletedIds: string[];
-  updated: Record<string, unknown>[];
 }
 
 export type PushBatchChanges = Record<string, TableChangeSet>;
@@ -80,9 +79,37 @@ async function sha256Hex(input: Uint8Array): Promise<string> {
 export function decodePushBatchRequest(
   request: SyncPushBatchRequest
 ): PushBatchChanges {
-  return decodeGeneratedPushBatchRequest(
-    request as unknown as Record<string, unknown>
+  const normalizedRequest = Object.fromEntries(
+    Object.entries(request as unknown as Record<string, unknown>).map(
+      ([key, value]) => {
+        if (!value || typeof value !== "object") {
+          return [key, value];
+        }
+
+        const changes = value as {
+          changedRows?: Record<string, unknown>[];
+          deletedIds?: string[];
+        };
+        return [
+          key,
+          {
+            changedRows: Array.isArray(changes.changedRows)
+              ? changes.changedRows
+              : [],
+            deletedIds: Array.isArray(changes.deletedIds)
+              ? changes.deletedIds
+              : [],
+          },
+        ];
+      }
+    )
+  );
+
+  const decoded = decodeGeneratedPushBatchRequest(
+    normalizedRequest as Record<string, unknown>
   ) as PushBatchChanges;
+
+  return decoded;
 }
 
 export async function computePushBatchRequestHash(
@@ -117,9 +144,35 @@ export function encodePushBatchResponse(
 export function encodePullBatchResponse(
   result: PullBatchResult
 ): SyncPullBatchResponse {
-  return SyncPullBatchResponse.create(
-    encodeGeneratedPullBatchResponse(
-      result as unknown as Record<string, unknown>
+  const normalizedResult = Object.fromEntries(
+    Object.entries(result as unknown as Record<string, unknown>).map(
+      ([key, value]) => {
+        if (!value || typeof value !== "object") {
+          return [key, value];
+        }
+
+        const changes = value as {
+          changedRows?: Record<string, unknown>[];
+          deletedIds?: string[];
+        };
+        return [
+          key,
+          {
+            changedRows: Array.isArray(changes.changedRows)
+              ? changes.changedRows
+              : [],
+            deletedIds: Array.isArray(changes.deletedIds)
+              ? changes.deletedIds
+              : [],
+          },
+        ];
+      }
     )
   );
+
+  const response = encodeGeneratedPullBatchResponse(
+    normalizedResult as Record<string, unknown>
+  ) as SyncPullBatchResponse;
+
+  return SyncPullBatchResponse.create(response);
 }

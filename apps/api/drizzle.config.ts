@@ -5,7 +5,7 @@ import { defineConfig } from "drizzle-kit";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  dialect: "sqlite",
+  dialect: "turso",
   schema: path.resolve(__dirname, "../../packages/database/src/api-schema.ts"),
   out: "./drizzle",
   dbCredentials: {

@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "types": ["./worker-configuration.d.ts", "bun"]
   },
-  "include": ["worker-configuration.d.ts", "src/**/*.ts"]
+  "include": ["worker-configuration.d.ts", "src/**/*.ts", "drizzle.config.ts"]
 }

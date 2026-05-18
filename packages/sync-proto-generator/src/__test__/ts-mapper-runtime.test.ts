@@ -3,15 +3,19 @@ import {
   decodeGeneratedPushBatchRequest,
   encodeGeneratedPullBatchResponse,
 } from "../../../../apps/api/src/sync/protobuf.generated";
+import {
+  syncGeneratorConfig,
+  syncProtoSchemas,
+} from "../../../protobuf/sync-proto.config";
 import { reflectSyncTables } from "../drizzle-reflection";
-import { syncManifest } from "../manifest";
 import { renderApiSyncMappers } from "../ts-mapper-writer";
 
-const localSchema = await import("@repo/database");
-
-describe("generated API mapper comparison with manual hot-table logic", () => {
-  const tables = reflectSyncTables(localSchema, syncManifest);
-  const source = renderApiSyncMappers(syncManifest, tables);
+describe("generated API mapper runtime logic", () => {
+  const tables = reflectSyncTables({
+    config: syncGeneratorConfig,
+    schemaModule: syncProtoSchemas.localSyncedSchema,
+  });
+  const source = renderApiSyncMappers(tables);
 
   test("generated source matches runtime generated mapper", async () => {
     const { readFileSync } = await import("node:fs");
@@ -40,7 +44,7 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
       latestEventId: 12,
       needsFullResync: false,
       products: {
-        created: [
+        changedRows: [
           {
             categoryId: "cat-1",
             id: "product-1",
@@ -56,12 +60,11 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    expect(result.products?.created[0]).toMatchObject({
+    expect(result.products?.changedRows[0]).toMatchObject({
       categoryId: "cat-1",
       id: "product-1",
       imageAssetId: "asset-1",
@@ -79,7 +82,7 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
       latestEventId: 12,
       needsFullResync: false,
       order_items: {
-        created: [
+        changedRows: [
           {
             id: "item-1",
             orderId: "order-1",
@@ -95,12 +98,11 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    expect(result.orderItems?.created[0]).toMatchObject({
+    expect(result.order_items?.changedRows[0]).toMatchObject({
       originalPriceMinorUnits: 20_000n,
       quantity: 2n,
       subtotalMinorUnits: 30_000n,
@@ -113,7 +115,7 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
       latestEventId: 12,
       needsFullResync: false,
       orders: {
-        created: [
+        changedRows: [
           {
             amountPaidMinorUnits: 20_000,
             changeAmountMinorUnits: 5000,
@@ -129,12 +131,11 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    expect(result.orders?.created[0]).toMatchObject({
+    expect(result.orders?.changedRows[0]).toMatchObject({
       amountPaidMinorUnits: 20_000n,
       changeAmountMinorUnits: 5_000n,
       id: "order-1",
@@ -147,7 +148,7 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
       latestEventId: 12,
       needsFullResync: false,
       outlet_products: {
-        created: [
+        changedRows: [
           {
             id: "op-1",
             isAvailable: true,
@@ -159,12 +160,11 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    expect(result.outletProducts?.created[0]).toMatchObject({
+    expect(result.outlet_products?.changedRows[0]).toMatchObject({
       id: "op-1",
       isAvailable: true,
       priceMinorUnits: 15_000n,
@@ -175,13 +175,12 @@ describe("generated API mapper comparison with manual hot-table logic", () => {
   test("generated decode spreads typed rows for all tables", () => {
     const result = decodeGeneratedPushBatchRequest({
       products: {
-        created: [{ id: "p-1", name: "Kopi", priceMinorUnits: 15000n }],
-        updated: [],
+        changedRows: [{ id: "p-1", name: "Kopi", priceMinorUnits: 15000n }],
         deletedIds: ["p-del"],
       },
     });
 
-    expect(result.products.created[0]).toEqual({
+    expect(result.products.changedRows[0]).toEqual({
       id: "p-1",
       name: "Kopi",
       priceMinorUnits: 15000n,

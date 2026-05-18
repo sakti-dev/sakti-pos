@@ -23,62 +23,7 @@ function coerceBigInt(value: number | bigint): bigint {
   return typeof value === "bigint" ? value : BigInt(value);
 }
 
-function merchantRowToProto(row: Record<string, unknown>) {
-  return {
-    id: stringField(row.id),
-    name: stringField(row.name),
-    deletedAt: stringField(row.deletedAt),
-    createdAt: stringField(row.createdAt),
-    updatedAt: stringField(row.updatedAt),
-  };
-}
-
-function outletRowToProto(row: Record<string, unknown>) {
-  return {
-    id: stringField(row.id),
-    merchantId: stringField(row.merchantId),
-    timezone: stringField(row.timezone),
-    name: stringField(row.name),
-    address: stringField(row.address),
-    receiptName: stringField(row.receiptName),
-    receiptAddress: stringField(row.receiptAddress),
-    isActive: boolField(row.isActive),
-    deletedAt: stringField(row.deletedAt),
-    createdAt: stringField(row.createdAt),
-    updatedAt: stringField(row.updatedAt),
-  };
-}
-
-function registerRowToProto(row: Record<string, unknown>) {
-  return {
-    id: stringField(row.id),
-    outletId: stringField(row.outletId),
-    name: stringField(row.name),
-    shortId: stringField(row.shortId),
-    pairingCode: stringField(row.pairingCode),
-    pairingExpiresAt: stringField(row.pairingExpiresAt),
-    isActive: boolField(row.isActive),
-    lastSeenAt: stringField(row.lastSeenAt),
-    deletedAt: stringField(row.deletedAt),
-    createdAt: stringField(row.createdAt),
-    updatedAt: stringField(row.updatedAt),
-  };
-}
-
-function categoryRowToProto(row: Record<string, unknown>) {
-  return {
-    id: stringField(row.id),
-    merchantId: stringField(row.merchantId),
-    name: stringField(row.name),
-    sortOrder: int64Field(row.sortOrder, "categories.sortOrder"),
-    isActive: boolField(row.isActive),
-    deletedAt: stringField(row.deletedAt),
-    createdAt: stringField(row.createdAt),
-    updatedAt: stringField(row.updatedAt),
-  };
-}
-
-function assetRowToProto(row: Record<string, unknown>) {
+function assets_row_to_proto(row: Record<string, unknown>) {
   return {
     id: stringField(row.id),
     merchantId: stringField(row.merchantId),
@@ -98,24 +43,47 @@ function assetRowToProto(row: Record<string, unknown>) {
   };
 }
 
-function productRowToProto(row: Record<string, unknown>) {
+function categories_row_to_proto(row: Record<string, unknown>) {
   return {
     id: stringField(row.id),
     merchantId: stringField(row.merchantId),
-    categoryId: stringField(row.categoryId),
     name: stringField(row.name),
-    priceMinorUnits: int64Field(row.priceMinorUnits, "products.priceMinorUnits"),
-    imageUrl: stringField(row.imageUrl),
-    imageAssetId: stringField(row.imageAssetId),
+    sortOrder: int64Field(row.sortOrder, "categories.sortOrder"),
     isActive: boolField(row.isActive),
-    sortOrder: int64Field(row.sortOrder, "products.sortOrder"),
     deletedAt: stringField(row.deletedAt),
     createdAt: stringField(row.createdAt),
     updatedAt: stringField(row.updatedAt),
   };
 }
 
-function orderRowToProto(row: Record<string, unknown>) {
+function merchants_row_to_proto(row: Record<string, unknown>) {
+  return {
+    id: stringField(row.id),
+    name: stringField(row.name),
+    deletedAt: stringField(row.deletedAt),
+    createdAt: stringField(row.createdAt),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function order_items_row_to_proto(row: Record<string, unknown>) {
+  return {
+    id: stringField(row.id),
+    orderId: stringField(row.orderId),
+    outletId: stringField(row.outletId),
+    productId: stringField(row.productId),
+    productName: stringField(row.productName),
+    quantity: int64Field(row.quantity, "order_items.quantity"),
+    unitPriceMinorUnits: int64Field(row.unitPriceMinorUnits, "order_items.unitPriceMinorUnits"),
+    originalPriceMinorUnits: int64Field(row.originalPriceMinorUnits, "order_items.originalPriceMinorUnits"),
+    subtotalMinorUnits: int64Field(row.subtotalMinorUnits, "order_items.subtotalMinorUnits"),
+    updatedAt: stringField(row.updatedAt),
+    deletedAt: stringField(row.deletedAt),
+    createdAt: stringField(row.createdAt),
+  };
+}
+
+function orders_row_to_proto(row: Record<string, unknown>) {
   return {
     id: stringField(row.id),
     outletId: stringField(row.outletId),
@@ -133,24 +101,7 @@ function orderRowToProto(row: Record<string, unknown>) {
   };
 }
 
-function orderItemRowToProto(row: Record<string, unknown>) {
-  return {
-    id: stringField(row.id),
-    orderId: stringField(row.orderId),
-    outletId: stringField(row.outletId),
-    productId: stringField(row.productId),
-    productName: stringField(row.productName),
-    quantity: int64Field(row.quantity, "order_items.quantity"),
-    unitPriceMinorUnits: int64Field(row.unitPriceMinorUnits, "order_items.unitPriceMinorUnits"),
-    originalPriceMinorUnits: int64Field(row.originalPriceMinorUnits, "order_items.originalPriceMinorUnits"),
-    subtotalMinorUnits: int64Field(row.subtotalMinorUnits, "order_items.subtotalMinorUnits"),
-    deletedAt: stringField(row.deletedAt),
-    createdAt: stringField(row.createdAt),
-    updatedAt: stringField(row.updatedAt),
-  };
-}
-
-function outletProductRowToProto(row: Record<string, unknown>) {
+function outlet_products_row_to_proto(row: Record<string, unknown>) {
   return {
     id: stringField(row.id),
     outletId: stringField(row.outletId),
@@ -164,7 +115,56 @@ function outletProductRowToProto(row: Record<string, unknown>) {
   };
 }
 
-function staffRowToProto(row: Record<string, unknown>) {
+function outlets_row_to_proto(row: Record<string, unknown>) {
+  return {
+    id: stringField(row.id),
+    merchantId: stringField(row.merchantId),
+    timezone: stringField(row.timezone),
+    name: stringField(row.name),
+    address: stringField(row.address),
+    receiptName: stringField(row.receiptName),
+    receiptAddress: stringField(row.receiptAddress),
+    isActive: boolField(row.isActive),
+    deletedAt: stringField(row.deletedAt),
+    createdAt: stringField(row.createdAt),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function products_row_to_proto(row: Record<string, unknown>) {
+  return {
+    id: stringField(row.id),
+    merchantId: stringField(row.merchantId),
+    categoryId: stringField(row.categoryId),
+    name: stringField(row.name),
+    priceMinorUnits: int64Field(row.priceMinorUnits, "products.priceMinorUnits"),
+    imageUrl: stringField(row.imageUrl),
+    imageAssetId: stringField(row.imageAssetId),
+    isActive: boolField(row.isActive),
+    sortOrder: int64Field(row.sortOrder, "products.sortOrder"),
+    deletedAt: stringField(row.deletedAt),
+    createdAt: stringField(row.createdAt),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function registers_row_to_proto(row: Record<string, unknown>) {
+  return {
+    id: stringField(row.id),
+    outletId: stringField(row.outletId),
+    name: stringField(row.name),
+    shortId: stringField(row.shortId),
+    pairingCode: stringField(row.pairingCode),
+    pairingExpiresAt: stringField(row.pairingExpiresAt),
+    isActive: boolField(row.isActive),
+    lastSeenAt: stringField(row.lastSeenAt),
+    deletedAt: stringField(row.deletedAt),
+    createdAt: stringField(row.createdAt),
+    updatedAt: stringField(row.updatedAt),
+  };
+}
+
+function staff_row_to_proto(row: Record<string, unknown>) {
   return {
     id: stringField(row.id),
     merchantId: stringField(row.merchantId),
@@ -181,96 +181,85 @@ function staffRowToProto(row: Record<string, unknown>) {
 }
 
 function mapTableChanges<Row>(
-  changes: { created: Record<string, unknown>[]; deletedIds: string[]; updated: Record<string, unknown>[] } | undefined,
+  changes: { changedRows: Record<string, unknown>[]; deletedIds: string[] } | undefined,
   mapper: (row: Record<string, unknown>) => Row
-): { created: Row[]; deletedIds: string[]; updated: Row[] } | undefined {
+): { changedRows: Row[]; deletedIds: string[] } | undefined {
   if (!changes) return;
   return {
-    created: changes.created.map(mapper),
+    changedRows: changes.changedRows.map(mapper),
     deletedIds: changes.deletedIds,
-    updated: changes.updated.map(mapper),
   };
 }
 
 export function decodeGeneratedPushBatchRequest(request: Record<string, any>) {
-  const changes: Record<string, { created: Record<string, unknown>[]; deletedIds: string[]; updated: Record<string, unknown>[] }> = {};
+  const changes: Record<string, { changedRows: Record<string, unknown>[]; deletedIds: string[] }> = {};
 
-  if (request.merchants) {
-    changes.merchants = {
-      created: request.merchants.created.map((row: any) => ({ ...row })),
-      updated: request.merchants.updated.map((row: any) => ({ ...row })),
-      deletedIds: request.merchants.deletedIds,
-    };
-  }
-
-  if (request.outlets) {
-    changes.outlets = {
-      created: request.outlets.created.map((row: any) => ({ ...row })),
-      updated: request.outlets.updated.map((row: any) => ({ ...row })),
-      deletedIds: request.outlets.deletedIds,
-    };
-  }
-
-  if (request.registers) {
-    changes.registers = {
-      created: request.registers.created.map((row: any) => ({ ...row })),
-      updated: request.registers.updated.map((row: any) => ({ ...row })),
-      deletedIds: request.registers.deletedIds,
+  if (request.assets) {
+    changes.assets = {
+      changedRows: request.assets.changedRows.map((row: any) => ({ ...row })),
+      deletedIds: request.assets.deletedIds,
     };
   }
 
   if (request.categories) {
     changes.categories = {
-      created: request.categories.created.map((row: any) => ({ ...row })),
-      updated: request.categories.updated.map((row: any) => ({ ...row })),
+      changedRows: request.categories.changedRows.map((row: any) => ({ ...row })),
       deletedIds: request.categories.deletedIds,
     };
   }
 
-  if (request.assets) {
-    changes.assets = {
-      created: request.assets.created.map((row: any) => ({ ...row })),
-      updated: request.assets.updated.map((row: any) => ({ ...row })),
-      deletedIds: request.assets.deletedIds,
+  if (request.merchants) {
+    changes.merchants = {
+      changedRows: request.merchants.changedRows.map((row: any) => ({ ...row })),
+      deletedIds: request.merchants.deletedIds,
     };
   }
 
-  if (request.products) {
-    changes.products = {
-      created: request.products.created.map((row: any) => ({ ...row })),
-      updated: request.products.updated.map((row: any) => ({ ...row })),
-      deletedIds: request.products.deletedIds,
+  if (request.order_items) {
+    changes.order_items = {
+      changedRows: request.order_items.changedRows.map((row: any) => ({ ...row })),
+      deletedIds: request.order_items.deletedIds,
     };
   }
 
   if (request.orders) {
     changes.orders = {
-      created: request.orders.created.map((row: any) => ({ ...row })),
-      updated: request.orders.updated.map((row: any) => ({ ...row })),
+      changedRows: request.orders.changedRows.map((row: any) => ({ ...row })),
       deletedIds: request.orders.deletedIds,
     };
   }
 
-  if (request.orderItems) {
-    changes.order_items = {
-      created: request.orderItems.created.map((row: any) => ({ ...row })),
-      updated: request.orderItems.updated.map((row: any) => ({ ...row })),
-      deletedIds: request.orderItems.deletedIds,
+  if (request.outlet_products) {
+    changes.outlet_products = {
+      changedRows: request.outlet_products.changedRows.map((row: any) => ({ ...row })),
+      deletedIds: request.outlet_products.deletedIds,
     };
   }
 
-  if (request.outletProducts) {
-    changes.outlet_products = {
-      created: request.outletProducts.created.map((row: any) => ({ ...row })),
-      updated: request.outletProducts.updated.map((row: any) => ({ ...row })),
-      deletedIds: request.outletProducts.deletedIds,
+  if (request.outlets) {
+    changes.outlets = {
+      changedRows: request.outlets.changedRows.map((row: any) => ({ ...row })),
+      deletedIds: request.outlets.deletedIds,
+    };
+  }
+
+  if (request.products) {
+    changes.products = {
+      changedRows: request.products.changedRows.map((row: any) => ({ ...row })),
+      deletedIds: request.products.deletedIds,
+    };
+  }
+
+  if (request.registers) {
+    changes.registers = {
+      changedRows: request.registers.changedRows.map((row: any) => ({ ...row })),
+      deletedIds: request.registers.deletedIds,
     };
   }
 
   if (request.staff) {
     changes.staff = {
-      created: request.staff.created.map((row: any) => ({ ...row })),
-      updated: request.staff.updated.map((row: any) => ({ ...row })),
+      changedRows: request.staff.changedRows.map((row: any) => ({ ...row })),
       deletedIds: request.staff.deletedIds,
     };
   }
@@ -280,16 +269,16 @@ export function decodeGeneratedPushBatchRequest(request: Record<string, any>) {
 
 export function encodeGeneratedPullBatchResponse(result: Record<string, any>) {
   return {
-    merchants: mapTableChanges(result.merchants, merchantRowToProto),
-    outlets: mapTableChanges(result.outlets, outletRowToProto),
-    registers: mapTableChanges(result.registers, registerRowToProto),
-    categories: mapTableChanges(result.categories, categoryRowToProto),
-    assets: mapTableChanges(result.assets, assetRowToProto),
-    products: mapTableChanges(result.products, productRowToProto),
-    orders: mapTableChanges(result.orders, orderRowToProto),
-    orderItems: mapTableChanges(result.order_items, orderItemRowToProto),
-    outletProducts: mapTableChanges(result.outlet_products, outletProductRowToProto),
-    staff: mapTableChanges(result.staff, staffRowToProto),
+    assets: mapTableChanges(result.assets, assets_row_to_proto),
+    categories: mapTableChanges(result.categories, categories_row_to_proto),
+    merchants: mapTableChanges(result.merchants, merchants_row_to_proto),
+    order_items: mapTableChanges(result.order_items, order_items_row_to_proto),
+    orders: mapTableChanges(result.orders, orders_row_to_proto),
+    outlet_products: mapTableChanges(result.outlet_products, outlet_products_row_to_proto),
+    outlets: mapTableChanges(result.outlets, outlets_row_to_proto),
+    products: mapTableChanges(result.products, products_row_to_proto),
+    registers: mapTableChanges(result.registers, registers_row_to_proto),
+    staff: mapTableChanges(result.staff, staff_row_to_proto),
     hasMore: result.hasMore ?? false,
     latestEventId: coerceBigInt(result.latestEventId),
     needsFullResync: result.needsFullResync,

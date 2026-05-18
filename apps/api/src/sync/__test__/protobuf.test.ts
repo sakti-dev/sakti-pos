@@ -29,7 +29,7 @@ describe("sync protobuf helpers", () => {
       idempotencyKey: "idem-1",
       outletId: "outlet-1",
       categories: {
-        created: [
+        changedRows: [
           {
             id: "cat-1",
             merchantId: "merchant-1",
@@ -38,10 +38,9 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       merchants: {
-        created: [
+        changedRows: [
           {
             id: "merchant-1",
             name: "Toko",
@@ -49,10 +48,9 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       products: {
-        created: [
+        changedRows: [
           {
             id: "product-1",
             merchantId: "merchant-1",
@@ -62,10 +60,9 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: ["product-deleted"],
-        updated: [],
       },
       staff: {
-        created: [
+        changedRows: [
           {
             id: "staff-1",
             merchantId: "merchant-1",
@@ -74,7 +71,6 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
     });
 
@@ -83,11 +79,11 @@ describe("sync protobuf helpers", () => {
     );
 
     expect(decoded.outletId).toBe("outlet-1");
-    expect(decoded.products?.created[0]?.name).toBe("Kopi");
+    expect(decoded.products?.changedRows[0]?.name).toBe("Kopi");
     expect(decoded.products?.deletedIds).toEqual(["product-deleted"]);
-    expect(decoded.merchants?.created[0]?.name).toBe("Toko");
-    expect(decoded.categories?.created[0]?.name).toBe("Minuman");
-    expect(decoded.staff?.created[0]?.role).toBe("owner");
+    expect(decoded.merchants?.changedRows[0]?.name).toBe("Toko");
+    expect(decoded.categories?.changedRows[0]?.name).toBe("Minuman");
+    expect(decoded.staff?.changedRows[0]?.role).toBe("owner");
   });
 
   test("decodes typed push batch requests into table change sets", () => {
@@ -96,7 +92,7 @@ describe("sync protobuf helpers", () => {
         idempotencyKey: "sync-request-1",
         outletId: "outlet-1",
         categories: {
-          created: [
+          changedRows: [
             {
               id: "cat-1",
               merchantId: "merchant-1",
@@ -104,10 +100,9 @@ describe("sync protobuf helpers", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
         products: {
-          created: [
+          changedRows: [
             {
               id: "product-1",
               merchantId: "merchant-1",
@@ -117,16 +112,15 @@ describe("sync protobuf helpers", () => {
             },
           ],
           deletedIds: [],
-          updated: [],
         },
       })
     );
 
-    expect(decoded.products.created[0]).toMatchObject({
+    expect(decoded.products.changedRows[0]).toMatchObject({
       id: "product-1",
       name: "Kopi",
     });
-    expect(decoded.categories.created[0]).toMatchObject({
+    expect(decoded.categories.changedRows[0]).toMatchObject({
       id: "cat-1",
     });
   });
@@ -152,7 +146,7 @@ describe("sync protobuf helpers", () => {
       needsFullResync: false,
       nextPageCursor: "",
       products: {
-        created: [
+        changedRows: [
           {
             id: "product-1",
             merchantId: "merchant-1",
@@ -162,19 +156,18 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
     });
 
     expect(pushResponse.tables[0]?.table).toBe("products");
     expect(pushResponse.tables[0]?.rejected[0]?.reason).toBe("server_newer");
-    expect(pullResponse.products?.created[0]?.name).toBe("Kopi");
+    expect(pullResponse.products?.changedRows[0]?.name).toBe("Kopi");
   });
 
   test("encodePullBatchResponse maps API product DB fields to typed protobuf money fields", () => {
     const productChanges = {
-      created: [
+      changedRows: [
         {
           categoryId: "cat-1",
           id: "product-1",
@@ -190,7 +183,6 @@ describe("sync protobuf helpers", () => {
         },
       ],
       deletedIds: [],
-      updated: [],
     } as unknown as NonNullable<
       Parameters<typeof encodePullBatchResponse>[0]["products"]
     >;
@@ -204,7 +196,7 @@ describe("sync protobuf helpers", () => {
       serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    expect(encoded.products?.created[0]).toMatchObject({
+    expect(encoded.products?.changedRows[0]).toMatchObject({
       id: "product-1",
       priceMinorUnits: 15_000n,
       sortOrder: 3n,
@@ -213,7 +205,7 @@ describe("sync protobuf helpers", () => {
 
   test("encodePullBatchResponse maps API order item DB fields to typed protobuf money fields", () => {
     const orderItemChanges = {
-      created: [
+      changedRows: [
         {
           createdAt: "2026-05-17T00:00:00.000Z",
           id: "item-1",
@@ -229,7 +221,6 @@ describe("sync protobuf helpers", () => {
         },
       ],
       deletedIds: [],
-      updated: [],
     } as unknown as NonNullable<
       Parameters<typeof encodePullBatchResponse>[0]["order_items"]
     >;
@@ -243,7 +234,7 @@ describe("sync protobuf helpers", () => {
       serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    expect(encoded.orderItems?.created[0]).toMatchObject({
+    expect(encoded.order_items?.changedRows[0]).toMatchObject({
       originalPriceMinorUnits: 20_000n,
       subtotalMinorUnits: 30_000n,
       unitPriceMinorUnits: 15_000n,
@@ -255,7 +246,7 @@ describe("sync protobuf helpers", () => {
       latestEventId: 42n,
       needsFullResync: false,
       orders: {
-        created: [
+        changedRows: [
           {
             id: "order-1",
             outletId: "outlet-1",
@@ -265,7 +256,6 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
     });
@@ -275,13 +265,13 @@ describe("sync protobuf helpers", () => {
     );
 
     expect(decoded.latestEventId).toBe(42n);
-    expect(decoded.orders?.created[0]?.id).toBe("order-1");
+    expect(decoded.orders?.changedRows[0]?.id).toBe("order-1");
   });
 
   test("encodePullBatchResponse maps all non-hot tables to typed protobuf", () => {
     const encoded = encodePullBatchResponse({
       assets: {
-        created: [
+        changedRows: [
           {
             byteSize: 1024,
             contentHash: "abc123",
@@ -298,10 +288,9 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       categories: {
-        created: [
+        changedRows: [
           {
             id: "cat-1",
             isActive: true,
@@ -311,24 +300,22 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       hasMore: false,
       latestEventId: 5,
       merchants: {
-        created: [
+        changedRows: [
           {
             id: "merchant-1",
             name: "Toko Sejahtera",
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       needsFullResync: false,
       nextPageCursor: "",
       registers: {
-        created: [
+        changedRows: [
           {
             id: "reg-1",
             isActive: true,
@@ -338,11 +325,10 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
       serverTime: "2026-05-17T00:00:00.000Z",
       staff: {
-        created: [
+        changedRows: [
           {
             id: "staff-1",
             isActive: true,
@@ -352,17 +338,16 @@ describe("sync protobuf helpers", () => {
           },
         ],
         deletedIds: [],
-        updated: [],
       },
     });
 
-    expect(encoded.merchants?.created[0]?.name).toBe("Toko Sejahtera");
-    expect(encoded.categories?.created[0]?.name).toBe("Minuman");
-    expect(encoded.categories?.created[0]?.sortOrder).toBe(1n);
-    expect(encoded.registers?.created[0]?.shortId).toBe("R01");
-    expect(encoded.assets?.created[0]?.byteSize).toBe(1024n);
-    expect(encoded.assets?.created[0]?.width).toBe(200n);
-    expect(encoded.staff?.created[0]?.role).toBe("owner");
+    expect(encoded.merchants?.changedRows[0]?.name).toBe("Toko Sejahtera");
+    expect(encoded.categories?.changedRows[0]?.name).toBe("Minuman");
+    expect(encoded.categories?.changedRows[0]?.sortOrder).toBe(1n);
+    expect(encoded.registers?.changedRows[0]?.shortId).toBe("R01");
+    expect(encoded.assets?.changedRows[0]?.byteSize).toBe(1024n);
+    expect(encoded.assets?.changedRows[0]?.width).toBe(200n);
+    expect(encoded.staff?.changedRows[0]?.role).toBe("owner");
   });
 
   test("encodePullBatchResponse maps all 10 sync tables into typed protobuf fields", () => {
@@ -373,12 +358,11 @@ describe("sync protobuf helpers", () => {
       hasMore: false,
       nextPageCursor: "",
       merchants: {
-        created: [{ id: "merchant-1", name: "Toko" }],
-        updated: [],
+        changedRows: [{ id: "merchant-1", name: "Toko" }],
         deletedIds: [],
       },
       outlets: {
-        created: [
+        changedRows: [
           {
             id: "outlet-1",
             merchantId: "merchant-1",
@@ -387,11 +371,10 @@ describe("sync protobuf helpers", () => {
             isActive: true,
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       registers: {
-        created: [
+        changedRows: [
           {
             id: "register-1",
             outletId: "outlet-1",
@@ -400,11 +383,10 @@ describe("sync protobuf helpers", () => {
             isActive: true,
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       categories: {
-        created: [
+        changedRows: [
           {
             id: "cat-1",
             merchantId: "merchant-1",
@@ -413,11 +395,10 @@ describe("sync protobuf helpers", () => {
             isActive: true,
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       assets: {
-        created: [
+        changedRows: [
           {
             id: "asset-1",
             merchantId: "merchant-1",
@@ -431,11 +412,10 @@ describe("sync protobuf helpers", () => {
             status: "ready",
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       products: {
-        created: [
+        changedRows: [
           {
             id: "product-1",
             merchantId: "merchant-1",
@@ -445,11 +425,10 @@ describe("sync protobuf helpers", () => {
             isActive: true,
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       orders: {
-        created: [
+        changedRows: [
           {
             id: "order-1",
             outletId: "outlet-1",
@@ -461,11 +440,10 @@ describe("sync protobuf helpers", () => {
             status: "paid",
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       order_items: {
-        created: [
+        changedRows: [
           {
             id: "item-1",
             orderId: "order-1",
@@ -477,11 +455,10 @@ describe("sync protobuf helpers", () => {
             subtotalMinorUnits: 15_000,
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       outlet_products: {
-        created: [
+        changedRows: [
           {
             id: "op-1",
             outletId: "outlet-1",
@@ -491,11 +468,10 @@ describe("sync protobuf helpers", () => {
             sortOrder: 1,
           },
         ],
-        updated: [],
         deletedIds: [],
       },
       staff: {
-        created: [
+        changedRows: [
           {
             id: "staff-1",
             merchantId: "merchant-1",
@@ -504,20 +480,23 @@ describe("sync protobuf helpers", () => {
             isActive: true,
           },
         ],
-        updated: [],
         deletedIds: [],
       },
     });
 
-    expect(encoded.merchants?.created).toHaveLength(1);
-    expect(encoded.outlets?.created).toHaveLength(1);
-    expect(encoded.registers?.created).toHaveLength(1);
-    expect(encoded.categories?.created[0]?.sortOrder).toBe(1n);
-    expect(encoded.assets?.created[0]?.byteSize).toBe(123n);
-    expect(encoded.products?.created[0]?.priceMinorUnits).toBe(15000n);
-    expect(encoded.orders?.created[0]?.totalMinorUnits).toBe(15000n);
-    expect(encoded.orderItems?.created[0]?.unitPriceMinorUnits).toBe(15000n);
-    expect(encoded.outletProducts?.created[0]?.priceMinorUnits).toBe(15000n);
-    expect(encoded.staff?.created).toHaveLength(1);
+    expect(encoded.merchants?.changedRows).toHaveLength(1);
+    expect(encoded.outlets?.changedRows).toHaveLength(1);
+    expect(encoded.registers?.changedRows).toHaveLength(1);
+    expect(encoded.categories?.changedRows[0]?.sortOrder).toBe(1n);
+    expect(encoded.assets?.changedRows[0]?.byteSize).toBe(123n);
+    expect(encoded.products?.changedRows[0]?.priceMinorUnits).toBe(15000n);
+    expect(encoded.orders?.changedRows[0]?.totalMinorUnits).toBe(15000n);
+    expect(encoded.order_items?.changedRows[0]?.unitPriceMinorUnits).toBe(
+      15000n
+    );
+    expect(encoded.outlet_products?.changedRows[0]?.priceMinorUnits).toBe(
+      15000n
+    );
+    expect(encoded.staff?.changedRows).toHaveLength(1);
   });
 });

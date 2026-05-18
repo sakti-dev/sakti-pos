@@ -1,9 +1,15 @@
 use super::sync_proto::SyncPullBatchRequest;
 
 pub(super) use super::protobuf_generated::{
-    build_asset_changes, build_category_changes, build_merchant_changes, build_order_changes,
-    build_order_item_changes, build_outlet_changes, build_outlet_product_changes,
-    build_product_changes, build_register_changes, build_staff_changes,
+    build_assets_row_changes as build_asset_changes,
+    build_categories_row_changes as build_category_changes,
+    build_merchants_row_changes as build_merchant_changes,
+    build_order_items_row_changes as build_order_item_changes,
+    build_orders_row_changes as build_order_changes,
+    build_outlet_products_row_changes as build_outlet_product_changes,
+    build_outlets_row_changes as build_outlet_changes,
+    build_products_row_changes as build_product_changes,
+    build_registers_row_changes as build_register_changes, build_staff_row_changes as build_staff_changes,
     build_sync_push_batch_request, decode_pull_batch_response_tables, pull_batch_response_has_more,
     pull_batch_response_latest_event_id, pull_batch_response_needs_full_resync,
     pull_batch_response_next_cursor, pull_batch_response_server_time, TablePushChanges,
@@ -33,7 +39,7 @@ mod tests {
     #[test]
     fn build_sync_push_batch_request_includes_idempotency_key() {
         let products = TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "product-1",
                 "merchantId": "merchant-1",
                 "name": "Kopi",
@@ -49,10 +55,8 @@ mod tests {
             "outlet-1",
             "sync-request-1",
             None,
-            None,
-            None,
             Some(build_category_changes(&TablePushChanges {
-                created: vec![json!({
+                changed_rows: vec![json!({
                     "id": "cat-1",
                     "merchantId": "merchant-1",
                     "name": "Minuman",
@@ -63,9 +67,11 @@ mod tests {
                 ..Default::default()
             })),
             None,
+            None,
+            None,
+            None,
+            None,
             Some(build_product_changes(&products)),
-            None,
-            None,
             None,
             None,
         );
@@ -76,7 +82,7 @@ mod tests {
             request
                 .categories
                 .expect("categories should exist")
-                .created
+                .changed_rows
                 .len(),
             1
         );
@@ -84,16 +90,16 @@ mod tests {
             request
                 .products
                 .expect("products should exist")
-                .created
+                .changed_rows
                 .len(),
             1
         );
     }
 
     #[test]
-    fn product_changes_do_not_duplicate_rows_across_created_and_updated() {
+    fn product_changes_do_not_duplicate_rows_across_changed_rows() {
         let products = TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "product-1",
                 "merchantId": "merchant-1",
                 "name": "Kopi",
@@ -107,27 +113,25 @@ mod tests {
 
         let changes = build_product_changes(&products);
 
-        assert_eq!(changes.created.len(), 1);
-        assert!(changes.updated.is_empty());
+        assert_eq!(changes.changed_rows.len(), 1);
         assert!(changes.deleted_ids.is_empty());
     }
 
     #[test]
     fn decode_pull_batch_response_turns_deleted_ids_into_tombstone_rows() {
         use super::super::sync_proto::{
-            CategoryChanges, ProductChanges, SyncPullBatchResponse,
+            CategoriesChanges as CategoryChanges, ProductsChanges as ProductChanges,
+            SyncPullBatchResponse,
         };
 
         let response = SyncPullBatchResponse {
             server_time: "2026-05-17T00:00:00.000Z".to_string(),
             products: Some(ProductChanges {
-                created: Vec::new(),
-                updated: Vec::new(),
+                changed_rows: Vec::new(),
                 deleted_ids: vec!["product-deleted".to_string()],
             }),
             categories: Some(CategoryChanges {
-                created: Vec::new(),
-                updated: Vec::new(),
+                changed_rows: Vec::new(),
                 deleted_ids: vec!["cat-deleted".to_string()],
             }),
             ..Default::default()
@@ -153,12 +157,14 @@ mod tests {
 
     #[test]
     fn decode_pull_batch_response_maps_typed_product_to_local_db_columns() {
-        use super::super::sync_proto::{ProductChanges, ProductRow, SyncPullBatchResponse};
+        use super::super::sync_proto::{
+            ProductsChanges as ProductChanges, ProductsRow as ProductRow, SyncPullBatchResponse,
+        };
 
         let response = SyncPullBatchResponse {
             server_time: "2026-05-17T00:00:00.000Z".to_string(),
             products: Some(ProductChanges {
-                created: vec![ProductRow {
+                changed_rows: vec![ProductRow {
                     id: "product-1".to_string(),
                     merchant_id: "merchant-1".to_string(),
                     name: "Kopi".to_string(),
@@ -183,12 +189,15 @@ mod tests {
 
     #[test]
     fn decode_pull_batch_response_maps_typed_order_item_to_local_db_columns() {
-        use super::super::sync_proto::{OrderItemChanges, OrderItemRow, SyncPullBatchResponse};
+        use super::super::sync_proto::{
+            OrderItemsChanges as OrderItemChanges, OrderItemsRow as OrderItemRow,
+            SyncPullBatchResponse,
+        };
 
         let response = SyncPullBatchResponse {
             server_time: "2026-05-17T00:00:00.000Z".to_string(),
             order_items: Some(OrderItemChanges {
-                created: vec![OrderItemRow {
+                changed_rows: vec![OrderItemRow {
                     id: "item-1".to_string(),
                     order_id: "order-1".to_string(),
                     outlet_id: "outlet-1".to_string(),
@@ -226,7 +235,7 @@ mod tests {
     #[test]
     fn build_sync_push_batch_request_maps_all_sync_tables() {
         let merchants = build_merchant_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "merchant-1",
                 "name": "Toko",
                 "createdAt": "2026-05-17T00:00:00.000Z",
@@ -235,7 +244,7 @@ mod tests {
             ..Default::default()
         });
         let outlets = build_outlet_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "outlet-1",
                 "merchantId": "merchant-1",
                 "timezone": "Asia/Jakarta",
@@ -247,7 +256,7 @@ mod tests {
             ..Default::default()
         });
         let registers = build_register_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "register-1",
                 "outletId": "outlet-1",
                 "name": "Kasir",
@@ -259,7 +268,7 @@ mod tests {
             ..Default::default()
         });
         let categories = build_category_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "cat-1",
                 "merchantId": "merchant-1",
                 "name": "Minuman",
@@ -271,7 +280,7 @@ mod tests {
             ..Default::default()
         });
         let assets = build_asset_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "asset-1",
                 "merchantId": "merchant-1",
                 "objectKey": "assets/1",
@@ -288,7 +297,7 @@ mod tests {
             ..Default::default()
         });
         let products = build_product_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "product-1",
                 "merchantId": "merchant-1",
                 "name": "Kopi",
@@ -301,7 +310,7 @@ mod tests {
             ..Default::default()
         });
         let orders = build_order_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "order-1",
                 "outletId": "outlet-1",
                 "orderNumber": "001",
@@ -316,7 +325,7 @@ mod tests {
             ..Default::default()
         });
         let order_items = build_order_item_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "item-1",
                 "orderId": "order-1",
                 "outletId": "outlet-1",
@@ -331,7 +340,7 @@ mod tests {
             ..Default::default()
         });
         let outlet_products = build_outlet_product_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "op-1",
                 "outletId": "outlet-1",
                 "productId": "product-1",
@@ -344,7 +353,7 @@ mod tests {
             ..Default::default()
         });
         let staff = build_staff_changes(&TablePushChanges {
-            created: vec![json!({
+            changed_rows: vec![json!({
                 "id": "staff-1",
                 "merchantId": "merchant-1",
                 "name": "Owner",
@@ -359,15 +368,15 @@ mod tests {
         let request = build_sync_push_batch_request(
             "outlet-1",
             "sync-all-tables",
-            Some(merchants),
-            Some(outlets),
-            Some(registers),
-            Some(categories),
             Some(assets),
-            Some(products),
-            Some(orders),
+            Some(categories),
+            Some(merchants),
             Some(order_items),
+            Some(orders),
             Some(outlet_products),
+            Some(outlets),
+            Some(products),
+            Some(registers),
             Some(staff),
         );
 
@@ -384,31 +393,37 @@ mod tests {
         assert!(request.outlet_products.is_some());
         assert!(request.staff.is_some());
 
-        assert_eq!(request.merchants.unwrap().created.len(), 1);
-        assert_eq!(request.outlets.unwrap().created.len(), 1);
-        assert_eq!(request.registers.unwrap().created.len(), 1);
-        assert_eq!(request.categories.unwrap().created.len(), 1);
-        assert_eq!(request.assets.unwrap().created.len(), 1);
-        assert_eq!(request.products.unwrap().created.len(), 1);
-        assert_eq!(request.orders.unwrap().created.len(), 1);
-        assert_eq!(request.order_items.unwrap().created.len(), 1);
-        assert_eq!(request.outlet_products.unwrap().created.len(), 1);
-        assert_eq!(request.staff.unwrap().created.len(), 1);
+        assert_eq!(request.merchants.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.outlets.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.registers.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.categories.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.assets.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.products.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.orders.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.order_items.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.outlet_products.unwrap().changed_rows.len(), 1);
+        assert_eq!(request.staff.unwrap().changed_rows.len(), 1);
     }
 
     #[test]
     fn decode_pull_batch_response_maps_all_sync_tables() {
         use super::super::sync_proto::{
-            AssetChanges, AssetRow, CategoryChanges, CategoryRow, MerchantChanges, MerchantRow,
-            OrderChanges, OrderItemChanges, OrderItemRow, OrderRow, OutletChanges,
-            OutletProductChanges, OutletProductRow, OutletRow, ProductChanges, ProductRow,
-            RegisterChanges, RegisterRow, StaffChanges, StaffRow, SyncPullBatchResponse,
+            AssetsChanges as AssetChanges, AssetsRow as AssetRow,
+            CategoriesChanges as CategoryChanges, CategoriesRow as CategoryRow,
+            MerchantsChanges as MerchantChanges, MerchantsRow as MerchantRow,
+            OrderItemsChanges as OrderItemChanges, OrderItemsRow as OrderItemRow,
+            OrdersChanges as OrderChanges, OrdersRow as OrderRow,
+            OutletProductsChanges as OutletProductChanges, OutletProductsRow as OutletProductRow,
+            OutletsChanges as OutletChanges, OutletsRow as OutletRow,
+            ProductsChanges as ProductChanges, ProductsRow as ProductRow,
+            RegistersChanges as RegisterChanges, RegistersRow as RegisterRow, StaffChanges,
+            StaffRow, SyncPullBatchResponse,
         };
 
         let response = SyncPullBatchResponse {
             server_time: "2026-05-17T00:00:00.000Z".to_string(),
             merchants: Some(MerchantChanges {
-                created: vec![MerchantRow {
+                changed_rows: vec![MerchantRow {
                     id: "merchant-1".to_string(),
                     name: "Toko".to_string(),
                     created_at: "2026-05-17T00:00:00.000Z".to_string(),
@@ -418,7 +433,7 @@ mod tests {
                 ..Default::default()
             }),
             outlets: Some(OutletChanges {
-                created: vec![OutletRow {
+                changed_rows: vec![OutletRow {
                     id: "outlet-1".to_string(),
                     merchant_id: "merchant-1".to_string(),
                     timezone: "Asia/Jakarta".to_string(),
@@ -431,7 +446,7 @@ mod tests {
                 ..Default::default()
             }),
             registers: Some(RegisterChanges {
-                created: vec![RegisterRow {
+                changed_rows: vec![RegisterRow {
                     id: "register-1".to_string(),
                     outlet_id: "outlet-1".to_string(),
                     name: "Kasir".to_string(),
@@ -444,7 +459,7 @@ mod tests {
                 ..Default::default()
             }),
             categories: Some(CategoryChanges {
-                created: vec![CategoryRow {
+                changed_rows: vec![CategoryRow {
                     id: "cat-1".to_string(),
                     merchant_id: "merchant-1".to_string(),
                     name: "Minuman".to_string(),
@@ -457,7 +472,7 @@ mod tests {
                 ..Default::default()
             }),
             assets: Some(AssetChanges {
-                created: vec![AssetRow {
+                changed_rows: vec![AssetRow {
                     id: "asset-1".to_string(),
                     merchant_id: "merchant-1".to_string(),
                     object_key: "assets/1".to_string(),
@@ -475,7 +490,7 @@ mod tests {
                 ..Default::default()
             }),
             products: Some(ProductChanges {
-                created: vec![ProductRow {
+                changed_rows: vec![ProductRow {
                     id: "product-1".to_string(),
                     merchant_id: "merchant-1".to_string(),
                     name: "Kopi".to_string(),
@@ -489,7 +504,7 @@ mod tests {
                 ..Default::default()
             }),
             orders: Some(OrderChanges {
-                created: vec![OrderRow {
+                changed_rows: vec![OrderRow {
                     id: "order-1".to_string(),
                     outlet_id: "outlet-1".to_string(),
                     order_number: "001".to_string(),
@@ -505,7 +520,7 @@ mod tests {
                 ..Default::default()
             }),
             order_items: Some(OrderItemChanges {
-                created: vec![OrderItemRow {
+                changed_rows: vec![OrderItemRow {
                     id: "item-1".to_string(),
                     order_id: "order-1".to_string(),
                     outlet_id: "outlet-1".to_string(),
@@ -521,7 +536,7 @@ mod tests {
                 ..Default::default()
             }),
             outlet_products: Some(OutletProductChanges {
-                created: vec![OutletProductRow {
+                changed_rows: vec![OutletProductRow {
                     id: "op-1".to_string(),
                     outlet_id: "outlet-1".to_string(),
                     product_id: "product-1".to_string(),
@@ -535,7 +550,7 @@ mod tests {
                 ..Default::default()
             }),
             staff: Some(StaffChanges {
-                created: vec![StaffRow {
+                changed_rows: vec![StaffRow {
                     id: "staff-1".to_string(),
                     merchant_id: "merchant-1".to_string(),
                     name: "Owner".to_string(),
@@ -581,12 +596,15 @@ mod tests {
 
     #[test]
     fn decode_pull_batch_response_maps_typed_category_to_local_db_columns() {
-        use super::super::sync_proto::{CategoryChanges, CategoryRow, SyncPullBatchResponse};
+        use super::super::sync_proto::{
+            CategoriesChanges as CategoryChanges, CategoriesRow as CategoryRow,
+            SyncPullBatchResponse,
+        };
 
         let response = SyncPullBatchResponse {
             server_time: "2026-05-17T00:00:00.000Z".to_string(),
             categories: Some(CategoryChanges {
-                created: vec![CategoryRow {
+                changed_rows: vec![CategoryRow {
                     id: "cat-1".to_string(),
                     merchant_id: "merchant-1".to_string(),
                     name: "Minuman".to_string(),
