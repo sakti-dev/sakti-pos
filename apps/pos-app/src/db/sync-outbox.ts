@@ -21,7 +21,20 @@ export async function recordLocalChange(
   input: LocalChangeInput,
   tx?: TransactionTx
 ): Promise<void> {
-  const executor = tx ?? db;
+  if (tx) {
+    await recordLocalChangeInner(tx, input);
+    return;
+  }
+
+  await db.transaction(async (transaction) => {
+    await recordLocalChangeInner(transaction, input);
+  });
+}
+
+async function recordLocalChangeInner(
+  executor: TransactionTx,
+  input: LocalChangeInput
+): Promise<void> {
   const [existing] = await executor
     .select()
     .from(syncOutbox)
@@ -134,14 +147,17 @@ function resolveOutboxOperation(
   if (!existingOperation) {
     return nextOperation;
   }
-  if (existingOperation === "insert" && nextOperation === "delete") {
-    return null;
+
+  switch (existingOperation) {
+    case "insert":
+      return nextOperation === "delete" ? null : "insert";
+    case "update":
+      return nextOperation;
+    case "delete":
+      return nextOperation === "insert" || nextOperation === "update"
+        ? "update"
+        : "delete";
+    default:
+      return nextOperation;
   }
-  if (existingOperation === "insert") {
-    return "insert";
-  }
-  if (existingOperation === "delete") {
-    return "delete";
-  }
-  return nextOperation;
 }

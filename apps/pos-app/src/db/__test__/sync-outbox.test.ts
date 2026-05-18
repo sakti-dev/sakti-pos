@@ -81,13 +81,20 @@ const mockUpdateSet = vi.fn((patch: Partial<OutboxRow>) => ({
 }));
 const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
 
+const mockTransaction = vi.fn(
+  async (fn: (tx: typeof mockDb) => unknown) => await fn(mockDb)
+);
+
+const mockDb = {
+  delete: mockDelete,
+  insert: mockInsert,
+  select: mockSelect,
+  transaction: mockTransaction,
+  update: mockUpdate,
+};
+
 vi.mock("../index", () => ({
-  db: {
-    delete: mockDelete,
-    insert: mockInsert,
-    select: mockSelect,
-    update: mockUpdate,
-  },
+  db: mockDb,
 }));
 
 function findConditionValue(
@@ -148,6 +155,9 @@ describe("recordLocalChange", () => {
       delete pendingRows[key];
     }
     vi.clearAllMocks();
+    mockTransaction.mockImplementation(
+      async (fn: (tx: typeof mockDb) => unknown) => await fn(mockDb)
+    );
   });
 
   test("coalesces multiple updates for the same row into one latest event", async () => {
@@ -224,5 +234,91 @@ describe("recordLocalChange", () => {
     const rows = await listPendingOutbox("merchant", "merchant-1");
     expect(rows).toHaveLength(1);
     expect(rows[0].operation).toBe("delete");
+  });
+
+  test("recordLocalChange uses a transaction when no external transaction is provided", async () => {
+    const { recordLocalChange } = await import("../sync-outbox");
+
+    await recordLocalChange({
+      operation: "insert",
+      rowId: "product-new",
+      scopeId: "merchant-1",
+      scopeType: "merchant",
+      tableName: "products",
+    });
+
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  test("recordLocalChange uses external transaction without nesting", async () => {
+    const { recordLocalChange } = await import("../sync-outbox");
+
+    await recordLocalChange(
+      {
+        operation: "insert",
+        rowId: "product-external",
+        scopeId: "merchant-1",
+        scopeType: "merchant",
+        tableName: "products",
+      },
+      mockDb as never
+    );
+
+    expect(mockTransaction).not.toHaveBeenCalled();
+
+    const { listPendingOutbox } = await import("../sync-outbox");
+    const rows = await listPendingOutbox("merchant", "merchant-1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].rowId).toBe("product-external");
+  });
+
+  test("delete then insert coalesces to update", async () => {
+    const { listPendingOutbox, recordLocalChange } = await import(
+      "../sync-outbox"
+    );
+
+    await recordLocalChange({
+      operation: "delete",
+      rowId: "prod-recreate",
+      scopeId: "merchant-1",
+      scopeType: "merchant",
+      tableName: "products",
+    });
+    await recordLocalChange({
+      operation: "insert",
+      rowId: "prod-recreate",
+      scopeId: "merchant-1",
+      scopeType: "merchant",
+      tableName: "products",
+    });
+
+    const rows = await listPendingOutbox("merchant", "merchant-1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].operation).toBe("update");
+  });
+
+  test("delete then update coalesces to update", async () => {
+    const { listPendingOutbox, recordLocalChange } = await import(
+      "../sync-outbox"
+    );
+
+    await recordLocalChange({
+      operation: "delete",
+      rowId: "prod-update-after-delete",
+      scopeId: "merchant-1",
+      scopeType: "merchant",
+      tableName: "products",
+    });
+    await recordLocalChange({
+      operation: "update",
+      rowId: "prod-update-after-delete",
+      scopeId: "merchant-1",
+      scopeType: "merchant",
+      tableName: "products",
+    });
+
+    const rows = await listPendingOutbox("merchant", "merchant-1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].operation).toBe("update");
   });
 });
