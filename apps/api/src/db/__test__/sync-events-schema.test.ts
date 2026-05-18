@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { syncEvents } from "@repo/database/api-schema";
+// biome-ignore lint/performance/noNamespaceImport: this test intentionally inspects the exported schema namespace.
+import * as apiSchema from "@repo/database/api-schema";
 
 describe("api smart sync schema", () => {
-  test("defines compact sync events table", () => {
-    expect(syncEvents).toBeDefined();
+  test("does not export syncEvents", () => {
+    expect(apiSchema).not.toHaveProperty("syncEvents");
   });
 });

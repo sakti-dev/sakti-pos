@@ -20,7 +20,7 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 describe("cleanupSyncHistory", () => {
-  test("deletes sync events older than retention window", async () => {
+  test("deletes soft-deleted rows older than the retention window", async () => {
     const where = vi.fn().mockResolvedValue({ rowsAffected: 3 });
     mockDelete.mockReturnValue({ where });
 
@@ -30,7 +30,7 @@ describe("cleanupSyncHistory", () => {
       retentionDays: 30,
     });
 
-    expect(result.deletedEvents).toBe(3);
+    expect(result.deletedSoftRows.products).toBe(3);
     expect(mockDelete).toHaveBeenCalled();
   });
 

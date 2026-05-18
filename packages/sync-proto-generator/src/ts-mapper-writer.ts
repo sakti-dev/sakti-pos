@@ -110,9 +110,7 @@ function renderEncodeFunction(tables: ReflectedSyncTable[]): string {
   }
 
   lines.push("    hasMore: result.hasMore ?? false,");
-  lines.push("    latestEventId: coerceBigInt(result.latestEventId),");
-  lines.push("    needsFullResync: result.needsFullResync,");
-  lines.push('    nextPageCursor: result.nextPageCursor ?? "",');
+  lines.push('    cursor: result.cursor ?? "",');
   lines.push("    serverTime: result.serverTime,");
   lines.push("  };");
   lines.push("}");

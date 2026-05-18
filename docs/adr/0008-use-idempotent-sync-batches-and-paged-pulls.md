@@ -16,7 +16,7 @@ Mobile and offline networks still retry requests, and server event sets can grow
 
 ## Decision
 
-Store batch push responses behind an outlet-scoped idempotency key in `sync_batch_requests`, and return the cached response when the same batch is retried.
+Store batch push responses behind a client-scoped idempotency key in `sync_batch_requests`, and return the cached response when the same client retries the same batch.
 
 Make pull cursor-paged by sync event id with a bounded page size so the client can advance through large event sets without fetching everything at once.
 
@@ -28,7 +28,7 @@ Mark local push rows synced only when the server acknowledges the exact row id i
 
 ## Consequences
 
-Push retries become safe without double-applying the same batch or generating duplicate batch acknowledgements.
+Push retries become safe without double-applying the same batch or generating duplicate batch acknowledgements. The retry namespace is the POS installation `clientId`, not the outlet, so multiple devices in one outlet can sync concurrently without sharing idempotency keys.
 
 Pulls can advance in smaller committed chunks, which reduces memory pressure and keeps the sync flow resilient when the event window is large.
 

@@ -4,7 +4,6 @@ import {
   products,
   registers,
   staff,
-  syncEvents,
 } from "@repo/database/api-schema";
 import { and, isNotNull, lt } from "drizzle-orm";
 import { db } from "../db";
@@ -29,7 +28,6 @@ export interface SyncCleanupInput {
 }
 
 export interface SyncCleanupResult {
-  deletedEvents: number;
   deletedSoftRows: Record<string, number>;
 }
 
@@ -52,9 +50,6 @@ export async function cleanupSyncHistory(
     input.now.getTime() - input.retentionDays * MS_PER_DAY
   ).toISOString();
 
-  const deletedEventsResult = await db
-    .delete(syncEvents)
-    .where(lt(syncEvents.changedAt, cutoff));
   const deletedSoftRows: Record<string, number> = {};
 
   for (const item of SOFT_DELETED_CLEANUP_TABLES) {
@@ -65,7 +60,6 @@ export async function cleanupSyncHistory(
   }
 
   return {
-    deletedEvents: getRowsAffected(deletedEventsResult),
     deletedSoftRows,
   };
 }

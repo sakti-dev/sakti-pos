@@ -59,4 +59,29 @@ describe("proto writer", () => {
     expect(proto).not.toContain(" created = ");
     expect(proto).not.toContain(" updated = ");
   });
+
+  test("renders opaque pull and status cursors instead of event ids", () => {
+    const tables = reflectSyncTables({
+      config: syncGeneratorConfig,
+      schemaModule: syncProtoSchemas.localSyncedSchema,
+    });
+    const proto = renderSyncProto(syncGeneratorConfig, tables);
+
+    expect(proto).toContain("message SyncStatusRequest {");
+    expect(proto).toContain("string cursor = 2;");
+    expect(proto).toContain("message SyncStatusResponse {");
+    expect(proto).toContain("string cursor = 3;");
+    expect(proto).toContain("message SyncPullBatchRequest {");
+    expect(proto).toContain("string cursor = 4;");
+    expect(proto).toContain("message SyncPullBatchResponse {");
+    expect(proto).toContain("string cursor = 100;");
+    expect(proto).toContain("bool hasMore = 101;");
+    expect(proto).toContain("string serverTime = 102;");
+    expect(proto).not.toContain("lastServerEventId");
+    expect(proto).not.toContain("latestEventId");
+    expect(proto).not.toContain("needsFullResync");
+    expect(proto).not.toContain("afterEventId");
+    expect(proto).not.toContain("pageCursor");
+    expect(proto).not.toContain("nextPageCursor");
+  });
 });

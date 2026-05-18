@@ -33,17 +33,14 @@ describe("getSyncStatus", () => {
         SyncStatusResponse.create({
           changedTables: ["products"],
           hasChanges: true,
-          hasOldestAvailableEventId: true,
-          latestEventId: 12n,
-          needsFullResync: false,
-          oldestAvailableEventId: 10n,
+          cursor: "sync:12:products:p456",
         })
       ).finish();
 
       expect(
         SyncStatusRequest.decode(new Uint8Array(await request.arrayBuffer()))
       ).toEqual({
-        lastServerEventId: 10n,
+        cursor: "sync:10:products:p123",
         outletId: "outlet-1",
       });
 
@@ -55,20 +52,18 @@ describe("getSyncStatus", () => {
     globalThis.fetch = fetchMock as typeof fetch;
 
     const result = await getSyncStatus({
-      lastServerEventId: 10,
+      cursor: "sync:10:products:p123",
       outletId: "outlet-1",
     });
 
     expect(result).toEqual({
       changedTables: ["products"],
       hasChanges: true,
-      latestEventId: 12,
-      needsFullResync: false,
-      oldestAvailableEventId: 10,
+      cursor: "sync:12:products:p456",
     });
   });
 
-  test("maps absent oldest event to null", async () => {
+  test("passes through an empty cursor unchanged", async () => {
     const { getSyncStatus } = await import("../sync?actual" as "../sync");
     const { AuthStorage } = await import("~/lib/auth/storage");
     (AuthStorage.getToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
@@ -79,10 +74,7 @@ describe("getSyncStatus", () => {
         SyncStatusResponse.create({
           changedTables: [],
           hasChanges: false,
-          hasOldestAvailableEventId: false,
-          latestEventId: 10n,
-          needsFullResync: false,
-          oldestAvailableEventId: 0n,
+          cursor: "",
         })
       ).finish();
 
@@ -95,10 +87,10 @@ describe("getSyncStatus", () => {
     }) as typeof fetch;
 
     const result = await getSyncStatus({
-      lastServerEventId: 10,
+      cursor: "",
       outletId: "outlet-1",
     });
 
-    expect(result.oldestAvailableEventId).toBeNull();
+    expect(result.cursor).toBe("");
   });
 });

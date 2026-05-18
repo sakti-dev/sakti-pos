@@ -15,6 +15,7 @@ export const merchants = sqliteTable("merchants", {
   deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const userMerchants = sqliteTable("user_merchants", {
@@ -54,24 +55,11 @@ export const userSessions = sqliteTable("user_sessions", {
   expiresAt: integer("expires_at").notNull(),
 });
 
-export const syncEvents = sqliteTable("sync_events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
-  scopeId: text("scope_id").notNull(),
-  tableName: text("table_name").notNull(),
-  rowId: text("row_id").notNull(),
-  operation: text("operation", {
-    enum: ["insert", "update", "delete"],
-  }).notNull(),
-  changedAt: text("changed_at").notNull(),
-});
-
 export const syncBatchRequests = sqliteTable(
   "sync_batch_requests",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
-    scopeId: text("scope_id").notNull(),
+    clientId: text("client_id").notNull(),
     idempotencyKey: text("idempotency_key").notNull(),
     requestHash: text("request_hash").notNull(),
     responseJson: text("response_json").notNull(),
@@ -81,9 +69,8 @@ export const syncBatchRequests = sqliteTable(
     updatedAt: text("updated_at").notNull(),
   },
   (table) => [
-    uniqueIndex("sync_batch_requests_scope_idempotency_key_unique").on(
-      table.scopeType,
-      table.scopeId,
+    uniqueIndex("sync_batch_requests_client_id_idempotency_key_unique").on(
+      table.clientId,
       table.idempotencyKey
     ),
   ]
@@ -105,6 +92,7 @@ export const outlets = sqliteTable("outlets", {
   deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const registers = sqliteTable("registers", {
@@ -123,6 +111,7 @@ export const registers = sqliteTable("registers", {
   deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const staff = sqliteTable("staff", {
@@ -141,6 +130,7 @@ export const staff = sqliteTable("staff", {
   deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const categories = sqliteTable("categories", {
@@ -156,6 +146,7 @@ export const categories = sqliteTable("categories", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   deletedAt: text("deleted_at"),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const assets = sqliteTable("assets", {
@@ -180,6 +171,7 @@ export const assets = sqliteTable("assets", {
   deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const products = sqliteTable("products", {
@@ -199,6 +191,7 @@ export const products = sqliteTable("products", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   deletedAt: text("deleted_at"),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const outletProducts = sqliteTable("outlet_products", {
@@ -219,6 +212,7 @@ export const outletProducts = sqliteTable("outlet_products", {
   deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const orders = sqliteTable("orders", {
@@ -239,6 +233,7 @@ export const orders = sqliteTable("orders", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   deletedAt: text("deleted_at"),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });
 
 export const orderItems = sqliteTable("order_items", {
@@ -258,6 +253,7 @@ export const orderItems = sqliteTable("order_items", {
   originalPriceMinorUnits: integer("original_price_minor_units"),
   subtotalMinorUnits: integer("subtotal_minor_units").notNull(),
   createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at"),
+  updatedAt: text("updated_at").notNull(),
   deletedAt: text("deleted_at"),
+  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
 });

@@ -16,7 +16,6 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
-import { recordSyncEvent } from "../lib/sync-events";
 import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import {
   BadRequestError,
@@ -240,18 +239,6 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
           });
         }
 
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "update",
-            rowId: claimedOwner.id,
-            scopeId: request.merchantId,
-            scopeType: "merchant",
-            tableName: "staff",
-          },
-          tx
-        );
-
         return encodeCurrentStaffResponse({
           claimed: true,
           staff: claimedOwner,
@@ -308,18 +295,6 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
             updatedAt: now,
           })
           .returning();
-
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "insert",
-            rowId: result.id,
-            scopeId: merchantId,
-            scopeType: "merchant",
-            tableName: "staff",
-          },
-          tx
-        );
 
         return result;
       });
@@ -418,18 +393,6 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
           .where(eq(staff.id, request.id))
           .returning();
 
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "update",
-            rowId: request.id,
-            scopeId: existing.merchantId,
-            scopeType: "merchant",
-            tableName: "staff",
-          },
-          tx
-        );
-
         return result;
       });
 
@@ -477,18 +440,6 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
             updatedAt: now,
           })
           .where(eq(staff.id, request.id));
-
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "delete",
-            rowId: request.id,
-            scopeId: existing.merchantId,
-            scopeType: "merchant",
-            tableName: "staff",
-          },
-          tx
-        );
       });
 
       return {

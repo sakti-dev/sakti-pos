@@ -19,6 +19,7 @@ export const syncGeneratorConfig = {
   primaryKeyColumn: "id",
   requestTypedFieldStart: 10,
   rowMessageSuffix: "_row",
+  serverOnlyColumns: ["syncUpdatedAt"],
 } satisfies SyncGeneratorConfig;
 
 export const syncProtoSchemas = {

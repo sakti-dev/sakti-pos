@@ -12,7 +12,6 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
-import { recordSyncEvent } from "../lib/sync-events";
 import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
 import { encodeRegister } from "../protobuf/domain";
@@ -106,18 +105,6 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
           })
           .returning();
 
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "insert",
-            rowId: result.id,
-            scopeId: outletId,
-            scopeType: "outlet",
-            tableName: "registers",
-          },
-          tx
-        );
-
         return result;
       });
 
@@ -183,18 +170,6 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
           .update(registers)
           .set({ isActive: false, updatedAt: now })
           .where(eq(registers.id, request.id));
-
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "update",
-            rowId: request.id,
-            scopeId: register.outletId,
-            scopeType: "outlet",
-            tableName: "registers",
-          },
-          tx
-        );
       });
 
       return { success: true };

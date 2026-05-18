@@ -68,6 +68,12 @@ pub(super) struct OutboxRowForSync {
     pub row: Option<Value>,
 }
 
+#[derive(Debug)]
+pub(super) struct TableOutboxChanges {
+    pub changes: TablePushChanges,
+    pub outbox_ids: Vec<String>,
+}
+
 #[derive(Debug, Clone)]
 struct CoalescedOutboxRow {
     operation: String,
@@ -152,9 +158,9 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
     pool: &SqlitePool,
     table: &str,
     filter_value: &str,
-) -> Result<TablePushChanges, String> {
+) -> Result<TableOutboxChanges, String> {
     let query = format!(
-        "SELECT t.*, o.operation AS __sync_operation, o.row_id AS __sync_row_id
+        "SELECT t.*, o.id AS __sync_outbox_id, o.operation AS __sync_operation, o.row_id AS __sync_row_id
          FROM sync_outbox o
          LEFT JOIN {table} t ON t.id = o.row_id
          WHERE o.table_name = ?1 AND o.scope_id = ?2 AND o.synced_at IS NULL
@@ -168,7 +174,11 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
         .map_err(|e| format!("Failed to read unsynced outbox changes for {}: {}", table, e))?;
 
     let mut result = Vec::new();
+    let mut outbox_ids = Vec::new();
     for row in &rows {
+        let outbox_id = row
+            .try_get::<String, _>("__sync_outbox_id")
+            .map_err(|e| format!("Failed to read sync outbox id for {}: {}", table, e))?;
         let operation = row
             .try_get::<String, _>("__sync_operation")
             .map_err(|e| format!("Failed to read sync operation for {}: {}", table, e))?;
@@ -191,6 +201,7 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
             }
             obj.insert(snake_to_camel(&name), val);
         }
+        outbox_ids.push(outbox_id);
         result.push(OutboxRowForSync {
             operation,
             row_id,
@@ -198,7 +209,10 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
         });
     }
 
-    outbox_rows_to_table_changes(result)
+    Ok(TableOutboxChanges {
+        changes: outbox_rows_to_table_changes(result)?,
+        outbox_ids,
+    })
 }
 
 pub(super) async fn mark_rows_synced_by_id_tx(

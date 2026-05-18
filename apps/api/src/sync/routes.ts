@@ -20,12 +20,11 @@ import {
   encodePullBatchResponse,
   encodePushBatchResponse,
   encodeStatusResponse,
-  protobufInt64ToSafeNumber,
 } from "./protobuf";
 import {
-  handlePullBatch,
   handlePushBatch,
-  handleSyncStatus,
+  handleRowStatePullBatch,
+  handleRowStateSyncStatus,
   verifyOutletAccess,
 } from "./service";
 
@@ -69,21 +68,6 @@ async function assertOutletAccess(input: {
   );
 }
 
-function safeProtobufInt64ToNumber(
-  value: bigint,
-  fieldName: string
-): { ok: true; value: number } | { message: string; ok: false } {
-  try {
-    return {
-      ok: true,
-      value: protobufInt64ToSafeNumber(value, fieldName),
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid int64";
-    return { message, ok: false };
-  }
-}
-
 function isInvalidPullCursorError(error: unknown) {
   return (
     error instanceof Error &&
@@ -115,6 +99,11 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         return "Sync push requires an idempotency key";
       }
 
+      if (!pushRequest.clientId.trim()) {
+        set.status = 400;
+        return "Sync push requires a client id";
+      }
+
       if (
         SyncPushBatchRequest.encode(pushRequest).finish().byteLength >
         MAX_PUSH_BATCH_BYTES
@@ -142,6 +131,7 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         const result = await handlePushBatch(
           pushRequest.outletId,
           merchantId,
+          pushRequest.clientId,
           changes,
           pushRequest.idempotencyKey,
           requestHash
@@ -178,21 +168,20 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         sessionUserId: session.userId,
       });
 
-      const lastServerEventId = safeProtobufInt64ToNumber(
-        statusRequest.lastServerEventId,
-        "lastServerEventId"
-      );
-      if (!lastServerEventId.ok) {
-        set.status = 400;
-        return lastServerEventId.message;
+      try {
+        const result = await handleRowStateSyncStatus({
+          cursor: statusRequest.cursor,
+          merchantId,
+          outletId: statusRequest.outletId,
+        });
+        return encodeStatusResponse(result);
+      } catch (error) {
+        if (isInvalidPullCursorError(error)) {
+          set.status = 400;
+          return (error as Error).message;
+        }
+        throw error;
       }
-
-      const result = await handleSyncStatus({
-        lastServerEventId: lastServerEventId.value,
-        merchantId,
-        outletId: statusRequest.outletId,
-      });
-      return encodeStatusResponse(result);
     },
     {
       proto: {
@@ -217,22 +206,12 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         sessionUserId: session.userId,
       });
 
-      const afterEventId = safeProtobufInt64ToNumber(
-        pullBatchRequest.afterEventId,
-        "afterEventId"
-      );
-      if (!afterEventId.ok) {
-        set.status = 400;
-        return afterEventId.message;
-      }
-
       try {
-        const result = await handlePullBatch({
-          afterEventId: afterEventId.value,
+        const result = await handleRowStatePullBatch({
+          cursor: pullBatchRequest.cursor,
           limit: pullBatchRequest.limit,
           merchantId,
           outletId: pullBatchRequest.outletId,
-          pageCursor: pullBatchRequest.pageCursor,
           tables: pullBatchRequest.tables,
         });
         return encodePullBatchResponse(result);

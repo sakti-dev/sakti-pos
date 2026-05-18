@@ -191,9 +191,14 @@ function renderBuildChanges(table: ReflectedSyncTable): string {
 }
 
 function renderBuildPushRequest(tables: ReflectedSyncTable[]): string {
-  const params = ["outlet_id: &str", "idempotency_key: &str"];
+  const params = [
+    "outlet_id: &str",
+    "client_id: &str",
+    "idempotency_key: &str",
+  ];
   const fields = [
     "outlet_id: outlet_id.to_string()",
+    "client_id: client_id.to_string()",
     "idempotency_key: idempotency_key.to_string()",
   ];
 
@@ -250,20 +255,12 @@ function renderResponseHelpers(): string {
     response.has_more
 }
 
-pub(super) fn pull_batch_response_next_cursor(response: &SyncPullBatchResponse) -> String {
-    response.next_page_cursor.clone()
-}
-
-pub(super) fn pull_batch_response_latest_event_id(response: &SyncPullBatchResponse) -> i64 {
-    response.latest_event_id
+pub(super) fn pull_batch_response_cursor(response: &SyncPullBatchResponse) -> String {
+    response.cursor.clone()
 }
 
 pub(super) fn pull_batch_response_server_time(response: &SyncPullBatchResponse) -> String {
     response.server_time.clone()
-}
-
-pub(super) fn pull_batch_response_needs_full_resync(response: &SyncPullBatchResponse) -> bool {
-    response.needs_full_resync
 }`;
 }
 

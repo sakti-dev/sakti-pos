@@ -4,7 +4,6 @@ import {
   outletProducts,
   outlets,
   products,
-  syncEvents,
 } from "@repo/database/api-schema";
 import { eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -101,33 +100,6 @@ export async function simulateProductChange({
       sortOrder: 999,
       updatedAt: timestamp,
     });
-
-    await tx.insert(syncEvents).values([
-      {
-        changedAt: timestamp,
-        operation: "insert",
-        rowId: categoryId,
-        scopeId: merchantId,
-        scopeType: "merchant",
-        tableName: "categories",
-      },
-      {
-        changedAt: timestamp,
-        operation: "insert",
-        rowId: productId,
-        scopeId: merchantId,
-        scopeType: "merchant",
-        tableName: "products",
-      },
-      {
-        changedAt: timestamp,
-        operation: "insert",
-        rowId: outletProductId,
-        scopeId: outletId,
-        scopeType: "outlet",
-        tableName: "outlet_products",
-      },
-    ]);
   });
 
   return {

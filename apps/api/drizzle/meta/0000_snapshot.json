@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "fe34100a-a9ce-470a-840f-f3daf60e5b97",
+  "id": "4b00196e-bd8d-41c8-9012-3a92251eb2e7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "assets": {
@@ -1146,15 +1146,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "scope_type": {
-          "name": "scope_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "scope_id": {
-          "name": "scope_id",
+        "client_id": {
+          "name": "client_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1212,11 +1205,10 @@
         }
       },
       "indexes": {
-        "sync_batch_requests_scope_idempotency_key_unique": {
-          "name": "sync_batch_requests_scope_idempotency_key_unique",
+        "sync_batch_requests_client_id_idempotency_key_unique": {
+          "name": "sync_batch_requests_client_id_idempotency_key_unique",
           "columns": [
-            "scope_type",
-            "scope_id",
+            "client_id",
             "idempotency_key"
           ],
           "isUnique": true

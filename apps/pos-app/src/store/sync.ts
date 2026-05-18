@@ -57,7 +57,7 @@ export interface SyncNowResult {
 }
 
 interface LocalSyncState {
-  last_server_event_id: number;
+  last_server_watermark: string;
   local_dirty_count: number;
   needs_baseline_sync?: boolean;
 }
@@ -215,7 +215,7 @@ async function syncNowInner(): Promise<SyncNowResult> {
       outletId,
     });
     const serverStatus = await getSyncStatus({
-      lastServerEventId: localState.last_server_event_id,
+      cursor: localState.last_server_watermark,
       outletId,
     });
     const hasLocalChanges = localState.local_dirty_count > 0;
@@ -229,27 +229,20 @@ async function syncNowInner(): Promise<SyncNowResult> {
     syncLogger.info("decision", {
       hasLocalChanges,
       hasServerChanges,
-      latestEventId: serverStatus.latestEventId,
+      cursor: serverStatus.cursor,
       localDirtyCount: localState.local_dirty_count,
       needsBaselineSync: localState.needs_baseline_sync ?? false,
-      needsFullResync: serverStatus.needsFullResync,
       outletId,
     });
 
     let result: SyncNowResult;
-    if (localState.needs_baseline_sync || serverStatus.needsFullResync) {
+    if (localState.needs_baseline_sync) {
       result = await invokeSyncTransfer(
         "sync_full_resync",
-        {
-          ...baseParams,
-          latestEventId: serverStatus.latestEventId,
-          tables: serverStatus.changedTables,
-        },
+        { ...baseParams, tables: serverStatus.changedTables },
         "full"
       );
-    } else if (
-      !(hasLocalChanges || hasServerChanges || serverStatus.needsFullResync)
-    ) {
+    } else if (!(hasLocalChanges || hasServerChanges)) {
       result = emptySyncResult("skipped");
     } else if (hasLocalChanges && hasServerChanges) {
       result = await invokeSyncTransfer(

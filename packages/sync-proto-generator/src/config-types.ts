@@ -7,6 +7,7 @@ export interface SyncGeneratorConfig {
   primaryKeyColumn: string;
   requestTypedFieldStart: number;
   rowMessageSuffix: string;
+  serverOnlyColumns: readonly string[];
 }
 
 export interface SyncProtoOutputs {

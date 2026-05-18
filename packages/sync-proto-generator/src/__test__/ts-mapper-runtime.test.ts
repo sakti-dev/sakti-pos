@@ -41,8 +41,7 @@ describe("generated API mapper runtime logic", () => {
 
   test("generated mapper maps product DB fields to protobuf money fields", () => {
     const result = encodeGeneratedPullBatchResponse({
-      latestEventId: 12,
-      needsFullResync: false,
+      cursor: "",
       products: {
         changedRows: [
           {
@@ -79,8 +78,7 @@ describe("generated API mapper runtime logic", () => {
 
   test("generated mapper maps order item DB fields to protobuf money fields", () => {
     const result = encodeGeneratedPullBatchResponse({
-      latestEventId: 12,
-      needsFullResync: false,
+      cursor: "",
       order_items: {
         changedRows: [
           {
@@ -112,8 +110,7 @@ describe("generated API mapper runtime logic", () => {
 
   test("generated mapper maps order DB fields to protobuf money fields", () => {
     const result = encodeGeneratedPullBatchResponse({
-      latestEventId: 12,
-      needsFullResync: false,
+      cursor: "",
       orders: {
         changedRows: [
           {
@@ -145,8 +142,7 @@ describe("generated API mapper runtime logic", () => {
 
   test("generated mapper maps outlet product DB fields to protobuf money fields", () => {
     const result = encodeGeneratedPullBatchResponse({
-      latestEventId: 12,
-      needsFullResync: false,
+      cursor: "",
       outlet_products: {
         changedRows: [
           {

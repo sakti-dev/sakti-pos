@@ -529,6 +529,7 @@ pub(super) fn build_staff_row_changes(changes: &TablePushChanges) -> StaffChange
 
 pub(super) fn build_sync_push_batch_request(
     outlet_id: &str,
+    client_id: &str,
     idempotency_key: &str,
     assets: Option<AssetsChanges>,
     categories: Option<CategoriesChanges>,
@@ -543,6 +544,7 @@ pub(super) fn build_sync_push_batch_request(
 ) -> SyncPushBatchRequest {
     SyncPushBatchRequest {
         outlet_id: outlet_id.to_string(),
+        client_id: client_id.to_string(),
         idempotency_key: idempotency_key.to_string(),
         assets,
         categories,
@@ -689,18 +691,10 @@ pub(super) fn pull_batch_response_has_more(response: &SyncPullBatchResponse) -> 
     response.has_more
 }
 
-pub(super) fn pull_batch_response_next_cursor(response: &SyncPullBatchResponse) -> String {
-    response.next_page_cursor.clone()
-}
-
-pub(super) fn pull_batch_response_latest_event_id(response: &SyncPullBatchResponse) -> i64 {
-    response.latest_event_id
+pub(super) fn pull_batch_response_cursor(response: &SyncPullBatchResponse) -> String {
+    response.cursor.clone()
 }
 
 pub(super) fn pull_batch_response_server_time(response: &SyncPullBatchResponse) -> String {
     response.server_time.clone()
-}
-
-pub(super) fn pull_batch_response_needs_full_resync(response: &SyncPullBatchResponse) -> bool {
-    response.needs_full_resync
 }

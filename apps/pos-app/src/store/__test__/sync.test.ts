@@ -71,7 +71,7 @@ function resetSyncMocks() {
   mockMerchantId = "merchant-1";
   mockToken = "test-session-token";
   mockInvoke.mockResolvedValue({
-    last_server_event_id: 10,
+    last_server_watermark: "",
     local_dirty_count: 0,
   });
   mockProcessPendingAssetJobs.mockResolvedValue(0);
@@ -79,9 +79,7 @@ function resetSyncMocks() {
   mockGetSyncStatus.mockResolvedValue({
     changedTables: [],
     hasChanges: false,
-    latestEventId: 10,
-    needsFullResync: false,
-    oldestAvailableEventId: 1,
+    cursor: "",
   });
 }
 
@@ -122,7 +120,7 @@ describe("syncNow", () => {
 
   test("skips native transfer when local and server have no changes", async () => {
     mockInvoke.mockResolvedValueOnce({
-      last_server_event_id: 10,
+      last_server_watermark: "",
       local_dirty_count: 0,
     });
     mockRequestUploadPendingProductImages.mockResolvedValueOnce(0);
@@ -142,7 +140,7 @@ describe("syncNow", () => {
       outletId: "outlet-1",
     });
     expect(mockGetSyncStatus).toHaveBeenCalledWith({
-      lastServerEventId: 10,
+      cursor: "",
       outletId: "outlet-1",
     });
     expect(result.mode).toBe("skipped");
@@ -161,7 +159,7 @@ describe("syncNow", () => {
     mockRequestUploadPendingProductImages.mockResolvedValue(0);
     mockInvoke
       .mockResolvedValueOnce({
-        last_server_event_id: 10,
+        last_server_watermark: "",
         local_dirty_count: 1,
       })
       .mockResolvedValueOnce({
@@ -174,7 +172,7 @@ describe("syncNow", () => {
         },
       })
       .mockResolvedValueOnce({
-        last_server_event_id: 10,
+        last_server_watermark: "",
         local_dirty_count: 0,
       });
 
@@ -223,7 +221,7 @@ describe("syncNow", () => {
       new Error("upload queue failed")
     );
     mockInvoke.mockResolvedValueOnce({
-      last_server_event_id: 10,
+      last_server_watermark: "",
       local_dirty_count: 1,
     });
     mockInvoke.mockResolvedValueOnce(syncResult);
@@ -252,7 +250,7 @@ describe("syncNow", () => {
         })
     );
     mockInvoke.mockResolvedValueOnce({
-      last_server_event_id: 10,
+      last_server_watermark: "",
       local_dirty_count: 0,
     });
 
@@ -281,11 +279,11 @@ describe("syncNow", () => {
     mockHydrateMissingProductImages.mockResolvedValueOnce(0);
     mockInvoke
       .mockResolvedValueOnce({
-        last_server_event_id: 10,
+        last_server_watermark: "",
         local_dirty_count: 0,
       })
       .mockResolvedValueOnce({
-        last_server_event_id: 10,
+        last_server_watermark: "",
         local_dirty_count: 0,
       });
 
@@ -306,7 +304,7 @@ describe("syncNow", () => {
       new Error("hydrate failed")
     );
     mockInvoke.mockResolvedValueOnce({
-      last_server_event_id: 10,
+      last_server_watermark: "",
       local_dirty_count: 0,
     });
 
@@ -332,7 +330,7 @@ describe("syncNow", () => {
     };
     mockInvoke
       .mockResolvedValueOnce({
-        last_server_event_id: 10,
+        last_server_watermark: "",
         local_dirty_count: 2,
       })
       .mockResolvedValueOnce(syncResult);
@@ -362,16 +360,14 @@ describe("syncNow", () => {
     };
     mockInvoke
       .mockResolvedValueOnce({
-        last_server_event_id: 10,
+        last_server_watermark: "",
         local_dirty_count: 0,
       })
       .mockResolvedValueOnce(syncResult);
     mockGetSyncStatus.mockResolvedValue({
       changedTables: ["products"],
       hasChanges: true,
-      latestEventId: 11,
-      needsFullResync: false,
-      oldestAvailableEventId: 1,
+      cursor: "sync:11:products:p1",
     });
 
     const result = await syncNow();
@@ -388,7 +384,7 @@ describe("syncNow", () => {
   test("pulls server event changes once then skips after the cursor catches up", async () => {
     mockInvoke
       .mockResolvedValueOnce({
-        last_server_event_id: 0,
+        last_server_watermark: "",
         local_dirty_count: 0,
       })
       .mockResolvedValueOnce({
@@ -402,23 +398,19 @@ describe("syncNow", () => {
         },
       })
       .mockResolvedValueOnce({
-        last_server_event_id: 3,
+        last_server_watermark: "sync:3:products:p1",
         local_dirty_count: 0,
       });
     mockGetSyncStatus
       .mockResolvedValueOnce({
         changedTables: ["categories", "products", "outlet_products"],
         hasChanges: true,
-        latestEventId: 3,
-        needsFullResync: false,
-        oldestAvailableEventId: 1,
+        cursor: "sync:3:products:p1",
       })
       .mockResolvedValueOnce({
         changedTables: [],
         hasChanges: false,
-        latestEventId: 3,
-        needsFullResync: false,
-        oldestAvailableEventId: 1,
+        cursor: "sync:3:products:p1",
       });
 
     const pullResult = await syncNow();
@@ -435,7 +427,7 @@ describe("syncNow", () => {
     expect(pullResult.pull.rows_received).toBe(3);
     expect(skippedResult.mode).toBe("skipped");
     expect(mockGetSyncStatus).toHaveBeenNthCalledWith(2, {
-      lastServerEventId: 3,
+      cursor: "sync:3:products:p1",
       outletId: "outlet-1",
     });
   });
@@ -453,16 +445,14 @@ describe("syncNow", () => {
     };
     mockInvoke
       .mockResolvedValueOnce({
-        last_server_event_id: 10,
+        last_server_watermark: "",
         local_dirty_count: 2,
       })
       .mockResolvedValueOnce(syncResult);
     mockGetSyncStatus.mockResolvedValue({
       changedTables: ["products"],
       hasChanges: true,
-      latestEventId: 11,
-      needsFullResync: false,
-      oldestAvailableEventId: 1,
+      cursor: "sync:11:products:p1",
     });
 
     const result = await syncNow();
@@ -498,45 +488,6 @@ describe("syncNow", () => {
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
-  test("runs full sync when server cursor requires full resync", async () => {
-    const syncResult = {
-      mode: "full",
-      pull: { rows_received: 5, server_time: "2025-01-01T00:00:00.000Z" },
-      push: {
-        tables_synced: ["categories", "products"],
-        server_wins_count: 0,
-        server_time: "2025-01-01T00:00:00.000Z",
-      },
-      purged: 1,
-    };
-    mockInvoke
-      .mockResolvedValueOnce({
-        last_server_event_id: 10,
-        local_dirty_count: 0,
-      })
-      .mockResolvedValueOnce(syncResult);
-    mockGetSyncStatus.mockResolvedValue({
-      changedTables: ["products"],
-      hasChanges: true,
-      latestEventId: 50,
-      needsFullResync: true,
-      oldestAvailableEventId: 50,
-    });
-
-    const result = await syncNow();
-
-    const call = mockInvoke.mock.calls[1];
-    expect(call[0]).toBe("sync_full_resync");
-    expect(call[1].outletId).toBe("outlet-1");
-    expect(call[1].sessionToken).toBe("test-session-token");
-    expect(call[1].apiUrl).toContain("://");
-    expect(call[1].latestEventId).toBe(50);
-    expect(call[1].tables).toEqual(["products"]);
-    expect(result).toEqual(syncResult);
-    expect(syncStatus()).toBe("idle");
-    expect(lastSyncTime()).toBe("2025-01-01T00:00:00.000Z");
-  });
-
   test("runs full sync when local outlet scope is missing after reinstall", async () => {
     const syncResult = {
       mode: "full",
@@ -550,7 +501,7 @@ describe("syncNow", () => {
     };
     mockInvoke
       .mockResolvedValueOnce({
-        last_server_event_id: 0,
+        last_server_watermark: "",
         local_dirty_count: 0,
         needs_baseline_sync: true,
       })
@@ -560,7 +511,6 @@ describe("syncNow", () => {
 
     expect(mockInvoke).toHaveBeenLastCalledWith("sync_full_resync", {
       apiUrl: expect.any(String),
-      latestEventId: 10,
       outletId: "outlet-1",
       sessionToken: "test-session-token",
       tables: [],

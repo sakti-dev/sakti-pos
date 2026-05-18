@@ -15,17 +15,17 @@ describe("sync protobuf helpers", () => {
     const response = encodeStatusResponse({
       changedTables: [],
       hasChanges: false,
-      latestEventId: 10,
-      needsFullResync: false,
-      oldestAvailableEventId: null,
+      cursor: "",
+      serverTime: "2026-05-17T00:00:00.000Z",
     });
 
-    expect(response.oldestAvailableEventId).toBe(0n);
-    expect(response.hasOldestAvailableEventId).toBe(false);
+    expect(response.cursor).toBe("");
+    expect(response.hasChanges).toBe(false);
   });
 
   test("encodes and decodes typed multitable batch for all sync tables", () => {
     const request = SyncPushBatchRequest.create({
+      clientId: "client-1",
       idempotencyKey: "idem-1",
       outletId: "outlet-1",
       categories: {
@@ -79,6 +79,7 @@ describe("sync protobuf helpers", () => {
     );
 
     expect(decoded.outletId).toBe("outlet-1");
+    expect(decoded.clientId).toBe("client-1");
     expect(decoded.products?.changedRows[0]?.name).toBe("Kopi");
     expect(decoded.products?.deletedIds).toEqual(["product-deleted"]);
     expect(decoded.merchants?.changedRows[0]?.name).toBe("Toko");
@@ -127,7 +128,6 @@ describe("sync protobuf helpers", () => {
 
   test("encodes push and pull batch responses", () => {
     const pushResponse = encodePushBatchResponse({
-      latestEventId: 12,
       serverTime: "2026-05-17T00:00:00.000Z",
       tables: [
         {
@@ -142,9 +142,7 @@ describe("sync protobuf helpers", () => {
 
     const pullResponse = encodePullBatchResponse({
       hasMore: false,
-      latestEventId: 12,
-      needsFullResync: false,
-      nextPageCursor: "",
+      cursor: "",
       products: {
         changedRows: [
           {
@@ -189,9 +187,7 @@ describe("sync protobuf helpers", () => {
 
     const encoded = encodePullBatchResponse({
       hasMore: false,
-      latestEventId: 12,
-      needsFullResync: false,
-      nextPageCursor: "",
+      cursor: "",
       products: productChanges,
       serverTime: "2026-05-17T00:00:00.000Z",
     });
@@ -227,9 +223,7 @@ describe("sync protobuf helpers", () => {
 
     const encoded = encodePullBatchResponse({
       hasMore: false,
-      latestEventId: 12,
-      needsFullResync: false,
-      nextPageCursor: "",
+      cursor: "",
       order_items: orderItemChanges,
       serverTime: "2026-05-17T00:00:00.000Z",
     });
@@ -243,8 +237,8 @@ describe("sync protobuf helpers", () => {
 
   test("encodes and decodes pull batch response with server cursor", () => {
     const response = SyncPullBatchResponse.create({
-      latestEventId: 42n,
-      needsFullResync: false,
+      cursor: "sync:42:orders:order-1",
+      hasMore: false,
       orders: {
         changedRows: [
           {
@@ -264,7 +258,7 @@ describe("sync protobuf helpers", () => {
       SyncPullBatchResponse.encode(response).finish()
     );
 
-    expect(decoded.latestEventId).toBe(42n);
+    expect(decoded.cursor).toBe("sync:42:orders:order-1");
     expect(decoded.orders?.changedRows[0]?.id).toBe("order-1");
   });
 
@@ -302,7 +296,7 @@ describe("sync protobuf helpers", () => {
         deletedIds: [],
       },
       hasMore: false,
-      latestEventId: 5,
+      cursor: "",
       merchants: {
         changedRows: [
           {
@@ -312,8 +306,6 @@ describe("sync protobuf helpers", () => {
         ],
         deletedIds: [],
       },
-      needsFullResync: false,
-      nextPageCursor: "",
       registers: {
         changedRows: [
           {
@@ -352,11 +344,9 @@ describe("sync protobuf helpers", () => {
 
   test("encodePullBatchResponse maps all 10 sync tables into typed protobuf fields", () => {
     const encoded = encodePullBatchResponse({
-      latestEventId: 12,
-      needsFullResync: false,
+      cursor: "",
       serverTime: "2026-05-17T00:00:00.000Z",
       hasMore: false,
-      nextPageCursor: "",
       merchants: {
         changedRows: [{ id: "merchant-1", name: "Toko" }],
         deletedIds: [],

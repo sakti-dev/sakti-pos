@@ -1,5 +1,11 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  getTableConfig,
+  integer,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 import { describe, expect, test } from "vitest";
+import { syncProtoSchemas } from "../../../protobuf/sync-proto.config";
 import { compareSyncedSchemas } from "../schema-drift";
 
 const apiProducts = sqliteTable("products", {
@@ -72,6 +78,43 @@ const localProductsPropertyNameMismatch = sqliteTable("products", {
 });
 
 describe("schema drift detector", () => {
+  test("allows api-only syncUpdatedAt on synced schemas", () => {
+    const issues = compareSyncedSchemas({
+      apiTables: Object.values(syncProtoSchemas.apiSyncedSchema).filter(
+        (value) => {
+          if (!value || typeof value !== "object") {
+            return false;
+          }
+
+          try {
+            getTableConfig(value as never);
+            return true;
+          } catch {
+            return false;
+          }
+        }
+      ) as never[],
+      localTables: Object.values(syncProtoSchemas.localSyncedSchema).filter(
+        (value) => {
+          if (!value || typeof value !== "object") {
+            return false;
+          }
+
+          try {
+            getTableConfig(value as never);
+            return true;
+          } catch {
+            return false;
+          }
+        }
+      ) as never[],
+      localOnlyColumns: ["isSynced"],
+      serverOnlyColumns: ["syncUpdatedAt"],
+    });
+
+    expect(issues).toEqual([]);
+  });
+
   test("reports missing local column", () => {
     const issues = compareSyncedSchemas({
       apiTables: [apiProducts],

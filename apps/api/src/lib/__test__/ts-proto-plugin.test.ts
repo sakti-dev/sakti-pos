@@ -14,10 +14,8 @@ describe("tsProtoPlugin", () => {
           return {
             changedTables: [request.outletId],
             hasChanges: true,
-            hasOldestAvailableEventId: false,
-            latestEventId: request.lastServerEventId + 1n,
-            needsFullResync: false,
-            oldestAvailableEventId: 0n,
+            cursor: request.cursor,
+            serverTime: "2026-05-17T00:00:00.000Z",
           };
         },
         {
@@ -31,7 +29,7 @@ describe("tsProtoPlugin", () => {
 
     const requestBody = SyncStatusRequest.encode(
       SyncStatusRequest.create({
-        lastServerEventId: 10n,
+        cursor: "sync:10:products:product-1",
         outletId: "outlet-1",
       })
     ).finish();
@@ -51,19 +49,23 @@ describe("tsProtoPlugin", () => {
     expect(response.headers.get("Content-Type")).toContain(
       "application/x-protobuf"
     );
-    expect(decoded.latestEventId).toBe(11n);
+    expect(decoded.cursor).toBe("sync:10:products:product-1");
     expect(decoded.changedTables).toEqual(["outlet-1"]);
   });
 
   test("returns 400 for malformed protobuf request bodies", async () => {
     const app = new Elysia()
       .use(tsProtoPlugin)
-      .post("/status", () => ({ latestEventId: 1 }), {
-        proto: {
-          req: tsProtoCodec(SyncStatusRequest),
-          res: tsProtoCodec(SyncStatusResponse),
-        },
-      })
+      .post(
+        "/status",
+        () => ({ cursor: "", hasChanges: false, serverTime: "" }),
+        {
+          proto: {
+            req: tsProtoCodec(SyncStatusRequest),
+            res: tsProtoCodec(SyncStatusResponse),
+          },
+        }
+      )
       .compile();
 
     const response = await app.handle(

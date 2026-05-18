@@ -280,9 +280,7 @@ export function encodeGeneratedPullBatchResponse(result: Record<string, any>) {
     registers: mapTableChanges(result.registers, registers_row_to_proto),
     staff: mapTableChanges(result.staff, staff_row_to_proto),
     hasMore: result.hasMore ?? false,
-    latestEventId: coerceBigInt(result.latestEventId),
-    needsFullResync: result.needsFullResync,
-    nextPageCursor: result.nextPageCursor ?? "",
+    cursor: result.cursor ?? "",
     serverTime: result.serverTime,
   };
 }

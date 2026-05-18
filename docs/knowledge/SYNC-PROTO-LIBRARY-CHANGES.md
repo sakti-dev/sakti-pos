@@ -8,7 +8,7 @@ This note captures the implemented sync protobuf/library changes that were made 
 - The generator is invoked as a proper CLI:
 
 ```bash
-cd packages/protobuf && bunx sync-proto-generator generate
+cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate
 ```
 
 - The sync config lives beside the sync protobuf package at `packages/protobuf/sync-proto.config.ts`.
@@ -70,7 +70,7 @@ The API still translates at the sync boundary, but it now does so against the sc
 Recommended commands:
 
 ```bash
-cd packages/protobuf && bunx sync-proto-generator generate
+cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate
 bun x ultracite check
 bun run typecheck
 bun test apps/api/src/sync/__test__/protobuf.test.ts apps/api/src/sync/__test__/routes-protobuf.test.ts
@@ -78,4 +78,3 @@ bun test packages/sync-proto-generator/src/__test__
 ```
 
 If the checked-in sync artifacts drift, regenerate them through the CLI above instead of hand-editing the generated files.
-

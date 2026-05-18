@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
+import { getTableConfig } from "drizzle-orm/sqlite-core";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
@@ -42,8 +43,10 @@ vi.mock("cloudflare:workers", () => ({
 
 const {
   handlePushBatch,
-  handlePullBatch,
-  handleSyncStatus,
+  handleRowStatePullBatch,
+  handleRowStateSyncStatus,
+  formatPullBatchCursor,
+  parsePullBatchCursor,
   verifyOutletAccess,
 } = await import("../service");
 
@@ -122,6 +125,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         orders: {
           changedRows: [
@@ -201,6 +205,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         products: {
           changedRows: [
@@ -225,11 +230,10 @@ describe("handlePushBatch", () => {
   });
 
   test("accepts deletedIds for existing server rows and soft-deletes them", async () => {
-    const update = vi.fn().mockReturnValue({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(undefined),
-      }),
+    const set = vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue(undefined),
     });
+    const update = vi.fn().mockReturnValue({ set });
     const insert = vi.fn().mockReturnValue({
       values: vi.fn().mockReturnValue({
         onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
@@ -276,6 +280,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         products: {
           changedRows: [],
@@ -289,6 +294,13 @@ describe("handlePushBatch", () => {
     expect(result.tables[0]?.acceptedDeletedIds).toEqual(["product-1"]);
     expect(result.tables[0]?.rejected).toEqual([]);
     expect(update).toHaveBeenCalled();
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deletedAt: expect.any(String),
+        syncUpdatedAt: expect.any(Number),
+        updatedAt: expect.any(String),
+      })
+    );
   });
 
   test("ignores out-of-scope deletedIds without writing delete events", async () => {
@@ -330,6 +342,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         products: {
           changedRows: [],
@@ -347,6 +360,8 @@ describe("handlePushBatch", () => {
 
   test("normalizes protobuf bigint int64 fields before DB upsert", async () => {
     const upsertedRows: Record<string, unknown>[][] = [];
+    const serverSyncUpdatedAt = 1_716_030_000_123;
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(serverSyncUpdatedAt);
     const values = vi.fn((rows: Record<string, unknown>[]) => {
       upsertedRows.push(rows);
       return {
@@ -383,6 +398,7 @@ describe("handlePushBatch", () => {
     await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         assets: {
           changedRows: [
@@ -396,6 +412,7 @@ describe("handlePushBatch", () => {
               merchantId: "merchant-1",
               objectKey: "assets/1",
               status: "ready",
+              syncUpdatedAt: 7,
               updatedAt: "2026-05-17T00:00:00.000Z",
               width: 10n,
             },
@@ -419,6 +436,7 @@ describe("handlePushBatch", () => {
       "idem-bigint-normalize",
       "request-hash-bigint-normalize"
     );
+    nowSpy.mockRestore();
 
     const writtenRows = upsertedRows.flat();
     expect(writtenRows).toContainEqual(
@@ -432,6 +450,7 @@ describe("handlePushBatch", () => {
         byteSize: 1024,
         height: 20,
         id: "asset-1",
+        syncUpdatedAt: serverSyncUpdatedAt,
         width: 10,
       })
     );
@@ -475,6 +494,7 @@ describe("handlePushBatch", () => {
     await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         staff: {
           changedRows: [
@@ -543,6 +563,7 @@ describe("handlePushBatch", () => {
     await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         orders: {
           changedRows: [
@@ -596,6 +617,7 @@ describe("handlePushBatch", () => {
       handlePushBatch(
         "outlet-1",
         "merchant-1",
+        "client-1",
         {
           products: {
             changedRows: [
@@ -662,6 +684,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         products: {
           changedRows: productRows,
@@ -686,16 +709,14 @@ describe("handlePushBatch", () => {
           )
       );
 
-    expect(select).toHaveBeenCalledTimes(2);
-    expect(syncEventPayloads).toHaveLength(1);
-    expect(syncEventPayloads[0]).toHaveLength(100);
+    expect(select).toHaveBeenCalledTimes(1);
+    expect(syncEventPayloads).toHaveLength(0);
     expect(result.tables[0]?.acceptedUpdatedIds).toHaveLength(100);
     expect(result.tables[0]?.rejected).toEqual([]);
   });
 
   test("returns a cached response when the same idempotency key is retried", async () => {
     const cachedResponse = {
-      latestEventId: 42,
       serverTime: "2026-05-17T00:00:00.000Z",
       tables: [
         {
@@ -716,7 +737,6 @@ describe("handlePushBatch", () => {
               where: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue([
                   {
-                    latestEventId: 42,
                     requestHash: "request-hash-1",
                     responseJson: JSON.stringify(cachedResponse),
                     serverTime: "2026-05-17T00:00:00.000Z",
@@ -738,6 +758,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {},
       "sync-request-1",
       "request-hash-1"
@@ -755,10 +776,8 @@ describe("handlePushBatch", () => {
               where: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue([
                   {
-                    latestEventId: 42,
                     requestHash: "request-hash-1",
                     responseJson: JSON.stringify({
-                      latestEventId: 42,
                       serverTime: "2026-05-17T00:00:00.000Z",
                       tables: [],
                     }),
@@ -782,6 +801,7 @@ describe("handlePushBatch", () => {
       handlePushBatch(
         "outlet-1",
         "merchant-1",
+        "client-1",
         {},
         "sync-request-1",
         "request-hash-2"
@@ -818,6 +838,7 @@ describe("handlePushBatch", () => {
       handlePushBatch(
         "outlet-1",
         "merchant-1",
+        "client-1",
         {},
         "sync-request-1",
         "request-hash-1"
@@ -827,7 +848,6 @@ describe("handlePushBatch", () => {
 
   test("returns cached response when idempotency insert races with the same request body", async () => {
     const cachedResponse = {
-      latestEventId: 42,
       serverTime: "2026-05-17T00:00:00.000Z",
       tables: [
         {
@@ -860,7 +880,6 @@ describe("handlePushBatch", () => {
                 where: vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue([
                     {
-                      latestEventId: 42,
                       requestHash: "request-hash-1",
                       responseJson: JSON.stringify(cachedResponse),
                       serverTime: "2026-05-17T00:00:00.000Z",
@@ -881,6 +900,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {},
       "sync-request-1",
       "request-hash-1"
@@ -889,9 +909,8 @@ describe("handlePushBatch", () => {
     expect(result).toEqual(cachedResponse);
   });
 
-  test("does not write rows or sync events when idempotency reservation races", async () => {
+  test("does not write rows when idempotency reservation races", async () => {
     const cachedResponse = {
-      latestEventId: 42,
       serverTime: "2026-05-17T00:00:00.000Z",
       tables: [
         {
@@ -940,7 +959,6 @@ describe("handlePushBatch", () => {
             fallbackCacheVisible
               ? [
                   {
-                    latestEventId: 42,
                     requestHash: "request-hash-race",
                     responseJson: JSON.stringify(cachedResponse),
                     serverTime: "2026-05-17T00:00:00.000Z",
@@ -973,6 +991,7 @@ describe("handlePushBatch", () => {
     const result = await handlePushBatch(
       "outlet-1",
       "merchant-1",
+      "client-1",
       {
         products: {
           changedRows: [
@@ -997,468 +1016,181 @@ describe("handlePushBatch", () => {
   });
 });
 
-describe("handleSyncStatus", () => {
-  afterEach(() => {
-    vi.resetAllMocks();
+describe("pull batch cursor helpers", () => {
+  test("parses an empty cursor as baseline", () => {
+    expect(parsePullBatchCursor("")).toEqual(null);
   });
 
-  function mockSyncStatusQueries(input: {
-    changedRows: { tableName: string }[];
-    latestRows: { id: number }[];
-    oldestRows: { id: number }[];
-  }) {
-    const latestLimit = vi.fn().mockResolvedValue(input.latestRows);
-    const oldestLimit = vi.fn().mockResolvedValue(input.oldestRows);
-    const changedOrderBy = vi.fn().mockResolvedValue(input.changedRows);
-
-    mockSelect
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockReturnValue({
-              limit: latestLimit,
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockReturnValue({
-              limit: oldestLimit,
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: changedOrderBy,
-          }),
-        }),
-      });
-
-    return { changedOrderBy, latestLimit, oldestLimit };
-  }
-
-  test("returns no changes when cursor equals latest event", async () => {
-    mockSyncStatusQueries({
-      changedRows: [],
-      latestRows: [{ id: 10 }],
-      oldestRows: [{ id: 1 }],
-    });
-
-    const result = await handleSyncStatus({
-      lastServerEventId: 10,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-    });
-
-    expect(result).toEqual({
-      changedTables: [],
-      hasChanges: false,
-      latestEventId: 10,
-      needsFullResync: false,
-      oldestAvailableEventId: 1,
-    });
-  });
-
-  test("requires full resync when cursor is older than retained history", async () => {
-    mockSyncStatusQueries({
-      changedRows: [{ tableName: "products" }, { tableName: "orders" }],
-      latestRows: [{ id: 100 }],
-      oldestRows: [{ id: 50 }],
-    });
-
-    const result = await handleSyncStatus({
-      lastServerEventId: 5,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-    });
-
-    expect(result.needsFullResync).toBe(true);
-    expect(result.hasChanges).toBe(true);
-    expect(result.changedTables).toEqual(["products", "orders"]);
-  });
-
-  test("reads latest and oldest event bounds with limit one", async () => {
-    const { latestLimit, oldestLimit } = mockSyncStatusQueries({
-      changedRows: [{ tableName: "products" }, { tableName: "orders" }],
-      latestRows: [{ id: 100 }],
-      oldestRows: [{ id: 90 }],
-    });
-
-    const result = await handleSyncStatus({
-      lastServerEventId: 75,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-    });
-
-    expect(latestLimit).toHaveBeenCalledWith(1);
-    expect(oldestLimit).toHaveBeenCalledWith(1);
-    expect(result).toEqual({
-      changedTables: ["products", "orders"],
-      hasChanges: true,
-      latestEventId: 100,
-      needsFullResync: true,
-      oldestAvailableEventId: 90,
-    });
-  });
-});
-
-describe("handlePullBatch", () => {
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
-
-  test("returns typed table rows from events", async () => {
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockResolvedValue([
-            {
-              id: 10,
-              operation: "update",
-              rowId: "product-1",
-              tableName: "products",
-            },
-            {
-              id: 11,
-              operation: "insert",
-              rowId: "cat-1",
-              tableName: "categories",
-            },
-          ]),
-        }),
-      }),
-    }));
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi
-          .fn()
-          .mockResolvedValue([
-            { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
-          ]),
-      }),
-    }));
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi
-          .fn()
-          .mockResolvedValue([
-            { id: "cat-1", merchantId: "merchant-1", name: "Minuman" },
-          ]),
-      }),
-    }));
-
-    const result = await handlePullBatch({
-      afterEventId: 9,
-      limit: 2000,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-      pageCursor: "",
-      tables: ["products", "categories"],
-    });
-
-    expect(result.latestEventId).toBe(11);
-    expect(result.hasMore).toBe(false);
-    expect(result.needsFullResync).toBe(false);
-    expect(result.products?.changedRows[0]).toMatchObject({ id: "product-1" });
-    expect(result.categories?.changedRows[0]).toMatchObject({
-      id: "cat-1",
-      name: "Minuman",
-    });
-  });
-
-  test("pages rows using the cursor and limit", async () => {
-    let callIndex = 0;
-    mockSelect.mockImplementation(() => {
-      const rowsByCall = [
-        [
-          {
-            id: 10,
-            operation: "update",
-            rowId: "product-1",
-            tableName: "products",
-          },
-          {
-            id: 11,
-            operation: "update",
-            rowId: "product-2",
-            tableName: "products",
-          },
-        ],
-        [
-          { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
-          { id: "product-2", merchantId: "merchant-1", name: "Teh" },
-        ],
-        [
-          {
-            id: 11,
-            operation: "update",
-            rowId: "product-2",
-            tableName: "products",
-          },
-        ],
-        [
-          { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
-          { id: "product-2", merchantId: "merchant-1", name: "Teh" },
-        ],
-      ];
-      const rows = rowsByCall[callIndex] ?? [];
-      callIndex += 1;
-      return {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation(() => {
-            if (callIndex % 2 === 1) {
-              return {
-                orderBy: vi.fn().mockResolvedValue(rows),
-              };
-            }
-            return rows;
-          }),
-        }),
-      };
-    });
-
-    const firstPage = await handlePullBatch({
-      afterEventId: 9,
-      limit: 1,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-      pageCursor: "",
-      tables: ["products"],
-    });
-    const secondPage = await handlePullBatch({
-      afterEventId: 9,
-      limit: 1,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-      pageCursor: firstPage.nextPageCursor,
-      tables: ["products"],
-    });
-
-    expect(firstPage.hasMore).toBe(true);
-    expect(firstPage.latestEventId).toBe(10);
-    expect(firstPage.nextPageCursor).toBe("event:10");
-    expect(firstPage.products?.changedRows[0]?.id).toBe("product-1");
-    expect(secondPage.hasMore).toBe(false);
-    expect(secondPage.latestEventId).toBe(11);
-    expect(secondPage.nextPageCursor).toBe("");
-    expect(secondPage.products?.changedRows[0]?.id).toBe("product-2");
-  });
-
-  test("fetches only one bounded event page from the database", async () => {
-    const eventRows = [
-      {
-        id: 11,
-        operation: "update",
-        rowId: "product-1",
-        tableName: "products",
-      },
-      {
-        id: 12,
-        operation: "update",
-        rowId: "product-2",
-        tableName: "products",
-      },
-    ];
-    const limit = vi.fn().mockResolvedValue(eventRows);
-    const orderByResult = {
-      limit,
-    };
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue(orderByResult),
-        }),
-      }),
-    }));
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi
-          .fn()
-          .mockResolvedValue([
-            { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
-          ]),
-      }),
-    }));
-
-    await handlePullBatch({
-      afterEventId: 10,
-      limit: 1,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-      pageCursor: "",
-      tables: ["products"],
-    });
-
-    expect(limit).toHaveBeenCalledWith(2);
-  });
-
-  test("returns delete events as deleted ids without requiring row snapshots", async () => {
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockResolvedValue([
-            {
-              id: 12,
-              operation: "delete",
-              rowId: "product-deleted",
-              tableName: "products",
-            },
-          ]),
-        }),
-      }),
-    }));
-
-    const result = await handlePullBatch({
-      afterEventId: 11,
-      limit: 2000,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-      pageCursor: "",
-      tables: ["products"],
-    });
-
-    expect(result.latestEventId).toBe(12);
-    expect(result.products?.deletedIds).toEqual(["product-deleted"]);
-    expect(result.products?.changedRows).toEqual([]);
-  });
-
-  test("returns baseline snapshots when pulling from cursor zero", async () => {
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockResolvedValue([
-            {
-              id: 12,
-              operation: "update",
-              rowId: "product-1",
-              tableName: "products",
-            },
-          ]),
-        }),
-      }),
-    }));
-    mockSelect.mockImplementationOnce(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi
-          .fn()
-          .mockResolvedValue([
-            { id: "product-1", merchantId: "merchant-1", name: "Kopi" },
-          ]),
-      }),
-    }));
-
-    const result = await handlePullBatch({
-      afterEventId: 0,
-      limit: 2000,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-      pageCursor: "",
-      tables: ["products"],
-    });
-
-    expect(result.latestEventId).toBe(12);
-    expect(result.hasMore).toBe(false);
-    expect(result.products?.changedRows[0]).toMatchObject({ id: "product-1" });
-  });
-});
-
-describe("smart sync simulation", () => {
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
-
-  test("detects and pulls a product change made by another device", async () => {
-    const simulatedProductEvent = {
-      id: 1,
-      operation: "update",
-      rowId: "prod-1",
+  test("parses a row-state cursor", () => {
+    expect(parsePullBatchCursor("sync:1716030000:products:p123")).toEqual({
+      rowId: "p123",
+      syncUpdatedAt: 1_716_030_000,
       tableName: "products",
+    });
+  });
+
+  test("rejects an invalid cursor prefix", () => {
+    expect(() => parsePullBatchCursor("event:1716030000")).toThrow(
+      "Invalid pull batch cursor"
+    );
+  });
+
+  test("rejects an invalid cursor timestamp", () => {
+    expect(() =>
+      parsePullBatchCursor("sync:not-a-number:products:p123")
+    ).toThrow("Invalid pull batch cursor");
+  });
+
+  test("round-trips cursor formatting", () => {
+    const cursor = formatPullBatchCursor({
+      rowId: "p123",
+      syncUpdatedAt: 1_716_030_000,
+      tableName: "products",
+    });
+
+    expect(cursor).toBe("sync:1716030000:products:p123");
+    expect(parsePullBatchCursor(cursor)).toEqual({
+      rowId: "p123",
+      syncUpdatedAt: 1_716_030_000,
+      tableName: "products",
+    });
+  });
+});
+
+describe("handleRowStatePullBatch", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("returns merged rows and a stable cursor across tables", async () => {
+    const rowsByTable: Record<string, Record<string, unknown>[]> = {
+      orders: [
+        {
+          deletedAt: null,
+          id: "order-1",
+          outletId: "outlet-1",
+          syncUpdatedAt: 11,
+          updatedAt: "2026-05-18T00:00:00.000Z",
+        },
+      ],
+      products: [
+        {
+          deletedAt: null,
+          id: "product-1",
+          merchantId: "merchant-1",
+          syncUpdatedAt: 10,
+          updatedAt: "2026-05-18T00:00:00.000Z",
+        },
+      ],
     };
-    const changedProduct = {
-      id: "prod-1",
+    let selectCallCount = 0;
+
+    mockSelect.mockReturnValue({
+      from: vi.fn().mockImplementation((table: unknown) => {
+        const _tableName = getTableConfig(table as never).name;
+        selectCallCount++;
+        let rows: Record<string, unknown>[] = rowsByTable.orders;
+        if (selectCallCount === 1) {
+          rows = rowsByTable.products;
+        } else if (selectCallCount === 2) {
+          rows = rowsByTable.orders;
+        } else if (selectCallCount === 3) {
+          rows = [];
+        }
+        return {
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue(rows),
+            }),
+          }),
+        };
+      }),
+    });
+
+    const result = await handleRowStatePullBatch({
+      cursor: "",
+      limit: 1,
       merchantId: "merchant-1",
-      name: "Kopi Susu",
-      updatedAt: "2026-05-09T12:00:00.000Z",
-    };
+      outletId: "outlet-1",
+      tables: ["products", "orders"],
+    });
 
-    mockSelect
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockReturnValue({
-              limit: vi
-                .fn()
-                .mockResolvedValue([{ id: simulatedProductEvent.id }]),
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockReturnValue({
-              limit: vi
-                .fn()
-                .mockResolvedValue([{ id: simulatedProductEvent.id }]),
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi
-              .fn()
-              .mockResolvedValue([
-                { tableName: simulatedProductEvent.tableName },
-              ]),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([simulatedProductEvent]),
-            }),
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([changedProduct]),
-        }),
-      });
+    expect(result.cursor).toBe("sync:10:products:product-1");
+    expect(result.hasMore).toBe(true);
+    expect(result.products?.changedRows).toEqual([
+      expect.objectContaining({
+        id: "product-1",
+        syncUpdatedAt: 10,
+      }),
+    ]);
+    expect(result.orders).toBeUndefined();
 
-    const status = await handleSyncStatus({
-      lastServerEventId: 0,
+    const nextPage = await handleRowStatePullBatch({
+      cursor: result.cursor,
+      limit: 1,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      tables: ["products", "orders"],
+    });
+
+    expect(nextPage.cursor).toBe("");
+    expect(nextPage.hasMore).toBe(false);
+    expect(nextPage.orders?.changedRows).toEqual([
+      expect.objectContaining({
+        id: "order-1",
+        syncUpdatedAt: 11,
+      }),
+    ]);
+  });
+});
+
+describe("handleRowStateSyncStatus", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("returns changed tables and the latest row-state cursor", async () => {
+    mockSelect.mockReturnValue({
+      from: vi.fn().mockImplementation((table: unknown) => {
+        const tableName = getTableConfig(table as never).name;
+        let rows: Record<string, unknown>[] = [];
+        if (tableName === "orders") {
+          rows = [
+            {
+              id: "order-1",
+              outletId: "outlet-1",
+              syncUpdatedAt: 11,
+              updatedAt: "2026-05-18T00:00:00.000Z",
+            },
+          ];
+        } else if (tableName === "products") {
+          rows = [
+            {
+              id: "product-1",
+              merchantId: "merchant-1",
+              syncUpdatedAt: 10,
+              updatedAt: "2026-05-18T00:00:00.000Z",
+            },
+          ];
+        }
+        return {
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue(rows),
+            }),
+          }),
+        };
+      }),
+    });
+
+    const result = await handleRowStateSyncStatus({
+      cursor: "",
       merchantId: "merchant-1",
       outletId: "outlet-1",
     });
 
-    expect(status).toEqual({
-      changedTables: ["products"],
-      hasChanges: true,
-      latestEventId: 1,
-      needsFullResync: false,
-      oldestAvailableEventId: 1,
-    });
-
-    const pull = await handlePullBatch({
-      afterEventId: 0,
-      limit: 250,
-      merchantId: "merchant-1",
-      outletId: "outlet-1",
-      pageCursor: "",
-      tables: ["products"],
-    });
-
-    expect(pull.needsFullResync).toBe(false);
-    expect(pull.latestEventId).toBe(1);
-    expect(pull.products?.changedRows).toEqual([changedProduct]);
+    expect(result.changedTables).toEqual(["products", "orders"]);
+    expect(result.hasChanges).toBe(true);
+    expect(result.cursor).toBe("sync:11:orders:order-1");
   });
 });

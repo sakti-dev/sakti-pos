@@ -17,7 +17,6 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
-import { recordSyncEvent } from "../lib/sync-events";
 import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
 import { encodeOutlet, encodeRegister } from "../protobuf/domain";
@@ -104,29 +103,6 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
           })
           .returning();
 
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "insert",
-            rowId: createdOutlet.id,
-            scopeId: merchantId,
-            scopeType: "merchant",
-            tableName: "outlets",
-          },
-          tx
-        );
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "insert",
-            rowId: createdRegister.id,
-            scopeId: createdOutlet.id,
-            scopeType: "outlet",
-            tableName: "registers",
-          },
-          tx
-        );
-
         return { outlet: createdOutlet, register: createdRegister };
       });
 
@@ -211,18 +187,6 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
         if (!result) {
           return;
         }
-
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "update",
-            rowId: result.id,
-            scopeId: result.merchantId,
-            scopeType: "merchant",
-            tableName: "outlets",
-          },
-          tx
-        );
 
         return result;
       });

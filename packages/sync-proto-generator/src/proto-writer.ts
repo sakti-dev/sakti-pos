@@ -26,7 +26,8 @@ function renderPushRequest(
   const lines = [
     "message SyncPushBatchRequest {",
     "  string outletId = 1;",
-    "  string idempotencyKey = 2;",
+    "  string clientId = 2;",
+    "  string idempotencyKey = 3;",
   ];
   for (const [index, table] of tables.entries()) {
     lines.push(
@@ -51,11 +52,9 @@ function renderPullResponse(
       };`
     );
   }
-  lines.push("  int64 latestEventId = 100;");
-  lines.push("  bool needsFullResync = 101;");
+  lines.push("  string cursor = 100;");
+  lines.push("  bool hasMore = 101;");
   lines.push("  string serverTime = 102;");
-  lines.push("  bool hasMore = 103;");
-  lines.push("  string nextPageCursor = 104;");
   lines.push("}");
   return lines.join("\n");
 }
@@ -74,16 +73,13 @@ export function renderSyncProto(
     "",
     "message SyncStatusRequest {",
     "  string outletId = 1;",
-    "  int64 lastServerEventId = 2;",
+    "  string cursor = 2;",
     "}",
     "",
     "message SyncStatusResponse {",
     "  repeated string changedTables = 1;",
     "  bool hasChanges = 2;",
-    "  int64 latestEventId = 3;",
-    "  bool needsFullResync = 4;",
-    "  int64 oldestAvailableEventId = 5;",
-    "  bool hasOldestAvailableEventId = 6;",
+    "  string cursor = 3;",
     "}",
     "",
     "message SyncRejectedRow {",
@@ -106,15 +102,13 @@ export function renderSyncProto(
     "message SyncPushBatchResponse {",
     "  repeated SyncTableAck tables = 1;",
     "  string serverTime = 2;",
-    "  int64 latestEventId = 3;",
     "}",
     "",
     "message SyncPullBatchRequest {",
     "  string outletId = 1;",
-    "  int64 afterEventId = 2;",
-    "  repeated string tables = 3;",
-    "  int32 limit = 4;",
-    "  string pageCursor = 5;",
+    "  repeated string tables = 2;",
+    "  int32 limit = 3;",
+    "  string cursor = 4;",
     "}",
     "",
     renderPullResponse(config, tables),

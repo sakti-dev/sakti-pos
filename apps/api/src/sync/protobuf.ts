@@ -28,7 +28,6 @@ export interface TableChangeSet {
 export type PushBatchChanges = Record<string, TableChangeSet>;
 
 export interface PushBatchResult {
-  latestEventId: number;
   serverTime: string;
   tables: SyncTableAck[];
 }
@@ -36,11 +35,9 @@ export interface PushBatchResult {
 export interface PullBatchResult {
   assets?: TableChangeSet;
   categories?: TableChangeSet;
+  cursor: string;
   hasMore: boolean;
-  latestEventId: number;
   merchants?: TableChangeSet;
-  needsFullResync: boolean;
-  nextPageCursor: string;
   order_items?: TableChangeSet;
   orders?: TableChangeSet;
   outlet_products?: TableChangeSet;
@@ -53,14 +50,9 @@ export interface PullBatchResult {
 
 interface SyncStatusResult {
   changedTables: string[];
+  cursor: string;
   hasChanges: boolean;
-  latestEventId: number;
-  needsFullResync: boolean;
-  oldestAvailableEventId: number | null;
-}
-
-function coerceBigInt(value: number | bigint): bigint {
-  return typeof value === "bigint" ? value : BigInt(value);
+  serverTime: string;
 }
 
 function toHex(bytes: Uint8Array): string {
@@ -123,22 +115,19 @@ export function encodeStatusResponse(
 ): SyncStatusResponse {
   return SyncStatusResponse.create({
     changedTables: result.changedTables,
+    cursor: result.cursor,
     hasChanges: result.hasChanges,
-    hasOldestAvailableEventId: result.oldestAvailableEventId !== null,
-    latestEventId: coerceBigInt(result.latestEventId),
-    needsFullResync: result.needsFullResync,
-    oldestAvailableEventId: coerceBigInt(result.oldestAvailableEventId ?? 0),
-  });
+    serverTime: result.serverTime,
+  } as never);
 }
 
 export function encodePushBatchResponse(
   result: PushBatchResult
 ): SyncPushBatchResponse {
   return SyncPushBatchResponse.create({
-    latestEventId: coerceBigInt(result.latestEventId),
     serverTime: result.serverTime,
     tables: result.tables,
-  });
+  } as never);
 }
 
 export function encodePullBatchResponse(
@@ -174,5 +163,5 @@ export function encodePullBatchResponse(
     normalizedResult as Record<string, unknown>
   ) as SyncPullBatchResponse;
 
-  return SyncPullBatchResponse.create(response);
+  return SyncPullBatchResponse.create(response as never);
 }

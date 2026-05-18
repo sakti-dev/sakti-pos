@@ -7,16 +7,13 @@ package sakti.sync.v1;
 
 message SyncStatusRequest {
   string outletId = 1;
-  int64 lastServerEventId = 2;
+  string cursor = 2;
 }
 
 message SyncStatusResponse {
   repeated string changedTables = 1;
   bool hasChanges = 2;
-  int64 latestEventId = 3;
-  bool needsFullResync = 4;
-  int64 oldestAvailableEventId = 5;
-  bool hasOldestAvailableEventId = 6;
+  string cursor = 3;
 }
 
 message SyncRejectedRow {
@@ -221,7 +218,8 @@ message staff_changes {
 
 message SyncPushBatchRequest {
   string outletId = 1;
-  string idempotencyKey = 2;
+  string clientId = 2;
+  string idempotencyKey = 3;
   assets_changes assets = 10;
   categories_changes categories = 11;
   merchants_changes merchants = 12;
@@ -237,15 +235,13 @@ message SyncPushBatchRequest {
 message SyncPushBatchResponse {
   repeated SyncTableAck tables = 1;
   string serverTime = 2;
-  int64 latestEventId = 3;
 }
 
 message SyncPullBatchRequest {
   string outletId = 1;
-  int64 afterEventId = 2;
-  repeated string tables = 3;
-  int32 limit = 4;
-  string pageCursor = 5;
+  repeated string tables = 2;
+  int32 limit = 3;
+  string cursor = 4;
 }
 
 message SyncPullBatchResponse {
@@ -259,9 +255,7 @@ message SyncPullBatchResponse {
   products_changes products = 17;
   registers_changes registers = 18;
   staff_changes staff = 19;
-  int64 latestEventId = 100;
-  bool needsFullResync = 101;
+  string cursor = 100;
+  bool hasMore = 101;
   string serverTime = 102;
-  bool hasMore = 103;
-  string nextPageCursor = 104;
 }

@@ -7,6 +7,7 @@ pub use self::pull::PullResult;
 pub use self::push::PushResult;
 
 pub mod commands;
+pub mod client_identity;
 pub mod dto;
 pub mod http;
 pub mod local_state;
@@ -85,6 +86,45 @@ mod tests {
         assert!(accepted["products"].contains("updated-1"));
         assert!(accepted["products"].contains("deleted-1"));
         assert!(!accepted["products"].contains("rejected-1"));
+    }
+
+    #[test]
+    fn idempotency_key_is_deterministic_from_outbox_ids() {
+        let first = super::push::generate_idempotency_key_from_outbox_ids(&[
+            "outbox-2".to_string(),
+            "outbox-1".to_string(),
+        ]);
+        let second = super::push::generate_idempotency_key_from_outbox_ids(&[
+            "outbox-1".to_string(),
+            "outbox-2".to_string(),
+        ]);
+        let different = super::push::generate_idempotency_key_from_outbox_ids(&[
+            "outbox-1".to_string(),
+            "outbox-3".to_string(),
+        ]);
+
+        assert_eq!(first, second);
+        assert_ne!(first, different);
+    }
+
+    #[test]
+    fn sync_client_id_is_created_once_and_reused() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool().await;
+
+            super::client_identity::ensure_sync_client_identity_table(&pool)
+                .await
+                .expect("client identity table should create");
+            let first = super::client_identity::get_or_create_sync_client_id(&pool)
+                .await
+                .expect("client id should create");
+            let second = super::client_identity::get_or_create_sync_client_id(&pool)
+                .await
+                .expect("client id should load");
+
+            assert_eq!(first, second);
+            assert!(!first.trim().is_empty());
+        });
     }
 
     #[test]

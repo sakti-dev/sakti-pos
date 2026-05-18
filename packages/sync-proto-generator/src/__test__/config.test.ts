@@ -9,6 +9,7 @@ describe("sync generator config", () => {
 
     expect(serialized).not.toMatch(BUSINESS_POLICY_PATTERN);
     expect(syncGeneratorConfig.localOnlyColumns).toEqual(["isSynced"]);
+    expect(syncGeneratorConfig.serverOnlyColumns).toEqual(["syncUpdatedAt"]);
     expect(syncGeneratorConfig.primaryKeyColumn).toBe("id");
   });
 });

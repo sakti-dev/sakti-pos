@@ -11,16 +11,13 @@ export const protobufPackage = "sakti.sync.v1";
 
 export interface SyncStatusRequest {
   outletId: string;
-  lastServerEventId: bigint;
+  cursor: string;
 }
 
 export interface SyncStatusResponse {
   changedTables: string[];
   hasChanges: boolean;
-  latestEventId: bigint;
-  needsFullResync: boolean;
-  oldestAvailableEventId: bigint;
-  hasOldestAvailableEventId: boolean;
+  cursor: string;
 }
 
 export interface SyncRejectedRow {
@@ -225,6 +222,7 @@ export interface staff_changes {
 
 export interface SyncPushBatchRequest {
   outletId: string;
+  clientId: string;
   idempotencyKey: string;
   assets: assets_changes | undefined;
   categories: categories_changes | undefined;
@@ -241,15 +239,13 @@ export interface SyncPushBatchRequest {
 export interface SyncPushBatchResponse {
   tables: SyncTableAck[];
   serverTime: string;
-  latestEventId: bigint;
 }
 
 export interface SyncPullBatchRequest {
   outletId: string;
-  afterEventId: bigint;
   tables: string[];
   limit: number;
-  pageCursor: string;
+  cursor: string;
 }
 
 export interface SyncPullBatchResponse {
@@ -263,15 +259,13 @@ export interface SyncPullBatchResponse {
   products: products_changes | undefined;
   registers: registers_changes | undefined;
   staff: staff_changes | undefined;
-  latestEventId: bigint;
-  needsFullResync: boolean;
-  serverTime: string;
+  cursor: string;
   hasMore: boolean;
-  nextPageCursor: string;
+  serverTime: string;
 }
 
 function createBaseSyncStatusRequest(): SyncStatusRequest {
-  return { outletId: "", lastServerEventId: 0n };
+  return { outletId: "", cursor: "" };
 }
 
 export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
@@ -279,11 +273,8 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
-    if (message.lastServerEventId !== 0n) {
-      if (BigInt.asIntN(64, message.lastServerEventId) !== message.lastServerEventId) {
-        throw new globalThis.Error("value provided for field message.lastServerEventId of type int64 too large");
-      }
-      writer.uint32(16).int64(message.lastServerEventId);
+    if (message.cursor !== "") {
+      writer.uint32(18).string(message.cursor);
     }
     return writer;
   },
@@ -304,11 +295,11 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
           continue;
         }
         case 2: {
-          if (tag !== 16) {
+          if (tag !== 18) {
             break;
           }
 
-          message.lastServerEventId = reader.int64() as bigint;
+          message.cursor = reader.string();
           continue;
         }
       }
@@ -323,7 +314,7 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
   fromJSON(object: any): SyncStatusRequest {
     return {
       outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
-      lastServerEventId: isSet(object.lastServerEventId) ? BigInt(object.lastServerEventId) : 0n,
+      cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : "",
     };
   },
 
@@ -332,8 +323,8 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
     if (message.outletId !== "") {
       obj.outletId = message.outletId;
     }
-    if (message.lastServerEventId !== 0n) {
-      obj.lastServerEventId = message.lastServerEventId.toString();
+    if (message.cursor !== "") {
+      obj.cursor = message.cursor;
     }
     return obj;
   },
@@ -344,20 +335,13 @@ export const SyncStatusRequest: MessageFns<SyncStatusRequest> = {
   fromPartial(object: DeepPartial<SyncStatusRequest>): SyncStatusRequest {
     const message = createBaseSyncStatusRequest();
     message.outletId = object.outletId ?? "";
-    message.lastServerEventId = object.lastServerEventId ?? 0n;
+    message.cursor = object.cursor ?? "";
     return message;
   },
 };
 
 function createBaseSyncStatusResponse(): SyncStatusResponse {
-  return {
-    changedTables: [],
-    hasChanges: false,
-    latestEventId: 0n,
-    needsFullResync: false,
-    oldestAvailableEventId: 0n,
-    hasOldestAvailableEventId: false,
-  };
+  return { changedTables: [], hasChanges: false, cursor: "" };
 }
 
 export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
@@ -368,23 +352,8 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
     if (message.hasChanges !== false) {
       writer.uint32(16).bool(message.hasChanges);
     }
-    if (message.latestEventId !== 0n) {
-      if (BigInt.asIntN(64, message.latestEventId) !== message.latestEventId) {
-        throw new globalThis.Error("value provided for field message.latestEventId of type int64 too large");
-      }
-      writer.uint32(24).int64(message.latestEventId);
-    }
-    if (message.needsFullResync !== false) {
-      writer.uint32(32).bool(message.needsFullResync);
-    }
-    if (message.oldestAvailableEventId !== 0n) {
-      if (BigInt.asIntN(64, message.oldestAvailableEventId) !== message.oldestAvailableEventId) {
-        throw new globalThis.Error("value provided for field message.oldestAvailableEventId of type int64 too large");
-      }
-      writer.uint32(40).int64(message.oldestAvailableEventId);
-    }
-    if (message.hasOldestAvailableEventId !== false) {
-      writer.uint32(48).bool(message.hasOldestAvailableEventId);
+    if (message.cursor !== "") {
+      writer.uint32(26).string(message.cursor);
     }
     return writer;
   },
@@ -413,35 +382,11 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
           continue;
         }
         case 3: {
-          if (tag !== 24) {
+          if (tag !== 26) {
             break;
           }
 
-          message.latestEventId = reader.int64() as bigint;
-          continue;
-        }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.needsFullResync = reader.bool();
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
-
-          message.oldestAvailableEventId = reader.int64() as bigint;
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
-
-          message.hasOldestAvailableEventId = reader.bool();
+          message.cursor = reader.string();
           continue;
         }
       }
@@ -459,12 +404,7 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
         ? object.changedTables.map((e: any) => globalThis.String(e))
         : [],
       hasChanges: isSet(object.hasChanges) ? globalThis.Boolean(object.hasChanges) : false,
-      latestEventId: isSet(object.latestEventId) ? BigInt(object.latestEventId) : 0n,
-      needsFullResync: isSet(object.needsFullResync) ? globalThis.Boolean(object.needsFullResync) : false,
-      oldestAvailableEventId: isSet(object.oldestAvailableEventId) ? BigInt(object.oldestAvailableEventId) : 0n,
-      hasOldestAvailableEventId: isSet(object.hasOldestAvailableEventId)
-        ? globalThis.Boolean(object.hasOldestAvailableEventId)
-        : false,
+      cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : "",
     };
   },
 
@@ -476,17 +416,8 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
     if (message.hasChanges !== false) {
       obj.hasChanges = message.hasChanges;
     }
-    if (message.latestEventId !== 0n) {
-      obj.latestEventId = message.latestEventId.toString();
-    }
-    if (message.needsFullResync !== false) {
-      obj.needsFullResync = message.needsFullResync;
-    }
-    if (message.oldestAvailableEventId !== 0n) {
-      obj.oldestAvailableEventId = message.oldestAvailableEventId.toString();
-    }
-    if (message.hasOldestAvailableEventId !== false) {
-      obj.hasOldestAvailableEventId = message.hasOldestAvailableEventId;
+    if (message.cursor !== "") {
+      obj.cursor = message.cursor;
     }
     return obj;
   },
@@ -498,10 +429,7 @@ export const SyncStatusResponse: MessageFns<SyncStatusResponse> = {
     const message = createBaseSyncStatusResponse();
     message.changedTables = object.changedTables?.map((e) => e) || [];
     message.hasChanges = object.hasChanges ?? false;
-    message.latestEventId = object.latestEventId ?? 0n;
-    message.needsFullResync = object.needsFullResync ?? false;
-    message.oldestAvailableEventId = object.oldestAvailableEventId ?? 0n;
-    message.hasOldestAvailableEventId = object.hasOldestAvailableEventId ?? false;
+    message.cursor = object.cursor ?? "";
     return message;
   },
 };
@@ -3825,6 +3753,7 @@ export const staff_changes: MessageFns<staff_changes> = {
 function createBaseSyncPushBatchRequest(): SyncPushBatchRequest {
   return {
     outletId: "",
+    clientId: "",
     idempotencyKey: "",
     assets: undefined,
     categories: undefined,
@@ -3844,8 +3773,11 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
+    if (message.clientId !== "") {
+      writer.uint32(18).string(message.clientId);
+    }
     if (message.idempotencyKey !== "") {
-      writer.uint32(18).string(message.idempotencyKey);
+      writer.uint32(26).string(message.idempotencyKey);
     }
     if (message.assets !== undefined) {
       assets_changes.encode(message.assets, writer.uint32(82).fork()).join();
@@ -3897,6 +3829,14 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
         }
         case 2: {
           if (tag !== 18) {
+            break;
+          }
+
+          message.clientId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
             break;
           }
 
@@ -3995,6 +3935,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
   fromJSON(object: any): SyncPushBatchRequest {
     return {
       outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
+      clientId: isSet(object.clientId) ? globalThis.String(object.clientId) : "",
       idempotencyKey: isSet(object.idempotencyKey) ? globalThis.String(object.idempotencyKey) : "",
       assets: isSet(object.assets) ? assets_changes.fromJSON(object.assets) : undefined,
       categories: isSet(object.categories) ? categories_changes.fromJSON(object.categories) : undefined,
@@ -4021,6 +3962,9 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
     const obj: any = {};
     if (message.outletId !== "") {
       obj.outletId = message.outletId;
+    }
+    if (message.clientId !== "") {
+      obj.clientId = message.clientId;
     }
     if (message.idempotencyKey !== "") {
       obj.idempotencyKey = message.idempotencyKey;
@@ -4064,6 +4008,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
   fromPartial(object: DeepPartial<SyncPushBatchRequest>): SyncPushBatchRequest {
     const message = createBaseSyncPushBatchRequest();
     message.outletId = object.outletId ?? "";
+    message.clientId = object.clientId ?? "";
     message.idempotencyKey = object.idempotencyKey ?? "";
     message.assets = (object.assets !== undefined && object.assets !== null)
       ? assets_changes.fromPartial(object.assets)
@@ -4100,7 +4045,7 @@ export const SyncPushBatchRequest: MessageFns<SyncPushBatchRequest> = {
 };
 
 function createBaseSyncPushBatchResponse(): SyncPushBatchResponse {
-  return { tables: [], serverTime: "", latestEventId: 0n };
+  return { tables: [], serverTime: "" };
 }
 
 export const SyncPushBatchResponse: MessageFns<SyncPushBatchResponse> = {
@@ -4110,12 +4055,6 @@ export const SyncPushBatchResponse: MessageFns<SyncPushBatchResponse> = {
     }
     if (message.serverTime !== "") {
       writer.uint32(18).string(message.serverTime);
-    }
-    if (message.latestEventId !== 0n) {
-      if (BigInt.asIntN(64, message.latestEventId) !== message.latestEventId) {
-        throw new globalThis.Error("value provided for field message.latestEventId of type int64 too large");
-      }
-      writer.uint32(24).int64(message.latestEventId);
     }
     return writer;
   },
@@ -4143,14 +4082,6 @@ export const SyncPushBatchResponse: MessageFns<SyncPushBatchResponse> = {
           message.serverTime = reader.string();
           continue;
         }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
-
-          message.latestEventId = reader.int64() as bigint;
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4164,7 +4095,6 @@ export const SyncPushBatchResponse: MessageFns<SyncPushBatchResponse> = {
     return {
       tables: globalThis.Array.isArray(object?.tables) ? object.tables.map((e: any) => SyncTableAck.fromJSON(e)) : [],
       serverTime: isSet(object.serverTime) ? globalThis.String(object.serverTime) : "",
-      latestEventId: isSet(object.latestEventId) ? BigInt(object.latestEventId) : 0n,
     };
   },
 
@@ -4176,9 +4106,6 @@ export const SyncPushBatchResponse: MessageFns<SyncPushBatchResponse> = {
     if (message.serverTime !== "") {
       obj.serverTime = message.serverTime;
     }
-    if (message.latestEventId !== 0n) {
-      obj.latestEventId = message.latestEventId.toString();
-    }
     return obj;
   },
 
@@ -4189,13 +4116,12 @@ export const SyncPushBatchResponse: MessageFns<SyncPushBatchResponse> = {
     const message = createBaseSyncPushBatchResponse();
     message.tables = object.tables?.map((e) => SyncTableAck.fromPartial(e)) || [];
     message.serverTime = object.serverTime ?? "";
-    message.latestEventId = object.latestEventId ?? 0n;
     return message;
   },
 };
 
 function createBaseSyncPullBatchRequest(): SyncPullBatchRequest {
-  return { outletId: "", afterEventId: 0n, tables: [], limit: 0, pageCursor: "" };
+  return { outletId: "", tables: [], limit: 0, cursor: "" };
 }
 
 export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
@@ -4203,20 +4129,14 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
     if (message.outletId !== "") {
       writer.uint32(10).string(message.outletId);
     }
-    if (message.afterEventId !== 0n) {
-      if (BigInt.asIntN(64, message.afterEventId) !== message.afterEventId) {
-        throw new globalThis.Error("value provided for field message.afterEventId of type int64 too large");
-      }
-      writer.uint32(16).int64(message.afterEventId);
-    }
     for (const v of message.tables) {
-      writer.uint32(26).string(v!);
+      writer.uint32(18).string(v!);
     }
     if (message.limit !== 0) {
-      writer.uint32(32).int32(message.limit);
+      writer.uint32(24).int32(message.limit);
     }
-    if (message.pageCursor !== "") {
-      writer.uint32(42).string(message.pageCursor);
+    if (message.cursor !== "") {
+      writer.uint32(34).string(message.cursor);
     }
     return writer;
   },
@@ -4237,35 +4157,27 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
           continue;
         }
         case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.afterEventId = reader.int64() as bigint;
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
+          if (tag !== 18) {
             break;
           }
 
           message.tables.push(reader.string());
           continue;
         }
-        case 4: {
-          if (tag !== 32) {
+        case 3: {
+          if (tag !== 24) {
             break;
           }
 
           message.limit = reader.int32();
           continue;
         }
-        case 5: {
-          if (tag !== 42) {
+        case 4: {
+          if (tag !== 34) {
             break;
           }
 
-          message.pageCursor = reader.string();
+          message.cursor = reader.string();
           continue;
         }
       }
@@ -4280,10 +4192,9 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
   fromJSON(object: any): SyncPullBatchRequest {
     return {
       outletId: isSet(object.outletId) ? globalThis.String(object.outletId) : "",
-      afterEventId: isSet(object.afterEventId) ? BigInt(object.afterEventId) : 0n,
       tables: globalThis.Array.isArray(object?.tables) ? object.tables.map((e: any) => globalThis.String(e)) : [],
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
-      pageCursor: isSet(object.pageCursor) ? globalThis.String(object.pageCursor) : "",
+      cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : "",
     };
   },
 
@@ -4292,17 +4203,14 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
     if (message.outletId !== "") {
       obj.outletId = message.outletId;
     }
-    if (message.afterEventId !== 0n) {
-      obj.afterEventId = message.afterEventId.toString();
-    }
     if (message.tables?.length) {
       obj.tables = message.tables;
     }
     if (message.limit !== 0) {
       obj.limit = Math.round(message.limit);
     }
-    if (message.pageCursor !== "") {
-      obj.pageCursor = message.pageCursor;
+    if (message.cursor !== "") {
+      obj.cursor = message.cursor;
     }
     return obj;
   },
@@ -4313,10 +4221,9 @@ export const SyncPullBatchRequest: MessageFns<SyncPullBatchRequest> = {
   fromPartial(object: DeepPartial<SyncPullBatchRequest>): SyncPullBatchRequest {
     const message = createBaseSyncPullBatchRequest();
     message.outletId = object.outletId ?? "";
-    message.afterEventId = object.afterEventId ?? 0n;
     message.tables = object.tables?.map((e) => e) || [];
     message.limit = object.limit ?? 0;
-    message.pageCursor = object.pageCursor ?? "";
+    message.cursor = object.cursor ?? "";
     return message;
   },
 };
@@ -4333,11 +4240,9 @@ function createBaseSyncPullBatchResponse(): SyncPullBatchResponse {
     products: undefined,
     registers: undefined,
     staff: undefined,
-    latestEventId: 0n,
-    needsFullResync: false,
-    serverTime: "",
+    cursor: "",
     hasMore: false,
-    nextPageCursor: "",
+    serverTime: "",
   };
 }
 
@@ -4373,23 +4278,14 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
     if (message.staff !== undefined) {
       staff_changes.encode(message.staff, writer.uint32(154).fork()).join();
     }
-    if (message.latestEventId !== 0n) {
-      if (BigInt.asIntN(64, message.latestEventId) !== message.latestEventId) {
-        throw new globalThis.Error("value provided for field message.latestEventId of type int64 too large");
-      }
-      writer.uint32(800).int64(message.latestEventId);
+    if (message.cursor !== "") {
+      writer.uint32(802).string(message.cursor);
     }
-    if (message.needsFullResync !== false) {
-      writer.uint32(808).bool(message.needsFullResync);
+    if (message.hasMore !== false) {
+      writer.uint32(808).bool(message.hasMore);
     }
     if (message.serverTime !== "") {
       writer.uint32(818).string(message.serverTime);
-    }
-    if (message.hasMore !== false) {
-      writer.uint32(824).bool(message.hasMore);
-    }
-    if (message.nextPageCursor !== "") {
-      writer.uint32(834).string(message.nextPageCursor);
     }
     return writer;
   },
@@ -4482,11 +4378,11 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
           continue;
         }
         case 100: {
-          if (tag !== 800) {
+          if (tag !== 802) {
             break;
           }
 
-          message.latestEventId = reader.int64() as bigint;
+          message.cursor = reader.string();
           continue;
         }
         case 101: {
@@ -4494,7 +4390,7 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
             break;
           }
 
-          message.needsFullResync = reader.bool();
+          message.hasMore = reader.bool();
           continue;
         }
         case 102: {
@@ -4503,22 +4399,6 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
           }
 
           message.serverTime = reader.string();
-          continue;
-        }
-        case 103: {
-          if (tag !== 824) {
-            break;
-          }
-
-          message.hasMore = reader.bool();
-          continue;
-        }
-        case 104: {
-          if (tag !== 834) {
-            break;
-          }
-
-          message.nextPageCursor = reader.string();
           continue;
         }
       }
@@ -4550,11 +4430,9 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
       products: isSet(object.products) ? products_changes.fromJSON(object.products) : undefined,
       registers: isSet(object.registers) ? registers_changes.fromJSON(object.registers) : undefined,
       staff: isSet(object.staff) ? staff_changes.fromJSON(object.staff) : undefined,
-      latestEventId: isSet(object.latestEventId) ? BigInt(object.latestEventId) : 0n,
-      needsFullResync: isSet(object.needsFullResync) ? globalThis.Boolean(object.needsFullResync) : false,
-      serverTime: isSet(object.serverTime) ? globalThis.String(object.serverTime) : "",
+      cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : "",
       hasMore: isSet(object.hasMore) ? globalThis.Boolean(object.hasMore) : false,
-      nextPageCursor: isSet(object.nextPageCursor) ? globalThis.String(object.nextPageCursor) : "",
+      serverTime: isSet(object.serverTime) ? globalThis.String(object.serverTime) : "",
     };
   },
 
@@ -4590,20 +4468,14 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
     if (message.staff !== undefined) {
       obj.staff = staff_changes.toJSON(message.staff);
     }
-    if (message.latestEventId !== 0n) {
-      obj.latestEventId = message.latestEventId.toString();
-    }
-    if (message.needsFullResync !== false) {
-      obj.needsFullResync = message.needsFullResync;
-    }
-    if (message.serverTime !== "") {
-      obj.serverTime = message.serverTime;
+    if (message.cursor !== "") {
+      obj.cursor = message.cursor;
     }
     if (message.hasMore !== false) {
       obj.hasMore = message.hasMore;
     }
-    if (message.nextPageCursor !== "") {
-      obj.nextPageCursor = message.nextPageCursor;
+    if (message.serverTime !== "") {
+      obj.serverTime = message.serverTime;
     }
     return obj;
   },
@@ -4643,11 +4515,9 @@ export const SyncPullBatchResponse: MessageFns<SyncPullBatchResponse> = {
     message.staff = (object.staff !== undefined && object.staff !== null)
       ? staff_changes.fromPartial(object.staff)
       : undefined;
-    message.latestEventId = object.latestEventId ?? 0n;
-    message.needsFullResync = object.needsFullResync ?? false;
-    message.serverTime = object.serverTime ?? "";
+    message.cursor = object.cursor ?? "";
     message.hasMore = object.hasMore ?? false;
-    message.nextPageCursor = object.nextPageCursor ?? "";
+    message.serverTime = object.serverTime ?? "";
     return message;
   },
 };

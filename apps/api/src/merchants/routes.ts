@@ -9,7 +9,6 @@ import { eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
-import { recordSyncEvent } from "../lib/sync-events";
 import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
 import { encodeMerchant, encodeSessionMerchant } from "../protobuf/domain";
@@ -52,18 +51,6 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
           role: "owner",
           userId: session.userId,
         });
-
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "insert",
-            rowId: created.id,
-            scopeId: created.id,
-            scopeType: "merchant",
-            tableName: "merchants",
-          },
-          tx
-        );
 
         return created;
       });

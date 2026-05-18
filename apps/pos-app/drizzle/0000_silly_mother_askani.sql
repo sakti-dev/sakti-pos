@@ -199,6 +199,12 @@ CREATE TABLE `staff` (
 	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `sync_client_identity` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`client_id` text NOT NULL,
+	`created_at` text NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `sync_cursors` (
 	`scope_type` text NOT NULL,
 	`scope_id` text NOT NULL,

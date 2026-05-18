@@ -1,8 +1,8 @@
 use prost::Message;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use sqlx::{Row, SqliteConnection, SqlitePool};
 use std::collections::{HashMap, HashSet};
-use uuid::Uuid;
 
 use crate::time_utils::current_time_iso_string;
 
@@ -70,6 +70,19 @@ pub(super) fn debug_row_summary(row: &Value) -> String {
     }
 
     serde_json::to_string(&Value::Object(summary)).unwrap_or_else(|_| "<invalid-json>".to_string())
+}
+
+pub(super) fn generate_idempotency_key_from_outbox_ids(outbox_ids: &[String]) -> String {
+    let mut sorted_ids = outbox_ids.to_vec();
+    sorted_ids.sort();
+
+    let mut hasher = Sha256::new();
+    for id in sorted_ids {
+        hasher.update(id.as_bytes());
+        hasher.update([0]);
+    }
+
+    format!("{:x}", hasher.finalize())
 }
 
 pub(super) fn build_upsert_query(table: &str, columns: &[String]) -> String {
@@ -269,9 +282,13 @@ pub(super) async fn sync_push_batch_inner(
     let mut order_item_changes = super::protobuf::TablePushChanges::default();
     let mut outlet_product_changes = super::protobuf::TablePushChanges::default();
     let mut staff_changes = super::protobuf::TablePushChanges::default();
+    let mut pending_outbox_ids = Vec::new();
     for table in SYNC_TABLES {
         let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
-        let changes = read_unsynced_table_changes_from_outbox(pool, table, filter_value).await?;
+        let outbox_changes =
+            read_unsynced_table_changes_from_outbox(pool, table, filter_value).await?;
+        let changes = outbox_changes.changes;
+        pending_outbox_ids.extend(outbox_changes.outbox_ids);
         let row_count = changes.changed_rows.len() + changes.deleted_ids.len();
         log::info!(
             "[RUST] [SYNC:TRACE] push_batch: table={}, changed_rows={}, deleted={}",
@@ -308,9 +325,11 @@ pub(super) async fn sync_push_batch_inner(
         "[RUST] [SYNC:TRACE] push_batch: sending to {}/api/sync/push",
         api_url
     );
-    let idempotency_key = Uuid::new_v4().to_string();
+    let client_id = super::client_identity::get_or_create_sync_client_id(pool).await?;
+    let idempotency_key = generate_idempotency_key_from_outbox_ids(&pending_outbox_ids);
     let request = build_sync_push_batch_request(
         outlet_id,
+        &client_id,
         &idempotency_key,
         Some(build_asset_changes(&asset_changes)),
         Some(build_category_changes(&category_changes)),

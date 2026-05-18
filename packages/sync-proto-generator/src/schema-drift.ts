@@ -19,6 +19,7 @@ export interface CompareSyncedSchemasInput {
   apiTables: AnySQLiteTable[];
   localOnlyColumns?: string[];
   localTables: AnySQLiteTable[];
+  serverOnlyColumns?: string[];
 }
 
 type SyncScalarType = "bool" | "int64" | "string";
@@ -70,14 +71,14 @@ function inferSyncScalarType(column: unknown): SyncScalarType {
 
 function reflectColumns(
   table: AnySQLiteTable,
-  localOnlyColumns: ReadonlySet<string>
+  excludedColumns: ReadonlySet<string>
 ): TableColumnMap {
   const columnsByColumnName = new Map<string, TableColumnInfo>();
   const columnsByPropertyName = new Map<string, TableColumnInfo>();
 
   for (const column of getTableConfig(table).columns) {
     const propertyName = resolvePropertyName(table, column);
-    if (localOnlyColumns.has(propertyName)) {
+    if (excludedColumns.has(propertyName)) {
       continue;
     }
 
@@ -194,10 +195,14 @@ function compareTableColumns(input: {
   apiTable: AnySQLiteTable;
   localOnlyColumns: ReadonlySet<string>;
   localTable: AnySQLiteTable;
+  serverOnlyColumns: ReadonlySet<string>;
 }): SchemaDriftIssue[] {
-  const { apiTable, localOnlyColumns, localTable } = input;
+  const { apiTable, localOnlyColumns, localTable, serverOnlyColumns } = input;
   const tableName = getTableConfig(apiTable).name;
-  const apiColumns = reflectColumns(apiTable, localOnlyColumns);
+  const apiColumns = reflectColumns(
+    apiTable,
+    new Set([...localOnlyColumns, ...serverOnlyColumns])
+  );
   const localColumns = reflectColumns(localTable, localOnlyColumns);
   const issues: SchemaDriftIssue[] = [];
 
@@ -221,9 +226,16 @@ function compareTablePair(input: {
   apiTable: AnySQLiteTable | undefined;
   localOnlyColumns: ReadonlySet<string>;
   localTable: AnySQLiteTable | undefined;
+  serverOnlyColumns: ReadonlySet<string>;
   tableName: string;
 }): SchemaDriftIssue[] {
-  const { apiTable, localOnlyColumns, localTable, tableName } = input;
+  const {
+    apiTable,
+    localOnlyColumns,
+    localTable,
+    serverOnlyColumns,
+    tableName,
+  } = input;
 
   if (!(apiTable || localTable)) {
     return [];
@@ -249,13 +261,19 @@ function compareTablePair(input: {
     ];
   }
 
-  return compareTableColumns({ apiTable, localOnlyColumns, localTable });
+  return compareTableColumns({
+    apiTable,
+    localOnlyColumns,
+    localTable,
+    serverOnlyColumns,
+  });
 }
 
 export function compareSyncedSchemas(
   input: CompareSyncedSchemasInput
 ): SchemaDriftIssue[] {
   const localOnlyColumns = new Set(input.localOnlyColumns ?? []);
+  const serverOnlyColumns = new Set(input.serverOnlyColumns ?? []);
   const apiTables = new Map<string, AnySQLiteTable>();
   const localTables = new Map<string, AnySQLiteTable>();
 
@@ -279,6 +297,7 @@ export function compareSyncedSchemas(
         apiTable: apiTables.get(tableName),
         localOnlyColumns,
         localTable: localTables.get(tableName),
+        serverOnlyColumns,
         tableName,
       })
     );

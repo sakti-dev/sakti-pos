@@ -102,6 +102,14 @@ export const syncOutbox = sqliteTable("sync_outbox", {
   syncedAt: text("synced_at"),
 });
 
+export const syncClientIdentity = sqliteTable("sync_client_identity", {
+  id: integer("id").primaryKey(),
+  clientId: text("client_id").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 export const syncCursors = sqliteTable("sync_cursors", {
   scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
   scopeId: text("scope_id").notNull(),

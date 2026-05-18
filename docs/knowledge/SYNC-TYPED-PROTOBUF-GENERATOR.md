@@ -29,7 +29,7 @@ The generator no longer has compare mode. Drift tests compare fresh generator ou
 ## How To Regenerate
 
 ```bash
-cd packages/protobuf && bunx sync-proto-generator generate
+cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate
 ```
 
 This writes all sync artifacts to their runtime paths. Run it after changing synced Drizzle schema exports or generator writers.
@@ -68,7 +68,7 @@ Use this flow when a column is added on the API and POS app side and should sync
 4. If it should sync, export it through the synced schema modules used by `packages/protobuf/sync-proto.config.ts`.
 5. Field order follows Drizzle column order. Append new synced columns unless you intentionally need a reviewed field-number change.
 6. For money fields, use the explicit `MinorUnits` Drizzle property name and matching `_minor_units` SQLite column name. Do not keep alias mappings for old hidden-unit field names.
-7. Run `cd packages/protobuf && bunx sync-proto-generator generate`.
+7. Run `cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate`.
 8. Review the generated diff in the three runtime files. Confirm the new field appears in the row message and both TypeScript/Rust mappers.
 9. Update handwritten sync code only if the column needs custom behavior, validation, normalization, or conflict handling.
 10. Run the required verification commands below.
@@ -90,7 +90,7 @@ Commit these files together when a synced column changes:
 
 1. Add the Drizzle table to `packages/database`.
 2. Export the table from the local/API synced schema modules used by `packages/protobuf/sync-proto.config.ts`.
-3. Run `cd packages/protobuf && bunx sync-proto-generator generate`.
+3. Run `cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate`.
 4. Update the handwritten API service and Rust callers to handle the new table.
 5. Run all tests.
 
@@ -99,6 +99,8 @@ Commit these files together when a synced column changes:
 The API push path is partially generated now. Keep these rules in mind when touching `apps/api/src/sync/service.ts`:
 
 - Generated adapters own table-specific row mapping, conflict reads, upserts, and soft deletes.
+- `SyncPushBatchRequest.clientId` is a stable POS installation UUID. API idempotency is keyed by `clientId + idempotencyKey`; do not key retries by outlet because one outlet can have multiple devices.
+- POS push idempotency keys must be deterministic for the pending outbox rows being sent. Do not generate a fresh random key for each network attempt.
 - Reads and writes must be chunked by bind parameter count, not by arbitrary row count alone.
 - Conflict reads should stay narrow: `id` plus the row timestamp used for conflict resolution.
 - Deleted IDs do not need a pre-read existence filter.
@@ -116,7 +118,7 @@ Prepared statements are only candidates for fixed-shape metadata lookups outside
 ## Required Verification Commands
 
 ```bash
-cd packages/protobuf && bunx sync-proto-generator generate
+cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate
 bun run sync-proto:check
 bun test packages/sync-proto-generator/src
 bun test apps/api/src/sync/__test__/protobuf.test.ts

@@ -53,6 +53,7 @@ mod tests {
         };
         let request = build_sync_push_batch_request(
             "outlet-1",
+            "client-1",
             "sync-request-1",
             None,
             Some(build_category_changes(&TablePushChanges {
@@ -77,6 +78,7 @@ mod tests {
         );
 
         assert_eq!(request.outlet_id, "outlet-1");
+        assert_eq!(request.client_id, "client-1");
         assert_eq!(request.idempotency_key, "sync-request-1");
         assert_eq!(
             request
@@ -367,6 +369,7 @@ mod tests {
 
         let request = build_sync_push_batch_request(
             "outlet-1",
+            "client-1",
             "sync-all-tables",
             Some(assets),
             Some(categories),

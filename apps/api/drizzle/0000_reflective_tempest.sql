@@ -159,8 +159,7 @@ CREATE TABLE `staff` (
 --> statement-breakpoint
 CREATE TABLE `sync_batch_requests` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`scope_type` text NOT NULL,
-	`scope_id` text NOT NULL,
+	`client_id` text NOT NULL,
 	`idempotency_key` text NOT NULL,
 	`request_hash` text NOT NULL,
 	`response_json` text NOT NULL,
@@ -170,7 +169,7 @@ CREATE TABLE `sync_batch_requests` (
 	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `sync_batch_requests_scope_idempotency_key_unique` ON `sync_batch_requests` (`scope_type`,`scope_id`,`idempotency_key`);--> statement-breakpoint
+CREATE UNIQUE INDEX `sync_batch_requests_client_id_idempotency_key_unique` ON `sync_batch_requests` (`client_id`,`idempotency_key`);--> statement-breakpoint
 CREATE TABLE `sync_events` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`scope_type` text NOT NULL,

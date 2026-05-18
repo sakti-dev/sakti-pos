@@ -6,7 +6,6 @@ import {
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
-import { recordSyncEvent } from "../lib/sync-events";
 import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { encodeOutlet, encodeRegister } from "../protobuf/domain";
 
@@ -57,18 +56,6 @@ export const publicRegisterRoutes = new Elysia({ prefix: "/api/registers" })
           set.status = 400;
           return { error: "Pairing code expired" };
         }
-
-        await recordSyncEvent(
-          {
-            changedAt: now,
-            operation: "update",
-            rowId: updatedRegister.id,
-            scopeId: updatedRegister.outletId,
-            scopeType: "outlet",
-            tableName: "registers",
-          },
-          tx
-        );
 
         const [outlet] = await tx
           .select()
