@@ -1142,6 +1142,54 @@ describe("handleRowStatePullBatch", () => {
       }),
     ]);
   });
+
+  test("returns soft-deleted pull rows as deletedIds", async () => {
+    mockSelect.mockReturnValue({
+      from: vi.fn().mockImplementation((table: unknown) => {
+        const tableName = getTableConfig(table as never).name;
+        const rows =
+          tableName === "products"
+            ? [
+                {
+                  deletedAt: "2026-05-17T00:00:00.000Z",
+                  id: "product-deleted",
+                  merchantId: "merchant-1",
+                  syncUpdatedAt: 10,
+                  updatedAt: "2026-05-17T00:00:00.000Z",
+                },
+                {
+                  deletedAt: null,
+                  id: "product-active",
+                  merchantId: "merchant-1",
+                  syncUpdatedAt: 11,
+                  updatedAt: "2026-05-18T00:00:00.000Z",
+                },
+              ]
+            : [];
+
+        return {
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue(rows),
+            }),
+          }),
+        };
+      }),
+    });
+
+    const result = await handleRowStatePullBatch({
+      cursor: "",
+      limit: 250,
+      merchantId: "merchant-1",
+      outletId: "outlet-1",
+      tables: ["products"],
+    });
+
+    expect(result.products?.changedRows).toEqual([
+      expect.objectContaining({ id: "product-active" }),
+    ]);
+    expect(result.products?.deletedIds).toEqual(["product-deleted"]);
+  });
 });
 
 describe("handleRowStateSyncStatus", () => {

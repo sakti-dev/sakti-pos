@@ -975,6 +975,11 @@ async function selectRowStateCandidates(input: {
   return candidates;
 }
 
+function hasDeletedAt(row: Record<string, unknown>): boolean {
+  const value = row.deletedAt;
+  return value !== null && value !== undefined && value !== "";
+}
+
 function buildRowStatePullBatchResult(input: {
   candidates: RowStateCandidate[];
   limit: number;
@@ -1004,7 +1009,13 @@ function buildRowStatePullBatchResult(input: {
       changedRows: [],
       deletedIds: [],
     };
-    tableChanges.changedRows.push(candidate.row);
+
+    if (hasDeletedAt(candidate.row)) {
+      tableChanges.deletedIds.push(candidate.rowId);
+    } else {
+      tableChanges.changedRows.push(candidate.row);
+    }
+
     result[table] = tableChanges;
   }
 
