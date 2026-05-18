@@ -15,7 +15,7 @@ use super::protobuf::{
 };
 use super::schema::{
     camel_to_snake, get_filter_value, mark_rows_synced_by_id_tx,
-    read_unsynced_table_changes_from_outbox,
+    read_unsynced_table_changes_from_outbox_tx,
 };
 use super::sync_proto::SyncPushBatchResponse;
 use super::SYNC_TABLES;
@@ -456,10 +456,14 @@ pub(super) async fn sync_push_batch_inner(
     );
 
     let mut pending_tables: Vec<PendingTablePush> = Vec::new();
+
+    let mut read_tx = pool.begin().await.map_err(|e| {
+        format!("Failed to begin outbox read transaction: {}", e)
+    })?;
     for table in SYNC_TABLES {
         let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
         let outbox_changes =
-            read_unsynced_table_changes_from_outbox(pool, table, filter_value).await?;
+            read_unsynced_table_changes_from_outbox_tx(&mut read_tx, table, filter_value).await?;
         let changes = outbox_changes.changes;
         let row_count = changes.changed_rows.len() + changes.deleted_ids.len();
         log::info!(
@@ -484,6 +488,9 @@ pub(super) async fn sync_push_batch_inner(
             outbox_ids_by_row_id: outbox_changes.outbox_ids_by_row_id,
         });
     }
+    read_tx.commit().await.map_err(|e| {
+        format!("Failed to commit outbox read transaction: {}", e)
+    })?;
 
     if pending_tables.is_empty() {
         return Ok(PushResult {

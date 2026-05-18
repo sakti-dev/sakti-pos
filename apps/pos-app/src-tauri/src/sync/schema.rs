@@ -162,6 +162,20 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
     table: &str,
     filter_value: &str,
 ) -> Result<TableOutboxChanges, String> {
+    let mut conn = pool.acquire().await.map_err(|e| {
+        format!(
+            "Failed to acquire connection for outbox read {}: {}",
+            table, e
+        )
+    })?;
+    read_unsynced_table_changes_from_outbox_tx(&mut conn, table, filter_value).await
+}
+
+pub(super) async fn read_unsynced_table_changes_from_outbox_tx(
+    conn: &mut SqliteConnection,
+    table: &str,
+    filter_value: &str,
+) -> Result<TableOutboxChanges, String> {
     let query = format!(
         "SELECT t.*, o.id AS __sync_outbox_id, o.operation AS __sync_operation, o.row_id AS __sync_row_id
          FROM sync_outbox o
@@ -172,7 +186,7 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
     let rows = sqlx::query(&query)
         .bind(table)
         .bind(filter_value)
-        .fetch_all(pool)
+        .fetch_all(&mut *conn)
         .await
         .map_err(|e| {
             format!(

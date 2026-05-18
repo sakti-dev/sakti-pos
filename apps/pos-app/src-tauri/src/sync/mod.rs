@@ -451,6 +451,32 @@ mod tests {
     }
 
     #[test]
+    fn read_unsynced_changes_accepts_transaction_connection() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool_with_outbox().await;
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES ('o1', 'products', 'p1', 'insert', 'merchant', 'merchant-1', '2026-05-17T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("outbox insert");
+
+            let mut tx = pool.begin().await.expect("tx");
+            let result = super::schema::read_unsynced_table_changes_from_outbox_tx(
+                &mut tx,
+                "products",
+                "merchant-1",
+            )
+            .await
+            .expect("read");
+
+            assert_eq!(result.outbox_ids_by_row_id.len(), 1);
+            tx.rollback().await.expect("rollback");
+        });
+    }
+
+    #[test]
     fn chunk_push_changes_splits_single_large_table() {
         let mut ids = HashMap::new();
         let mut changes = super::protobuf::TablePushChanges::default();
