@@ -1,4 +1,4 @@
-# Public Tauri Sync Plugin Implementation Plan
+# Baresync Public Tauri Sync Plugin Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -53,19 +53,37 @@ This should not become a generic ORM, a generic Tauri SQLite plugin, or a databa
 
 ### Package Names
 
-Use temporary internal names until publishing is decided:
+Use `baresync` as the public product name. During implementation this repo can use internal workspace aliases until publish metadata and release automation are ready.
 
-- JS workspace package: `packages/sync`
-- Public npm name later: `@sakti/sync`
-- Rust core crate: `crates/sakti-sync-core`
-- Rust Tauri plugin crate: `crates/tauri-plugin-sakti-sync`
-- Optional generated Rust crate: `crates/sakti-sync-generated`
+- JS workspace package: `packages/baresync`
+- Public npm package: `baresync`
+- CLI binary: `baresync`
+- Internal workspace alias before publish: `@repo/baresync`
+- Rust core crate: `crates/baresync-core`
+- Rust Tauri plugin crate: `crates/tauri-plugin-baresync`
+- Optional generated Rust crate: `crates/baresync-generated`
 
-Do not rename the public package to the final npm name until we are ready for publishing metadata, docs, and semver policy.
+Do not publish the package until docs, semver policy, license, exports, and release automation are ready. Internal import aliases may remain temporary, but public examples should already use the final `baresync` naming.
+
+Registry status as of May 19, 2026:
+
+- `npm view baresync name version --json` returned `E404`, so the npm package name appeared unclaimed.
+- `cargo search baresync --limit 10` returned no matches, so the Cargo naming family appeared unclaimed.
+
+This is not a permanent guarantee. Phase 0 must re-check registry availability before Phase 1 creates published package metadata. If the name becomes unavailable, choose the fallback before implementation starts, not after imports and crate names have spread through the codebase.
+
+Fallback names, in preference order:
+
+- npm: `baresync`
+- npm scoped fallback: `@saktipos/baresync`
+- npm organization fallback: `@baresync/core`
+- Rust core crate: `baresync-core`
+- Rust plugin crate: `tauri-plugin-baresync`
+- Rust fallback prefix: `sakti-baresync-*`
 
 ### JS Subpath Exports
 
-`packages/sync/package.json` should expose:
+`packages/baresync/package.json` should expose:
 
 ```json
 {
@@ -79,12 +97,12 @@ Do not rename the public package to the final npm name until we are ready for pu
     "./limits": "./src/limits.ts"
   },
   "bin": {
-    "sakti-sync": "./src/cli.ts"
+    "baresync": "./src/cli.ts"
   }
 }
 ```
 
-Default docs should use `@sakti/sync`; implementation can use `@repo/sync` until publish.
+Default docs should use `baresync`; implementation can use `@repo/baresync` until publish.
 
 ### Default Server Primitive Example
 
@@ -97,7 +115,7 @@ import {
   encodeSyncResponse,
   orderPushChanges,
   validatePushEnvelope,
-} from "@sakti/sync/server/primitives";
+} from "baresync/server/primitives";
 
 const idempotency = createIdempotencyGuard({ db });
 
@@ -155,7 +173,7 @@ export async function pushRoute(request: Request, session: Session) {
 Batteries-included mode is optional. Use it when cloud and local schemas are a 1:1 logical sync model and the generated operation semantics are enough.
 
 ```ts
-import { createSyncClient, syncSchema, syncedTable } from "@sakti/sync";
+import { createSyncClient, syncSchema, syncedTable } from "baresync";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const categories = syncedTable(
@@ -202,7 +220,7 @@ import {
   defineSyncContract,
   defineSyncedTable,
   generateSyncArtifacts,
-} from "@sakti/sync";
+} from "baresync";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const categories = defineSyncedTable({
@@ -242,7 +260,7 @@ await engine.syncNow({ reason: "manual_refresh" });
 pub fn run() {
     tauri::Builder::default()
         .plugin(
-            tauri_plugin_sakti_sync::Builder::new()
+            tauri_plugin_baresync::Builder::new()
                 .api_base_url("https://api.example.com")
                 .max_push_bytes(256 * 1024)
                 .max_push_rows(2000)
@@ -257,7 +275,7 @@ pub fn run() {
 
 ```text
 crates/
-  sakti-sync-core/
+  baresync-core/
     Cargo.toml
     src/
       lib.rs
@@ -277,7 +295,7 @@ crates/
       schema.rs
       state.rs
 
-  tauri-plugin-sakti-sync/
+  tauri-plugin-baresync/
     Cargo.toml
     src/
       lib.rs
@@ -321,13 +339,13 @@ packages/
 
 Current code should move gradually from:
 
-- `packages/sync-proto-generator` into `packages/sync/src/generator`
-- `apps/pos-app/src/db/index.ts` generic Drizzle proxy wrapper into `packages/sync/src/db`
-- `apps/api/src/sync` reusable pieces into `packages/sync/src/server`
-- `apps/pos-app/src-tauri/src/db/drizzle_proxy.rs` reusable local DB/proxy pieces into `crates/sakti-sync-core`
-- `apps/pos-app/src-tauri/src/db/migrations.rs` migration discovery into `crates/sakti-sync-core`
-- `apps/pos-app/src-tauri/src/sync` reusable Rust pieces into `crates/sakti-sync-core`
-- `apps/pos-app/src-tauri/src/sync/commands.rs` Tauri-facing pieces into `crates/tauri-plugin-sakti-sync`
+- `packages/sync-proto-generator` into `packages/baresync/src/generator`
+- `apps/pos-app/src/db/index.ts` generic Drizzle proxy wrapper into `packages/baresync/src/db`
+- `apps/api/src/sync` reusable pieces into `packages/baresync/src/server`
+- `apps/pos-app/src-tauri/src/db/drizzle_proxy.rs` reusable local DB/proxy pieces into `crates/baresync-core`
+- `apps/pos-app/src-tauri/src/db/migrations.rs` migration discovery into `crates/baresync-core`
+- `apps/pos-app/src-tauri/src/sync` reusable Rust pieces into `crates/baresync-core`
+- `apps/pos-app/src-tauri/src/sync/commands.rs` Tauri-facing pieces into `crates/tauri-plugin-baresync`
 
 Keep Sakti-specific glue in the app until the reusable layer is stable.
 
@@ -453,7 +471,7 @@ index("products_local_sync_state_idx").on(
 Generator warning example:
 
 ```text
-[sakti-sync] products is scoped by merchant_id but has no recommended sync index:
+[baresync] products is scoped by merchant_id but has no recommended sync index:
   (merchant_id, sync_updated_at, id)
 ```
 
@@ -491,15 +509,15 @@ Diagnostics should run before writing generated files. If any `error` exists, ge
 CLI commands:
 
 ```bash
-sakti-sync doctor
-sakti-sync generate --check
-sakti-sync generate --warnings-as-errors
+baresync doctor
+baresync generate --check
+baresync generate --warnings-as-errors
 ```
 
 Diagnostic output should be compact but useful:
 
 ```text
-[sakti-sync] ERROR SYNC_SCHEMA_MISSING_SCOPE_COLUMN
+[baresync] ERROR SYNC_SCHEMA_MISSING_SCOPE_COLUMN
 Table: products
 Column: merchant_id
 Why: batteries-included sync needs a trusted server-side scope column for pull filters and scoped deletes.
@@ -620,7 +638,7 @@ import {
   encodeSyncResponse,
   orderPushChanges,
   validatePushEnvelope,
-} from "@sakti/sync/server/primitives";
+} from "baresync/server/primitives";
 
 const idempotency = createIdempotencyGuard({ db });
 
@@ -699,7 +717,7 @@ The user should not pass `syncBatchRequests` into `createIdempotencyGuard`. The 
 Schema usage:
 
 ```ts
-import { syncServerSchema } from "@sakti/sync/schema";
+import { syncServerSchema } from "baresync/schema";
 
 export const schema = {
   categories,
@@ -725,7 +743,7 @@ The guard owns:
 The server package should also provide a safe cleanup primitive for this table:
 
 ```ts
-import { cleanupSyncBatchRequests } from "@sakti/sync/server/primitives";
+import { cleanupSyncBatchRequests } from "baresync/server/primitives";
 
 const result = await cleanupSyncBatchRequests({
   db,
@@ -802,7 +820,7 @@ Use low-level primitives instead when the app needs:
 - hard deletes or delete semantics that differ by table
 
 ```ts
-import { createSyncServer } from "@sakti/sync/server/batteries";
+import { createSyncServer } from "baresync/server/batteries";
 
 const syncServer = createSyncServer({
   db,
@@ -905,7 +923,7 @@ For backward compatibility, Sakti POS can keep using the existing command names 
 The JS package should expose a helper like this:
 
 ```ts
-import { createTauriDrizzleDatabase } from "@sakti/sync/db";
+import { createTauriDrizzleDatabase } from "baresync/db";
 
 export const db = createTauriDrizzleDatabase({
   schema,
@@ -998,9 +1016,9 @@ Use Bun/Vitest with an in-memory or temporary SQLite/libSQL database. The tests 
 Example location:
 
 ```text
-packages/sync/src/server/__test__/simulation.test.ts
-packages/sync/src/server/__test__/idempotency.test.ts
-packages/sync/src/server/__test__/encoding-fixtures.test.ts
+packages/baresync/src/server/__test__/simulation.test.ts
+packages/baresync/src/server/__test__/idempotency.test.ts
+packages/baresync/src/server/__test__/encoding-fixtures.test.ts
 ```
 
 Minimum scenarios:
@@ -1023,13 +1041,13 @@ Minimum scenarios:
 
 ### Rust Local Engine Simulation
 
-Use `cargo test` against `sakti-sync-core` with temporary SQLite databases and a fake HTTP client. This should test local sync behavior without Tauri, Android, WebView, or adb.
+Use `cargo test` against `baresync-core` with temporary SQLite databases and a fake HTTP client. This should test local sync behavior without Tauri, Android, WebView, or adb.
 
 Example location:
 
 ```text
-crates/sakti-sync-core/tests/simulation.rs
-crates/sakti-sync-core/tests/fixtures.rs
+crates/baresync-core/tests/simulation.rs
+crates/baresync-core/tests/fixtures.rs
 ```
 
 Minimum scenarios:
@@ -1053,10 +1071,10 @@ Create deterministic fixtures that both JS and Rust tests consume. This catches 
 Example location:
 
 ```text
-packages/sync/fixtures/sync/category-product-push.json
-packages/sync/fixtures/sync/category-product-pull.json
-packages/sync/fixtures/sync/server-delete.json
-packages/sync/fixtures/sync/server-wins.json
+packages/baresync/fixtures/sync/category-product-push.json
+packages/baresync/fixtures/sync/category-product-pull.json
+packages/baresync/fixtures/sync/server-delete.json
+packages/baresync/fixtures/sync/server-wins.json
 ```
 
 For protobuf mode, generated binary fixtures may be useful, but JSON fixtures should be canonical. Protobuf tests can encode/decode from the JSON fixture and compare normalized objects.
@@ -1094,10 +1112,10 @@ If direct Rust-to-JS test orchestration becomes too heavy, use fixture-driven fa
 Normal CI should run:
 
 ```bash
-bun test packages/sync/src/server
-bun test packages/sync/src/tauri
-cargo test -p sakti-sync-core
-cargo test -p tauri-plugin-sakti-sync
+bun test packages/baresync/src/server
+bun test packages/baresync/src/tauri
+cargo test -p baresync-core
+cargo test -p tauri-plugin-baresync
 bun run sync-proto:check
 ```
 
@@ -1121,7 +1139,7 @@ Test Tauri command functions on the host by calling command handlers with test s
 Example location:
 
 ```text
-crates/tauri-plugin-sakti-sync/tests/commands.rs
+crates/tauri-plugin-baresync/tests/commands.rs
 ```
 
 Minimum scenarios:
@@ -1142,7 +1160,7 @@ Test the JS package and Sakti app store with mocked Tauri `invoke`. This catches
 Example location:
 
 ```text
-packages/sync/src/tauri/__test__/client.test.ts
+packages/baresync/src/tauri/__test__/client.test.ts
 apps/pos-app/src/store/__test__/sync.test.ts
 apps/pos-app/src/components/__test__/sync-status.test.tsx
 ```
@@ -1228,7 +1246,14 @@ Android smoke rules:
 1. Run the current focused verification suite and record the baseline.
 2. Confirm `git status --short` is clean or document existing unrelated changes.
 3. Add a short extraction tracker to this plan as implementation proceeds.
-4. Do not start moving files until the baseline passes.
+4. Re-check registry availability before creating package metadata:
+   - `npm view baresync name version --json`
+   - `cargo search baresync --limit 10`
+   - `cargo search baresync-core --limit 10`
+   - `cargo search tauri-plugin-baresync --limit 10`
+5. If any public name is taken, update this plan and every Phase 1 package/crate path before implementation starts.
+6. If the names are still available and publishing is intended, reserve them before the public repository announcement.
+7. Do not start moving files until the baseline passes and package naming is settled.
 
 **Verification:**
 
@@ -1238,31 +1263,35 @@ bun test apps/pos-app/src/db/__test__/sync-schema.test.ts apps/pos-app/src/store
 cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 bun run sync-proto:check
 bun x ultracite check
+npm view baresync name version --json || true
+cargo search baresync --limit 10
+cargo search baresync-core --limit 10
+cargo search tauri-plugin-baresync --limit 10
 ```
 
 ## Phase 1: Create Package And Crate Shells
 
 **Files:**
 
-- Create: `packages/sync/package.json`
-- Create: `packages/sync/tsconfig.json`
-- Create: `packages/sync/src/index.ts`
-- Create: `packages/sync/src/limits.ts`
-- Create: `crates/sakti-sync-core/Cargo.toml`
-- Create: `crates/sakti-sync-core/src/lib.rs`
-- Create: `crates/tauri-plugin-sakti-sync/Cargo.toml`
-- Create: `crates/tauri-plugin-sakti-sync/src/lib.rs`
+- Create: `packages/baresync/package.json`
+- Create: `packages/baresync/tsconfig.json`
+- Create: `packages/baresync/src/index.ts`
+- Create: `packages/baresync/src/limits.ts`
+- Create: `crates/baresync-core/Cargo.toml`
+- Create: `crates/baresync-core/src/lib.rs`
+- Create: `crates/tauri-plugin-baresync/Cargo.toml`
+- Create: `crates/tauri-plugin-baresync/src/lib.rs`
 - Modify: root `package.json`
 - Create or Modify: root `Cargo.toml`
 - Modify: `apps/pos-app/src-tauri/Cargo.toml`
 
 **Tasks:**
 
-1. Add `packages/sync` to the Bun workspace through existing `packages/*` coverage.
+1. Add `packages/baresync` to the Bun workspace through existing `packages/*` coverage.
 2. Create a root Cargo workspace with members:
    - `apps/pos-app/src-tauri`
-   - `crates/sakti-sync-core`
-   - `crates/tauri-plugin-sakti-sync`
+   - `crates/baresync-core`
+   - `crates/tauri-plugin-baresync`
 3. Keep the POS app compiling as its existing crate.
 4. Add empty Rust crates that compile independently.
 5. Add a minimal JS package with `limits.ts` exporting current defaults:
@@ -1272,39 +1301,39 @@ bun x ultracite check
    - `DEFAULT_DB_BIND_PARAMETER_BUDGET = 30_000`
 6. Do not move sync behavior yet.
 7. Add empty DB modules so later phases have stable import paths:
-   - `packages/sync/src/db/index.ts`
-   - `crates/sakti-sync-core/src/db.rs`
-   - `crates/sakti-sync-core/src/drizzle_proxy.rs`
-   - `crates/sakti-sync-core/src/migrations.rs`
+   - `packages/baresync/src/db/index.ts`
+   - `crates/baresync-core/src/db.rs`
+   - `crates/baresync-core/src/drizzle_proxy.rs`
+   - `crates/baresync-core/src/migrations.rs`
 
 **Verification:**
 
 ```bash
-bun x ultracite check packages/sync
+bun x ultracite check packages/baresync
 cargo test --workspace
 cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 ```
 
-## Phase 2: Extract Shared JS Sync Contract Generator Into `packages/sync`
+## Phase 2: Extract Shared JS Sync Contract Generator Into `packages/baresync`
 
 **Files:**
 
 - Move from: `packages/sync-proto-generator/src/*`
-- Move to: `packages/sync/src/generator/*`
-- Modify: `packages/sync/src/generator/index.ts`
-- Modify: `packages/sync/src/cli.ts`
+- Move to: `packages/baresync/src/generator/*`
+- Modify: `packages/baresync/src/generator/index.ts`
+- Modify: `packages/baresync/src/cli.ts`
 - Modify: `packages/protobuf/sync-proto.config.ts`
 - Modify: root `package.json`
 - Keep temporarily: `packages/sync-proto-generator/package.json`
 
 **Tasks:**
 
-1. Re-export the existing generator from `packages/sync/generator`.
+1. Re-export the existing generator from `packages/baresync/generator`.
 2. Keep `@repo/sync-proto-generator` as a compatibility wrapper at first.
-3. Move tests or duplicate targeted tests under `packages/sync/src/generator/__test__`.
-4. Update the CLI so `bun packages/sync/src/cli.ts generate` can generate the same artifacts.
+3. Move tests or duplicate targeted tests under `packages/baresync/src/generator/__test__`.
+4. Update the CLI so `bun packages/baresync/src/cli.ts generate` can generate the same artifacts.
 5. Keep `bun run sync-proto:check` passing during the transition.
-6. Once stable, make `packages/sync-proto-generator` call into `@repo/sync/generator` instead of owning logic.
+6. Once stable, make `packages/sync-proto-generator` call into `@repo/baresync/generator` instead of owning logic.
 7. Rename public docs and code comments from "proto generator" to "sync contract generator" where they describe the public package.
 8. Keep protobuf-specific filenames only for protobuf-specific generated artifacts.
 
@@ -1313,7 +1342,7 @@ cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 ```bash
 bun run sync-proto:check
 bun test packages/sync-proto-generator/src
-bun test packages/sync/src/generator
+bun test packages/baresync/src/generator
 cd packages/protobuf && bun ../sync/src/cli.ts generate
 bun run sync-proto:check
 ```
@@ -1322,12 +1351,12 @@ bun run sync-proto:check
 
 **Files:**
 
-- Create: `packages/sync/src/schema/row-state.ts`
-- Create: `packages/sync/src/schema/synced-table.ts`
-- Create: `packages/sync/src/schema/contract.ts`
-- Create: `packages/sync/src/schema/index.ts`
-- Add tests: `packages/sync/src/schema/__test__/synced-table.test.ts`
-- Add tests: `packages/sync/src/schema/__test__/contract.test.ts`
+- Create: `packages/baresync/src/schema/row-state.ts`
+- Create: `packages/baresync/src/schema/synced-table.ts`
+- Create: `packages/baresync/src/schema/contract.ts`
+- Create: `packages/baresync/src/schema/index.ts`
+- Add tests: `packages/baresync/src/schema/__test__/synced-table.test.ts`
+- Add tests: `packages/baresync/src/schema/__test__/contract.test.ts`
 
 **Tasks:**
 
@@ -1395,8 +1424,8 @@ export const productsSyncTable = defineSyncedTable({
 **Verification:**
 
 ```bash
-bun test packages/sync/src/schema
-bun x ultracite check packages/sync
+bun test packages/baresync/src/schema
+bun x ultracite check packages/baresync
 ```
 
 ## Phase 4: Extract Local SQLite, Drizzle Proxy, And Migration Runner
@@ -1406,13 +1435,13 @@ bun x ultracite check packages/sync
 - Move logic from: `apps/pos-app/src-tauri/src/db/drizzle_proxy.rs`
 - Move logic from: `apps/pos-app/src-tauri/src/db/migrations.rs`
 - Move logic from: `apps/pos-app/src/db/index.ts`
-- Move to: `crates/sakti-sync-core/src/db.rs`
-- Move to: `crates/sakti-sync-core/src/drizzle_proxy.rs`
-- Move to: `crates/sakti-sync-core/src/migrations.rs`
-- Create: `crates/tauri-plugin-sakti-sync/src/db.rs`
-- Create: `packages/sync/src/db/drizzle-proxy.ts`
-- Create: `packages/sync/src/db/migrations.ts`
-- Create: `packages/sync/src/db/index.ts`
+- Move to: `crates/baresync-core/src/db.rs`
+- Move to: `crates/baresync-core/src/drizzle_proxy.rs`
+- Move to: `crates/baresync-core/src/migrations.rs`
+- Create: `crates/tauri-plugin-baresync/src/db.rs`
+- Create: `packages/baresync/src/db/drizzle-proxy.ts`
+- Create: `packages/baresync/src/db/migrations.ts`
+- Create: `packages/baresync/src/db/index.ts`
 - Modify: `apps/pos-app/src-tauri/build.rs`
 - Modify: `apps/pos-app/src-tauri/src/db/drizzle_proxy.rs`
 - Modify: `apps/pos-app/src-tauri/src/db/migrations.rs`
@@ -1420,7 +1449,7 @@ bun x ultracite check packages/sync
 
 **Tasks:**
 
-1. Extract `MigrationFile` and deterministic SQL file discovery into `sakti-sync-core::migrations`.
+1. Extract `MigrationFile` and deterministic SQL file discovery into `baresync-core::migrations`.
 2. Extract migration manifest types:
    - `MigrationAsset`
    - `EmbeddedMigration`
@@ -1429,35 +1458,50 @@ bun x ultracite check packages/sync
    - create `__drizzle_migrations`
    - check applied migration by hash/name
    - split SQL by `--> statement-breakpoint`
-   - run each migration inside one transaction
+   - run each normal migration inside one transaction
    - record applied migration with epoch milliseconds
+   - reject or explicitly isolate statements that cannot safely run inside a SQLite transaction
 4. Keep the current tolerant behavior for already-applied statements only if documented:
    - `already exists`
    - `duplicate column`
 5. Add a stricter public default option:
    - `strictMigrations: true`
    - Sakti can start with `strictMigrations: false` if existing baseline migrations need compatibility.
-6. Extract SQLite pool setup:
+6. Add SQLite transactional DDL hardening tests before trusting the runner:
+   - successful `CREATE TABLE` migration commits and records `__drizzle_migrations`
+   - failing second statement rolls back earlier DDL in the same migration
+   - failing migration does not record `__drizzle_migrations`
+   - re-running after failure can succeed after SQL is fixed
+   - `ALTER TABLE ADD COLUMN` success is recorded once and skipped on second run
+   - `PRAGMA foreign_keys = ON` is applied outside migration transaction setup, not mixed into migration SQL
+   - unsupported transaction-control statements such as `BEGIN`, `COMMIT`, and `ROLLBACK` inside migration SQL are rejected with a clear error
+   - `VACUUM` and other known non-transactional maintenance statements are rejected or require an explicit non-transactional migration mode
+   - Android-representative SQLite version behavior is covered by either an Android smoke test or a documented local SQLite version check
+7. Add a migration runner option only if truly needed:
+   - `transactionMode: "transactional" | "nonTransactional"`
+   - default must remain `"transactional"`
+   - non-transactional mode must require an explicit per-migration annotation and loud documentation
+8. Extract SQLite pool setup:
    - create DB if missing
    - WAL journal mode
    - synchronous normal
    - busy timeout
    - `foreign_keys = ON`
    - max connections `1`
-7. Extract `SqlQuery`, `SqlRow`, `SqlStatement`, and `BatchResult`.
-8. Extract `run_sql` behavior into a core function that accepts a pool and query.
-9. Extract `run_sql_batch` behavior into a core function that runs all statements in one transaction.
-10. Extract `get_db_info` core helper.
-11. Add Tauri plugin commands for DB operations.
-12. Add JS `createTauriDrizzleDatabase({ schema, commands })` helper that wraps `drizzle-orm/sqlite-proxy`.
-13. Keep app-specific logging wrapper in Sakti, but let the public helper accept an optional logger callback.
-14. Keep current Sakti `apps/pos-app/src/db/index.ts` as a thin wrapper around `@repo/sync/db`.
-15. Ensure the sync engine and app data layer share the same `SqlitePool`.
+9. Extract `SqlQuery`, `SqlRow`, `SqlStatement`, and `BatchResult`.
+10. Extract `run_sql` behavior into a core function that accepts a pool and query.
+11. Extract `run_sql_batch` behavior into a core function that runs all statements in one transaction.
+12. Extract `get_db_info` core helper.
+13. Add Tauri plugin commands for DB operations.
+14. Add JS `createTauriDrizzleDatabase({ schema, commands })` helper that wraps `drizzle-orm/sqlite-proxy`.
+15. Keep app-specific logging wrapper in Sakti, but let the public helper accept an optional logger callback.
+16. Keep current Sakti `apps/pos-app/src/db/index.ts` as a thin wrapper around `@repo/baresync/db`.
+17. Ensure the sync engine and app data layer share the same `SqlitePool`.
 
 **API Sketch:**
 
 ```ts
-import { createTauriDrizzleDatabase } from "@sakti/sync/db";
+import { createTauriDrizzleDatabase } from "baresync/db";
 
 export const db = createTauriDrizzleDatabase({
   schema,
@@ -1487,26 +1531,27 @@ db.run_embedded_migrations(MIGRATIONS).await?;
 **Verification:**
 
 ```bash
-cargo test -p sakti-sync-core migrations
-cargo test -p sakti-sync-core drizzle_proxy
+cargo test -p baresync-core migrations
+cargo test -p baresync-core migrations::transactional_ddl
+cargo test -p baresync-core drizzle_proxy
 cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib db::
 bun test apps/pos-app/src/db/__test__/orders.test.ts apps/pos-app/src/db/__test__/sync-outbox.test.ts
-bun test packages/sync/src/db
+bun test packages/baresync/src/db
 ```
 
 ## Phase 5: Make The Generator Consume Contracts, Encodings, And Table Order
 
 **Files:**
 
-- Modify: `packages/sync/src/generator/config.ts`
-- Create: `packages/sync/src/generator/diagnostics.ts`
-- Create: `packages/sync/src/generator/manifest.ts`
-- Create: `packages/sync/src/generator/doctor.ts`
-- Modify: `packages/sync/src/generator/outputs.ts`
-- Modify: `packages/sync/src/generator/index.ts`
-- Modify: `packages/sync/src/cli.ts`
+- Modify: `packages/baresync/src/generator/config.ts`
+- Create: `packages/baresync/src/generator/diagnostics.ts`
+- Create: `packages/baresync/src/generator/manifest.ts`
+- Create: `packages/baresync/src/generator/doctor.ts`
+- Modify: `packages/baresync/src/generator/outputs.ts`
+- Modify: `packages/baresync/src/generator/index.ts`
+- Modify: `packages/baresync/src/cli.ts`
 - Modify: `packages/protobuf/sync-proto.config.ts`
-- Modify tests under: `packages/sync/src/generator/__test__`
+- Modify tests under: `packages/baresync/src/generator/__test__`
 - Modify tests under: `packages/sync-proto-generator/src/__test__` if compatibility wrapper remains
 
 **Tasks:**
@@ -1535,9 +1580,9 @@ bun test packages/sync/src/db
    - error/warning/info severity
    - actionable `why` and `fix`
    - docs link support
-12. Add `sakti-sync doctor`.
-13. Add `sakti-sync generate --check`.
-14. Add `sakti-sync generate --warnings-as-errors`.
+12. Add `baresync doctor`.
+13. Add `baresync generate --check`.
+14. Add `baresync generate --warnings-as-errors`.
 15. Add `sync-contract.manifest.json` output for compatibility/drift diagnostics.
 16. Ensure generation stops before writing files when diagnostics contain errors.
 17. Add diagnostics tests for every required error/warning code.
@@ -1547,10 +1592,10 @@ bun test packages/sync/src/db
 
 ```bash
 bun run sync-proto:check
-bun test packages/sync/src/generator
-bun test packages/sync/src/generator/__test__/diagnostics.test.ts
-bun test packages/sync/src/generator/__test__/manifest.test.ts
-bun packages/sync/src/cli.ts doctor
+bun test packages/baresync/src/generator
+bun test packages/baresync/src/generator/__test__/diagnostics.test.ts
+bun test packages/baresync/src/generator/__test__/manifest.test.ts
+bun packages/baresync/src/cli.ts doctor
 bun test packages/sync-proto-generator/src
 ```
 
@@ -1558,13 +1603,13 @@ bun test packages/sync-proto-generator/src
 
 **Files:**
 
-- Create: `packages/sync/src/server/index.ts`
-- Create: `packages/sync/src/server/limits.ts`
-- Create: `packages/sync/src/server/chunking.ts`
-- Create: `packages/sync/src/server/pull.ts`
-- Create: `packages/sync/src/server/push.ts`
-- Create: `packages/sync/src/server/idempotency.ts`
-- Create: `packages/sync/src/server/routes.ts`
+- Create: `packages/baresync/src/server/index.ts`
+- Create: `packages/baresync/src/server/limits.ts`
+- Create: `packages/baresync/src/server/chunking.ts`
+- Create: `packages/baresync/src/server/pull.ts`
+- Create: `packages/baresync/src/server/push.ts`
+- Create: `packages/baresync/src/server/idempotency.ts`
+- Create: `packages/baresync/src/server/routes.ts`
 - Modify: `apps/api/src/sync/chunking.ts`
 - Modify: `apps/api/src/sync/service.ts`
 - Modify: `apps/api/src/sync/routes.ts`
@@ -1617,22 +1662,22 @@ bun test packages/sync-proto-generator/src
 
 ```bash
 bun test apps/api/src/sync/__test__/service.test.ts apps/api/src/sync/__test__/routes-protobuf.test.ts
-bun test packages/sync/src/server
-bun x ultracite check packages/sync apps/api/src/sync
+bun test packages/baresync/src/server
+bun x ultracite check packages/baresync apps/api/src/sync
 ```
 
 ## Phase 7: Create Rust Core Engine
 
 **Files:**
 
-- Create: `crates/sakti-sync-core/src/config.rs`
-- Create: `crates/sakti-sync-core/src/limits.rs`
-- Create: `crates/sakti-sync-core/src/error.rs`
-- Create: `crates/sakti-sync-core/src/engine.rs`
-- Create: `crates/sakti-sync-core/src/http.rs`
-- Create: `crates/sakti-sync-core/src/state.rs`
-- Modify: `crates/sakti-sync-core/src/lib.rs`
-- Modify: `crates/sakti-sync-core/Cargo.toml`
+- Create: `crates/baresync-core/src/config.rs`
+- Create: `crates/baresync-core/src/limits.rs`
+- Create: `crates/baresync-core/src/error.rs`
+- Create: `crates/baresync-core/src/engine.rs`
+- Create: `crates/baresync-core/src/http.rs`
+- Create: `crates/baresync-core/src/state.rs`
+- Modify: `crates/baresync-core/src/lib.rs`
+- Modify: `crates/baresync-core/Cargo.toml`
 
 **Tasks:**
 
@@ -1655,7 +1700,7 @@ bun x ultracite check packages/sync apps/api/src/sync
 **Verification:**
 
 ```bash
-cargo test -p sakti-sync-core
+cargo test -p baresync-core
 cargo test --workspace
 ```
 
@@ -1667,10 +1712,10 @@ cargo test --workspace
 - Move logic from: `apps/pos-app/src-tauri/src/sync/outbox.rs`
 - Move logic from: `apps/pos-app/src-tauri/src/sync/local_state.rs`
 - Move logic from: `apps/pos-app/src-tauri/src/sync/push.rs`
-- Move to: `crates/sakti-sync-core/src/schema.rs`
-- Move to: `crates/sakti-sync-core/src/outbox.rs`
-- Move to: `crates/sakti-sync-core/src/cursor.rs`
-- Move to: `crates/sakti-sync-core/src/push.rs`
+- Move to: `crates/baresync-core/src/schema.rs`
+- Move to: `crates/baresync-core/src/outbox.rs`
+- Move to: `crates/baresync-core/src/cursor.rs`
+- Move to: `crates/baresync-core/src/push.rs`
 
 **Tasks:**
 
@@ -1690,8 +1735,8 @@ cargo test --workspace
 **Verification:**
 
 ```bash
-cargo test -p sakti-sync-core outbox
-cargo test -p sakti-sync-core push
+cargo test -p baresync-core outbox
+cargo test -p baresync-core push
 cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 ```
 
@@ -1702,8 +1747,8 @@ cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 - Move logic from: `apps/pos-app/src-tauri/src/sync/pull.rs`
 - Move logic from: `apps/pos-app/src-tauri/src/sync/protobuf.rs`
 - Move selected DTOs from: `apps/pos-app/src-tauri/src/sync/dto.rs`
-- Move to: `crates/sakti-sync-core/src/pull.rs`
-- Move to: `crates/sakti-sync-core/src/reconcile.rs`
+- Move to: `crates/baresync-core/src/pull.rs`
+- Move to: `crates/baresync-core/src/reconcile.rs`
 
 **Tasks:**
 
@@ -1718,8 +1763,8 @@ cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 **Verification:**
 
 ```bash
-cargo test -p sakti-sync-core pull
-cargo test -p sakti-sync-core reconcile
+cargo test -p baresync-core pull
+cargo test -p baresync-core reconcile
 cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 ```
 
@@ -1727,11 +1772,11 @@ cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 
 **Files:**
 
-- Create: `crates/tauri-plugin-sakti-sync/src/builder.rs`
-- Create: `crates/tauri-plugin-sakti-sync/src/commands.rs`
-- Create: `crates/tauri-plugin-sakti-sync/src/config.rs`
-- Create: `crates/tauri-plugin-sakti-sync/src/state.rs`
-- Modify: `crates/tauri-plugin-sakti-sync/src/lib.rs`
+- Create: `crates/tauri-plugin-baresync/src/builder.rs`
+- Create: `crates/tauri-plugin-baresync/src/commands.rs`
+- Create: `crates/tauri-plugin-baresync/src/config.rs`
+- Create: `crates/tauri-plugin-baresync/src/state.rs`
+- Modify: `crates/tauri-plugin-baresync/src/lib.rs`
 - Modify: `apps/pos-app/src-tauri/src/lib.rs`
 - Modify: `apps/pos-app/src-tauri/Cargo.toml`
 
@@ -1763,7 +1808,7 @@ cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 **Verification:**
 
 ```bash
-cargo test -p tauri-plugin-sakti-sync
+cargo test -p tauri-plugin-baresync
 cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib sync::
 bun test apps/pos-app/src/store/__test__/sync.test.ts
 ```
@@ -1772,18 +1817,18 @@ bun test apps/pos-app/src/store/__test__/sync.test.ts
 
 **Files:**
 
-- Modify: `packages/sync/src/generator/rust-mapper-writer.ts`
+- Modify: `packages/baresync/src/generator/rust-mapper-writer.ts`
 - Modify: `packages/protobuf/sync-proto.config.ts`
 - Modify generated output target from app path to plugin or generated path when stable
-- Modify: `crates/sakti-sync-core/src/lib.rs`
-- Modify: `crates/tauri-plugin-sakti-sync/src/lib.rs`
+- Modify: `crates/baresync-core/src/lib.rs`
+- Modify: `crates/tauri-plugin-baresync/src/lib.rs`
 - Keep temporarily: `apps/pos-app/src-tauri/src/sync/protobuf_generated.rs`
 
 **Tasks:**
 
 1. Decide generated Rust output mode:
    - v1 internal mode: generate into consumer app path and include from plugin config.
-   - later library mode: generate into `src-tauri/src/generated/sakti_sync.rs`.
+   - later library mode: generate into `src-tauri/src/generated/baresync.rs`.
 2. Make core consume generated mappers through a trait or module boundary:
    - table names
    - table order
@@ -1809,9 +1854,9 @@ cargo test --workspace
 
 **Files:**
 
-- Create: `packages/sync/src/tauri/client.ts`
-- Create: `packages/sync/src/tauri/index.ts`
-- Modify: `packages/sync/src/index.ts`
+- Create: `packages/baresync/src/tauri/client.ts`
+- Create: `packages/baresync/src/tauri/index.ts`
+- Modify: `packages/baresync/src/index.ts`
 - Modify: `apps/pos-app/src/store/sync.ts`
 
 **Tasks:**
@@ -1832,30 +1877,30 @@ cargo test --workspace
 **Verification:**
 
 ```bash
-bun test packages/sync/src/tauri
+bun test packages/baresync/src/tauri
 bun test apps/pos-app/src/store/__test__/sync.test.ts
-bun x ultracite check packages/sync apps/pos-app/src/store/sync.ts
+bun x ultracite check packages/baresync apps/pos-app/src/store/sync.ts
 ```
 
 ## Phase 13: Host-Only Sync Simulation Harness
 
 **Files:**
 
-- Create: `packages/sync/fixtures/sync/category-product-push.json`
-- Create: `packages/sync/fixtures/sync/category-product-pull.json`
-- Create: `packages/sync/fixtures/sync/server-delete.json`
-- Create: `packages/sync/fixtures/sync/server-wins.json`
-- Create: `packages/sync/fixtures/sync/idempotent-replay.json`
-- Create: `packages/sync/fixtures/sync/payload-too-large.json`
-- Create: `packages/sync/src/server/__test__/simulation.test.ts`
-- Create: `packages/sync/src/server/__test__/idempotency.test.ts`
-- Create: `packages/sync/src/server/__test__/encoding-fixtures.test.ts`
-- Create: `packages/sync/src/server/__test__/fixtures.ts`
-- Create: `crates/sakti-sync-core/tests/simulation.rs`
-- Create: `crates/sakti-sync-core/tests/fixtures.rs`
-- Create: `crates/sakti-sync-core/tests/adaptive_chunking.rs`
-- Modify: `crates/sakti-sync-core/Cargo.toml`
-- Modify: `packages/sync/package.json`
+- Create: `packages/baresync/fixtures/sync/category-product-push.json`
+- Create: `packages/baresync/fixtures/sync/category-product-pull.json`
+- Create: `packages/baresync/fixtures/sync/server-delete.json`
+- Create: `packages/baresync/fixtures/sync/server-wins.json`
+- Create: `packages/baresync/fixtures/sync/idempotent-replay.json`
+- Create: `packages/baresync/fixtures/sync/payload-too-large.json`
+- Create: `packages/baresync/src/server/__test__/simulation.test.ts`
+- Create: `packages/baresync/src/server/__test__/idempotency.test.ts`
+- Create: `packages/baresync/src/server/__test__/encoding-fixtures.test.ts`
+- Create: `packages/baresync/src/server/__test__/fixtures.ts`
+- Create: `crates/baresync-core/tests/simulation.rs`
+- Create: `crates/baresync-core/tests/fixtures.rs`
+- Create: `crates/baresync-core/tests/adaptive_chunking.rs`
+- Modify: `crates/baresync-core/Cargo.toml`
+- Modify: `packages/baresync/package.json`
 
 **Tasks:**
 
@@ -1885,9 +1930,9 @@ bun x ultracite check packages/sync apps/pos-app/src/store/sync.ts
 **Verification:**
 
 ```bash
-bun test packages/sync/src/server/__test__/simulation.test.ts packages/sync/src/server/__test__/idempotency.test.ts packages/sync/src/server/__test__/encoding-fixtures.test.ts
-cargo test -p sakti-sync-core --test simulation
-cargo test -p sakti-sync-core --test adaptive_chunking
+bun test packages/baresync/src/server/__test__/simulation.test.ts packages/baresync/src/server/__test__/idempotency.test.ts packages/baresync/src/server/__test__/encoding-fixtures.test.ts
+cargo test -p baresync-core --test simulation
+cargo test -p baresync-core --test adaptive_chunking
 cargo test --workspace
 ```
 
@@ -1895,8 +1940,8 @@ cargo test --workspace
 
 **Files:**
 
-- Create: `crates/tauri-plugin-sakti-sync/tests/commands.rs`
-- Create: `packages/sync/src/tauri/__test__/client.test.ts`
+- Create: `crates/tauri-plugin-baresync/tests/commands.rs`
+- Create: `packages/baresync/src/tauri/__test__/client.test.ts`
 - Create: `e2e/desktop/sync-smoke.test.ts`
 - Create: `e2e/desktop/webdriverio.conf.ts`
 - Create: `e2e/android/sync-smoke.yaml`
@@ -1923,8 +1968,8 @@ cargo test --workspace
 **Verification:**
 
 ```bash
-cargo test -p tauri-plugin-sakti-sync --test commands
-bun test packages/sync/src/tauri/__test__/client.test.ts
+cargo test -p tauri-plugin-baresync --test commands
+bun test packages/baresync/src/tauri/__test__/client.test.ts
 bun test apps/pos-app/src/store/__test__/sync.test.ts apps/pos-app/src/components/__test__/sync-status.test.tsx
 ```
 
@@ -1981,7 +2026,7 @@ bun x ultracite check
 
 **Files:**
 
-- Create: `packages/sync/README.md`
+- Create: `packages/baresync/README.md`
 - Create: `docs/knowledge/PUBLIC-SYNC-PLUGIN.md`
 - Create: `docs/knowledge/PUBLIC-SYNC-PLUGIN-GENERATOR.md`
 - Create: `docs/knowledge/PUBLIC-SYNC-PLUGIN-LOCAL-DB.md`
@@ -2076,7 +2121,7 @@ bun x ultracite check
 **Verification:**
 
 ```bash
-bun x ultracite check docs packages/sync/README.md
+bun x ultracite check docs packages/baresync/README.md
 ```
 
 ## Phase 17: Example App
@@ -2117,21 +2162,25 @@ cargo test --manifest-path examples/tauri-basic-sync/src-tauri/Cargo.toml
 
 **Files:**
 
-- Modify: `packages/sync/package.json`
-- Modify: `crates/sakti-sync-core/Cargo.toml`
-- Modify: `crates/tauri-plugin-sakti-sync/Cargo.toml`
-- Create: `packages/sync/CHANGELOG.md`
-- Create: `crates/tauri-plugin-sakti-sync/README.md`
-- Create: `crates/sakti-sync-core/README.md`
+- Modify: `packages/baresync/package.json`
+- Modify: `crates/baresync-core/Cargo.toml`
+- Modify: `crates/tauri-plugin-baresync/Cargo.toml`
+- Create: `packages/baresync/CHANGELOG.md`
+- Create: `crates/tauri-plugin-baresync/README.md`
+- Create: `crates/baresync-core/README.md`
 
 **Tasks:**
 
-1. Decide final package names.
-2. Add license metadata.
-3. Add repository metadata.
-4. Add keywords.
-5. Add semver policy.
-6. Add compatibility matrix:
+1. Re-confirm final package names against npm and Cargo immediately before release.
+2. Verify package ownership/reservation for:
+   - `baresync`
+   - `baresync-core`
+   - `tauri-plugin-baresync`
+3. Add license metadata.
+4. Add repository metadata.
+5. Add keywords.
+6. Add semver policy.
+7. Add compatibility matrix:
    - Tauri 2
    - Rust 2021
    - Drizzle version
@@ -2139,18 +2188,21 @@ cargo test --manifest-path examples/tauri-basic-sync/src-tauri/Cargo.toml
    - Bun/Node support for generator
    - JSON encoding
    - protobuf encoding
-7. Mark unstable APIs clearly:
+8. Mark unstable APIs clearly:
    - server helpers
    - low-level Rust extension traits
    - generated mapper trait boundary
-8. Do not publish until the Sakti app runs against the extracted plugin.
+9. Do not publish until the Sakti app runs against the extracted plugin.
 
 **Verification:**
 
 ```bash
-bun pack --dry-run packages/sync
-cargo package -p sakti-sync-core --allow-dirty
-cargo package -p tauri-plugin-sakti-sync --allow-dirty
+bun pack --dry-run packages/baresync
+npm view baresync name version --json || true
+cargo package -p baresync-core --allow-dirty
+cargo package -p tauri-plugin-baresync --allow-dirty
+cargo search baresync-core --limit 10
+cargo search tauri-plugin-baresync --limit 10
 ```
 
 ## Compatibility And Versioning Guardrails
@@ -2378,6 +2430,14 @@ Mitigation: Treat `run_sql` as a local trusted app bridge, document that it is n
 
 Mitigation: Use strict migration mode as the public default. Keep tolerant duplicate/already-exists handling only as an explicit compatibility mode.
 
+### Risk: SQLite transactional DDL behaves differently than expected
+
+Mitigation: Test failing migrations against real SQLite behavior, including partial DDL rollback, `ALTER TABLE`, unsupported transaction-control statements, and maintenance statements such as `VACUUM`. Apply PRAGMA setup outside migration transactions. Keep transactional migrations as the default, and require explicit opt-in for any non-transactional migration mode.
+
+### Risk: Public package names are taken after the plan is written
+
+Mitigation: Re-check npm and Cargo registries in Phase 0 and immediately before Phase 18 publish. If `baresync` is taken, switch to the scoped fallback before Phase 1 scaffolding. Do not let import paths, crate names, docs, or generated artifacts drift across multiple names.
+
 ### Risk: E2E tests become a maintenance trap
 
 Mitigation: Keep mobile and desktop E2E as smoke tests only. Put sync correctness in deterministic JS/Rust simulations. Require state reset, stable selectors, and short critical flows for every scripted E2E.
@@ -2413,9 +2473,9 @@ Mitigation: Run diagnostics before file writes and stop generation if any error 
 ## Definition Of Done
 
 - Sakti POS still passes the focused sync verification suite.
-- Sakti POS runs sync through `tauri-plugin-sakti-sync`.
+- Sakti POS runs sync through `tauri-plugin-baresync`.
 - Sakti POS uses plugin-provided local SQLite initialization, Drizzle proxy commands, and migration runner.
-- Generator can be invoked from `packages/sync`.
+- Generator can be invoked from `packages/baresync`.
 - Generator has `doctor`, `generate --check`, and `--warnings-as-errors` modes.
 - Generator diagnostics include stable codes, severity, why, fix, and docs links.
 - Generator writes and checks `sync-contract.manifest.json`.
@@ -2456,14 +2516,14 @@ Mitigation: Run diagnostics before file writes and stop generation if any error 
 ```bash
 bun test apps/api/src/sync/__test__/service.test.ts apps/api/src/sync/__test__/protobuf.test.ts apps/api/src/sync/__test__/routes-protobuf.test.ts
 bun test apps/pos-app/src/db/__test__/sync-schema.test.ts apps/pos-app/src/db/__test__/orders.test.ts apps/pos-app/src/db/__test__/sync-outbox.test.ts apps/pos-app/src/store/__test__/sync.test.ts
-bun test packages/sync/src
-bun test packages/sync/src/server/__test__/simulation.test.ts packages/sync/src/server/__test__/idempotency.test.ts packages/sync/src/server/__test__/encoding-fixtures.test.ts
-bun test packages/sync/src/tauri/__test__/client.test.ts
+bun test packages/baresync/src
+bun test packages/baresync/src/server/__test__/simulation.test.ts packages/baresync/src/server/__test__/idempotency.test.ts packages/baresync/src/server/__test__/encoding-fixtures.test.ts
+bun test packages/baresync/src/tauri/__test__/client.test.ts
 bun test packages/sync-proto-generator/src
 cargo test --workspace
-cargo test -p sakti-sync-core --test simulation
-cargo test -p sakti-sync-core --test adaptive_chunking
-cargo test -p tauri-plugin-sakti-sync --test commands
+cargo test -p baresync-core --test simulation
+cargo test -p baresync-core --test adaptive_chunking
+cargo test -p tauri-plugin-baresync --test commands
 bun run sync-proto:check
 bun x ultracite check
 ```
