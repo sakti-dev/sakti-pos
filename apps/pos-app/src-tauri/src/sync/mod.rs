@@ -451,6 +451,100 @@ mod tests {
     }
 
     #[test]
+    fn gc_query_deletes_synced_soft_deleted_rows() {
+        tauri::async_runtime::block_on(async {
+            let pool = gc_test_pool().await;
+
+            sqlx::query(
+                "INSERT INTO products (id, merchant_id, name, price_minor_units, is_active, sort_order, is_synced, created_at, updated_at, deleted_at)
+                 VALUES ('p-active', 'merchant-1', 'Active', 100, 1, 0, 1, '2026-05-17T00:00:00.000Z', '2026-05-19T00:00:00.000Z', NULL)"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert active product");
+
+            sqlx::query(
+                "INSERT INTO products (id, merchant_id, name, price_minor_units, is_active, sort_order, is_synced, created_at, updated_at, deleted_at)
+                 VALUES ('p-deleted', 'merchant-1', 'Deleted', 100, 1, 0, 1, '2026-05-17T00:00:00.000Z', '2026-05-19T00:00:00.000Z', '2026-05-18T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert deleted product");
+
+            sqlx::query(
+                "INSERT INTO orders (id, outlet_id, total_minor_units, status, created_at, updated_at, deleted_at, is_synced)
+                 VALUES ('o-deleted', 'outlet-1', 5000, 'completed', '2026-05-17T00:00:00.000Z', '2026-05-19T00:00:00.000Z', '2026-05-18T00:00:00.000Z', 1)"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert deleted order");
+
+            let purged = super::commands::run_garbage_collection_for_tables(
+                &pool,
+                "outlet-1",
+                &["products", "orders"],
+            )
+            .await
+            .expect("gc");
+
+            assert_eq!(purged, 2);
+
+            let products: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM products")
+                .fetch_one(&pool)
+                .await
+                .expect("count");
+            assert_eq!(products, 1);
+
+            let orders: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM orders")
+                .fetch_one(&pool)
+                .await
+                .expect("count");
+            assert_eq!(orders, 0);
+        });
+    }
+
+    async fn gc_test_pool() -> sqlx::SqlitePool {
+        let pool = test_pool().await;
+        sqlx::query(
+            "CREATE TABLE outlets (
+                id TEXT PRIMARY KEY NOT NULL,
+                merchant_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )",
+        )
+        .execute(&pool)
+        .await
+        .expect("outlets table");
+        sqlx::query(
+            "INSERT INTO outlets (id, merchant_id, name, created_at, updated_at)
+             VALUES ('outlet-1', 'merchant-1', 'Test Outlet', '2026-05-17T00:00:00.000Z', '2026-05-17T00:00:00.000Z')"
+        )
+        .execute(&pool)
+        .await
+        .expect("insert outlet");
+
+        sqlx::query(
+            "CREATE TABLE orders (
+                id TEXT PRIMARY KEY NOT NULL,
+                outlet_id TEXT NOT NULL,
+                total_minor_units INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                deleted_at TEXT,
+                is_synced INTEGER DEFAULT false NOT NULL
+            )",
+        )
+        .execute(&pool)
+        .await
+        .expect("orders table");
+
+        pool
+    }
+
+    #[test]
     fn read_unsynced_changes_accepts_transaction_connection() {
         tauri::async_runtime::block_on(async {
             let pool = test_pool_with_outbox().await;

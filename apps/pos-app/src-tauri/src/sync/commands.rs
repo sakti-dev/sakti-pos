@@ -1,3 +1,4 @@
+use sqlx::SqlitePool;
 use tauri::{command, State};
 
 use crate::app::state::AppState;
@@ -90,35 +91,28 @@ pub async fn sync_pull(
     })
 }
 
-#[command]
-pub async fn run_garbage_collection(
-    outlet_id: String,
-    state: State<'_, AppState>,
+pub(super) async fn run_garbage_collection_for_tables(
+    pool: &SqlitePool,
+    outlet_id: &str,
+    tables: &[&str],
 ) -> Result<usize, String> {
-    let merchant_id: Option<String> = {
-        let query = "SELECT merchant_id FROM outlets WHERE id = ?1";
-        sqlx::query_scalar::<_, String>(query)
-            .bind(&outlet_id)
-            .fetch_optional(&state.db_pool)
-            .await
-            .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
-    };
-    log::info!(
-        "[RUST] [SYNC:TRACE] GC: outlet_id={}, merchant_id={:?}",
-        outlet_id,
-        merchant_id
-    );
+    let merchant_id: Option<String> = sqlx::query_scalar::<_, String>(
+        "SELECT merchant_id FROM outlets WHERE id = ?1",
+    )
+    .bind(outlet_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?;
 
-    let mut tx = state
-        .db_pool
+    let mut tx = pool
         .begin()
         .await
         .map_err(|e| format!("Failed to begin GC transaction: {}", e))?;
     let mut total_purged: usize = 0;
 
-    for table in SYNC_TABLES {
+    for table in tables {
         let filter_col = get_table_filter_column(table);
-        let filter_value = get_filter_value(table, &outlet_id, &merchant_id)?;
+        let filter_value = get_filter_value(table, outlet_id, &merchant_id)?;
         debug_local_table_state(&mut tx, table, filter_col, filter_value, "gc-before").await?;
         let query = format!(
             "DELETE FROM {} WHERE {} = ?1 AND deleted_at IS NOT NULL AND deleted_at != '' AND lower(deleted_at) != 'null' AND is_synced = 1",
@@ -143,6 +137,35 @@ pub async fn run_garbage_collection(
     tx.commit()
         .await
         .map_err(|e| format!("Failed to commit GC transaction: {}", e))?;
+    Ok(total_purged)
+}
+
+#[command]
+pub async fn run_garbage_collection(
+    outlet_id: String,
+    state: State<'_, AppState>,
+) -> Result<usize, String> {
+    let merchant_id: Option<String> = {
+        let query = "SELECT merchant_id FROM outlets WHERE id = ?1";
+        sqlx::query_scalar::<_, String>(query)
+            .bind(&outlet_id)
+            .fetch_optional(&state.db_pool)
+            .await
+            .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
+    };
+    log::info!(
+        "[RUST] [SYNC:TRACE] GC: outlet_id={}, merchant_id={:?}",
+        outlet_id,
+        merchant_id
+    );
+
+    let total_purged = run_garbage_collection_for_tables(
+        &state.db_pool,
+        &outlet_id,
+        SYNC_TABLES,
+    )
+    .await?;
+
     Ok(total_purged)
 }
 
@@ -176,54 +199,12 @@ pub async fn sync_full_resync(
     .await?;
     let push = sync_push_batch_inner(&state.db_pool, &outlet_id, &api_url, &session_token).await?;
 
-    let merchant_id: Option<String> = {
-        let query = "SELECT merchant_id FROM outlets WHERE id = ?1";
-        sqlx::query_scalar::<_, String>(query)
-            .bind(&outlet_id)
-            .fetch_optional(&state.db_pool)
-            .await
-            .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
-    };
-
-    let mut tx = state
-        .db_pool
-        .begin()
-        .await
-        .map_err(|e| format!("Failed to begin GC transaction: {}", e))?;
-    let mut total_purged: usize = 0;
-    for table in SYNC_TABLES {
-        let filter_col = get_table_filter_column(table);
-        let filter_value = get_filter_value(table, &outlet_id, &merchant_id)?;
-        debug_local_table_state(
-            &mut tx,
-            table,
-            filter_col,
-            filter_value,
-            "sync-full-resync-v2-gc-before",
-        )
-        .await?;
-        let query = format!(
-            "DELETE FROM {} WHERE {} = ?1 AND deleted_at IS NOT NULL AND deleted_at != '' AND lower(deleted_at) != 'null' AND is_synced = 1",
-            table, filter_col
-        );
-        let result = sqlx::query(&query)
-            .bind(filter_value)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| format!("GC failed for {}: {}", table, e))?;
-        total_purged += result.rows_affected() as usize;
-        debug_local_table_state(
-            &mut tx,
-            table,
-            filter_col,
-            filter_value,
-            "sync-full-resync-v2-gc-after",
-        )
-        .await?;
-    }
-    tx.commit()
-        .await
-        .map_err(|e| format!("Failed to commit GC transaction: {}", e))?;
+    let total_purged = run_garbage_collection_for_tables(
+        &state.db_pool,
+        &outlet_id,
+        SYNC_TABLES,
+    )
+    .await?;
 
     Ok(SyncNowResult {
         pull,
@@ -295,61 +276,13 @@ pub async fn sync_now(
         pull
     };
 
-    let merchant_id: Option<String> = {
-        let query = "SELECT merchant_id FROM outlets WHERE id = ?1";
-        sqlx::query_scalar::<_, String>(query)
-            .bind(&outlet_id)
-            .fetch_optional(&state.db_pool)
-            .await
-            .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
-    };
+    let total_purged = run_garbage_collection_for_tables(
+        &state.db_pool,
+        &outlet_id,
+        SYNC_TABLES,
+    )
+    .await?;
 
-    let mut tx = state
-        .db_pool
-        .begin()
-        .await
-        .map_err(|e| format!("Failed to begin GC transaction: {}", e))?;
-    let mut total_purged: usize = 0;
-    for table in SYNC_TABLES {
-        let filter_col = get_table_filter_column(table);
-        let filter_value = get_filter_value(table, &outlet_id, &merchant_id)?;
-        debug_local_table_state(
-            &mut tx,
-            table,
-            filter_col,
-            filter_value,
-            "sync-now-gc-before",
-        )
-        .await?;
-        let query = format!(
-            "DELETE FROM {} WHERE {} = ?1 AND deleted_at IS NOT NULL AND deleted_at != '' AND lower(deleted_at) != 'null' AND is_synced = 1",
-            table, filter_col
-        );
-        let result = sqlx::query(&query)
-            .bind(filter_value)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| format!("GC failed for {}: {}", table, e))?;
-        log::info!(
-            "[RUST] [SYNC:TRACE] sync_now GC table: table={}, filter_col={}, filter_value={}, rows_purged={}",
-            table,
-            filter_col,
-            filter_value,
-            result.rows_affected()
-        );
-        total_purged += result.rows_affected() as usize;
-        debug_local_table_state(
-            &mut tx,
-            table,
-            filter_col,
-            filter_value,
-            "sync-now-gc-after",
-        )
-        .await?;
-    }
-    tx.commit()
-        .await
-        .map_err(|e| format!("Failed to commit GC transaction: {}", e))?;
     Ok(SyncNowResult {
         pull,
         push,

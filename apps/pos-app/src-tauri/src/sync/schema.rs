@@ -157,20 +157,6 @@ pub(super) fn outbox_rows_to_table_changes(
     Ok(changes)
 }
 
-pub(super) async fn read_unsynced_table_changes_from_outbox(
-    pool: &SqlitePool,
-    table: &str,
-    filter_value: &str,
-) -> Result<TableOutboxChanges, String> {
-    let mut conn = pool.acquire().await.map_err(|e| {
-        format!(
-            "Failed to acquire connection for outbox read {}: {}",
-            table, e
-        )
-    })?;
-    read_unsynced_table_changes_from_outbox_tx(&mut conn, table, filter_value).await
-}
-
 pub(super) async fn read_unsynced_table_changes_from_outbox_tx(
     conn: &mut SqliteConnection,
     table: &str,
