@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_ROOT="${APP_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${PROJECT_ROOT:-$APP_ROOT}"
+PACKAGE="${PACKAGE:-com.sakti_dev.sakti_pos}"
+DEVICE_SNAPSHOT_PATH="${DEVICE_SNAPSHOT_PATH:-/data/user/0/$PACKAGE/db-snapshots/latest.sqlite}"
+HOST_SNAPSHOT_PATH="${HOST_SNAPSHOT_PATH:-$APP_ROOT/.db-snapshots/latest.sqlite}"
+HOST_USER="${HOST_USER:-$(id -un)}"
+HOST_GROUP="${HOST_GROUP:-$(id -gn)}"
+EXPORT_URI="${EXPORT_URI:-sakti-pos-dev://snapshot-export}"
+SNAPSHOT_WAIT_SECONDS="${SNAPSHOT_WAIT_SECONDS:-30}"
+DRIZZLE_STUDIO_AUTO_START="${DRIZZLE_STUDIO_AUTO_START:-1}"
+DRIZZLE_STUDIO_HOST="${DRIZZLE_STUDIO_HOST:-127.0.0.1}"
+DRIZZLE_STUDIO_PORT="${DRIZZLE_STUDIO_PORT:-49173}"
+DRIZZLE_STUDIO_UI_URL="${DRIZZLE_STUDIO_UI_URL:-https://local.drizzle.studio?port=$DRIZZLE_STUDIO_PORT}"
+
+mkdir -p "$(dirname "$HOST_SNAPSHOT_PATH")"
+
+trigger_device_snapshot_export() {
+    adb shell am start -W -a android.intent.action.VIEW -d "$EXPORT_URI" "$PACKAGE" >/dev/null
+}
+
+launch_drizzle_studio() {
+    if [[ "$DRIZZLE_STUDIO_AUTO_START" != "1" ]]; then
+        return 0
+    fi
+
+    local drizzle_db_url
+    drizzle_db_url="file:$HOST_SNAPSHOT_PATH"
+    local studio_url="http://$DRIZZLE_STUDIO_HOST:$DRIZZLE_STUDIO_PORT"
+
+    if studio_port_is_open "$DRIZZLE_STUDIO_HOST" "$DRIZZLE_STUDIO_PORT"; then
+        echo "Drizzle Studio already running at $studio_url" >&2
+        return 0
+    fi
+
+    echo "Launching Drizzle Studio on $studio_url" >&2
+    echo "Open $DRIZZLE_STUDIO_UI_URL in your browser. Press Ctrl+C to stop Studio." >&2
+
+    cd "$APP_ROOT"
+    POS_APP_DB_URL="$drizzle_db_url" exec ./node_modules/.bin/drizzle-kit studio \
+        --config "$APP_ROOT/drizzle.config.ts" \
+        --host "$DRIZZLE_STUDIO_HOST" \
+        --port "$DRIZZLE_STUDIO_PORT"
+}
+
+studio_port_is_open() {
+    python3 - "$1" "$2" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+
+try:
+    with socket.create_connection((host, port), timeout=1):
+        pass
+except OSError:
+    raise SystemExit(1)
+PY
+}
+
+wait_for_device_snapshot() {
+    local elapsed_seconds=0
+    while ! doas waydroid shell -- test -s "$DEVICE_SNAPSHOT_PATH" >/dev/null 2>&1; do
+        if (( elapsed_seconds >= SNAPSHOT_WAIT_SECONDS )); then
+            echo "Timed out waiting for device DB snapshot at $DEVICE_SNAPSHOT_PATH" >&2
+            return 1
+        fi
+
+        sleep 1
+        elapsed_seconds=$((elapsed_seconds + 1))
+    done
+}
+
+echo "Requesting DB snapshot export on device" >&2
+doas waydroid shell -- rm -f "$DEVICE_SNAPSHOT_PATH"
+trigger_device_snapshot_export
+wait_for_device_snapshot
+
+echo "Copying DB snapshot from Waydroid to $HOST_SNAPSHOT_PATH" >&2
+doas sh -c 'doas waydroid shell -- cat "$1" > "$2" && chown "$3:$4" "$2" && chmod 0644 "$2"' sh \
+    "$DEVICE_SNAPSHOT_PATH" \
+    "$HOST_SNAPSHOT_PATH" \
+    "$HOST_USER" \
+    "$HOST_GROUP"
+if [[ ! -s "$HOST_SNAPSHOT_PATH" ]]; then
+    echo "Device snapshot was not exported. Rebuild and reopen the app so the debug receiver is installed." >&2
+    exit 1
+fi
+
+launch_drizzle_studio
+
+echo "DB snapshot synced to $HOST_SNAPSHOT_PATH" >&2

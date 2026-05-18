@@ -13,7 +13,7 @@ This is meant for debugging sync, assets, and local state on Waydroid or real An
 Use the host-side sync script:
 
 ```bash
-bun app:db-snapshot-sync
+bun app:db:studio
 ```
 
 That command now does the whole flow:
@@ -22,6 +22,8 @@ That command now does the whole flow:
 2. Waits for the device snapshot to appear.
 3. Copies the snapshot into `apps/pos-app/.db-snapshots/latest.sqlite`.
 4. Overwrites any previous host snapshot automatically.
+5. Launches Drizzle Studio in the foreground on `127.0.0.1:49173` against the copied snapshot.
+6. Open `https://local.drizzle.studio?port=49173` in the browser.
 
 ## Snapshot Location
 
@@ -39,16 +41,24 @@ That matters because the first exported copy was root-owned and unreadable from 
 If you already have an old root-owned snapshot from before the fix, re-run:
 
 ```bash
-bun app:db-snapshot-sync
+bun app:db:studio
 ```
 
 The new copy should be user-owned and readable.
+
+If you want to skip auto-launching Drizzle Studio for a particular run, set:
+
+```bash
+DRIZZLE_STUDIO_AUTO_START=0 bun app:db:studio
+```
+
+Because Drizzle Studio runs in the foreground now, `Ctrl+C` stops the Studio process and the shell command together.
 
 ## Manual Debug Flow
 
 1. Rebuild/reinstall the app so the deep-link handler is present.
 2. Reproduce the issue on device.
-3. Run `bun app:db-snapshot-sync`.
+3. Run `bun app:db:studio`.
 4. Open `apps/pos-app/.db-snapshots/latest.sqlite` in Drizzle Studio or `sqlite3`.
 5. Compare the snapshot data with `logs/app.log` and the API database.
 
@@ -57,7 +67,7 @@ The new copy should be user-owned and readable.
 The sync script is covered by:
 
 ```bash
-bash apps/pos-app/scripts/__test__/sync-db-snapshot.test.sh
+bash apps/pos-app/scripts/__test__/local-db-studio.test.sh
 ```
 
 And the snapshot itself can be checked with:
@@ -68,7 +78,7 @@ sqlite3 apps/pos-app/.db-snapshots/latest.sqlite "PRAGMA integrity_check;"
 
 ## Related Files
 
-- `apps/pos-app/scripts/sync-db-snapshot`
-- `apps/pos-app/scripts/__test__/sync-db-snapshot.test.sh`
+- `apps/pos-app/scripts/local-db-studio`
+- `apps/pos-app/scripts/__test__/local-db-studio.test.sh`
 - `apps/pos-app/src-tauri/src/db/snapshot.rs`
 - `apps/pos-app/src-tauri/src/app/startup.rs`

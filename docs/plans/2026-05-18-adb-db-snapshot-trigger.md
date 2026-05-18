@@ -80,8 +80,8 @@ git commit -m "feat(pos): add adb broadcast snapshot trigger"
 ### Task 3: Make host snapshot sync overwrite the repo file safely
 
 **Files:**
-- Modify: `apps/pos-app/scripts/sync-db-snapshot`
-- Test: `apps/pos-app/scripts/__test__/sync-db-snapshot.test.sh` or a focused shell test harness
+- Modify: `apps/pos-app/scripts/local-db-studio`
+- Test: `apps/pos-app/scripts/__test__/local-db-studio.test.sh` or a focused shell test harness
 
 **Step 1: Write the failing test**
 
@@ -89,7 +89,7 @@ Create a shell test that pre-populates the host snapshot file, runs the sync scr
 
 **Step 2: Run the test to verify it fails**
 
-Run: `bash apps/pos-app/scripts/__test__/sync-db-snapshot.test.sh`
+Run: `bash apps/pos-app/scripts/__test__/local-db-studio.test.sh`
 Expected: FAIL because the script still assumes the host snapshot path is disposable.
 
 **Step 3: Write the minimal implementation**
@@ -98,13 +98,13 @@ Make the script copy into a temporary file and move it into place atomically, or
 
 **Step 4: Run the test to verify it passes**
 
-Run: `bash apps/pos-app/scripts/__test__/sync-db-snapshot.test.sh`
+Run: `bash apps/pos-app/scripts/__test__/local-db-studio.test.sh`
 Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
-git add apps/pos-app/scripts/sync-db-snapshot apps/pos-app/scripts/__test__/sync-db-snapshot.test.sh
+git add apps/pos-app/scripts/local-db-studio apps/pos-app/scripts/__test__/local-db-studio.test.sh
 git commit -m "feat(pos): make db snapshot sync overwrite-safe"
 ```
 
