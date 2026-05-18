@@ -104,7 +104,8 @@ The API push path is partially generated now. Keep these rules in mind when touc
 - Reads and writes must be chunked by bind parameter count, not by arbitrary row count alone.
 - Conflict reads should stay narrow: `id` plus the row timestamp used for conflict resolution.
 - Deleted IDs do not need a pre-read existence filter.
-- Sync events are collected globally and inserted after the row-write phase.
+- Row-state visibility is carried by each synced row's `sync_updated_at`.
+  Do not add `sync_events` writes or event-id cursors.
 - FK-sensitive writes remain in `PUSH_TABLE_ORDER` and stay sequential inside the transaction unless a verified batch path proves equivalent semantics.
 - Prepared statements are only worth considering for fixed-shape metadata queries like idempotency lookups; do not force them onto variable conflict reads or bulk writes unless the current Drizzle/libSQL types stay clean.
 - Do not hand-edit `apps/api/src/sync/push-adapters.generated.ts`; regenerate it from the synced schema config and generator writers.

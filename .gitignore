@@ -55,3 +55,4 @@ graphify-out
 .logs
 .security-key
 *log*
+*.sqlite

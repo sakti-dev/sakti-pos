@@ -20,9 +20,25 @@ use super::schema::{
 use super::sync_proto::SyncPushBatchResponse;
 use super::SYNC_TABLES;
 
+fn sync_http_error(prefix: &str, status: reqwest::StatusCode, body: &str) -> String {
+    let kind = match status.as_u16() {
+        401 | 403 => "auth",
+        413 => "payload_too_large",
+        500..=599 => "server",
+        _ => "unknown",
+    };
+    serde_json::json!({
+        "kind": kind,
+        "message": format!("{} failed ({}): {}", prefix, status, body),
+        "status": status.as_u16(),
+    })
+    .to_string()
+}
+
 #[derive(Debug, serde::Serialize)]
 pub struct PushResult {
     pub tables_synced: Vec<String>,
+    pub rejected_tables: Vec<String>,
     pub server_wins_count: usize,
     pub server_time: String,
 }
@@ -60,95 +76,186 @@ pub(super) fn rejected_ids_by_table(
     result
 }
 
+fn pending_row_count(table: &PendingTablePush) -> usize {
+    table.changes.changed_rows.len() + table.changes.deleted_ids.len()
+}
+
+fn chunk_row_count(chunk: &[PendingTablePush]) -> usize {
+    chunk.iter().map(pending_row_count).sum()
+}
+
+fn merge_pending_units(units: Vec<PendingTablePush>) -> Vec<PendingTablePush> {
+    let mut merged: Vec<PendingTablePush> = Vec::new();
+    for unit in units {
+        if let Some(existing) = merged.iter_mut().find(|entry| entry.table == unit.table) {
+            existing
+                .changes
+                .changed_rows
+                .extend(unit.changes.changed_rows);
+            existing.changes.deleted_ids.extend(unit.changes.deleted_ids);
+            for (row_id, outbox_ids) in unit.outbox_ids_by_row_id {
+                existing
+                    .outbox_ids_by_row_id
+                    .entry(row_id)
+                    .or_default()
+                    .extend(outbox_ids);
+            }
+            continue;
+        }
+        merged.push(unit);
+    }
+    merged
+}
+
+fn flatten_pending_tables(tables: Vec<PendingTablePush>) -> Result<Vec<PendingTablePush>, String> {
+    let mut units = Vec::new();
+    for table_push in tables {
+        for (index, row) in table_push.changes.changed_rows.into_iter().enumerate() {
+            let row_id = row
+                .get("id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| {
+                    format!(
+                        "changed_rows[{}] in table {} missing string 'id'",
+                        index, table_push.table
+                    )
+                })?
+                .to_string();
+            let mut outbox_ids_by_row_id = HashMap::new();
+            if let Some(ids) = table_push.outbox_ids_by_row_id.get(&row_id) {
+                outbox_ids_by_row_id.insert(row_id, ids.clone());
+            }
+            units.push(PendingTablePush {
+                table: table_push.table.clone(),
+                changes: super::protobuf::TablePushChanges {
+                    changed_rows: vec![row],
+                    deleted_ids: Vec::new(),
+                },
+                outbox_ids_by_row_id,
+            });
+        }
+
+        for deleted_id in table_push.changes.deleted_ids {
+            let mut outbox_ids_by_row_id = HashMap::new();
+            if let Some(ids) = table_push.outbox_ids_by_row_id.get(&deleted_id) {
+                outbox_ids_by_row_id.insert(deleted_id.clone(), ids.clone());
+            }
+            units.push(PendingTablePush {
+                table: table_push.table.clone(),
+                changes: super::protobuf::TablePushChanges {
+                    changed_rows: Vec::new(),
+                    deleted_ids: vec![deleted_id],
+                },
+                outbox_ids_by_row_id,
+            });
+        }
+    }
+    Ok(units)
+}
+
+fn outbox_ids_for_row_ids(
+    pending_tables: &[PendingTablePush],
+    ids_by_table: &HashMap<String, HashSet<String>>,
+) -> Vec<String> {
+    let mut outbox_ids = Vec::new();
+    for pending in pending_tables {
+        let Some(row_ids) = ids_by_table.get(&pending.table) else {
+            continue;
+        };
+        for row_id in row_ids {
+            if let Some(ids) = pending.outbox_ids_by_row_id.get(row_id) {
+                outbox_ids.extend(ids.iter().cloned());
+            }
+        }
+    }
+    outbox_ids
+}
+
+#[cfg(test)]
+pub(super) fn outbox_ids_for_row_ids_for_test(
+    table: &str,
+    row_id: &str,
+    outbox_ids: &[String],
+    ids_by_table: &HashMap<String, HashSet<String>>,
+) -> Vec<String> {
+    let mut outbox_ids_by_row_id = HashMap::new();
+    outbox_ids_by_row_id.insert(row_id.to_string(), outbox_ids.to_vec());
+    outbox_ids_for_row_ids(
+        &[PendingTablePush {
+            table: table.to_string(),
+            changes: super::protobuf::TablePushChanges {
+                changed_rows: Vec::new(),
+                deleted_ids: Vec::new(),
+            },
+            outbox_ids_by_row_id,
+        }],
+        ids_by_table,
+    )
+}
+
 pub(super) fn chunk_pending_push_tables(
     tables: Vec<PendingTablePush>,
     max_rows: usize,
+    max_bytes: usize,
+    outlet_id: &str,
+    client_id: &str,
 ) -> Result<Vec<Vec<PendingTablePush>>, String> {
     if max_rows == 0 {
         return Err("max_rows must be greater than zero".to_string());
     }
+    if max_bytes == 0 {
+        return Err("max_bytes must be greater than zero".to_string());
+    }
 
+    let units = flatten_pending_tables(tables)?;
     let mut chunks: Vec<Vec<PendingTablePush>> = Vec::new();
-    let mut current_chunk: Vec<PendingTablePush> = Vec::new();
-    let mut current_count = 0usize;
+    let mut current_units: Vec<PendingTablePush> = Vec::new();
 
-    for table_push in tables {
-        let total_rows = table_push.changes.changed_rows.len() + table_push.changes.deleted_ids.len();
+    for unit in units {
+        let candidate_units = {
+            let mut candidate = current_units.clone();
+            candidate.push(unit.clone());
+            candidate
+        };
+        let candidate_chunk = merge_pending_units(candidate_units.clone());
+        let candidate_rows = chunk_row_count(&candidate_chunk);
+        let candidate_bytes = encoded_push_chunk_len(&candidate_chunk, outlet_id, client_id);
 
-        if total_rows == 0 {
+        if candidate_rows <= max_rows && candidate_bytes <= max_bytes {
+            current_units = candidate_units;
             continue;
         }
 
-        if current_count + total_rows <= max_rows {
-            current_count += total_rows;
-            current_chunk.push(table_push);
-            continue;
+        if !current_units.is_empty() {
+            chunks.push(merge_pending_units(std::mem::take(&mut current_units)));
         }
 
-        if !current_chunk.is_empty() && current_count > 0 {
-            chunks.push(std::mem::take(&mut current_chunk));
-            current_count = 0;
-        }
-
-        let mut changed_idx = 0usize;
-        let mut deleted_idx = 0usize;
-
-        while changed_idx < table_push.changes.changed_rows.len()
-            || deleted_idx < table_push.changes.deleted_ids.len()
-        {
-            let mut chunk_changed = Vec::new();
-            let mut chunk_deleted = Vec::new();
-            let mut chunk_outbox_ids: HashMap<String, Vec<String>> = HashMap::new();
-            let mut chunk_count = 0usize;
-
-            while chunk_count < max_rows && changed_idx < table_push.changes.changed_rows.len() {
-                let row = &table_push.changes.changed_rows[changed_idx];
-                let row_id = row
-                    .get("id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| {
-                        format!(
-                            "changed_rows[{}] in table {} missing string 'id'",
-                            changed_idx, table_push.table
-                        )
-                    })?;
-                chunk_changed.push(row.clone());
-                if let Some(ids) = table_push.outbox_ids_by_row_id.get(row_id) {
-                    chunk_outbox_ids.insert(row_id.to_string(), ids.clone());
-                }
-                changed_idx += 1;
-                chunk_count += 1;
-            }
-
-            while chunk_count < max_rows && deleted_idx < table_push.changes.deleted_ids.len() {
-                let id = &table_push.changes.deleted_ids[deleted_idx];
-                chunk_deleted.push(id.clone());
-                if let Some(ids) = table_push.outbox_ids_by_row_id.get(id.as_str()) {
-                    chunk_outbox_ids.insert(id.clone(), ids.clone());
-                }
-                deleted_idx += 1;
-                chunk_count += 1;
-            }
-
-            if chunk_count > 0 {
-                current_chunk.push(PendingTablePush {
-                    table: table_push.table.clone(),
-                    changes: super::protobuf::TablePushChanges {
-                        changed_rows: chunk_changed,
-                        deleted_ids: chunk_deleted,
-                    },
-                    outbox_ids_by_row_id: chunk_outbox_ids,
-                });
-                chunks.push(std::mem::take(&mut current_chunk));
-            }
+        let single_chunk = merge_pending_units(vec![unit.clone()]);
+        if encoded_push_chunk_len(&single_chunk, outlet_id, client_id) > max_bytes {
+            chunks.push(single_chunk);
+        } else {
+            current_units.push(unit);
         }
     }
 
-    if !current_chunk.is_empty() {
-        chunks.push(current_chunk);
+    if !current_units.is_empty() {
+        chunks.push(merge_pending_units(current_units));
     }
-
     Ok(chunks)
+}
+
+pub(super) fn split_push_chunk_for_retry(
+    chunk: Vec<PendingTablePush>,
+) -> Result<Vec<Vec<PendingTablePush>>, String> {
+    let units = flatten_pending_tables(chunk)?;
+    if units.len() <= 1 {
+        return Err("Cannot split a single-row push chunk".to_string());
+    }
+    let midpoint = units.len() / 2;
+    Ok(vec![
+        merge_pending_units(units[..midpoint].to_vec()),
+        merge_pending_units(units[midpoint..].to_vec()),
+    ])
 }
 
 pub(super) fn debug_row_summary(row: &Value) -> String {
@@ -381,13 +488,15 @@ pub(super) async fn upsert_row(
 }
 
 const MAX_ROWS_PER_PUSH_BATCH: usize = 2000;
+const TARGET_PUSH_BATCH_BYTES: usize = 256 * 1024;
+const HARD_MAX_PUSH_BATCH_BYTES: usize = 2 * 1024 * 1024;
 
 fn build_request_from_chunk(
     chunk: &[PendingTablePush],
     outlet_id: &str,
     client_id: &str,
     idempotency_key: &str,
-) -> Vec<u8> {
+	) -> Vec<u8> {
     let mut merchant_changes = super::protobuf::TablePushChanges::default();
     let mut outlet_changes = super::protobuf::TablePushChanges::default();
     let mut register_changes = super::protobuf::TablePushChanges::default();
@@ -397,20 +506,28 @@ fn build_request_from_chunk(
     let mut order_changes = super::protobuf::TablePushChanges::default();
     let mut order_item_changes = super::protobuf::TablePushChanges::default();
     let mut outlet_product_changes = super::protobuf::TablePushChanges::default();
-    let mut staff_changes = super::protobuf::TablePushChanges::default();
+	let mut staff_changes = super::protobuf::TablePushChanges::default();
+
+    fn append_changes(
+        target: &mut super::protobuf::TablePushChanges,
+        source: &super::protobuf::TablePushChanges,
+    ) {
+        target.changed_rows.extend(source.changed_rows.iter().cloned());
+        target.deleted_ids.extend(source.deleted_ids.iter().cloned());
+    }
 
     for pending in chunk {
         match pending.table.as_str() {
-            "merchants" => merchant_changes = pending.changes.clone(),
-            "outlets" => outlet_changes = pending.changes.clone(),
-            "registers" => register_changes = pending.changes.clone(),
-            "categories" => category_changes = pending.changes.clone(),
-            "assets" => asset_changes = pending.changes.clone(),
-            "products" => product_changes = pending.changes.clone(),
-            "orders" => order_changes = pending.changes.clone(),
-            "order_items" => order_item_changes = pending.changes.clone(),
-            "outlet_products" => outlet_product_changes = pending.changes.clone(),
-            "staff" => staff_changes = pending.changes.clone(),
+            "merchants" => append_changes(&mut merchant_changes, &pending.changes),
+            "outlets" => append_changes(&mut outlet_changes, &pending.changes),
+            "registers" => append_changes(&mut register_changes, &pending.changes),
+            "categories" => append_changes(&mut category_changes, &pending.changes),
+            "assets" => append_changes(&mut asset_changes, &pending.changes),
+            "products" => append_changes(&mut product_changes, &pending.changes),
+            "orders" => append_changes(&mut order_changes, &pending.changes),
+            "order_items" => append_changes(&mut order_item_changes, &pending.changes),
+            "outlet_products" => append_changes(&mut outlet_product_changes, &pending.changes),
+            "staff" => append_changes(&mut staff_changes, &pending.changes),
             _ => {}
         }
     }
@@ -431,6 +548,21 @@ fn build_request_from_chunk(
         Some(build_staff_changes(&staff_changes)),
     );
     request.encode_to_vec()
+}
+
+pub(super) fn encoded_push_chunk_len(
+    chunk: &[PendingTablePush],
+    outlet_id: &str,
+    client_id: &str,
+) -> usize {
+    let mut chunk_outbox_ids: Vec<String> = Vec::new();
+    for pending in chunk {
+        for ids in pending.outbox_ids_by_row_id.values() {
+            chunk_outbox_ids.extend(ids.iter().cloned());
+        }
+    }
+    let idempotency_key = generate_idempotency_key_from_outbox_ids(&chunk_outbox_ids);
+    build_request_from_chunk(chunk, outlet_id, client_id, &idempotency_key).len()
 }
 
 pub(super) async fn sync_push_batch_inner(
@@ -494,6 +626,7 @@ pub(super) async fn sync_push_batch_inner(
 
     if pending_tables.is_empty() {
         return Ok(PushResult {
+            rejected_tables: Vec::new(),
             tables_synced: Vec::new(),
             server_wins_count: 0,
             server_time: String::new(),
@@ -501,7 +634,13 @@ pub(super) async fn sync_push_batch_inner(
     }
 
     let client_id = super::client_identity::get_or_create_sync_client_id(pool).await?;
-    let chunks = chunk_pending_push_tables(pending_tables, MAX_ROWS_PER_PUSH_BATCH)?;
+    let chunks = chunk_pending_push_tables(
+        pending_tables,
+        MAX_ROWS_PER_PUSH_BATCH,
+        TARGET_PUSH_BATCH_BYTES,
+        outlet_id,
+        &client_id,
+    )?;
 
     log::info!(
         "[RUST] [SYNC:TRACE] push_batch: chunks={}, sending to {}/api/sync/push",
@@ -510,19 +649,47 @@ pub(super) async fn sync_push_batch_inner(
     );
 
     let mut all_tables_synced: Vec<String> = Vec::new();
+    let mut all_rejected_tables: HashSet<String> = HashSet::new();
     let mut total_server_wins = 0usize;
     let mut latest_server_time = String::new();
 
-    for chunk in &chunks {
+    let mut chunk_queue: Vec<(Vec<PendingTablePush>, usize)> =
+        chunks.into_iter().rev().map(|chunk| (chunk, 0usize)).collect();
+    while let Some((chunk, retry_count)) = chunk_queue.pop() {
         let mut chunk_outbox_ids: Vec<String> = Vec::new();
-        for pending in chunk {
+        for pending in &chunk {
             for ids in pending.outbox_ids_by_row_id.values() {
                 chunk_outbox_ids.extend(ids.iter().cloned());
             }
         }
         let idempotency_key = generate_idempotency_key_from_outbox_ids(&chunk_outbox_ids);
         let request_body =
-            build_request_from_chunk(chunk, outlet_id, &client_id, &idempotency_key);
+            build_request_from_chunk(&chunk, outlet_id, &client_id, &idempotency_key);
+        if request_body.len() > HARD_MAX_PUSH_BATCH_BYTES {
+            if let Ok(split_chunks) = split_push_chunk_for_retry(chunk) {
+                log::info!(
+                    "[RUST] [SYNC:TRACE] push_batch: local_hard_limit split retry_count={}, bytes={}, split_chunks={}",
+                    retry_count + 1,
+                    request_body.len(),
+                    split_chunks.len()
+                );
+                for split_chunk in split_chunks.into_iter().rev() {
+                    chunk_queue.push((split_chunk, retry_count + 1));
+                }
+                continue;
+            }
+            return Err(format!(
+                r#"{{"kind":"payload_too_large_single_row","status":413,"message":"Sync push chunk is too large","bytes":{}}}"#,
+                request_body.len()
+            ));
+        }
+        log::info!(
+            "[RUST] [SYNC:TRACE] push_batch chunk: rows={}, bytes={}, outbox_ids={}, retry={}",
+            chunk_row_count(&chunk),
+            request_body.len(),
+            chunk_outbox_ids.len(),
+            retry_count
+        );
 
         let response = client
             .post(format!("{}/api/sync/push", api_url))
@@ -541,7 +708,28 @@ pub(super) async fn sync_push_batch_inner(
                 status,
                 text
             );
-            return Err(format!("Sync push batch failed ({}): {}", status, text));
+            if status.as_u16() == 413 {
+                match split_push_chunk_for_retry(chunk) {
+                    Ok(split_chunks) => {
+                        log::info!(
+                            "[RUST] [SYNC:TRACE] push_batch: payload_too_large split retry_count={}, split_chunks={}",
+                            retry_count + 1,
+                            split_chunks.len()
+                        );
+                        for split_chunk in split_chunks.into_iter().rev() {
+                            chunk_queue.push((split_chunk, retry_count + 1));
+                        }
+                        continue;
+                    }
+                    Err(_) => {
+                        return Err(format!(
+                            r#"{{"kind":"payload_too_large_single_row","status":413,"message":"Sync push single row is too large","body":{}}}"#,
+                            serde_json::to_string(&text).unwrap_or_else(|_| "\"\"".to_string())
+                        ));
+                    }
+                }
+            }
+            return Err(sync_http_error("Sync push batch", status, &text));
         }
 
         let response_body = response
@@ -580,36 +768,35 @@ pub(super) async fn sync_push_batch_inner(
                 .map(|ack| ack.table.clone()),
         );
 
+        let accepted_outbox_ids = outbox_ids_for_row_ids(&chunk, &accepted_ids_by_table);
+        let rejected_by_table = rejected_ids_by_table(&result);
+        all_rejected_tables.extend(rejected_by_table.keys().cloned());
+        let rejected_outbox_ids = outbox_ids_for_row_ids(&chunk, &rejected_by_table);
+
         let mut tx = pool
             .begin()
             .await
             .map_err(|e| format!("Failed to begin push batch transaction: {}", e))?;
-        for pending in chunk {
-            let table_accepted = accepted_ids_by_table
-                .get(&pending.table)
-                .cloned()
-                .unwrap_or_default();
-            mark_rows_synced_by_id_tx(&mut tx, &pending.table, &table_accepted).await?;
-        }
         let synced_at = if server_time.is_empty() {
             current_time_iso_string()
         } else {
             server_time.clone()
         };
-        let marked_outbox = super::outbox::mark_outbox_synced_by_accepted_ids_tx(
-            &mut tx, &synced_at, &accepted_ids_by_table,
+        let marked_outbox = super::outbox::mark_outbox_synced_by_outbox_ids_tx(
+            &mut tx,
+            &synced_at,
+            &accepted_outbox_ids,
         )
         .await?;
         log::info!(
             "[RUST] [SYNC:TRACE] push_batch: marked_outbox_synced={}",
             marked_outbox
         );
-        let rejected_by_table = rejected_ids_by_table(&result);
-        if !rejected_by_table.is_empty() {
-            let marked_rejected_outbox = super::outbox::mark_outbox_synced_by_row_ids_tx(
+        if !rejected_outbox_ids.is_empty() {
+            let marked_rejected_outbox = super::outbox::mark_outbox_synced_by_outbox_ids_tx(
                 &mut tx,
                 &synced_at,
-                &rejected_by_table,
+                &rejected_outbox_ids,
             )
             .await?;
             log::info!(
@@ -617,12 +804,20 @@ pub(super) async fn sync_push_batch_inner(
                 marked_rejected_outbox
             );
         }
+        for pending in &chunk {
+            let table_accepted = accepted_ids_by_table
+                .get(&pending.table)
+                .cloned()
+                .unwrap_or_default();
+            mark_rows_synced_by_id_tx(&mut tx, &pending.table, &table_accepted).await?;
+        }
         tx.commit()
             .await
             .map_err(|e| format!("Failed to commit push batch transaction: {}", e))?;
     }
 
     Ok(PushResult {
+        rejected_tables: all_rejected_tables.into_iter().collect(),
         tables_synced: all_tables_synced,
         server_wins_count: total_server_wins,
         server_time: latest_server_time,

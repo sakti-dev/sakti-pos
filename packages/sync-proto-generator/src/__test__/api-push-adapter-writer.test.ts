@@ -50,6 +50,18 @@ describe("API push adapter writer", () => {
     expect(source).toContain("deleteRowsByAdapter");
   });
 
+  test("renders server sync timestamp updates for conflict upserts", () => {
+    const source = renderApiPushAdapters(
+      tables,
+      syncProtoSchemas.apiSyncedSchema
+    );
+
+    expect(source).toContain(
+      'syncUpdatedAt: sql.raw("excluded.sync_updated_at")'
+    );
+    expect(source).toContain("const chunkSize = getWriteChunkSize(16);");
+  });
+
   test("renders chunked upserts and hard deletes", () => {
     const source = renderApiPushAdapters(
       tables,

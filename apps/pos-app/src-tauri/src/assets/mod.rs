@@ -431,6 +431,24 @@ async fn insert_sync_outbox(
 ) -> Result<(), String> {
     let changed_at = current_time_iso_string();
     let id = format!("{row_id}-{changed_at}");
+    let updated = sqlx::query(
+        "UPDATE sync_outbox
+         SET operation = ?1, scope_type = ?2, scope_id = ?3, changed_at = ?4
+         WHERE table_name = ?5 AND row_id = ?6 AND synced_at IS NULL",
+    )
+    .bind(operation)
+    .bind(scope_type)
+    .bind(scope_id)
+    .bind(&changed_at)
+    .bind(table_name)
+    .bind(row_id)
+    .execute(pool)
+    .await
+    .map_err(|error| format!("Failed to update sync outbox row: {}", error))?;
+    if updated.rows_affected() > 0 {
+        return Ok(());
+    }
+
     sqlx::query(
         "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
     )

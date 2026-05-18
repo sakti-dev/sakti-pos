@@ -546,6 +546,42 @@ describe("syncNow", () => {
     expect(syncStatus()).toBe("error");
   });
 
+  test("sets error on native 401 string failure", async () => {
+    mockInvoke.mockRejectedValue(
+      new Error("Sync push batch failed (401 Unauthorized): expired")
+    );
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("error");
+  });
+
+  test("sets error on structured native auth failure", async () => {
+    mockInvoke.mockRejectedValue(
+      '{"kind":"auth","status":401,"message":"expired"}'
+    );
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("error");
+  });
+
+  test("sets offline on native 413 string failure", async () => {
+    mockInvoke.mockRejectedValue(
+      new Error("Sync push batch failed (413 Payload Too Large): too many rows")
+    );
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("offline");
+  });
+
+  test("sets offline on structured native payload failure", async () => {
+    mockInvoke.mockRejectedValue(
+      '{"kind":"payload_too_large","status":413,"message":"too many rows"}'
+    );
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("offline");
+  });
+
   test("sets offline on network failure", async () => {
     mockInvoke.mockRejectedValue(new Error("Network error"));
 
@@ -607,6 +643,15 @@ describe("runStartupSync", () => {
 
     await expect(runStartupSync()).resolves.toBeUndefined();
     expect(syncStatus()).toBe("offline");
+  });
+
+  test("preserves auth error state when startup sync receives native 401", async () => {
+    mockInvoke.mockRejectedValue(
+      new Error("Sync pull batch failed (401 Unauthorized): expired")
+    );
+
+    await expect(runStartupSync()).resolves.toBeUndefined();
+    expect(syncStatus()).toBe("error");
   });
 
   test("sets idle on success", async () => {

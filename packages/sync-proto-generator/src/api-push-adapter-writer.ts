@@ -138,17 +138,22 @@ function renderRowMapper(table: ReflectedSyncTable): string {
 function renderUpsertRows(table: ReflectedSyncTable): string {
   const functionName = toUpsertRowsName(table.tableName);
   const tableVarName = table.schemaBindingName;
+  const serverOnlySetLines = [
+    '      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),',
+  ];
   const setLines = table.columns
     .filter((column) => column.propertyName !== "id")
     .map(
       (column) =>
         `      ${column.propertyName}: sql.raw("excluded.${column.columnName}"),`
-    );
+    )
+    .concat(serverOnlySetLines);
+  const writeColumnCount = table.columns.length + serverOnlySetLines.length;
 
   return [
     `async function ${functionName}(tx: TransactionLike, rows: Record<string, unknown>[]) {`,
     "  if (rows.length === 0) return;",
-    `  const chunkSize = getWriteChunkSize(${table.columns.length});`,
+    `  const chunkSize = getWriteChunkSize(${writeColumnCount});`,
     "  for (const chunk of chunkRows(rows, chunkSize)) {",
     "    await tx.insert(",
     `      ${tableVarName}`,
@@ -186,7 +191,7 @@ function renderAdapter(table: ReflectedSyncTable): string {
     `    mapProtoRow: ${mapProtoRow},`,
     `    tableName: "${table.tableName}",`,
     `    upsertRows: ${upsertRows},`,
-    `    writeColumnCount: ${table.columns.length},`,
+    `    writeColumnCount: ${table.columns.length + 1},`,
     "  } as const;",
     "}",
   ].join("\n");

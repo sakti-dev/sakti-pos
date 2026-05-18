@@ -1,4 +1,10 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import {
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 
 export const merchants = sqliteTable("merchants", {
@@ -85,22 +91,30 @@ export const syncMeta = sqliteTable("sync_meta", {
   lastSyncAt: text("last_sync_at").notNull(),
 });
 
-export const syncOutbox = sqliteTable("sync_outbox", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => uuidv7()),
-  tableName: text("table_name").notNull(),
-  rowId: text("row_id").notNull(),
-  operation: text("operation", {
-    enum: ["insert", "update", "delete"],
-  }).notNull(),
-  scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
-  scopeId: text("scope_id").notNull(),
-  changedAt: text("changed_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  syncedAt: text("synced_at"),
-});
+export const syncOutbox = sqliteTable(
+  "sync_outbox",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    tableName: text("table_name").notNull(),
+    rowId: text("row_id").notNull(),
+    operation: text("operation", {
+      enum: ["insert", "update", "delete"],
+    }).notNull(),
+    scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
+    scopeId: text("scope_id").notNull(),
+    changedAt: text("changed_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    syncedAt: text("synced_at"),
+  },
+  (table) => [
+    uniqueIndex("sync_outbox_pending_row_unique")
+      .on(table.tableName, table.rowId)
+      .where(sql`${table.syncedAt} IS NULL`),
+  ]
+);
 
 export const syncClientIdentity = sqliteTable("sync_client_identity", {
   id: integer("id").primaryKey(),
@@ -113,7 +127,6 @@ export const syncClientIdentity = sqliteTable("sync_client_identity", {
 export const syncCursors = sqliteTable("sync_cursors", {
   scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
   scopeId: text("scope_id").notNull(),
-  lastServerEventId: integer("last_server_event_id").notNull().default(0),
   lastServerWatermark: text("last_server_watermark"),
   updatedAt: text("updated_at")
     .notNull()

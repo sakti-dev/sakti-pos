@@ -288,7 +288,6 @@ async function loadPushBatchResponse(
 ): Promise<StoredPushBatchResponse | null> {
   const [existing] = await tx
     .select({
-      latestEventId: syncBatchRequests.latestEventId,
       requestHash: syncBatchRequests.requestHash,
       responseJson: syncBatchRequests.responseJson,
       serverTime: syncBatchRequests.serverTime,
@@ -349,7 +348,6 @@ async function reservePushBatchResponse(
       clientId: input.clientId,
       createdAt: now,
       idempotencyKey: input.idempotencyKey,
-      latestEventId: 0,
       requestHash: input.requestHash,
       responseJson: PENDING_PUSH_BATCH_RESPONSE,
       serverTime: now,
@@ -457,8 +455,12 @@ async function partitionAcceptedPushRows(
   }
 
   const existingRows = await selectExistingRowsChunked(
-    input.tableName,
-    input.tx as unknown as TransactionLike,
+    {
+      merchantId: input.merchantId,
+      outletId: input.outletId,
+      tableName: input.tableName,
+      tx: input.tx as unknown as TransactionLike,
+    },
     candidateRows.map((candidate) => candidate.id as string)
   );
   const existingRowsById = new Map(existingRows.map((row) => [row.id, row]));
@@ -551,26 +553,39 @@ async function upsertRowsChunked(input: {
 }
 
 async function selectExistingRowsChunked(
-  tableName: string,
-  tx: TransactionLike,
+  input: {
+    merchantId: string;
+    outletId: string;
+    tableName: string;
+    tx: TransactionLike;
+  },
   ids: string[]
 ): Promise<ExistingSyncRow[]> {
   if (ids.length === 0) {
     return [];
   }
 
-  const table = getRequiredSyncTable(tableName);
+  const typedTableName = input.tableName as keyof typeof SYNC_TABLES;
+  const table = getRequiredSyncTable(input.tableName);
+  const scopeFilter = getRowStateScopeFilter(
+    typedTableName,
+    input.merchantId,
+    input.outletId
+  );
   const rows: ExistingSyncRow[] = [];
   for (const idChunk of chunkArray(ids, DEFAULT_MAX_IDS_PER_READ_CHUNK)) {
+    const filters = [scopeFilter, inArray(table.id, idChunk)].filter(
+      Boolean
+    ) as [SQL, ...SQL[]];
     const chunkRows = await resolveRowsLike<ExistingSyncRow>(
-      tx
+      input.tx
         .select({
           createdAt: table.createdAt,
           id: table.id,
           updatedAt: table.updatedAt,
         })
         .from(table)
-        .where(inArray(table.id, idChunk)),
+        .where(and(...filters)),
       idChunk.length
     );
     rows.push(

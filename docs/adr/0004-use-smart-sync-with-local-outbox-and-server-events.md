@@ -2,11 +2,15 @@
 id: 4
 title: Use Smart Sync With Local Outbox And Server Events
 date: 2026-05-14
-status: accepted
+status: superseded
 domains: [sync, sqlite, api, protobuf]
 ---
 
 # 4. Use Smart Sync With Local Outbox And Server Events
+
+Superseded by [ADR 0009](./0009-use-row-state-sync-watermarks.md). The
+`sync_events` table and server event-id cursor model were removed in favor of
+row-state watermarks.
 
 ## Context
 

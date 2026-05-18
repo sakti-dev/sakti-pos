@@ -821,7 +821,6 @@ describe("handlePushBatch", () => {
               where: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue([
                   {
-                    latestEventId: 0,
                     requestHash: "request-hash-1",
                     responseJson: JSON.stringify({ pending: true }),
                     serverTime: "2026-05-17T00:00:00.000Z",

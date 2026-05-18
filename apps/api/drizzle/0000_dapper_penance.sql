@@ -14,6 +14,7 @@ CREATE TABLE `assets` (
 	`deleted_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`created_by_user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -28,6 +29,7 @@ CREATE TABLE `categories` (
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`deleted_at` text,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -36,7 +38,8 @@ CREATE TABLE `merchants` (
 	`name` text NOT NULL,
 	`deleted_at` text,
 	`created_at` text NOT NULL,
-	`updated_at` text NOT NULL
+	`updated_at` text NOT NULL,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `order_items` (
@@ -50,8 +53,9 @@ CREATE TABLE `order_items` (
 	`original_price_minor_units` integer,
 	`subtotal_minor_units` integer NOT NULL,
 	`created_at` text NOT NULL,
-	`updated_at` text,
+	`updated_at` text NOT NULL,
 	`deleted_at` text,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`outlet_id`) REFERENCES `outlets`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -70,6 +74,7 @@ CREATE TABLE `orders` (
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`deleted_at` text,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`outlet_id`) REFERENCES `outlets`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`register_id`) REFERENCES `registers`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`staff_id`) REFERENCES `staff`(`id`) ON UPDATE no action ON DELETE no action
@@ -86,6 +91,7 @@ CREATE TABLE `outlet_products` (
 	`deleted_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`outlet_id`) REFERENCES `outlets`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -102,6 +108,7 @@ CREATE TABLE `outlets` (
 	`deleted_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -118,6 +125,7 @@ CREATE TABLE `products` (
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`deleted_at` text,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`image_asset_id`) REFERENCES `assets`(`id`) ON UPDATE no action ON DELETE no action
@@ -135,6 +143,7 @@ CREATE TABLE `registers` (
 	`deleted_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`outlet_id`) REFERENCES `outlets`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -152,6 +161,7 @@ CREATE TABLE `staff` (
 	`deleted_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
+	`sync_updated_at` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`cloud_user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`outlet_id`) REFERENCES `outlets`(`id`) ON UPDATE no action ON DELETE no action
@@ -163,23 +173,12 @@ CREATE TABLE `sync_batch_requests` (
 	`idempotency_key` text NOT NULL,
 	`request_hash` text NOT NULL,
 	`response_json` text NOT NULL,
-	`latest_event_id` integer DEFAULT 0 NOT NULL,
 	`server_time` text NOT NULL,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `sync_batch_requests_client_id_idempotency_key_unique` ON `sync_batch_requests` (`client_id`,`idempotency_key`);--> statement-breakpoint
-CREATE TABLE `sync_events` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`scope_type` text NOT NULL,
-	`scope_id` text NOT NULL,
-	`table_name` text NOT NULL,
-	`row_id` text NOT NULL,
-	`operation` text NOT NULL,
-	`changed_at` text NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE `user_merchants` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,

@@ -18,7 +18,7 @@ import {
   currentOutletTimezone,
   setOutletTimezone,
 } from "~/store/outlet";
-import { type SyncNowResult, syncNow, syncStatus } from "~/store/sync";
+import { formatSyncSuccessMessage, syncNow, syncStatus } from "~/store/sync";
 import { setTheme, theme } from "~/store/theme";
 
 interface DbInfo {
@@ -32,22 +32,7 @@ interface DbSnapshotExportResult {
 
 const dbLogger = createLogger({ domain: "DB", module: "settings" });
 
-export function formatSyncSuccessMessage(result: SyncNowResult): string {
-  if (result.mode === "skipped") {
-    return "Data sudah terbaru";
-  }
-
-  if (result.mode === "pull_only") {
-    return `Sinkronisasi berhasil (${result.pull.rows_received} diterima)`;
-  }
-
-  const sentTables = result.push.tables_synced.length;
-  if (result.mode === "push_only") {
-    return `Sinkronisasi berhasil (${sentTables} tabel dikirim)`;
-  }
-
-  return `Sinkronisasi berhasil (${result.pull.rows_received} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
-}
+export { formatSyncSuccessMessage };
 
 export function useSettings() {
   const navigate = useNavigate();

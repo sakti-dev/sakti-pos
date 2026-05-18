@@ -22,6 +22,13 @@ const syncLogger = createLogger({
 export { lastAssetQueueCount, lastSyncTime, syncStatus };
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const NATIVE_HTTP_STATUS_PATTERN = /\((\d{3})(?:\s+[A-Za-z][^)]+)?\)/;
+
+interface StructuredSyncError {
+  kind?: string;
+  message?: string;
+  status?: number;
+}
 
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 let inFlightSync: Promise<SyncNowResult> | null = null;
@@ -50,10 +57,28 @@ export interface SyncNowResult {
   pull: { rows_received: number; server_time: string };
   purged: number;
   push: {
+    rejected_tables?: string[];
     server_time: string;
     server_wins_count: number;
     tables_synced: string[];
   };
+}
+
+export function formatSyncSuccessMessage(result: SyncNowResult): string {
+  if (result.mode === "skipped") {
+    return "Data sudah terbaru";
+  }
+
+  if (result.mode === "pull_only") {
+    return `Sinkronisasi berhasil (${result.pull.rows_received} diterima)`;
+  }
+
+  const sentTables = result.push.tables_synced.length;
+  if (result.mode === "push_only") {
+    return `Sinkronisasi berhasil (${sentTables} tabel dikirim)`;
+  }
+
+  return `Sinkronisasi berhasil (${result.pull.rows_received} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
 }
 
 interface LocalSyncState {
@@ -193,6 +218,11 @@ async function drainSyncRequests(): Promise<SyncNowResult> {
 }
 
 function getErrorStatus(error: unknown): number | null {
+  const structured = parseStructuredSyncError(error);
+  if (typeof structured?.status === "number") {
+    return structured.status;
+  }
+
   if (
     error &&
     typeof error === "object" &&
@@ -201,12 +231,52 @@ function getErrorStatus(error: unknown): number | null {
   ) {
     return error.status;
   }
+
+  const message = describeError(error);
+  const nativeStatusMatch = NATIVE_HTTP_STATUS_PATTERN.exec(message);
+  if (nativeStatusMatch?.[1]) {
+    return Number(nativeStatusMatch[1]);
+  }
+
+  return null;
+}
+
+function parseStructuredSyncError(error: unknown): StructuredSyncError | null {
+  let raw: string | null = null;
+  if (typeof error === "string") {
+    raw = error;
+  } else if (error instanceof Error) {
+    raw = error.message;
+  }
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as StructuredSyncError;
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+  } catch {
+    return null;
+  }
   return null;
 }
 
 function classifySyncError(
   error: unknown
 ): "auth" | "payload_too_large" | "network" | "server" | "unknown" {
+  const structured = parseStructuredSyncError(error);
+  if (structured?.kind === "auth") {
+    return "auth";
+  }
+  if (
+    structured?.kind === "payload_too_large" ||
+    structured?.kind === "payload_too_large_single_row"
+  ) {
+    return "payload_too_large";
+  }
+
   const status = getErrorStatus(error);
   if (status === 401 || status === 403) {
     return "auth";
@@ -344,7 +414,9 @@ export async function runStartupSync(): Promise<void> {
     await syncNow();
     setSyncStatus("idle");
   } catch {
-    setSyncStatus("offline");
+    if (syncStatus() !== "error") {
+      setSyncStatus("offline");
+    }
   }
 }
 

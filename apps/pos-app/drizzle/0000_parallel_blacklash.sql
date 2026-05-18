@@ -208,7 +208,6 @@ CREATE TABLE `sync_client_identity` (
 CREATE TABLE `sync_cursors` (
 	`scope_type` text NOT NULL,
 	`scope_id` text NOT NULL,
-	`last_server_event_id` integer DEFAULT 0 NOT NULL,
 	`last_server_watermark` text,
 	`updated_at` text NOT NULL
 );
@@ -229,3 +228,5 @@ CREATE TABLE `sync_outbox` (
 	`changed_at` text NOT NULL,
 	`synced_at` text
 );
+--> statement-breakpoint
+CREATE UNIQUE INDEX `sync_outbox_pending_row_unique` ON `sync_outbox` (`table_name`,`row_id`) WHERE "sync_outbox"."synced_at" IS NULL;

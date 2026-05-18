@@ -1,5 +1,5 @@
 use serde_json::Value;
-use sqlx::{Column, Row, SqliteConnection, SqlitePool};
+use sqlx::{Column, Row, SqliteConnection};
 
 use crate::db::sqlite;
 
@@ -71,7 +71,6 @@ pub(super) struct OutboxRowForSync {
 #[derive(Debug)]
 pub(super) struct TableOutboxChanges {
     pub changes: TablePushChanges,
-    pub outbox_ids: Vec<String>,
     pub outbox_ids_by_row_id: std::collections::HashMap<String, Vec<String>>,
 }
 
@@ -182,7 +181,6 @@ pub(super) async fn read_unsynced_table_changes_from_outbox_tx(
         })?;
 
     let mut result = Vec::new();
-    let mut outbox_ids = Vec::new();
     let mut outbox_ids_by_row_id: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
     for row in &rows {
@@ -211,7 +209,6 @@ pub(super) async fn read_unsynced_table_changes_from_outbox_tx(
             }
             obj.insert(snake_to_camel(&name), val);
         }
-        outbox_ids.push(outbox_id.clone());
         outbox_ids_by_row_id
             .entry(row_id.clone())
             .or_default()
@@ -225,7 +222,6 @@ pub(super) async fn read_unsynced_table_changes_from_outbox_tx(
 
     Ok(TableOutboxChanges {
         changes: outbox_rows_to_table_changes(result)?,
-        outbox_ids,
         outbox_ids_by_row_id,
     })
 }
@@ -240,7 +236,15 @@ pub(super) async fn mark_rows_synced_by_id_tx(
     }
 
     let query = format!(
-        "UPDATE {} SET is_synced = 1 WHERE id IN ({})",
+        "UPDATE {} SET is_synced = 1
+         WHERE NOT EXISTS (
+            SELECT 1 FROM sync_outbox
+            WHERE sync_outbox.table_name = ?
+              AND sync_outbox.row_id = {}.id
+              AND sync_outbox.synced_at IS NULL
+         )
+         AND id IN ({})",
+        table,
         table,
         accepted_ids
             .iter()
@@ -249,6 +253,7 @@ pub(super) async fn mark_rows_synced_by_id_tx(
             .join(",")
     );
     let mut q = sqlx::query(&query);
+    q = q.bind(table);
     for id in accepted_ids {
         q = q.bind(id);
     }

@@ -63,7 +63,6 @@ export const syncBatchRequests = sqliteTable(
     idempotencyKey: text("idempotency_key").notNull(),
     requestHash: text("request_hash").notNull(),
     responseJson: text("response_json").notNull(),
-    latestEventId: integer("latest_event_id").notNull().default(0),
     serverTime: text("server_time").notNull(),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),

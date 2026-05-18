@@ -16,6 +16,7 @@ pub(super) fn empty_pull_result() -> PullResult {
 
 pub(super) fn empty_push_result() -> PushResult {
     PushResult {
+        rejected_tables: Vec::new(),
         tables_synced: Vec::new(),
         server_wins_count: 0,
         server_time: String::new(),

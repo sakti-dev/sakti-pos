@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d7ee9f4b-4289-4371-98e8-56a172719961",
+  "id": "5fa59a2b-aa42-470a-8ccd-e93d3e986637",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "assets": {
@@ -1348,14 +1348,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "last_server_event_id": {
-          "name": "last_server_event_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
         "last_server_watermark": {
           "name": "last_server_watermark",
           "type": "text",
@@ -1468,7 +1460,17 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "sync_outbox_pending_row_unique": {
+          "name": "sync_outbox_pending_row_unique",
+          "columns": [
+            "table_name",
+            "row_id"
+          ],
+          "isUnique": true,
+          "where": "\"sync_outbox\".\"synced_at\" IS NULL"
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

@@ -118,6 +118,119 @@ mod tests {
     }
 
     #[test]
+    fn server_wins_rejected_push_is_reconciled_by_followup_pull() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool_with_outbox().await;
+            sqlx::query(
+                "INSERT INTO products (id, merchant_id, name, price_minor_units, is_active, sort_order, is_synced, created_at, updated_at)
+                 VALUES ('product-1', 'merchant-1', 'Local Stale', 15000, 1, 0, 0, '2026-05-17T00:00:00.000Z', '2026-05-18T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert dirty local product");
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES ('outbox-stale', 'products', 'product-1', 'update', 'merchant', 'merchant-1', '2026-05-18T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert stale outbox");
+
+            let response = SyncPushBatchResponse {
+                tables: vec![SyncTableAck {
+                    table: "products".to_string(),
+                    rejected: vec![SyncRejectedRow {
+                        id: "product-1".to_string(),
+                        reason: "server_newer".to_string(),
+                    }],
+                    ..Default::default()
+                }],
+                server_time: "2026-05-19T00:00:00.000Z".to_string(),
+            };
+            let rejected_by_table = super::push::rejected_ids_by_table(&response);
+            let rejected_outbox_ids =
+                super::push::outbox_ids_for_row_ids_for_test("products", "product-1", &[
+                    "outbox-stale".to_string(),
+                ], &rejected_by_table);
+
+            let mut tx = pool.begin().await.expect("tx");
+            super::outbox::mark_outbox_synced_by_outbox_ids_tx(
+                &mut tx,
+                &response.server_time,
+                &rejected_outbox_ids,
+            )
+            .await
+            .expect("mark rejected outbox synced");
+
+            let mut tables_map = BTreeMap::new();
+            tables_map.insert(
+                "products".to_string(),
+                DecodedPullTable {
+                    changed_rows: vec![json!({
+                        "id": "product-1",
+                        "merchantId": "merchant-1",
+                        "name": "Server Winner",
+                        "priceMinorUnits": 25000,
+                        "isActive": true,
+                        "sortOrder": 0,
+                        "createdAt": "2026-05-17T00:00:00.000Z",
+                        "updatedAt": "2026-05-19T00:00:00.000Z"
+                    })],
+                    deleted_ids: vec![],
+                },
+            );
+            let applied = super::pull::apply_pull_batch_tables_tx(
+                &mut tx,
+                "outlet-1",
+                &["products".to_string()],
+                &tables_map,
+                "2026-05-19T00:00:01.000Z",
+                "sync:1779235200000:products:product-1",
+                "2026-05-19T00:00:00.000Z",
+                true,
+            )
+            .await
+            .expect("follow-up pull should apply server row");
+            tx.commit().await.expect("commit");
+
+            assert_eq!(applied, 1);
+            let product = sqlx::query_as::<_, (String, i64, i64)>(
+                "SELECT name, price_minor_units, is_synced FROM products WHERE id = 'product-1'",
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("product should exist");
+            assert_eq!(product, ("Server Winner".to_string(), 25000, 1));
+
+            let outbox_synced = sqlx::query_scalar::<_, Option<String>>(
+                "SELECT synced_at FROM sync_outbox WHERE id = 'outbox-stale'",
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("outbox row should exist");
+            assert_eq!(
+                outbox_synced.as_deref(),
+                Some("2026-05-19T00:00:00.000Z")
+            );
+
+            let pending_outbox =
+                sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM sync_outbox WHERE synced_at IS NULL")
+                    .fetch_one(&pool)
+                    .await
+                    .expect("count pending outbox");
+            assert_eq!(pending_outbox, 0);
+
+            let cursor = sqlx::query_scalar::<_, String>(
+                "SELECT last_server_watermark FROM sync_cursors WHERE scope_id = 'outlet-1'",
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("cursor should exist");
+            assert_eq!(cursor, "sync:1779235200000:products:product-1");
+        });
+    }
+
+    #[test]
     fn idempotency_key_is_deterministic_from_outbox_ids() {
         let first = super::push::generate_idempotency_key_from_outbox_ids(&[
             "outbox-2".to_string(),
@@ -282,6 +395,8 @@ mod tests {
                 &tables_map,
                 "2026-05-17T00:00:01.000Z",
                 "cursor-42",
+                "2026-05-17T00:00:00.000Z",
+                true,
             )
             .await
             .expect("pull batch should apply");
@@ -379,6 +494,8 @@ mod tests {
                 &tables_map,
                 "2026-05-18T00:00:00.000Z",
                 "cursor-42",
+                "2026-05-19T00:00:00.000Z",
+                true,
             )
             .await
             .expect("apply");
@@ -402,6 +519,146 @@ mod tests {
             .await
             .expect("outbox row");
             assert!(outbox_synced.is_some());
+        });
+    }
+
+    #[test]
+    fn apply_pull_deleted_ids_keeps_outbox_rows_newer_than_pull_start() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool_with_outbox().await;
+
+            sqlx::query(
+                "INSERT INTO products (id, merchant_id, name, price_minor_units, is_active, sort_order, is_synced, created_at, updated_at)
+                 VALUES ('product-1', 'merchant-1', 'Dirty', 15000, 1, 0, 0, '2026-05-17T00:00:00.000Z', '2026-05-19T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert product");
+
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES
+                 ('outbox-before-pull', 'products', 'product-1', 'update', 'merchant', 'merchant-1', '2026-05-19T00:00:00.000Z'),
+                 ('outbox-after-pull', 'products', 'product-1', 'update', 'merchant', 'merchant-1', '2026-05-19T00:00:02.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert outbox");
+
+            let mut tables_map = BTreeMap::new();
+            tables_map.insert(
+                "products".to_string(),
+                DecodedPullTable {
+                    changed_rows: vec![],
+                    deleted_ids: vec!["product-1".to_string()],
+                },
+            );
+
+            let mut tx = pool.begin().await.expect("tx");
+            super::pull::apply_pull_batch_tables_tx(
+                &mut tx,
+                "outlet-1",
+                &["products".to_string()],
+                &tables_map,
+                "2026-05-18T00:00:00.000Z",
+                "cursor-42",
+                "2026-05-19T00:00:01.000Z",
+                true,
+            )
+            .await
+            .expect("apply");
+            tx.commit().await.expect("commit");
+
+            let rows = sqlx::query_as::<_, (String, Option<String>)>(
+                "SELECT id, synced_at FROM sync_outbox ORDER BY id"
+            )
+            .fetch_all(&pool)
+            .await
+            .expect("read outbox");
+
+            assert_eq!(rows[0].0, "outbox-after-pull");
+            assert!(rows[0].1.is_none());
+            assert_eq!(rows[1].0, "outbox-before-pull");
+            assert!(rows[1].1.is_some());
+        });
+    }
+
+    #[test]
+    fn mark_outbox_synced_by_outbox_ids_keeps_newer_same_row_pending() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool_with_outbox().await;
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES
+                 ('outbox-snapshot', 'products', 'product-1', 'update', 'merchant', 'merchant-1', '2026-05-19T00:00:00.000Z'),
+                 ('outbox-newer', 'products', 'product-1', 'update', 'merchant', 'merchant-1', '2026-05-19T00:00:01.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert outbox rows");
+
+            let mut tx = pool.begin().await.expect("tx");
+            let marked = super::outbox::mark_outbox_synced_by_outbox_ids_tx(
+                &mut tx,
+                "2026-05-19T00:00:02.000Z",
+                &["outbox-snapshot".to_string()],
+            )
+            .await
+            .expect("mark snapshot outbox");
+            tx.commit().await.expect("commit");
+
+            assert_eq!(marked, 1);
+
+            let rows = sqlx::query_as::<_, (String, Option<String>)>(
+                "SELECT id, synced_at FROM sync_outbox ORDER BY id"
+            )
+            .fetch_all(&pool)
+            .await
+            .expect("read outbox rows");
+
+            assert_eq!(rows[0].0, "outbox-newer");
+            assert!(rows[0].1.is_none());
+            assert_eq!(rows[1].0, "outbox-snapshot");
+            assert_eq!(rows[1].1.as_deref(), Some("2026-05-19T00:00:02.000Z"));
+        });
+    }
+
+    #[test]
+    fn mark_rows_synced_by_id_skips_rows_with_pending_outbox() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool_with_outbox().await;
+            sqlx::query(
+                "INSERT INTO products (id, merchant_id, name, price_minor_units, is_active, sort_order, is_synced, created_at, updated_at)
+                 VALUES ('product-1', 'merchant-1', 'Dirty', 15000, 1, 0, 0, '2026-05-17T00:00:00.000Z', '2026-05-19T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert product");
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES ('outbox-newer', 'products', 'product-1', 'update', 'merchant', 'merchant-1', '2026-05-19T00:00:01.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("insert outbox");
+
+            let mut accepted = std::collections::HashSet::new();
+            accepted.insert("product-1".to_string());
+
+            let mut tx = pool.begin().await.expect("tx");
+            super::schema::mark_rows_synced_by_id_tx(&mut tx, "products", &accepted)
+                .await
+                .expect("mark row synced");
+            tx.commit().await.expect("commit");
+
+            let is_synced = sqlx::query_scalar::<_, i64>(
+                "SELECT is_synced FROM products WHERE id = 'product-1'",
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("read product");
+
+            assert_eq!(is_synced, 0);
         });
     }
 
@@ -434,6 +691,8 @@ mod tests {
                 &tables_map,
                 "2026-05-17T00:00:01.000Z",
                 "cursor-42",
+                "2026-05-17T00:00:00.000Z",
+                true,
             )
             .await;
             tx.rollback().await.expect("transaction should roll back");
@@ -571,6 +830,51 @@ mod tests {
     }
 
     #[test]
+    fn sync_outbox_pending_unique_index_rejects_duplicate_pending_row() {
+        tauri::async_runtime::block_on(async {
+            let pool = test_pool_with_outbox().await;
+            sqlx::query(
+                "CREATE UNIQUE INDEX sync_outbox_pending_row_unique
+                 ON sync_outbox (table_name, row_id)
+                 WHERE synced_at IS NULL",
+            )
+            .execute(&pool)
+            .await
+            .expect("create unique index");
+
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES ('o1', 'products', 'p1', 'update', 'merchant', 'merchant-1', '2026-05-17T00:00:00.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("first pending insert");
+
+            let duplicate_result = sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES ('o2', 'products', 'p1', 'update', 'merchant', 'merchant-1', '2026-05-17T00:00:01.000Z')"
+            )
+            .execute(&pool)
+            .await;
+
+            assert!(duplicate_result.is_err());
+
+            sqlx::query("UPDATE sync_outbox SET synced_at = '2026-05-17T00:00:02.000Z' WHERE id = 'o1'")
+                .execute(&pool)
+                .await
+                .expect("mark synced");
+
+            sqlx::query(
+                "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_type, scope_id, changed_at)
+                 VALUES ('o3', 'products', 'p1', 'update', 'merchant', 'merchant-1', '2026-05-17T00:00:03.000Z')"
+            )
+            .execute(&pool)
+            .await
+            .expect("new pending insert after sync");
+        });
+    }
+
+    #[test]
     fn chunk_push_changes_splits_single_large_table() {
         let mut ids = HashMap::new();
         let mut changes = super::protobuf::TablePushChanges::default();
@@ -588,6 +892,9 @@ mod tests {
                 outbox_ids_by_row_id: ids,
             }],
             2000,
+            usize::MAX,
+            "outlet-1",
+            "client-1",
         )
         .expect("chunking should work");
 
@@ -614,11 +921,79 @@ mod tests {
                 outbox_ids_by_row_id: ids,
             }],
             2,
+            usize::MAX,
+            "outlet-1",
+            "client-1",
         )
         .expect("chunking should work");
 
         assert_eq!(chunks.len(), 2);
         assert_eq!(chunks[0][0].outbox_ids_by_row_id.len(), 2);
         assert_eq!(chunks[1][0].outbox_ids_by_row_id.len(), 1);
+    }
+
+    #[test]
+    fn chunk_push_changes_splits_by_encoded_bytes() {
+        let mut ids = HashMap::new();
+        let mut changes = super::protobuf::TablePushChanges::default();
+
+        for i in 0..3 {
+            let row_id = format!("product-{i}");
+            changes.changed_rows.push(serde_json::json!({
+                "id": row_id,
+                "merchantId": "merchant-1",
+                "name": "x".repeat(512),
+                "priceMinorUnits": 15_000,
+                "isActive": true,
+                "sortOrder": i,
+                "createdAt": "2026-05-17T00:00:00.000Z",
+                "updatedAt": "2026-05-17T00:00:00.000Z"
+            }));
+            ids.insert(row_id.clone(), vec![format!("outbox-{i}")]);
+        }
+
+        let chunks = super::push::chunk_pending_push_tables(
+            vec![super::push::PendingTablePush {
+                table: "products".to_string(),
+                changes,
+                outbox_ids_by_row_id: ids,
+            }],
+            2000,
+            900,
+            "outlet-1",
+            "client-1",
+        )
+        .expect("chunking should work");
+
+        assert!(chunks.len() > 1);
+        for chunk in &chunks {
+            let bytes = super::push::encoded_push_chunk_len(chunk, "outlet-1", "client-1");
+            assert!(bytes <= 900);
+        }
+    }
+
+    #[test]
+    fn split_push_chunk_for_retry_halves_rows_and_preserves_outbox_ids() {
+        let mut ids = HashMap::new();
+        let mut changes = super::protobuf::TablePushChanges::default();
+
+        for i in 0..4 {
+            let row_id = format!("product-{i}");
+            changes.changed_rows.push(serde_json::json!({ "id": row_id }));
+            ids.insert(row_id.clone(), vec![format!("outbox-{i}")]);
+        }
+
+        let split = super::push::split_push_chunk_for_retry(vec![super::push::PendingTablePush {
+            table: "products".to_string(),
+            changes,
+            outbox_ids_by_row_id: ids,
+        }])
+        .expect("chunk should split");
+
+        assert_eq!(split.len(), 2);
+        assert_eq!(split[0][0].changes.changed_rows.len(), 2);
+        assert_eq!(split[1][0].changes.changed_rows.len(), 2);
+        assert_eq!(split[0][0].outbox_ids_by_row_id.len(), 2);
+        assert_eq!(split[1][0].outbox_ids_by_row_id.len(), 2);
     }
 }

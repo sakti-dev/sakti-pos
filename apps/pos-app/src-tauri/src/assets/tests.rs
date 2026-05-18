@@ -539,3 +539,109 @@ fn reused_assets_are_reconciled_ready_when_remote_is_ready() {
     );
     assert_eq!(resolve_reused_asset_ready_state(Some("failed")), expected);
 }
+
+#[test]
+fn asset_sync_outbox_writes_coalesce_existing_pending_row() {
+    tauri::async_runtime::block_on(async {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("sqlite pool should connect");
+
+        sqlx::query(
+            r#"
+                CREATE TABLE assets (
+                    id TEXT PRIMARY KEY,
+                    status TEXT NOT NULL,
+                    is_synced INTEGER NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("assets table should be created");
+
+        sqlx::query(
+            r#"
+                CREATE TABLE local_asset_cache (
+                    asset_id TEXT PRIMARY KEY,
+                    status TEXT NOT NULL,
+                    last_error TEXT,
+                    cached_at TEXT,
+                    updated_at TEXT NOT NULL
+                )
+                "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("local_asset_cache table should be created");
+
+        sqlx::query(
+            r#"
+                CREATE TABLE sync_outbox (
+                    id TEXT PRIMARY KEY,
+                    table_name TEXT NOT NULL,
+                    row_id TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    scope_type TEXT NOT NULL,
+                    scope_id TEXT NOT NULL,
+                    changed_at TEXT NOT NULL,
+                    synced_at TEXT
+                )
+                "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("sync_outbox table should be created");
+
+        sqlx::query(
+            r#"
+                CREATE UNIQUE INDEX sync_outbox_pending_row_unique
+                ON sync_outbox (table_name, row_id)
+                WHERE synced_at IS NULL
+                "#,
+        )
+        .execute(&pool)
+        .await
+        .expect("pending outbox unique index should be created");
+
+        sqlx::query(
+            "INSERT INTO assets (id, status, is_synced, updated_at) VALUES ('asset-1', 'pending_upload', 0, '2026-05-18T00:00:00.000Z')",
+        )
+        .execute(&pool)
+        .await
+        .expect("asset should be inserted");
+
+        sqlx::query(
+            "INSERT INTO local_asset_cache (asset_id, status, updated_at) VALUES ('asset-1', 'pending_upload', '2026-05-18T00:00:00.000Z')",
+        )
+        .execute(&pool)
+        .await
+        .expect("cache row should be inserted");
+
+        super::insert_sync_outbox(&pool, "asset-1", "merchant", "merchant-1", "assets", "update")
+            .await
+            .expect("first outbox write should insert");
+        super::local::mark_asset_ready(&pool, "asset-1", "merchant-1")
+            .await
+            .expect("second outbox write should update existing pending row");
+
+        let pending_count = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM sync_outbox WHERE table_name = 'assets' AND row_id = 'asset-1' AND synced_at IS NULL",
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("pending outbox count should load");
+
+        let asset_status: (String, i64) =
+            sqlx::query_as("SELECT status, is_synced FROM assets WHERE id = 'asset-1'")
+                .fetch_one(&pool)
+                .await
+                .expect("asset should load");
+
+        assert_eq!(pending_count, 1);
+        assert_eq!(asset_status, ("ready".to_string(), 0));
+    });
+}

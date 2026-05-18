@@ -13,6 +13,22 @@ use super::protobuf::{
 };
 use super::push::{debug_row_summary, soft_delete_row, upsert_row};
 use super::sync_proto::SyncPullBatchResponse;
+use crate::time_utils::current_time_iso_string;
+
+fn sync_http_error(prefix: &str, status: reqwest::StatusCode, body: &str) -> String {
+    let kind = match status.as_u16() {
+        401 | 403 => "auth",
+        413 => "payload_too_large",
+        500..=599 => "server",
+        _ => "unknown",
+    };
+    serde_json::json!({
+        "kind": kind,
+        "message": format!("{} failed ({}): {}", prefix, status, body),
+        "status": status.as_u16(),
+    })
+    .to_string()
+}
 
 #[derive(Debug, serde::Serialize)]
 pub struct PullResult {
@@ -43,6 +59,8 @@ pub(super) async fn apply_pull_batch_tables_tx(
     tables_map: &BTreeMap<String, DecodedPullTable>,
     server_time: &str,
     cursor: &str,
+    outbox_changed_at_cutoff: &str,
+    update_watermark: bool,
 ) -> Result<usize, String> {
     let mut rows_received = 0usize;
     let mut all_deleted_ids_by_table: HashMap<String, HashSet<String>> = HashMap::new();
@@ -78,10 +96,11 @@ pub(super) async fn apply_pull_batch_tables_tx(
     }
 
     if !all_deleted_ids_by_table.is_empty() {
-        let marked = super::outbox::mark_outbox_synced_by_row_ids_tx(
+        let marked = super::outbox::mark_outbox_synced_by_row_ids_changed_at_or_before_tx(
             tx,
             server_time,
             &all_deleted_ids_by_table,
+            outbox_changed_at_cutoff,
         )
         .await?;
         log::info!(
@@ -90,7 +109,9 @@ pub(super) async fn apply_pull_batch_tables_tx(
         );
     }
 
-    set_last_server_watermark_tx(tx, outlet_id, cursor).await?;
+    if update_watermark {
+        set_last_server_watermark_tx(tx, outlet_id, cursor).await?;
+    }
     Ok(rows_received)
 }
 
@@ -102,12 +123,54 @@ pub(super) async fn sync_pull_batch_inner(
     tables: &[String],
     start_cursor: PullStartCursor,
 ) -> Result<PullResult, String> {
+    sync_pull_batch_inner_with_watermark(
+        pool,
+        outlet_id,
+        api_url,
+        session_token,
+        tables,
+        start_cursor,
+        true,
+    )
+    .await
+}
+
+pub(super) async fn sync_pull_batch_inner_without_watermark_update(
+    pool: &SqlitePool,
+    outlet_id: &str,
+    api_url: &str,
+    session_token: &str,
+    tables: &[String],
+    start_cursor: PullStartCursor,
+) -> Result<PullResult, String> {
+    sync_pull_batch_inner_with_watermark(
+        pool,
+        outlet_id,
+        api_url,
+        session_token,
+        tables,
+        start_cursor,
+        false,
+    )
+    .await
+}
+
+async fn sync_pull_batch_inner_with_watermark(
+    pool: &SqlitePool,
+    outlet_id: &str,
+    api_url: &str,
+    session_token: &str,
+    tables: &[String],
+    start_cursor: PullStartCursor,
+    update_watermark: bool,
+) -> Result<PullResult, String> {
     let client = build_client(session_token)?;
     let stored_cursor = get_last_server_watermark(pool, outlet_id).await?;
     let mut page_cursor = resolve_pull_start_cursor_string(&stored_cursor, start_cursor);
     let mut total_rows = 0usize;
 
     let server_time = loop {
+        let pull_started_at = current_time_iso_string();
         log::info!(
             "[RUST] [SYNC:TRACE] pull_batch: outlet_id={}, cursor={}, page_cursor={}, tables={}",
             outlet_id,
@@ -138,7 +201,7 @@ pub(super) async fn sync_pull_batch_inner(
                 status,
                 text
             );
-            return Err(format!("Sync pull batch failed ({}): {}", status, text));
+            return Err(sync_http_error("Sync pull batch", status, &text));
         }
 
         let response_body = response
@@ -164,6 +227,8 @@ pub(super) async fn sync_pull_batch_inner(
             &tables_map,
             &page_server_time,
             &next_cursor,
+            &pull_started_at,
+            update_watermark,
         )
         .await?;
         tx.commit()

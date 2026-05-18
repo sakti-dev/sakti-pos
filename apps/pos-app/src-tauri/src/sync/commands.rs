@@ -6,7 +6,9 @@ use crate::app::state::AppState;
 use super::dto::SyncNowResult;
 use super::local_state::{get_last_server_watermark, resolve_merchant_id, LocalSyncState};
 use super::outbox::count_pending_outbox;
-use super::pull::{sync_pull_batch_inner, PullStartCursor};
+use super::pull::{
+    sync_pull_batch_inner, sync_pull_batch_inner_without_watermark_update, PullStartCursor,
+};
 use super::push::{debug_local_table_state, sync_push_batch_inner};
 use super::schema::{get_filter_value, get_table_filter_column};
 use super::SYNC_TABLES;
@@ -53,8 +55,25 @@ pub async fn sync_push(
         api_url
     );
     let push = sync_push_batch_inner(&state.db_pool, &outlet_id, &api_url, &session_token).await?;
+    let pull = if push.server_wins_count > 0 {
+        log::info!(
+            "[RUST] [SYNC:TRACE] sync_push: rejected push rows detected, pulling server versions count={}",
+            push.server_wins_count
+        );
+        sync_pull_batch_inner_without_watermark_update(
+            &state.db_pool,
+            &outlet_id,
+            &api_url,
+            &session_token,
+            &push.rejected_tables,
+            PullStartCursor::Baseline,
+        )
+        .await?
+    } else {
+        super::dto::empty_pull_result()
+    };
     Ok(SyncNowResult {
-        pull: super::dto::empty_pull_result(),
+        pull,
         push,
         purged: 0,
     })
@@ -263,13 +282,13 @@ pub async fn sync_now(
             "[RUST] [SYNC:TRACE] sync_now: rejected push rows detected, pulling server versions count={}",
             push.server_wins_count
         );
-        sync_pull_batch_inner(
+        sync_pull_batch_inner_without_watermark_update(
             &state.db_pool,
             &outlet_id,
             &api_url,
             &session_token,
-            &tables,
-            PullStartCursor::Stored,
+            &push.rejected_tables,
+            PullStartCursor::Baseline,
         )
         .await?
     } else {

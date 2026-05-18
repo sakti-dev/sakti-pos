@@ -102,7 +102,7 @@ function merchants_map_proto_row(row: Record<string, unknown>) {
 
 async function merchants_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(5);
+  const chunkSize = getWriteChunkSize(6);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       merchants
@@ -113,6 +113,7 @@ async function merchants_upsert_rows(tx: TransactionLike, rows: Record<string, u
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -128,7 +129,7 @@ function merchants_sync_table_adapter() {
     mapProtoRow: merchants_map_proto_row,
     tableName: "merchants",
     upsertRows: merchants_upsert_rows,
-    writeColumnCount: 5,
+    writeColumnCount: 6,
   } as const;
 }
 
@@ -154,7 +155,7 @@ function assets_map_proto_row(row: Record<string, unknown>) {
 
 async function assets_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(15);
+  const chunkSize = getWriteChunkSize(16);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       assets
@@ -175,6 +176,7 @@ async function assets_upsert_rows(tx: TransactionLike, rows: Record<string, unkn
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -190,7 +192,7 @@ function assets_sync_table_adapter() {
     mapProtoRow: assets_map_proto_row,
     tableName: "assets",
     upsertRows: assets_upsert_rows,
-    writeColumnCount: 15,
+    writeColumnCount: 16,
   } as const;
 }
 
@@ -209,7 +211,7 @@ function categories_map_proto_row(row: Record<string, unknown>) {
 
 async function categories_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(8);
+  const chunkSize = getWriteChunkSize(9);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       categories
@@ -223,6 +225,7 @@ async function categories_upsert_rows(tx: TransactionLike, rows: Record<string, 
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -238,7 +241,7 @@ function categories_sync_table_adapter() {
     mapProtoRow: categories_map_proto_row,
     tableName: "categories",
     upsertRows: categories_upsert_rows,
-    writeColumnCount: 8,
+    writeColumnCount: 9,
   } as const;
 }
 
@@ -260,7 +263,7 @@ function outlets_map_proto_row(row: Record<string, unknown>) {
 
 async function outlets_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(11);
+  const chunkSize = getWriteChunkSize(12);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       outlets
@@ -277,6 +280,7 @@ async function outlets_upsert_rows(tx: TransactionLike, rows: Record<string, unk
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -292,7 +296,7 @@ function outlets_sync_table_adapter() {
     mapProtoRow: outlets_map_proto_row,
     tableName: "outlets",
     upsertRows: outlets_upsert_rows,
-    writeColumnCount: 11,
+    writeColumnCount: 12,
   } as const;
 }
 
@@ -314,7 +318,7 @@ function registers_map_proto_row(row: Record<string, unknown>) {
 
 async function registers_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(11);
+  const chunkSize = getWriteChunkSize(12);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       registers
@@ -331,6 +335,7 @@ async function registers_upsert_rows(tx: TransactionLike, rows: Record<string, u
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -346,7 +351,7 @@ function registers_sync_table_adapter() {
     mapProtoRow: registers_map_proto_row,
     tableName: "registers",
     upsertRows: registers_upsert_rows,
-    writeColumnCount: 11,
+    writeColumnCount: 12,
   } as const;
 }
 
@@ -368,7 +373,7 @@ function staff_map_proto_row(row: Record<string, unknown>) {
 
 async function staff_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(11);
+  const chunkSize = getWriteChunkSize(12);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       staff
@@ -385,6 +390,7 @@ async function staff_upsert_rows(tx: TransactionLike, rows: Record<string, unkno
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -400,7 +406,7 @@ function staff_sync_table_adapter() {
     mapProtoRow: staff_map_proto_row,
     tableName: "staff",
     upsertRows: staff_upsert_rows,
-    writeColumnCount: 11,
+    writeColumnCount: 12,
   } as const;
 }
 
@@ -424,7 +430,7 @@ function orders_map_proto_row(row: Record<string, unknown>) {
 
 async function orders_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(13);
+  const chunkSize = getWriteChunkSize(14);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       orders
@@ -443,6 +449,7 @@ async function orders_upsert_rows(tx: TransactionLike, rows: Record<string, unkn
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -458,7 +465,7 @@ function orders_sync_table_adapter() {
     mapProtoRow: orders_map_proto_row,
     tableName: "orders",
     upsertRows: orders_upsert_rows,
-    writeColumnCount: 13,
+    writeColumnCount: 14,
   } as const;
 }
 
@@ -481,7 +488,7 @@ function order_items_map_proto_row(row: Record<string, unknown>) {
 
 async function order_items_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(12);
+  const chunkSize = getWriteChunkSize(13);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       orderItems
@@ -499,6 +506,7 @@ async function order_items_upsert_rows(tx: TransactionLike, rows: Record<string,
       updatedAt: sql.raw("excluded.updated_at"),
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -514,7 +522,7 @@ function order_items_sync_table_adapter() {
     mapProtoRow: order_items_map_proto_row,
     tableName: "order_items",
     upsertRows: order_items_upsert_rows,
-    writeColumnCount: 12,
+    writeColumnCount: 13,
   } as const;
 }
 
@@ -537,7 +545,7 @@ function products_map_proto_row(row: Record<string, unknown>) {
 
 async function products_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(12);
+  const chunkSize = getWriteChunkSize(13);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       products
@@ -555,6 +563,7 @@ async function products_upsert_rows(tx: TransactionLike, rows: Record<string, un
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -570,7 +579,7 @@ function products_sync_table_adapter() {
     mapProtoRow: products_map_proto_row,
     tableName: "products",
     upsertRows: products_upsert_rows,
-    writeColumnCount: 12,
+    writeColumnCount: 13,
   } as const;
 }
 
@@ -590,7 +599,7 @@ function outlet_products_map_proto_row(row: Record<string, unknown>) {
 
 async function outlet_products_upsert_rows(tx: TransactionLike, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
-  const chunkSize = getWriteChunkSize(9);
+  const chunkSize = getWriteChunkSize(10);
   for (const chunk of chunkRows(rows, chunkSize)) {
     await tx.insert(
       outletProducts
@@ -605,6 +614,7 @@ async function outlet_products_upsert_rows(tx: TransactionLike, rows: Record<str
       deletedAt: sql.raw("excluded.deleted_at"),
       createdAt: sql.raw("excluded.created_at"),
       updatedAt: sql.raw("excluded.updated_at"),
+      syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
       },
     });
   }
@@ -620,7 +630,7 @@ function outlet_products_sync_table_adapter() {
     mapProtoRow: outlet_products_map_proto_row,
     tableName: "outlet_products",
     upsertRows: outlet_products_upsert_rows,
-    writeColumnCount: 9,
+    writeColumnCount: 10,
   } as const;
 }
 
