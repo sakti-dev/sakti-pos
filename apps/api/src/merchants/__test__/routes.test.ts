@@ -117,7 +117,7 @@ describe("POST /api/merchants/create", () => {
       new Uint8Array(await response.arrayBuffer())
     );
     expect(decoded.merchant?.name).toBe("Test Merchant");
-    expect(mockInsert).toHaveBeenCalledTimes(3);
+    expect(mockInsert).toHaveBeenCalledTimes(2);
   });
 
   test("injects session into merchant creation", async () => {

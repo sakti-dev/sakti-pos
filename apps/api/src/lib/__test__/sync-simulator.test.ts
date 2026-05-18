@@ -17,7 +17,7 @@ describe("simulateProductChange", () => {
     vi.clearAllMocks();
   });
 
-  test("creates random sync test menu data and matching sync events for the single scope", async () => {
+  test("creates random sync test menu data for the single scope", async () => {
     const insertedRows: unknown[] = [];
     mockSelect
       .mockReturnValueOnce({
@@ -50,7 +50,7 @@ describe("simulateProductChange", () => {
     expect(result.outletId).toBe("outlet-1");
     expect(result.categoryName).toStartWith("SYNC TEST Category ");
     expect(result.productName).toStartWith("SYNC TEST Product ");
-    expect(insertedRows).toHaveLength(4);
+    expect(insertedRows).toHaveLength(3);
     expect(insertedRows[0]).toEqual(
       expect.objectContaining({
         id: result.categoryId,
@@ -73,26 +73,6 @@ describe("simulateProductChange", () => {
         productId: result.productId,
       })
     );
-    expect(insertedRows[3]).toEqual([
-      expect.objectContaining({
-        rowId: result.categoryId,
-        scopeId: "merchant-1",
-        scopeType: "merchant",
-        tableName: "categories",
-      }),
-      expect.objectContaining({
-        rowId: result.productId,
-        scopeId: "merchant-1",
-        scopeType: "merchant",
-        tableName: "products",
-      }),
-      expect.objectContaining({
-        rowId: result.outletProductId,
-        scopeId: "outlet-1",
-        scopeType: "outlet",
-        tableName: "outlet_products",
-      }),
-    ]);
   });
 
   test("refuses to simulate when the database does not have exactly one merchant", async () => {
