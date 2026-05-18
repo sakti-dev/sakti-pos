@@ -40,7 +40,7 @@ mod tests {
     use super::schema::{outbox_rows_to_table_changes, OutboxRowForSync};
     use super::sync_proto::{SyncPushBatchResponse, SyncRejectedRow, SyncTableAck};
     use serde_json::json;
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, HashMap};
 
     #[test]
     fn pull_upsert_keeps_newer_local_dirty_rows() {
@@ -425,5 +425,57 @@ mod tests {
             assert!(result.is_err());
             assert_eq!(cursor, None);
         });
+    }
+
+    #[test]
+    fn chunk_push_changes_splits_single_large_table() {
+        let mut ids = HashMap::new();
+        let mut changes = super::protobuf::TablePushChanges::default();
+
+        for i in 0..2500 {
+            let row_id = format!("product-{i}");
+            changes.changed_rows.push(serde_json::json!({ "id": row_id }));
+            ids.insert(row_id.clone(), vec![format!("outbox-{i}")]);
+        }
+
+        let chunks = super::push::chunk_pending_push_tables(
+            vec![super::push::PendingTablePush {
+                table: "products".to_string(),
+                changes,
+                outbox_ids_by_row_id: ids,
+            }],
+            2000,
+        )
+        .expect("chunking should work");
+
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0][0].changes.changed_rows.len(), 2000);
+        assert_eq!(chunks[1][0].changes.changed_rows.len(), 500);
+    }
+
+    #[test]
+    fn chunk_push_changes_keeps_outbox_ids_with_rows() {
+        let mut ids = HashMap::new();
+        let mut changes = super::protobuf::TablePushChanges::default();
+
+        for i in 0..3 {
+            let row_id = format!("product-{i}");
+            changes.changed_rows.push(serde_json::json!({ "id": row_id }));
+            ids.insert(row_id.clone(), vec![format!("outbox-{i}")]);
+        }
+
+        let chunks = super::push::chunk_pending_push_tables(
+            vec![super::push::PendingTablePush {
+                table: "products".to_string(),
+                changes,
+                outbox_ids_by_row_id: ids,
+            }],
+            2,
+        )
+        .expect("chunking should work");
+
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0][0].outbox_ids_by_row_id.len(), 2);
+        assert_eq!(chunks[1][0].outbox_ids_by_row_id.len(), 1);
     }
 }

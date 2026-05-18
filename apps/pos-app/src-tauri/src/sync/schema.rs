@@ -72,6 +72,7 @@ pub(super) struct OutboxRowForSync {
 pub(super) struct TableOutboxChanges {
     pub changes: TablePushChanges,
     pub outbox_ids: Vec<String>,
+    pub outbox_ids_by_row_id: std::collections::HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -182,6 +183,8 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
 
     let mut result = Vec::new();
     let mut outbox_ids = Vec::new();
+    let mut outbox_ids_by_row_id: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
     for row in &rows {
         let outbox_id = row
             .try_get::<String, _>("__sync_outbox_id")
@@ -208,7 +211,11 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
             }
             obj.insert(snake_to_camel(&name), val);
         }
-        outbox_ids.push(outbox_id);
+        outbox_ids.push(outbox_id.clone());
+        outbox_ids_by_row_id
+            .entry(row_id.clone())
+            .or_default()
+            .push(outbox_id);
         result.push(OutboxRowForSync {
             operation,
             row_id,
@@ -219,6 +226,7 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
     Ok(TableOutboxChanges {
         changes: outbox_rows_to_table_changes(result)?,
         outbox_ids,
+        outbox_ids_by_row_id,
     })
 }
 
