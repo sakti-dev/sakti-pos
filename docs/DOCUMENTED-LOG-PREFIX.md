@@ -111,7 +111,7 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SYNC:ASSET_UPLOAD_QUEUE_FINISHED]` | `store/sync.ts` |
 | `[JS] [SYNC:ASSET_UPLOAD_QUEUE_STARTED]` | `store/sync.ts` |
 | `[JS] [SYNC:DECISION]` | `store/sync.ts` |
-| `[JS] [SYNC:FAILED]` | `store/sync.ts` |
+| `[JS] [SYNC:FAILED]` | `store/sync.ts` — includes `errorType` (`auth`, `payload_too_large`, `network`, `server`, `unknown`) |
 | `[JS] [SYNC:RESULT]` | `store/sync.ts` |
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
@@ -129,7 +129,7 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [DB:MIGRATION:SKIP]` | idempotent migration statements skipped because they already exist |
 | `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `delete_temp_product_photo`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `pick_product_photo`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
 | `[RUST] [PRINTER:TRACE]` | Android printer bridge failures, including list, test print, print receipt, and permission calls |
-| `[RUST] [SYNC:TRACE]` | local state, row upsert, push, pull, sync outbox push, row-state pull, garbage collection, and `sync_now` diagnostics |
+| `[RUST] [SYNC:TRACE]` | local state, row upsert, push (including `push_batch` chunking, `marked_rejected_outbox_synced`), pull (including `pull_batch`, `deleted_ids`, `soft_delete_row`), sync outbox push, row-state pull, `sync_now` diagnostics (including `rejected push rows detected`), garbage collection, and `server_newer` reconciliation |
 
 ## Key Names
 
