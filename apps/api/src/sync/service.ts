@@ -12,7 +12,7 @@ import {
   syncBatchRequests,
   userMerchants,
 } from "@repo/database/api-schema";
-import { and, asc, eq, gt, gte, or, type SQL } from "drizzle-orm";
+import { and, asc, eq, gt, gte, or, type SQL, sql } from "drizzle-orm";
 import { inArray } from "drizzle-orm/sql";
 import { db } from "../db";
 import { ConflictRequestError } from "../lib/validation";
@@ -43,6 +43,41 @@ const SYNC_TABLES = {
   registers,
   staff,
 } as const;
+
+const SYNC_TABLE_SCOPE = {
+  assets: { column: "merchantId", type: "merchant" },
+  categories: { column: "merchantId", type: "merchant" },
+  merchants: { column: "id", type: "merchant" },
+  order_items: { column: "outletId", type: "outlet" },
+  orders: { column: "outletId", type: "outlet" },
+  outlet_products: { column: "outletId", type: "outlet" },
+  outlets: { column: "merchantId", type: "merchant" },
+  products: { column: "merchantId", type: "merchant" },
+  registers: { column: "outletId", type: "outlet" },
+  staff: { column: "merchantId", type: "merchant" },
+} as const satisfies Record<
+  keyof typeof SYNC_TABLES,
+  { column: string; type: "merchant" | "outlet" }
+>;
+
+export function getSyncTableScopeColumn(
+  tableName: keyof typeof SYNC_TABLES
+): string {
+  return SYNC_TABLE_SCOPE[tableName].column;
+}
+
+export function getSyncTableScopeValue(input: {
+  merchantId: string;
+  outletId: string;
+  tableName: keyof typeof SYNC_TABLES;
+}): string {
+  const scope = SYNC_TABLE_SCOPE[input.tableName];
+  return scope.type === "merchant" ? input.merchantId : input.outletId;
+}
+
+export function isActiveDeletedAtFilterValue(value: unknown): boolean {
+  return value === null || value === undefined || value === "";
+}
 
 const PULL_BATCH_DEFAULT_LIMIT = 250;
 const PULL_BATCH_MAX_LIMIT = 500;
@@ -75,23 +110,18 @@ function applyTenantContextToRow(input: {
   row: Record<string, unknown>;
   tableName: string;
 }): Record<string, unknown> {
-  switch (input.tableName) {
-    case "merchants":
-      return { ...input.row, id: input.merchantId };
-    case "outlets":
-    case "categories":
-    case "assets":
-    case "products":
-    case "staff":
-      return { ...input.row, merchantId: input.merchantId };
-    case "registers":
-    case "orders":
-    case "order_items":
-    case "outlet_products":
-      return { ...input.row, outletId: input.outletId };
-    default:
-      return input.row;
+  if (!(input.tableName in SYNC_TABLE_SCOPE)) {
+    return input.row;
   }
+  const typedTableName = input.tableName as keyof typeof SYNC_TABLE_SCOPE;
+  const scope = SYNC_TABLE_SCOPE[typedTableName];
+  if (scope.type === "merchant" && scope.column === "id") {
+    return { ...input.row, id: input.merchantId };
+  }
+  const scopeColumn = scope.column;
+  const scopeValue =
+    scope.type === "merchant" ? input.merchantId : input.outletId;
+  return { ...input.row, [scopeColumn]: scopeValue };
 }
 
 export async function verifyOutletAccess(
@@ -630,140 +660,34 @@ async function selectScopedDeleteIds(input: {
     return [];
   }
 
-  switch (input.tableName) {
-    case "merchants":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: merchants.id })
-          .from(merchants)
-          .where(
-            and(
-              eq(merchants.id, input.merchantId),
-              inArray(merchants.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "outlets":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: outlets.id })
-          .from(outlets)
-          .where(
-            and(
-              eq(outlets.merchantId, input.merchantId),
-              inArray(outlets.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "registers":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: registers.id })
-          .from(registers)
-          .where(
-            and(
-              eq(registers.outletId, input.outletId),
-              inArray(registers.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "categories":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: categories.id })
-          .from(categories)
-          .where(
-            and(
-              eq(categories.merchantId, input.merchantId),
-              inArray(categories.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "assets":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: assets.id })
-          .from(assets)
-          .where(
-            and(
-              eq(assets.merchantId, input.merchantId),
-              inArray(assets.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "products":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: products.id })
-          .from(products)
-          .where(
-            and(
-              eq(products.merchantId, input.merchantId),
-              inArray(products.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "outlet_products":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: outletProducts.id })
-          .from(outletProducts)
-          .where(
-            and(
-              eq(outletProducts.outletId, input.outletId),
-              inArray(outletProducts.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "staff":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: staff.id })
-          .from(staff)
-          .where(
-            and(
-              eq(staff.merchantId, input.merchantId),
-              inArray(staff.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "orders":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: orders.id })
-          .from(orders)
-          .where(
-            and(
-              eq(orders.outletId, input.outletId),
-              inArray(orders.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    case "order_items":
-      return await resolveRowsLike<{ id: string }>(
-        input.tx
-          .select({ id: orderItems.id })
-          .from(orderItems)
-          .where(
-            and(
-              eq(orderItems.outletId, input.outletId),
-              inArray(orderItems.id, input.ids)
-            )
-          ),
-        input.ids.length
-      );
-    default:
-      return [];
+  const typedTableName = input.tableName as keyof typeof SYNC_TABLE_SCOPE;
+  if (!(typedTableName in SYNC_TABLE_SCOPE)) {
+    return [];
   }
+
+  const table = getRequiredSyncTable(input.tableName);
+  const scope = SYNC_TABLE_SCOPE[typedTableName];
+  const scopeColumn = scope.column === "id" ? "id" : scope.column;
+  const scopeValue =
+    scope.type === "merchant" ? input.merchantId : input.outletId;
+  const scopeFilter =
+    scopeColumn === "id"
+      ? eq(table.id, scopeValue)
+      : eq((table as never)[scopeColumn], scopeValue);
+
+  return await resolveRowsLike<{ id: string }>(
+    input.tx
+      .select({ id: table.id })
+      .from(table)
+      .where(
+        and(
+          scopeFilter,
+          inArray(table.id, input.ids),
+          sql`(COALESCE(${table.deletedAt}, '') = '')`
+        )
+      ),
+    input.ids.length
+  );
 }
 
 function normalizePullBatchLimit(limit: number): number {
@@ -868,23 +792,17 @@ function getRowStateScopeFilter(
   merchantId: string,
   outletId: string
 ): SQL | undefined {
-  switch (tableName) {
-    case "merchants":
-      return eq(merchants.id, merchantId);
-    case "outlets":
-    case "categories":
-    case "assets":
-    case "products":
-    case "staff":
-      return eq(SYNC_TABLES[tableName].merchantId, merchantId);
-    case "registers":
-    case "orders":
-    case "order_items":
-    case "outlet_products":
-      return eq(SYNC_TABLES[tableName].outletId, outletId);
-    default:
-      return;
+  if (!(tableName in SYNC_TABLE_SCOPE)) {
+    return;
   }
+  const scope = SYNC_TABLE_SCOPE[tableName];
+  const table = SYNC_TABLES[tableName];
+  if (scope.type === "merchant" && scope.column === "id") {
+    return eq(table.id, merchantId);
+  }
+  const scopeColumn = scope.column as keyof typeof table;
+  const scopeValue = scope.type === "merchant" ? merchantId : outletId;
+  return eq(table[scopeColumn] as never, scopeValue);
 }
 
 function getRowStateCursorFilter(

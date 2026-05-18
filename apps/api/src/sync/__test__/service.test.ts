@@ -48,6 +48,9 @@ const {
   formatPullBatchCursor,
   parsePullBatchCursor,
   verifyOutletAccess,
+  getSyncTableScopeColumn,
+  getSyncTableScopeValue,
+  isActiveDeletedAtFilterValue,
 } = await import("../service");
 
 describe("verifyOutletAccess", () => {
@@ -1347,5 +1350,38 @@ describe("handleRowStateSyncStatus", () => {
     });
 
     expect(mockTransaction).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("sync scope helpers", () => {
+  test.each([
+    ["merchants", "id", "merchant-1"],
+    ["outlets", "merchantId", "merchant-1"],
+    ["categories", "merchantId", "merchant-1"],
+    ["assets", "merchantId", "merchant-1"],
+    ["products", "merchantId", "merchant-1"],
+    ["staff", "merchantId", "merchant-1"],
+    ["registers", "outletId", "outlet-1"],
+    ["orders", "outletId", "outlet-1"],
+    ["order_items", "outletId", "outlet-1"],
+    ["outlet_products", "outletId", "outlet-1"],
+  ] as const)("sync scope for %s uses %s", (tableName, column, value) => {
+    expect(getSyncTableScopeColumn(tableName as never)).toBe(column);
+    expect(
+      getSyncTableScopeValue({
+        merchantId: "merchant-1",
+        outletId: "outlet-1",
+        tableName: tableName as never,
+      })
+    ).toBe(value);
+  });
+
+  test("delete scope treats only null undefined and empty deletedAt as active", () => {
+    expect(isActiveDeletedAtFilterValue(null)).toBe(true);
+    expect(isActiveDeletedAtFilterValue(undefined)).toBe(true);
+    expect(isActiveDeletedAtFilterValue("")).toBe(true);
+    expect(isActiveDeletedAtFilterValue("2026-05-18T00:00:00.000Z")).toBe(
+      false
+    );
   });
 });
