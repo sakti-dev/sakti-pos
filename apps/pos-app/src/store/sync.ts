@@ -192,6 +192,44 @@ async function drainSyncRequests(): Promise<SyncNowResult> {
   return result;
 }
 
+function getErrorStatus(error: unknown): number | null {
+  if (
+    error &&
+    typeof error === "object" &&
+    "status" in error &&
+    typeof error.status === "number"
+  ) {
+    return error.status;
+  }
+  return null;
+}
+
+function classifySyncError(
+  error: unknown
+): "auth" | "payload_too_large" | "network" | "server" | "unknown" {
+  const status = getErrorStatus(error);
+  if (status === 401 || status === 403) {
+    return "auth";
+  }
+  if (status === 413) {
+    return "payload_too_large";
+  }
+  if (status !== null && status >= 500) {
+    return "server";
+  }
+
+  const message = describeError(error).toLowerCase();
+  if (
+    message.includes("network") ||
+    message.includes("fetch") ||
+    message.includes("timeout")
+  ) {
+    return "network";
+  }
+
+  return "unknown";
+}
+
 async function syncNowInner(): Promise<SyncNowResult> {
   const outletId = currentOutletId();
   if (!outletId) {
@@ -276,10 +314,17 @@ async function syncNowInner(): Promise<SyncNowResult> {
     setSyncStatus("idle");
     return result;
   } catch (err) {
-    const message = describeError(err);
-    syncLogger.error("failed", err, { apiUrl: API_URL, outletId });
-    setSyncStatus("offline");
-    throw new Error(`Gagal menyinkronkan: ${message}`);
+    const errorType = classifySyncError(err);
+    syncLogger.error("failed", err, { apiUrl: API_URL, errorType, outletId });
+
+    if (errorType === "auth") {
+      setSyncStatus("error");
+      stopSyncScheduler();
+    } else {
+      setSyncStatus("offline");
+    }
+
+    throw new Error(`Gagal menyinkronkan: ${describeError(err)}`);
   }
 }
 

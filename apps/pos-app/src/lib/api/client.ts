@@ -65,6 +65,7 @@ export async function protoFetch<Req, Res>(
       Accept: "application/x-protobuf",
       "Content-Type": "application/x-protobuf",
     },
+    throwHttpErrors: false,
   });
 
   if (!response.ok) {

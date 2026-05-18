@@ -518,8 +518,50 @@ describe("syncNow", () => {
     expect(result.mode).toBe("full");
   });
 
-  test("sets offline and throws on invoke failure", async () => {
+  test("sets error and stops scheduler on auth failure", async () => {
+    vi.useFakeTimers();
+    startSyncScheduler();
+    vi.advanceTimersByTime(0);
+    await flushMicrotasks();
+    vi.useRealTimers();
+    resetSyncMocks();
+
+    mockInvoke.mockRejectedValue({ status: 401, message: "Unauthorized" });
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("error");
+
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(10 * 60 * 1000);
+    await flushMicrotasks();
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+    stopSyncScheduler();
+  });
+
+  test("sets error on 403 forbidden", async () => {
+    mockInvoke.mockRejectedValue({ status: 403, message: "Forbidden" });
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("error");
+  });
+
+  test("sets offline on network failure", async () => {
     mockInvoke.mockRejectedValue(new Error("Network error"));
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("offline");
+  });
+
+  test("sets offline on server 5xx failure", async () => {
+    mockInvoke.mockRejectedValue({ status: 502, message: "Bad Gateway" });
+
+    await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
+    expect(syncStatus()).toBe("offline");
+  });
+
+  test("sets offline on generic invoke failure", async () => {
+    mockInvoke.mockRejectedValue(new Error("something unexpected"));
 
     await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
     expect(syncStatus()).toBe("offline");
