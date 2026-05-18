@@ -211,6 +211,15 @@ describe("ProductForm (create mode)", () => {
   });
 
   test("submit calls createProduct with imageAssetId: null when no image is set", async () => {
+    mockCreateProduct.mockResolvedValue({
+      id: "product-1",
+      merchantId: "merchant-1",
+      name: "Es Teh",
+      categoryId: "category-1",
+      price: "10000",
+      imageAssetId: null,
+    });
+
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
     await user.selectOptions(
@@ -222,7 +231,7 @@ describe("ProductForm (create mode)", () => {
     expect(mockCreateProduct).toHaveBeenCalledWith(
       expect.objectContaining({ imageAssetId: null })
     );
-    expect(mockSyncNow).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });
 
   test("shows required asterisk on required fields", () => {

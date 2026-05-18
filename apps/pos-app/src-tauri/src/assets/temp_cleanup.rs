@@ -56,11 +56,12 @@ pub(super) async fn cleanup_orphaned_product_photo_inputs_inner(
         .map_err(|error| format!("Failed to read product photo temp directory: {}", error))?;
 
     let mut deleted_count = 0usize;
-    while let Some(entry) = entries
-        .next_entry()
-        .await
-        .map_err(|error| format!("Failed to enumerate product photo temp directory: {}", error))?
-    {
+    while let Some(entry) = entries.next_entry().await.map_err(|error| {
+        format!(
+            "Failed to enumerate product photo temp directory: {}",
+            error
+        )
+    })? {
         let path = entry.path();
         let file_type = entry
             .file_type()

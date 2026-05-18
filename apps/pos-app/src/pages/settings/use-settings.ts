@@ -10,6 +10,7 @@ import { toast } from "solid-sonner";
 import { getOutletById, updateOutletTimezone } from "~/db/outlets";
 import { logout as cloudLogout, getSession } from "~/lib/auth/cloud";
 import { DEFAULT_BUSINESS_TIMEZONE } from "~/lib/date-time";
+import { createLogger } from "~/lib/logger";
 import { currentUser, logout } from "~/store/auth";
 import {
   clearOutletContext,
@@ -24,6 +25,12 @@ interface DbInfo {
   db_path: string;
   size_formatted: string;
 }
+
+interface DbSnapshotExportResult {
+  snapshot_path: string;
+}
+
+const dbLogger = createLogger({ domain: "DB", module: "settings" });
 
 export function formatSyncSuccessMessage(result: SyncNowResult): string {
   if (result.mode === "skipped") {
@@ -52,6 +59,7 @@ export function useSettings() {
     currentOutletTimezone()
   );
   const [savingTimezone, setSavingTimezone] = createSignal(false);
+  const [exportingDbSnapshot, setExportingDbSnapshot] = createSignal(false);
   const [dbInfo] = createResource(() => invoke<DbInfo>("get_db_info"));
   const [cloudSession, { refetch: refetchCloudSession }] = createResource(() =>
     getSession().catch(() => null)
@@ -106,6 +114,29 @@ export function useSettings() {
     navigate("/cloud-login");
   };
 
+  const handleExportDbSnapshot = async () => {
+    if (exportingDbSnapshot()) {
+      return;
+    }
+
+    setExportingDbSnapshot(true);
+    dbLogger.info("snapshot_export_requested");
+    try {
+      const result = await invoke<DbSnapshotExportResult>("export_db_snapshot");
+      toast.success(
+        `Snapshot DB tersimpan di perangkat: ${result.snapshot_path}`
+      );
+      dbLogger.info("snapshot_export_finished", {
+        snapshotPath: result.snapshot_path,
+      });
+    } catch (error) {
+      toast.error("Gagal mengekspor snapshot DB");
+      dbLogger.error("snapshot_export_failed", error);
+    } finally {
+      setExportingDbSnapshot(false);
+    }
+  };
+
   const handleSaveOutletTimezone = async () => {
     const outletId = currentOutletId();
     if (!outletId) {
@@ -145,6 +176,7 @@ export function useSettings() {
     dbInfo,
     handleDisconnect,
     handleConnectCloud,
+    handleExportDbSnapshot,
     handleLogout,
     handleSyncNow,
     handleSaveOutletTimezone,
@@ -157,6 +189,7 @@ export function useSettings() {
     showPinDrawer,
     selectedOutletTimezone,
     savingTimezone,
+    exportingDbSnapshot,
     syncStatus,
     theme,
     user,

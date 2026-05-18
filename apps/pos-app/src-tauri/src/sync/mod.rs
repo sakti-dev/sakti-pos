@@ -6,8 +6,8 @@ mod sync_proto {
 pub use self::pull::PullResult;
 pub use self::push::PushResult;
 
-pub mod commands;
 pub mod client_identity;
+pub mod commands;
 pub mod dto;
 pub mod http;
 pub mod local_state;
@@ -34,12 +34,12 @@ const SYNC_TABLES: &[&str] = &[
 const LOCAL_ONLY_COLUMNS: &[&str] = &["is_synced"];
 #[cfg(test)]
 mod tests {
-    use super::pull::{resolve_pull_start_event_id, PullStartCursor};
+    use super::pull::{resolve_pull_start_cursor_string, PullStartCursor};
     use super::push::build_upsert_query;
     use super::schema::{outbox_rows_to_table_changes, OutboxRowForSync};
     use super::sync_proto::{SyncPushBatchResponse, SyncRejectedRow, SyncTableAck};
-    use serde_json::Value;
     use serde_json::json;
+    use serde_json::Value;
     use std::collections::BTreeMap;
 
     #[test]
@@ -60,8 +60,14 @@ mod tests {
 
     #[test]
     fn baseline_pull_start_cursor_uses_zero() {
-        assert_eq!(resolve_pull_start_event_id(42, PullStartCursor::Baseline), 0);
-        assert_eq!(resolve_pull_start_event_id(42, PullStartCursor::Stored), 42);
+        assert_eq!(
+            resolve_pull_start_cursor_string("cursor-42", PullStartCursor::Baseline),
+            ""
+        );
+        assert_eq!(
+            resolve_pull_start_cursor_string("cursor-42", PullStartCursor::Stored),
+            "cursor-42"
+        );
     }
 
     #[test]
@@ -181,7 +187,6 @@ mod tests {
             "CREATE TABLE sync_cursors (
                 scope_type TEXT NOT NULL,
                 scope_id TEXT NOT NULL,
-                last_server_event_id INTEGER DEFAULT 0 NOT NULL,
                 last_server_watermark TEXT,
                 updated_at TEXT NOT NULL
             )",
@@ -207,97 +212,97 @@ mod tests {
     #[test]
     fn apply_pull_batch_writes_typed_product_to_local_columns() {
         tauri::async_runtime::block_on(async {
-        let pool = test_pool().await;
-        let mut tx = pool.begin().await.expect("transaction should begin");
-        let mut tables_map = BTreeMap::new();
-        tables_map.insert(
-            "products".to_string(),
-            json!([
-                {
-                    "id": "product-1",
-                    "merchantId": "merchant-1",
-                    "name": "Kopi",
-                    "priceMinorUnits": 15000,
-                    "isActive": true,
-                    "sortOrder": 7,
-                    "createdAt": "2026-05-17T00:00:00.000Z",
-                    "updatedAt": "2026-05-17T00:00:00.000Z"
-                }
-            ]),
-        );
+            let pool = test_pool().await;
+            let mut tx = pool.begin().await.expect("transaction should begin");
+            let mut tables_map = BTreeMap::new();
+            tables_map.insert(
+                "products".to_string(),
+                json!([
+                    {
+                        "id": "product-1",
+                        "merchantId": "merchant-1",
+                        "name": "Kopi",
+                        "priceMinorUnits": 15000,
+                        "isActive": true,
+                        "sortOrder": 7,
+                        "createdAt": "2026-05-17T00:00:00.000Z",
+                        "updatedAt": "2026-05-17T00:00:00.000Z"
+                    }
+                ]),
+            );
 
-        let applied = super::pull::apply_pull_batch_tables_tx(
-            &mut tx,
-            "outlet-1",
-            &["products".to_string()],
-            &tables_map,
-            "2026-05-17T00:00:01.000Z",
-            42,
-        )
-        .await
-        .expect("pull batch should apply");
-        tx.commit().await.expect("transaction should commit");
+            let applied = super::pull::apply_pull_batch_tables_tx(
+                &mut tx,
+                "outlet-1",
+                &["products".to_string()],
+                &tables_map,
+                "2026-05-17T00:00:01.000Z",
+                "cursor-42",
+            )
+            .await
+            .expect("pull batch should apply");
+            tx.commit().await.expect("transaction should commit");
 
-        let row = sqlx::query_as::<_, (i64, i64)>(
-            "SELECT price_minor_units, is_synced FROM products WHERE id = 'product-1'",
-        )
-        .fetch_one(&pool)
-        .await
-        .expect("product should exist");
-        let cursor = sqlx::query_scalar::<_, i64>(
-            "SELECT last_server_event_id FROM sync_cursors WHERE scope_id = 'outlet-1'",
-        )
-        .fetch_one(&pool)
-        .await
-        .expect("cursor should exist");
+            let row = sqlx::query_as::<_, (i64, i64)>(
+                "SELECT price_minor_units, is_synced FROM products WHERE id = 'product-1'",
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("product should exist");
+            let cursor = sqlx::query_scalar::<_, String>(
+                "SELECT last_server_watermark FROM sync_cursors WHERE scope_id = 'outlet-1'",
+            )
+            .fetch_one(&pool)
+            .await
+            .expect("cursor should exist");
 
-        assert_eq!(applied, 1);
-        assert_eq!(row, (15000, 1));
-        assert_eq!(cursor, 42);
+            assert_eq!(applied, 1);
+            assert_eq!(row, (15000, 1));
+            assert_eq!(cursor, "cursor-42");
         });
     }
 
     #[test]
     fn apply_pull_batch_rolls_back_cursor_when_row_apply_fails() {
         tauri::async_runtime::block_on(async {
-        let pool = test_pool().await;
-        let mut tx = pool.begin().await.expect("transaction should begin");
-        let mut tables_map = BTreeMap::<String, Value>::new();
-        tables_map.insert(
-            "products".to_string(),
-            json!([
-                {
-                    "id": "product-1",
-                    "name": "Kopi",
-                    "priceMinorUnits": 15000,
-                    "isActive": true,
-                    "sortOrder": 7,
-                    "createdAt": "2026-05-17T00:00:00.000Z",
-                    "updatedAt": "2026-05-17T00:00:00.000Z"
-                }
-            ]),
-        );
+            let pool = test_pool().await;
+            let mut tx = pool.begin().await.expect("transaction should begin");
+            let mut tables_map = BTreeMap::<String, Value>::new();
+            tables_map.insert(
+                "products".to_string(),
+                json!([
+                    {
+                        "id": "product-1",
+                        "name": "Kopi",
+                        "priceMinorUnits": 15000,
+                        "isActive": true,
+                        "sortOrder": 7,
+                        "createdAt": "2026-05-17T00:00:00.000Z",
+                        "updatedAt": "2026-05-17T00:00:00.000Z"
+                    }
+                ]),
+            );
 
-        let result = super::pull::apply_pull_batch_tables_tx(
-            &mut tx,
-            "outlet-1",
-            &["products".to_string()],
-            &tables_map,
-            "2026-05-17T00:00:01.000Z",
-            42,
-        )
-        .await;
-        tx.rollback().await.expect("transaction should roll back");
+            let result = super::pull::apply_pull_batch_tables_tx(
+                &mut tx,
+                "outlet-1",
+                &["products".to_string()],
+                &tables_map,
+                "2026-05-17T00:00:01.000Z",
+                "cursor-42",
+            )
+            .await;
+            tx.rollback().await.expect("transaction should roll back");
 
-        let cursor = sqlx::query_scalar::<_, i64>(
-            "SELECT last_server_event_id FROM sync_cursors WHERE scope_id = 'outlet-1'",
-        )
-        .fetch_optional(&pool)
-        .await
-        .expect("cursor read should succeed");
+            let cursor = sqlx::query_scalar::<_, Option<String>>(
+                "SELECT last_server_watermark FROM sync_cursors WHERE scope_id = 'outlet-1'",
+            )
+            .fetch_optional(&pool)
+            .await
+            .expect("cursor read should succeed");
 
-        assert!(result.is_err());
-        assert_eq!(cursor, None);
+            assert!(result.is_err());
+            assert_eq!(cursor, None);
         });
     }
 }

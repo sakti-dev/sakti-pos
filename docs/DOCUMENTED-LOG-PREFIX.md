@@ -3,7 +3,7 @@
 Purpose: canonical prefix inventory and logcat filters for current app behavior.
 Scope: app log prefixes only, not feature walkthroughs or design rationale.
 Related: `README.md`, `../adr/0001-use-tauri-plugin-log-with-structured-prefixes.md`
-Last updated: 2026-05-14
+Last updated: 2026-05-18
 
 Logs are production support evidence for the offline Android POS. Keep this document focused on the prefixes to grep.
 
@@ -23,13 +23,13 @@ Rules:
 Useful grep:
 
 ```bash
-PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image'
+PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image|snapshot_export_requested|snapshot_export_finished|snapshot_export_failed|snapshot_export_done'
 ```
 
 Crash and native-failure follow-up:
 
 ```bash
-PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|AndroidRuntime|libc|fatal|exception|crash|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image'
+PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|AndroidRuntime|libc|fatal|exception|crash|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image|snapshot_export_requested|snapshot_export_finished|snapshot_export_failed|snapshot_export_done'
 ```
 
 ## JS Prefixes
@@ -65,6 +65,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [AUTH:SYNC_REQUEST]` | `pages/login/use-cloud-auth-flow.ts` |
 | `[JS] [AUTH:SYNC_RESULT]` | `pages/login/use-cloud-auth-flow.ts` |
 | `[JS] [DB:QUERY_FAILED]` | `db/index.ts` |
+| `[JS] [DB:SNAPSHOT_EXPORT_FINISHED]` | `pages/settings/use-settings.ts` |
+| `[JS] [DB:SNAPSHOT_EXPORT_REQUESTED]` | `pages/settings/use-settings.ts` |
+| `[JS] [DB:SNAPSHOT_EXPORT_FAILED]` | `pages/settings/use-settings.ts` |
 | `[JS] [PHOTO:ASSET_SYNC_FAILED]` | product form |
 | `[JS] [PHOTO:ASSET_SYNC_FINISHED]` | product form |
 | `[JS] [PHOTO:BACKGROUND_SYNC_TRIGGERED]` | product form |
@@ -120,10 +123,13 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | --- | --- |
 | `[RUST] [ASSET:JOB:RESET:FAIL]` | startup reset of incomplete asset jobs |
 | `[RUST] [DB:INIT:FAIL]` | database initialization failure |
+| `[RUST] [DB:SNAPSHOT_EXPORT_DONE]` | exported a dev DB snapshot |
+| `[RUST] [DB:SNAPSHOT_EXPORT_REQUESTED]` | started a dev DB snapshot export |
+| `[RUST] [DB:SNAPSHOT_EXPORT_FAILED]` | failed to export a dev DB snapshot |
 | `[RUST] [DB:MIGRATION:SKIP]` | idempotent migration statements skipped because they already exist |
 | `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `delete_temp_product_photo`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `pick_product_photo`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
 | `[RUST] [PRINTER:TRACE]` | Android printer bridge failures, including list, test print, print receipt, and permission calls |
-| `[RUST] [SYNC:TRACE]` | local state, row upsert, push, pull, sync outbox push, sync event pull, garbage collection, and `sync_now` diagnostics |
+| `[RUST] [SYNC:TRACE]` | local state, row upsert, push, pull, sync outbox push, row-state pull, garbage collection, and `sync_now` diagnostics |
 
 ## Key Names
 

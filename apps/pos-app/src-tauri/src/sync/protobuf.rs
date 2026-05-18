@@ -9,25 +9,23 @@ pub(super) use super::protobuf_generated::{
     build_outlet_products_row_changes as build_outlet_product_changes,
     build_outlets_row_changes as build_outlet_changes,
     build_products_row_changes as build_product_changes,
-    build_registers_row_changes as build_register_changes, build_staff_row_changes as build_staff_changes,
-    build_sync_push_batch_request, decode_pull_batch_response_tables, pull_batch_response_has_more,
-    pull_batch_response_latest_event_id, pull_batch_response_needs_full_resync,
-    pull_batch_response_next_cursor, pull_batch_response_server_time, TablePushChanges,
+    build_registers_row_changes as build_register_changes,
+    build_staff_row_changes as build_staff_changes, build_sync_push_batch_request,
+    decode_pull_batch_response_tables, pull_batch_response_cursor, pull_batch_response_has_more,
+    pull_batch_response_server_time, TablePushChanges,
 };
 
 pub(super) fn build_sync_pull_batch_request(
     outlet_id: &str,
-    after_event_id: i64,
     tables: &[String],
     limit: i32,
-    page_cursor: &str,
+    cursor: &str,
 ) -> SyncPullBatchRequest {
     SyncPullBatchRequest {
         outlet_id: outlet_id.to_string(),
-        after_event_id,
         tables: tables.to_vec(),
         limit,
-        page_cursor: page_cursor.to_string(),
+        cursor: cursor.to_string(),
     }
 }
 

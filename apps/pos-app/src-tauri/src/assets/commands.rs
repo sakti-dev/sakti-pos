@@ -3,8 +3,7 @@ use tauri::{command, AppHandle, State};
 use crate::app::state::AppState;
 
 use super::cache::{
-    cache_asset_webp as cache_asset_webp_impl,
-    get_cached_asset_path as get_cached_asset_path_impl,
+    cache_asset_webp as cache_asset_webp_impl, get_cached_asset_path as get_cached_asset_path_impl,
 };
 use super::dto::{
     CachedAssetPathResponse, EnqueueAssetProcessingRequest, EnqueueAssetProcessingResponse,

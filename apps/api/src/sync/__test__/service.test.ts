@@ -639,7 +639,7 @@ describe("handlePushBatch", () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
-  test("batches accepted product updates and sync events", async () => {
+  test("batches accepted product updates and row-state sync writes", async () => {
     const productRows = Array.from({ length: 100 }, (_, index) => ({
       id: `product-${index}`,
       merchantId: "merchant-1",
@@ -1133,7 +1133,7 @@ describe("handleRowStatePullBatch", () => {
       tables: ["products", "orders"],
     });
 
-    expect(nextPage.cursor).toBe("");
+    expect(nextPage.cursor).toBe("sync:11:orders:order-1");
     expect(nextPage.hasMore).toBe(false);
     expect(nextPage.orders?.changedRows).toEqual([
       expect.objectContaining({

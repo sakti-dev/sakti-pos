@@ -5,13 +5,11 @@ use std::collections::BTreeMap;
 
 use super::http::build_client;
 use super::local_state::{
-    get_last_server_event_id, set_last_server_event_id_tx, set_last_sync_at_tx,
+    get_last_server_watermark, set_last_server_watermark_tx, set_last_sync_at_tx,
 };
 use super::protobuf::{
-    build_sync_pull_batch_request, decode_pull_batch_response_tables,
-    pull_batch_response_has_more, pull_batch_response_latest_event_id,
-    pull_batch_response_needs_full_resync, pull_batch_response_next_cursor,
-    pull_batch_response_server_time,
+    build_sync_pull_batch_request, decode_pull_batch_response_tables, pull_batch_response_cursor,
+    pull_batch_response_has_more, pull_batch_response_server_time,
 };
 use super::push::{debug_row_summary, upsert_row};
 use super::sync_proto::SyncPullBatchResponse;
@@ -28,13 +26,13 @@ pub(super) enum PullStartCursor {
     Stored,
 }
 
-pub(super) fn resolve_pull_start_event_id(
-    stored_event_id: i64,
+pub(super) fn resolve_pull_start_cursor_string(
+    stored_cursor: &str,
     start_cursor: PullStartCursor,
-) -> i64 {
+) -> String {
     match start_cursor {
-        PullStartCursor::Baseline => 0,
-        PullStartCursor::Stored => stored_event_id,
+        PullStartCursor::Baseline => String::new(),
+        PullStartCursor::Stored => stored_cursor.to_string(),
     }
 }
 
@@ -44,7 +42,7 @@ pub(super) async fn apply_pull_batch_tables_tx(
     tables: &[String],
     tables_map: &BTreeMap<String, Value>,
     server_time: &str,
-    latest_event_id: i64,
+    cursor: &str,
 ) -> Result<usize, String> {
     let mut rows_received = 0usize;
 
@@ -68,7 +66,7 @@ pub(super) async fn apply_pull_batch_tables_tx(
         set_last_sync_at_tx(tx, table, outlet_id, server_time).await?;
     }
 
-    set_last_server_event_id_tx(tx, outlet_id, latest_event_id).await?;
+    set_last_server_watermark_tx(tx, outlet_id, cursor).await?;
     Ok(rows_received)
 }
 
@@ -81,25 +79,22 @@ pub(super) async fn sync_pull_batch_inner(
     start_cursor: PullStartCursor,
 ) -> Result<PullResult, String> {
     let client = build_client(session_token)?;
-    let stored_event_id = get_last_server_event_id(pool, outlet_id).await?;
-    let after_event_id = resolve_pull_start_event_id(stored_event_id, start_cursor);
+    let stored_cursor = get_last_server_watermark(pool, outlet_id).await?;
+    let mut page_cursor = resolve_pull_start_cursor_string(&stored_cursor, start_cursor);
     let mut total_rows = 0usize;
-    let mut page_cursor = String::new();
-    let mut server_time = String::new();
 
-    loop {
+    let server_time = loop {
         log::info!(
-            "[RUST] [SYNC:TRACE] pull_batch: outlet_id={}, after_event_id={}, page_cursor={}, tables={}",
+            "[RUST] [SYNC:TRACE] pull_batch: outlet_id={}, cursor={}, page_cursor={}, tables={}",
             outlet_id,
-            after_event_id,
+            stored_cursor,
             page_cursor,
             tables.len()
         );
 
         let url = format!("{}/api/sync/pull", api_url);
         log::info!("[RUST] [SYNC:TRACE] pull_batch: POST {}", url);
-        let request =
-            build_sync_pull_batch_request(outlet_id, after_event_id, tables, 250, &page_cursor);
+        let request = build_sync_pull_batch_request(outlet_id, tables, 250, &page_cursor);
         let request_body = request.encode_to_vec();
 
         let response = client
@@ -128,14 +123,9 @@ pub(super) async fn sync_pull_batch_inner(
             .map_err(|e| format!("Failed to read pull batch response: {}", e))?;
         let pull_response = SyncPullBatchResponse::decode(response_body)
             .map_err(|e| format!("Failed to decode pull batch response: {}", e))?;
-        if pull_batch_response_needs_full_resync(&pull_response) {
-            return Err("Event cursor expired; full resync required".to_string());
-        }
-
         let page_server_time = pull_batch_response_server_time(&pull_response);
-        let page_latest_event_id = pull_batch_response_latest_event_id(&pull_response);
         let has_more = pull_batch_response_has_more(&pull_response);
-        let next_cursor = pull_batch_response_next_cursor(&pull_response);
+        let next_cursor = pull_batch_response_cursor(&pull_response);
         let tables_map = decode_pull_batch_response_tables(&pull_response)?;
 
         let mut tx = pool
@@ -149,20 +139,18 @@ pub(super) async fn sync_pull_batch_inner(
             tables,
             &tables_map,
             &page_server_time,
-            page_latest_event_id,
+            &next_cursor,
         )
         .await?;
         tx.commit()
             .await
             .map_err(|e| format!("Failed to commit pull batch transaction: {}", e))?;
 
-        let _ = server_time.is_empty();
-        server_time = page_server_time;
         if !has_more {
-            break;
+            break page_server_time;
         }
         page_cursor = next_cursor;
-    }
+    };
 
     Ok(PullResult {
         rows_received: total_rows,

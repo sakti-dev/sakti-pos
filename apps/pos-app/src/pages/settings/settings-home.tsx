@@ -2,6 +2,7 @@ import { useNavigate } from "@solidjs/router";
 import { For, Show } from "solid-js";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { AppShell } from "~/components/layout";
+import { Button } from "~/components/ui/button";
 import { Card, cardVariants } from "~/components/ui/card";
 import { cn } from "~/lib/utils";
 import { useSettings } from "./use-settings";
@@ -113,6 +114,23 @@ export default function SettingsHome() {
                 {settings.dbInfo()?.size_formatted ?? "Memuat..."}
               </span>
             </div>
+            <Show when={import.meta.env.DEV}>
+              <div class="border-t p-4">
+                <Button
+                  class="w-full"
+                  disabled={settings.exportingDbSnapshot()}
+                  onClick={settings.handleExportDbSnapshot}
+                  variant="outline"
+                >
+                  {settings.exportingDbSnapshot()
+                    ? "Mengekspor Snapshot DB..."
+                    : "Ekspor Snapshot DB"}
+                </Button>
+                <p class="mt-2 text-muted-foreground text-xs">
+                  Hanya tersedia di build dev.
+                </p>
+              </div>
+            </Show>
             <Show when={settings.cloudSession()?.user}>
               <button
                 class="flex w-full items-center justify-between border-t p-4 text-left active:bg-accent"

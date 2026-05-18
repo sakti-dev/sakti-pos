@@ -5,7 +5,7 @@ use crate::time_utils::current_time_iso_string;
 #[derive(Debug, serde::Serialize)]
 pub struct LocalSyncState {
     pub local_dirty_count: i64,
-    pub last_server_event_id: i64,
+    pub last_server_watermark: String,
     pub needs_baseline_sync: bool,
 }
 
@@ -21,27 +21,27 @@ pub(super) async fn resolve_merchant_id(
         .map_err(|e| format!("Failed to resolve merchant_id: {}", e))
 }
 
-pub(super) async fn get_last_server_event_id(
+pub(super) async fn get_last_server_watermark(
     pool: &SqlitePool,
     outlet_id: &str,
-) -> Result<i64, String> {
-    let query = "SELECT last_server_event_id FROM sync_cursors WHERE scope_type = 'outlet' AND scope_id = ?1 ORDER BY updated_at DESC LIMIT 1";
-    let value = sqlx::query_scalar::<_, i64>(query)
+) -> Result<String, String> {
+    let query = "SELECT last_server_watermark FROM sync_cursors WHERE scope_type = 'outlet' AND scope_id = ?1 ORDER BY updated_at DESC LIMIT 1";
+    let value = sqlx::query_scalar::<_, Option<String>>(query)
         .bind(outlet_id)
         .fetch_optional(pool)
         .await
         .map_err(|e| format!("Failed to get sync cursor: {}", e))?;
-    Ok(value.unwrap_or(0))
+    Ok(value.flatten().unwrap_or_default())
 }
 
-pub(super) async fn set_last_server_event_id_tx(
+pub(super) async fn set_last_server_watermark_tx(
     conn: &mut SqliteConnection,
     outlet_id: &str,
-    last_server_event_id: i64,
+    last_server_watermark: &str,
 ) -> Result<(), String> {
     let now = current_time_iso_string();
-    let existing = sqlx::query_scalar::<_, i64>(
-        "SELECT last_server_event_id FROM sync_cursors WHERE scope_type = 'outlet' AND scope_id = ?1 LIMIT 1",
+    let existing = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT last_server_watermark FROM sync_cursors WHERE scope_type = 'outlet' AND scope_id = ?1 LIMIT 1",
     )
     .bind(outlet_id)
     .fetch_optional(&mut *conn)
@@ -50,20 +50,20 @@ pub(super) async fn set_last_server_event_id_tx(
 
     if existing.is_some() {
         sqlx::query(
-            "UPDATE sync_cursors SET last_server_event_id = ?2, updated_at = ?3 WHERE scope_type = 'outlet' AND scope_id = ?1",
+            "UPDATE sync_cursors SET last_server_watermark = ?2, updated_at = ?3 WHERE scope_type = 'outlet' AND scope_id = ?1",
         )
         .bind(outlet_id)
-        .bind(last_server_event_id)
+        .bind(last_server_watermark)
         .bind(&now)
         .execute(&mut *conn)
         .await
         .map_err(|e| format!("Failed to update sync cursor: {}", e))?;
     } else {
         sqlx::query(
-            "INSERT INTO sync_cursors (scope_type, scope_id, last_server_event_id, updated_at) VALUES ('outlet', ?1, ?2, ?3)",
+            "INSERT INTO sync_cursors (scope_type, scope_id, last_server_watermark, updated_at) VALUES ('outlet', ?1, ?2, ?3)",
         )
         .bind(outlet_id)
-        .bind(last_server_event_id)
+        .bind(last_server_watermark)
         .bind(&now)
         .execute(&mut *conn)
         .await

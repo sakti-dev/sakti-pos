@@ -63,18 +63,40 @@ fn current_time_millis() -> u128 {
 pub async fn pick_gallery_to_product_photo_input<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
 ) -> Result<crate::android::photo_picker::PickedProductPhoto, String> {
-    use tauri_plugin_android_fs::AndroidFsExt;
+    use tauri_plugin_android_fs::{AndroidFsExt, VisualMediaTarget};
 
     let api = app.android_fs_async();
-    let selected = api
-        .file_picker()
-        .pick_file(None, &ANDROID_FS_PICKER_MIME_TYPES, false)
+    let file_picker = api.file_picker();
+    let visual_media_picker_available = file_picker
+        .is_visual_media_picker_available()
         .await
-        .map_err(|error| format!("Failed to open gallery picker: {error}"))?;
+        .unwrap_or(false);
+    let picker_strategy = gallery_picker_strategy(visual_media_picker_available);
+
+    log::info!(
+        "[RUST] [PHOTO:TRACE] pick_gallery_to_product_photo_input:picker_strategy visual_media_available={} strategy={picker_strategy:?}",
+        visual_media_picker_available
+    );
+
+    let selected = match picker_strategy {
+        GalleryPickerStrategy::VisualMedia => file_picker
+            .pick_visual_media(VisualMediaTarget::ImageOnly, true)
+            .await
+            .map_err(|error| format!("Failed to open gallery picker: {error}"))?,
+        GalleryPickerStrategy::FilePicker => file_picker
+            .pick_file(None, &ANDROID_FS_PICKER_MIME_TYPES, true)
+            .await
+            .map_err(|error| format!("Failed to open gallery picker: {error}"))?,
+    };
 
     let Some(uri) = selected else {
         return Err("Gallery operation was cancelled by user".to_string());
     };
+
+    log::info!(
+        "[RUST] [PHOTO:TRACE] pick_gallery_to_product_photo_input:selected uri={}",
+        uri.uri
+    );
 
     let mime_type = api
         .get_mime_type(&uri)
@@ -123,6 +145,20 @@ pub async fn pick_gallery_to_product_photo_input<R: tauri::Runtime>(
     _app: &tauri::AppHandle<R>,
 ) -> Result<crate::android::photo_picker::PickedProductPhoto, String> {
     Err(ANDROID_FS_UNSUPPORTED_ERROR.to_string())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GalleryPickerStrategy {
+    VisualMedia,
+    FilePicker,
+}
+
+fn gallery_picker_strategy(visual_media_picker_available: bool) -> GalleryPickerStrategy {
+    if visual_media_picker_available {
+        GalleryPickerStrategy::VisualMedia
+    } else {
+        GalleryPickerStrategy::FilePicker
+    }
 }
 
 #[cfg(test)]
@@ -187,6 +223,22 @@ mod tests {
         assert_eq!(
             path,
             Path::new("/tmp/cache/product_photo_inputs/gallery_123.jpg")
+        );
+    }
+
+    #[test]
+    fn gallery_picker_prefers_visual_media_when_available() {
+        assert_eq!(
+            super::gallery_picker_strategy(true),
+            super::GalleryPickerStrategy::VisualMedia
+        );
+    }
+
+    #[test]
+    fn gallery_picker_falls_back_to_file_picker_when_visual_media_is_unavailable() {
+        assert_eq!(
+            super::gallery_picker_strategy(false),
+            super::GalleryPickerStrategy::FilePicker
         );
     }
 }

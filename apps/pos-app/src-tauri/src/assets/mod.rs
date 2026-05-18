@@ -12,8 +12,8 @@ pub(crate) mod hydration;
 pub(crate) mod image;
 pub(crate) mod local;
 pub(crate) mod processing_jobs;
-pub(crate) mod temp_cleanup;
 pub(crate) mod targets;
+pub(crate) mod temp_cleanup;
 pub(crate) mod upload_queue;
 
 use self::cache::{
@@ -343,7 +343,10 @@ async fn mark_pending_asset_processing_job_failed(
     Ok(())
 }
 
-async fn delete_pending_asset_processing_job(pool: &SqlitePool, job_id: &str) -> Result<(), String> {
+async fn delete_pending_asset_processing_job(
+    pool: &SqlitePool,
+    job_id: &str,
+) -> Result<(), String> {
     sqlx::query("DELETE FROM pending_asset_processing_jobs WHERE id = ?1")
         .bind(job_id)
         .execute(pool)

@@ -23,13 +23,12 @@ pub(super) async fn ensure_sync_client_identity_table(pool: &SqlitePool) -> Resu
 pub(super) async fn get_or_create_sync_client_id(pool: &SqlitePool) -> Result<String, String> {
     ensure_sync_client_identity_table(pool).await?;
 
-    if let Some(client_id) = sqlx::query_scalar::<_, String>(
-        "SELECT client_id FROM sync_client_identity WHERE id = ?1",
-    )
-    .bind(CLIENT_ID_ROW_ID)
-    .fetch_optional(pool)
-    .await
-    .map_err(|error| format!("Failed to read sync client id: {}", error))?
+    if let Some(client_id) =
+        sqlx::query_scalar::<_, String>("SELECT client_id FROM sync_client_identity WHERE id = ?1")
+            .bind(CLIENT_ID_ROW_ID)
+            .fetch_optional(pool)
+            .await
+            .map_err(|error| format!("Failed to read sync client id: {}", error))?
     {
         return Ok(client_id);
     }

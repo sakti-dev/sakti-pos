@@ -32,6 +32,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_android_fs::init())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(auth::init())
         .plugin(android::photo_picker::init())
         .plugin(hardware::printer::init())
@@ -53,6 +54,7 @@ pub fn run() {
             auth::save_auth_token,
             auth::get_auth_token,
             auth::clear_auth_token,
+            db::snapshot::export_db_snapshot,
             db::drizzle_proxy::run_sql,
             db::drizzle_proxy::run_sql_batch,
             db::drizzle_proxy::get_db_info,

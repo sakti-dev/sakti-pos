@@ -69,23 +69,6 @@ export default function ProductForm() {
     domain: "PHOTO",
     module: "product-photo",
   });
-  const triggerBackgroundPhotoSync = (productId: string) => {
-    window.setTimeout(() => {
-      syncNow()
-        .then((result) => {
-          photoLogger.info("asset_sync_finished", {
-            productId,
-            mode: result.mode,
-            pushTables: result.push.tables_synced,
-          });
-        })
-        .catch((syncError: unknown) => {
-          photoLogger.error("asset_sync_failed", syncError, {
-            productId,
-          });
-        });
-    }, 0);
-  };
 
   const canSubmit = createMemo(() => {
     const input = getInput(form);
@@ -143,7 +126,6 @@ export default function ProductForm() {
       });
 
       let savedProductId: string;
-      let shouldTriggerPhotoSync = false;
       if (isEdit()) {
         const updatedProduct = await updateProduct(params.id ?? "", data);
         savedProductId = updatedProduct.id;
@@ -178,7 +160,6 @@ export default function ProductForm() {
             productId: savedProductId,
           });
           toast.success("Foto akan diproses di background");
-          shouldTriggerPhotoSync = true;
         } catch (enqueueError) {
           photoLogger.error("photo_job_enqueue_failed", enqueueError, {
             productId: savedProductId,
@@ -188,15 +169,9 @@ export default function ProductForm() {
       }
       photoLogger.info("navigate_to_product_list", {
         productId: savedProductId,
-        shouldTriggerPhotoSync,
       });
       navigate("/settings/products-categories", { replace: true });
-      if (shouldTriggerPhotoSync) {
-        photoLogger.info("background_sync_triggered", {
-          productId: savedProductId,
-        });
-        triggerBackgroundPhotoSync(savedProductId);
-      }
+      syncNow().catch(() => {});
     } catch (e) {
       photoLogger.error("submit_failed", e, {
         productId: params.id ?? null,

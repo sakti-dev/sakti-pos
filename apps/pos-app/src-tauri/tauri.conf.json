@@ -27,6 +27,16 @@
       "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:;"
     }
   },
+  "plugins": {
+    "deep-link": {
+      "mobile": [
+        {
+          "scheme": ["sakti-pos-dev"],
+          "appLink": false
+        }
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

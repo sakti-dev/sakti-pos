@@ -105,7 +105,9 @@ pub(super) fn outbox_rows_to_table_changes(
         if !by_id.contains_key(&item.row_id) {
             order.push(item.row_id.clone());
         }
-        let previous = by_id.get(&item.row_id).map(|entry| entry.operation.as_str());
+        let previous = by_id
+            .get(&item.row_id)
+            .map(|entry| entry.operation.as_str());
         match coalesce_operation(previous, &item.operation)? {
             Some(operation) => {
                 by_id.insert(
@@ -171,7 +173,12 @@ pub(super) async fn read_unsynced_table_changes_from_outbox(
         .bind(filter_value)
         .fetch_all(pool)
         .await
-        .map_err(|e| format!("Failed to read unsynced outbox changes for {}: {}", table, e))?;
+        .map_err(|e| {
+            format!(
+                "Failed to read unsynced outbox changes for {}: {}",
+                table, e
+            )
+        })?;
 
     let mut result = Vec::new();
     let mut outbox_ids = Vec::new();
@@ -237,9 +244,12 @@ pub(super) async fn mark_rows_synced_by_id_tx(
     for id in accepted_ids {
         q = q.bind(id);
     }
-    q.execute(&mut *conn)
-        .await
-        .map_err(|e| format!("Failed to mark accepted rows for {} as synced: {}", table, e))?;
+    q.execute(&mut *conn).await.map_err(|e| {
+        format!(
+            "Failed to mark accepted rows for {} as synced: {}",
+            table, e
+        )
+    })?;
 
     Ok(())
 }

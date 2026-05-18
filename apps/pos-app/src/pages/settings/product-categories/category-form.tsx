@@ -16,6 +16,7 @@ import {
   CategorySchema,
 } from "~/lib/schema/category-form";
 import { currentMerchantId } from "~/store/outlet";
+import { syncNow } from "~/store/sync";
 
 export default function CategoryForm() {
   const params = useParams();
@@ -62,6 +63,7 @@ export default function CategoryForm() {
         });
       }
       navigate("/settings/products-categories", { replace: true });
+      syncNow().catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan kategori");
     }

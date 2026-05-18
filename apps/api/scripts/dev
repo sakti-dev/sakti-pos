@@ -11,9 +11,9 @@ LOG_FILE="$LOG_DIR/api.log"
 
 cleanup() {
 	echo "Shutting down..."
-	kill "$TURSO_PID" 2>/dev/null
-	kill "$WRANGLER_PID" 2>/dev/null
-	kill "$STUDIO_PID" 2>/dev/null
+	[[ -n "${TURSO_PID:-}" ]] && kill "$TURSO_PID" 2>/dev/null || true
+	[[ -n "${WRANGLER_PID:-}" ]] && kill "$WRANGLER_PID" 2>/dev/null || true
+	[[ -n "${STUDIO_PID:-}" ]] && kill "$STUDIO_PID" 2>/dev/null || true
 	wait 2>/dev/null
 }
 trap cleanup EXIT INT TERM
@@ -39,7 +39,7 @@ echo "Turso ready, pushing schema..."
 bunx drizzle-kit push
 
 echo "Starting wrangler..."
-	npx wrangler dev > >(tee "$LOG_FILE") 2>&1 &
+npx wrangler dev > >(tee "$LOG_FILE") 2>&1 &
 WRANGLER_PID=$!
 
 echo "Starting drizzle-kit studio..."

@@ -984,13 +984,12 @@ function buildRowStatePullBatchResult(input: {
   const committedCandidates = hasMore
     ? input.candidates.slice(0, input.limit)
     : input.candidates;
-  const cursor = hasMore
+  const latestCommittedCandidate = committedCandidates.at(-1);
+  const cursor = latestCommittedCandidate
     ? formatPullBatchCursor({
-        rowId: committedCandidates.at(-1)?.rowId ?? "",
-        syncUpdatedAt: committedCandidates.at(-1)?.syncUpdatedAt ?? 0,
-        tableName:
-          committedCandidates.at(-1)?.tableName ??
-          ("merchants" as keyof typeof SYNC_TABLES),
+        rowId: latestCommittedCandidate.rowId,
+        syncUpdatedAt: latestCommittedCandidate.syncUpdatedAt,
+        tableName: latestCommittedCandidate.tableName,
       })
     : "";
   const result: RowStatePullBatchResult = {

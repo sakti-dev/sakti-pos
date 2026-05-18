@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 const mockNavigate = vi.fn();
 const mockCreateCategory = vi.fn();
 const mockUpdateCategory = vi.fn();
+const mockSyncNow = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
   useNavigate: () => mockNavigate,
@@ -26,6 +27,10 @@ vi.mock("~/db/menu", () => ({
   ),
   createCategory: (...args: unknown[]) => mockCreateCategory(...args),
   updateCategory: (...args: unknown[]) => mockUpdateCategory(...args),
+}));
+
+vi.mock("~/store/sync", () => ({
+  syncNow: (...args: unknown[]) => mockSyncNow(...args),
 }));
 
 vi.mock("~/components/ui/page-header", () => ({
@@ -75,6 +80,30 @@ describe("CategoryForm (create mode)", () => {
   test("submit is disabled when name is empty", () => {
     render(() => <CategoryForm />);
     expect(screen.getByTestId("save-btn")).toBeDisabled();
+  });
+
+  test("submit syncs after creating a category", async () => {
+    mockCreateCategory.mockResolvedValue({
+      id: "category-1",
+      merchantId: "",
+      name: "Minuman",
+    });
+    mockSyncNow.mockResolvedValue({
+      mode: "skipped",
+      pull: { rows_received: 0, server_time: "" },
+      purged: 0,
+      push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+    });
+
+    render(() => <CategoryForm />);
+    await user.type(screen.getByPlaceholderText("Contoh: Minuman"), "Minuman");
+    await user.click(screen.getByTestId("save-btn"));
+
+    expect(mockCreateCategory).toHaveBeenCalledWith({
+      merchantId: "",
+      name: "Minuman",
+    });
+    expect(mockSyncNow).toHaveBeenCalledTimes(1);
   });
 
   test("submit is enabled when name is filled", async () => {

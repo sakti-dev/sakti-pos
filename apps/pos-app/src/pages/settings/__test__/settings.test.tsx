@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
@@ -18,9 +19,22 @@ vi.mock("@solidjs/router", () => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(() =>
-    Promise.resolve({ db_path: "/data/sakti.db", size_formatted: "2.4 MB" })
-  ),
+  invoke: vi.fn((command: string) => {
+    if (command === "get_db_info") {
+      return Promise.resolve({
+        db_path: "/data/sakti.db",
+        size_formatted: "2.4 MB",
+      });
+    }
+
+    if (command === "export_db_snapshot") {
+      return Promise.resolve({
+        snapshot_path: join(process.cwd(), ".db-snapshots", "latest.sqlite"),
+      });
+    }
+
+    return Promise.resolve(undefined);
+  }),
 }));
 
 vi.mock("~/store/auth", () => ({
@@ -259,6 +273,22 @@ describe("Settings card launcher", () => {
     await screen.findByText("Pengaturan");
     expect(screen.getByText("0.1.0")).toBeInTheDocument();
     expect(screen.getByText("2.4 MB")).toBeInTheDocument();
+  });
+
+  test("shows db snapshot export action in dev builds", async () => {
+    render(() => <SettingsHome />);
+    await screen.findByText("Pengaturan");
+    expect(screen.getByText("Ekspor Snapshot DB")).toBeInTheDocument();
+  });
+
+  test("exports db snapshot when dev action is clicked", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+
+    render(() => <SettingsHome />);
+    await screen.findByText("Pengaturan");
+    await user.click(screen.getByText("Ekspor Snapshot DB"));
+
+    expect(invoke).toHaveBeenCalledWith("export_db_snapshot");
   });
 
   test("does not show Lepaskan Perangkat when cloud is not connected", async () => {

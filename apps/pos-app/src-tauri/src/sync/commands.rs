@@ -3,8 +3,8 @@ use tauri::{command, State};
 use crate::app::state::AppState;
 
 use super::dto::SyncNowResult;
-use super::local_state::{get_last_server_event_id, resolve_merchant_id, LocalSyncState};
-use super::outbox::{count_legacy_unsynced_rows, count_pending_outbox};
+use super::local_state::{get_last_server_watermark, resolve_merchant_id, LocalSyncState};
+use super::outbox::count_pending_outbox;
 use super::pull::{sync_pull_batch_inner, PullStartCursor};
 use super::push::{debug_local_table_state, sync_push_batch_inner};
 use super::schema::{get_filter_value, get_table_filter_column};
@@ -19,35 +19,22 @@ pub async fn get_sync_local_state(
     let merchant_id = resolve_merchant_id(pool, &outlet_id).await?;
     let needs_baseline_sync = merchant_id.is_none();
     let outbox_dirty_count = count_pending_outbox(pool, &outlet_id, &merchant_id).await?;
-    let legacy_dirty_count = if needs_baseline_sync {
-        0
-    } else {
-        count_legacy_unsynced_rows(pool, &outlet_id, &merchant_id).await?
-    };
-    if legacy_dirty_count > 0 {
-        log::warn!(
-            "[RUST] [SYNC:TRACE] local_state: ignoring legacy dirty rows without outbox entries; outlet_id={}, legacy_dirty_count={}",
-            outlet_id,
-            legacy_dirty_count
-        );
-    }
     let local_dirty_count = outbox_dirty_count;
-    let last_server_event_id = get_last_server_event_id(pool, &outlet_id).await?;
+    let last_server_watermark = get_last_server_watermark(pool, &outlet_id).await?;
 
     log::info!(
-        "[RUST] [SYNC:TRACE] local_state: outlet_id={}, merchant_id={:?}, needs_baseline_sync={}, outbox_dirty_count={}, legacy_dirty_count={}, dirty_count={}, last_server_event_id={}",
+        "[RUST] [SYNC:TRACE] local_state: outlet_id={}, merchant_id={:?}, needs_baseline_sync={}, outbox_dirty_count={}, dirty_count={}, last_server_watermark={}",
         outlet_id,
         merchant_id,
         needs_baseline_sync,
         outbox_dirty_count,
-        legacy_dirty_count,
         local_dirty_count,
-        last_server_event_id
+        last_server_watermark
     );
 
     Ok(LocalSyncState {
         local_dirty_count,
-        last_server_event_id,
+        last_server_watermark,
         needs_baseline_sync,
     })
 }
@@ -299,7 +286,8 @@ pub async fn sync_now(
             .map_err(|e| format!("Failed to resolve merchant_id: {}", e))?
     };
 
-    let mut tx = state.db_pool
+    let mut tx = state
+        .db_pool
         .begin()
         .await
         .map_err(|e| format!("Failed to begin GC transaction: {}", e))?;
