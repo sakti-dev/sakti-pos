@@ -272,7 +272,7 @@ describe("Settings card launcher", () => {
     render(() => <SettingsHome />);
     await screen.findByText("Pengaturan");
     expect(screen.getByText("0.1.0")).toBeInTheDocument();
-    expect(screen.getByText("2.4 MB")).toBeInTheDocument();
+    expect(await screen.findByText("2.4 MB")).toBeInTheDocument();
   });
 
   test("shows db snapshot export action in dev builds", async () => {

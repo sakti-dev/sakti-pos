@@ -27,6 +27,7 @@ import {
   type ProductFormValues,
   ProductSchema,
 } from "~/lib/schema/product-form";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { currentMerchantId } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
@@ -36,7 +37,7 @@ export default function ProductForm() {
   const isEdit = () => !!params.id;
   const title = () => (isEdit() ? "Edit Produk" : "Tambah Produk");
 
-  const [categories] = createResource(getCategories);
+  const categoriesQuery = useDrizzleQuery(["categories"], getCategories);
   const [product] = createResource(
     () => (isEdit() ? params.id : undefined),
     (id) => (id === undefined ? undefined : getProduct(id))
@@ -83,7 +84,7 @@ export default function ProductForm() {
 
   createEffect(() => {
     const data = product();
-    if (!(data && categories())) {
+    if (!(data && categoriesQuery.data())) {
       return;
     }
     if (initializedProductId() === data.id) {
@@ -201,7 +202,7 @@ export default function ProductForm() {
               Memuat...
             </div>
           }
-          when={!isEdit() || (product() && categories())}
+          when={!isEdit() || (product() && categoriesQuery.data())}
         >
           <Form
             class="flex flex-1 flex-col gap-4"
@@ -236,7 +237,7 @@ export default function ProductForm() {
                     name={field.props.name}
                     onChange={(v) => field.onInput(v == null ? "" : String(v))}
                     options={
-                      categories()?.map((cat) => ({
+                      categoriesQuery.data()?.map((cat) => ({
                         value: cat.id,
                         label: cat.name,
                       })) ?? []

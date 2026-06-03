@@ -1,12 +1,6 @@
 import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
-import {
-  createEffect,
-  createMemo,
-  createResource,
-  createSignal,
-  Show,
-} from "solid-js";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { FormTextField } from "~/components/form/form-text-field";
 import { Button } from "~/components/ui/button";
 import { PageHeader } from "~/components/ui/page-header";
@@ -15,6 +9,7 @@ import {
   type CategoryFormValues,
   CategorySchema,
 } from "~/lib/schema/category-form";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { currentMerchantId } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
@@ -24,9 +19,9 @@ export default function CategoryForm() {
   const isEdit = () => !!params.id;
   const title = () => (isEdit() ? "Edit Kategori" : "Tambah Kategori");
 
-  const [category] = createResource(
-    () => (isEdit() ? params.id : undefined),
-    (id) => (id === undefined ? undefined : getCategory(id))
+  const categoryQuery = useDrizzleQuery(
+    () => (isEdit() ? ["category", params.id] : []),
+    () => (isEdit() ? getCategory(params.id!) : Promise.resolve(undefined))
   );
 
   const form = createForm({
@@ -41,7 +36,7 @@ export default function CategoryForm() {
   });
 
   createEffect(() => {
-    const data = category();
+    const data = categoryQuery.data();
     if (!data) {
       return;
     }
@@ -90,7 +85,7 @@ export default function CategoryForm() {
               Memuat...
             </div>
           }
-          when={!isEdit() || category()}
+          when={!isEdit() || categoryQuery.data()}
         >
           <Form
             class="flex flex-1 flex-col gap-4"

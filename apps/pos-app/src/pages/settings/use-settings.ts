@@ -11,6 +11,7 @@ import { getOutletById, updateOutletTimezone } from "~/db/outlets";
 import { logout as cloudLogout, getSession } from "~/lib/auth/cloud";
 import { DEFAULT_BUSINESS_TIMEZONE } from "~/lib/date-time";
 import { createLogger } from "~/lib/logger";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { currentUser, logout } from "~/store/auth";
 import {
   clearOutletContext,
@@ -45,8 +46,10 @@ export function useSettings() {
   );
   const [savingTimezone, setSavingTimezone] = createSignal(false);
   const [exportingDbSnapshot, setExportingDbSnapshot] = createSignal(false);
-  const [dbInfo] = createResource(() => invoke<DbInfo>("get_db_info"));
-  const [cloudSession, { refetch: refetchCloudSession }] = createResource(() =>
+  const dbInfoQuery = useDrizzleQuery(["db-info"], () =>
+    invoke<DbInfo>("get_db_info")
+  );
+  const cloudSessionQuery = useDrizzleQuery(["cloud-session"], () =>
     getSession().catch(() => null)
   );
   const [outlet, { refetch: refetchOutlet }] = createResource(
@@ -83,7 +86,7 @@ export function useSettings() {
     clearOutletContext();
     toast.success("Akun cloud terputus");
     setShowDisconnectConfirm(false);
-    refetchCloudSession();
+    cloudSessionQuery.refetch();
   };
 
   const handleSyncNow = async () => {
@@ -156,9 +159,9 @@ export function useSettings() {
 
   return {
     activeUserLabel,
-    cloudSession,
+    cloudSession: cloudSessionQuery.data,
     currentOutletId,
-    dbInfo,
+    dbInfo: dbInfoQuery.data,
     handleDisconnect,
     handleConnectCloud,
     handleExportDbSnapshot,
