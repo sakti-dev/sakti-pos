@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
-import { type Accessor, createResource } from "solid-js";
+import type { Accessor } from "solid-js";
 import { createLogger } from "~/lib/logger";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import {
   getAssetCacheVersion,
   getPendingPreviewVersion,
@@ -107,22 +108,22 @@ export function createAssetAdapter(config: AssetAdapterConfig): AssetAdapter {
     assetId: Accessor<string | null | undefined>,
     entityId: Accessor<string | null | undefined>
   ): Accessor<string | null> => {
-    const [cached] = createResource(
+    const cachedQuery = useDrizzleQuery(
       () => ({
         assetId: assetId(),
         version: getAssetCacheVersion(assetId()),
       }),
-      ({ assetId: id }) => resolveCachedImageUrl(id)
+      () => resolveCachedImageUrl(assetId())
     );
-    const [pending] = createResource(
+    const pendingQuery = useDrizzleQuery(
       () => ({
         assetId: assetId(),
         entityId: entityId(),
         pendingVersion: getPendingPreviewVersion(config.entityType, entityId()),
       }),
-      ({ entityId: id }) => getPendingPreviewUrl(id)
+      () => getPendingPreviewUrl(entityId())
     );
-    return () => pending() ?? cached() ?? null;
+    return () => pendingQuery.data() ?? cachedQuery.data() ?? null;
   };
 
   return {

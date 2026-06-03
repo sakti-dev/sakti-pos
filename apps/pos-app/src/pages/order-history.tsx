@@ -1,11 +1,4 @@
-import {
-  createEffect,
-  createMemo,
-  createResource,
-  createSignal,
-  For,
-  Show,
-} from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { DailySummaryBar } from "~/components/daily-summary";
@@ -24,6 +17,7 @@ import {
   type OrderRow,
 } from "~/db/orders";
 import { getBusinessDate } from "~/lib/date-time";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { cn } from "~/lib/utils";
 import { currentUserRole } from "~/store/auth";
 import { currentOutletTimezone } from "~/store/outlet";
@@ -54,17 +48,17 @@ export default function OrderHistory() {
         : (statusFilter() as "completed" | "cancelled"),
   }));
 
-  const [orders, { refetch }] = createResource(filter, (value) =>
+  const ordersQuery = useDrizzleQuery(filter, () =>
     getOrders(
       {
-        dateFrom: value.dateFrom,
-        dateTo: value.dateTo,
-        status: value.status,
+        dateFrom: filter().dateFrom,
+        dateTo: filter().dateTo,
+        status: filter().status,
       },
-      value.timezone
+      filter().timezone
     )
   );
-  const [summary] = createResource(
+  const summaryQuery = useDrizzleQuery(
     () => `${dateFrom()}-${timezone()}`,
     () => getDailySummary(dateFrom(), timezone())
   );
@@ -75,7 +69,7 @@ export default function OrderHistory() {
   const [cancelTarget, setCancelTarget] = createSignal<OrderRow | undefined>();
 
   createEffect(() => {
-    const orderList = orders();
+    const orderList = ordersQuery.data();
     if (!orderList) {
       return;
     }
@@ -106,14 +100,14 @@ export default function OrderHistory() {
       delete next[target.id];
       return next;
     });
-    await refetch();
+    await ordersQuery.refetch();
     toast.success("Pesanan dibatalkan");
   };
 
   return (
     <AppShell title="Riwayat Pesanan">
       <div class="space-y-3 p-4">
-        <DailySummaryBar data={summary()} />
+        <DailySummaryBar data={summaryQuery.data()} />
 
         <div
           class={cn(
@@ -167,7 +161,7 @@ export default function OrderHistory() {
                   </For>
                 </div>
               }
-              when={orders() !== undefined}
+              when={ordersQuery.data() !== undefined}
             >
               <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <p>
@@ -178,10 +172,10 @@ export default function OrderHistory() {
               </div>
             </Show>
           }
-          when={orders() && orders()!.length > 0}
+          when={ordersQuery.data() && ordersQuery.data()!.length > 0}
         >
           <div class="space-y-2">
-            <For each={orders()}>
+            <For each={ordersQuery.data()}>
               {(order) => (
                 <OrderCard
                   items={orderItemsCache()[order.id] ?? []}

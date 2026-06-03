@@ -284,9 +284,9 @@ describe("POS page", () => {
   test("renders all products from all categories", async () => {
     render(() => <POS />);
     await screen.findByText("Kasir");
-    expect(screen.getByText("Kopi Susu")).toBeInTheDocument();
-    expect(screen.getByText("Teh Manis")).toBeInTheDocument();
-    expect(screen.getByText("Nasi Goreng")).toBeInTheDocument();
+    expect(await screen.findByText("Kopi Susu")).toBeInTheDocument();
+    expect(await screen.findByText("Teh Manis")).toBeInTheDocument();
+    expect(await screen.findByText("Nasi Goreng")).toBeInTheDocument();
   });
 
   test("refetches active products when product asset attachment is ready", async () => {

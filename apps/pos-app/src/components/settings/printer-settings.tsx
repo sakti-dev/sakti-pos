@@ -3,7 +3,6 @@ import { TbOutlinePrinter, TbOutlineRefresh } from "solid-icons/tb";
 import {
   createEffect,
   createMemo,
-  createResource,
   createSignal,
   For,
   onMount,
@@ -27,6 +26,7 @@ import {
   testPrint,
 } from "~/lib/printer/client";
 import { PrinterSettingsSchema } from "~/lib/schema/printer-settings-form";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { currentOutletId } from "~/store/outlet";
 
 const settingsPrinterLogger = createLogger({
@@ -83,19 +83,17 @@ export default function PrinterSettings() {
     const input = getInput(receiptForm);
     return !!input?.receiptName?.trim() || !!input?.receiptAddress?.trim();
   });
-  const [receiptDefaults, { refetch: refetchReceiptDefaults }] = createResource(
-    currentOutletId,
-    async (outletId) => {
-      if (!outletId) {
-        return null;
-      }
-
-      return await getOutletReceiptDefaults(outletId);
+  const receiptDefaultsQuery = useDrizzleQuery(currentOutletId, async () => {
+    const outletId = currentOutletId();
+    if (!outletId) {
+      return null;
     }
-  );
+
+    return await getOutletReceiptDefaults(outletId);
+  });
 
   createEffect(() => {
-    const defaults = receiptDefaults();
+    const defaults = receiptDefaultsQuery.data();
     if (!defaults) {
       return;
     }
@@ -237,7 +235,7 @@ export default function PrinterSettings() {
       }
 
       toast.success("Header struk disimpan");
-      await refetchReceiptDefaults();
+      await receiptDefaultsQuery.refetch();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal menyimpan header");
       settingsPrinterLogger.error("receipt_header:failed", e, { outletId });
@@ -264,7 +262,8 @@ export default function PrinterSettings() {
                     input={field.input}
                     label="Nama merchant di struk"
                     placeholder={
-                      receiptDefaults()?.merchantName ?? "Nama merchant"
+                      receiptDefaultsQuery.data()?.merchantName ??
+                      "Nama merchant"
                     }
                     type="text"
                   />
@@ -279,7 +278,8 @@ export default function PrinterSettings() {
                     input={field.input}
                     label="Alamat di struk"
                     placeholder={
-                      receiptDefaults()?.outletAddress ?? "Alamat outlet"
+                      receiptDefaultsQuery.data()?.outletAddress ??
+                      "Alamat outlet"
                     }
                     type="text"
                   />

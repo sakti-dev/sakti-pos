@@ -203,9 +203,11 @@ describe("UserForm (edit mode)", () => {
     vi.mocked(useParams).mockReturnValue({ id: "staff-1" });
     render(() => <UserForm />);
     await screen.findByText("Edit Pengguna");
-    expect(screen.getByText("Status Aktif")).toBeInTheDocument();
+    expect(await screen.findByText("Status Aktif")).toBeInTheDocument();
     expect(
-      screen.getByText("Nonaktifkan untuk menyembunyikan dari layar login")
+      await screen.findByText(
+        "Nonaktifkan untuk menyembunyikan dari layar login"
+      )
     ).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { createMemo, createResource, createSignal } from "solid-js";
+import { createMemo, createSignal } from "solid-js";
 import { toast } from "solid-sonner";
 import {
   createOrder,
@@ -11,6 +11,7 @@ import { formatUtcTimestamp } from "~/lib/date-time";
 import { createLogger } from "~/lib/logger";
 import { getDefaultPrinter, printReceipt } from "~/lib/printer/client";
 import type { ReceiptData } from "~/lib/receipt/types";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { currentUser, currentUserRole } from "~/store/auth";
 import { cartItems, cartTotal, clearCart } from "~/store/cart";
 import { currentOutletId, currentOutletTimezone } from "~/store/outlet";
@@ -50,11 +51,11 @@ export interface PosState {
 
 export function usePos(): PosState {
   const isPhone = useIsPhone();
-  const [groupedData] = createResource(
+  const groupedDataQuery = useDrizzleQuery(
     () => getDomainCatalogVersion("product"),
     () => getActiveProductsByCategory()
   );
-  const [outletsData] = createResource(getAllOutlets);
+  const outletsQuery = useDrizzleQuery(["outlets"], () => getAllOutlets());
   const role = currentUserRole();
   const [selectedCategory, setSelectedCategory] = createSignal<string | null>(
     null
@@ -65,9 +66,11 @@ export function usePos(): PosState {
   const [lastReceipt, setLastReceipt] = createSignal<ReceiptData | null>(null);
   const [search, setSearch] = createSignal("");
 
-  const categories = createMemo(() => getCategoryNames(groupedData()));
+  const categories = createMemo(() =>
+    getCategoryNames(groupedDataQuery.data())
+  );
   const filteredProducts = createMemo(() =>
-    getVisibleProducts(groupedData(), selectedCategory(), search())
+    getVisibleProducts(groupedDataQuery.data(), selectedCategory(), search())
   );
   const outletTimezone = createMemo(() => currentOutletTimezone());
 
@@ -189,7 +192,7 @@ export function usePos(): PosState {
     isPhone,
     lastReceipt,
     orderResult,
-    outlets: () => outletsData() ?? [],
+    outlets: () => outletsQuery.data() ?? [],
     paymentLoading,
     paymentOpen,
     role,

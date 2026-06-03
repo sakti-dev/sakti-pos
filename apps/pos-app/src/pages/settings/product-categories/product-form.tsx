@@ -1,12 +1,6 @@
 import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
-import {
-  createEffect,
-  createMemo,
-  createResource,
-  createSignal,
-  Show,
-} from "solid-js";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { FormTextField } from "~/components/form/form-text-field";
 import { ImageUpload } from "~/components/image-upload";
@@ -38,9 +32,9 @@ export default function ProductForm() {
   const title = () => (isEdit() ? "Edit Produk" : "Tambah Produk");
 
   const categoriesQuery = useDrizzleQuery(["categories"], getCategories);
-  const [product] = createResource(
-    () => (isEdit() ? params.id : undefined),
-    (id) => (id === undefined ? undefined : getProduct(id))
+  const productQuery = useDrizzleQuery(
+    () => (isEdit() ? ["product", params.id] : []),
+    () => (isEdit() ? getProduct(params.id!) : Promise.resolve(undefined))
   );
 
   const form = createForm({
@@ -56,13 +50,16 @@ export default function ProductForm() {
   const [initializedProductId, setInitializedProductId] = createSignal<
     string | null
   >(null);
-  const [savedImagePreviewUrl] = createResource(
-    () => imageAssetId(),
-    (assetId) => productImageAdapter.resolveCachedImageUrl(assetId)
+  const savedImagePreviewUrlQuery = useDrizzleQuery(
+    () => ["product-image-preview", imageAssetId()],
+    () =>
+      imageAssetId()
+        ? productImageAdapter.resolveCachedImageUrl(imageAssetId()!)
+        : Promise.resolve(null)
   );
   const upload = createImageUpload({
     existingAssetId: imageAssetId,
-    existingImageUrl: () => savedImagePreviewUrl() ?? null,
+    existingImageUrl: () => savedImagePreviewUrlQuery.data() ?? null,
     onClearExisting: () => setImageAssetId(null),
     processingKind: "image:webp-thumbnail",
   });
@@ -83,7 +80,7 @@ export default function ProductForm() {
   });
 
   createEffect(() => {
-    const data = product();
+    const data = productQuery.data();
     if (!(data && categoriesQuery.data())) {
       return;
     }
@@ -202,7 +199,7 @@ export default function ProductForm() {
               Memuat...
             </div>
           }
-          when={!isEdit() || (product() && categoriesQuery.data())}
+          when={!isEdit() || (productQuery.data() && categoriesQuery.data())}
         >
           <Form
             class="flex flex-1 flex-col gap-4"

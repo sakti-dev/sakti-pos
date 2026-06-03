@@ -1,11 +1,6 @@
 import { useNavigate } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  createEffect,
-  createMemo,
-  createResource,
-  createSignal,
-} from "solid-js";
+import { createEffect, createMemo, createSignal } from "solid-js";
 import { toast } from "solid-sonner";
 import { getOutletById, updateOutletTimezone } from "~/db/outlets";
 import { logout as cloudLogout, getSession } from "~/lib/auth/cloud";
@@ -52,19 +47,17 @@ export function useSettings() {
   const cloudSessionQuery = useDrizzleQuery(["cloud-session"], () =>
     getSession().catch(() => null)
   );
-  const [outlet, { refetch: refetchOutlet }] = createResource(
-    currentOutletId,
-    async (outletId) => {
-      if (!outletId) {
-        return;
-      }
-
-      return await getOutletById(outletId);
+  const outletQuery = useDrizzleQuery(currentOutletId, async () => {
+    const outletId = currentOutletId();
+    if (!outletId) {
+      return;
     }
-  );
+
+    return await getOutletById(outletId);
+  });
 
   createEffect(() => {
-    const current = outlet();
+    const current = outletQuery.data();
     if (!current) {
       return;
     }
@@ -145,7 +138,7 @@ export function useSettings() {
       setOutletTimezone(updated.timezone);
       setSelectedOutletTimezone(updated.timezone);
       toast.success("Zona waktu outlet diperbarui");
-      await refetchOutlet();
+      await outletQuery.refetch();
     } catch {
       toast.error("Gagal memperbarui zona waktu outlet");
     } finally {

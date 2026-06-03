@@ -1,4 +1,4 @@
-import { render, screen } from "@solidjs/testing-library";
+import { render, screen, waitFor } from "@solidjs/testing-library";
 import type { JSX } from "solid-js";
 import { For, Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -177,7 +177,11 @@ describe("OrderHistory", () => {
   test("shows DailySummaryBar", async () => {
     render(() => <OrderHistory />);
     await screen.findByText("Riwayat Pesanan");
-    expect(screen.getByTestId("daily-summary")).toHaveTextContent("2 pesanan");
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-summary")).toHaveTextContent(
+        "2 pesanan"
+      );
+    });
   });
 
   test("shows date filter inputs and status select", async () => {
@@ -190,9 +194,9 @@ describe("OrderHistory", () => {
   test("renders order list with OrderCards", async () => {
     render(() => <OrderHistory />);
     await screen.findByText("Riwayat Pesanan");
-    expect(screen.getAllByTestId("order-card")).toHaveLength(2);
-    expect(screen.getByText("2026-05-04-001")).toBeInTheDocument();
-    expect(screen.getByText("2026-05-04-002")).toBeInTheDocument();
+    expect(await screen.findAllByTestId("order-card")).toHaveLength(2);
+    expect(await screen.findByText("2026-05-04-001")).toBeInTheDocument();
+    expect(await screen.findByText("2026-05-04-002")).toBeInTheDocument();
   });
 
   test("shows empty state when no orders", async () => {
@@ -200,13 +204,13 @@ describe("OrderHistory", () => {
     vi.mocked(getOrders).mockResolvedValueOnce([]);
     render(() => <OrderHistory />);
     await screen.findByText("Riwayat Pesanan");
-    expect(screen.getByText("Belum ada pesanan")).toBeInTheDocument();
+    expect(await screen.findByText("Belum ada pesanan")).toBeInTheDocument();
   });
 
   test("shows cancel button for owner role", async () => {
     render(() => <OrderHistory />);
     await screen.findByText("Riwayat Pesanan");
-    expect(screen.getAllByTestId("cancel-btn")).toHaveLength(2);
+    expect(await screen.findAllByTestId("cancel-btn")).toHaveLength(2);
   });
 
   test("does not show cancel button for cashier role", async () => {
