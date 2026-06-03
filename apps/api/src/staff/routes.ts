@@ -1,4 +1,4 @@
-import { staff, userMerchants } from "@repo/database/api-schema";
+import { staff, userMerchants } from "@sync-contract/api-schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";

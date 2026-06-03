@@ -1,4 +1,4 @@
-import { outlets } from "@repo/database";
+import { outlets } from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import { eq } from "drizzle-orm";
 import { syncClient } from "~/lib/sync";

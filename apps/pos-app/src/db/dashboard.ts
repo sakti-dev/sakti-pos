@@ -1,4 +1,9 @@
-import { categories, orderItems, orders, products } from "@repo/database";
+import {
+  categories,
+  orderItems,
+  orders,
+  products,
+} from "@sync-contract/local-synced-schema";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import {
   formatInBusinessTimezone,

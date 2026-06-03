@@ -1,8 +1,8 @@
+import { syncOutbox as syncOutboxTable } from "@sync-contract/local-schema";
 import {
   orderItems as orderItemsTable,
   orders as ordersTable,
-  syncOutbox as syncOutboxTable,
-} from "@repo/database";
+} from "@sync-contract/local-synced-schema";
 import Database from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { assets, userMerchants } from "@repo/database/api-schema";
+import { assets, userMerchants } from "@sync-contract/api-schema";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { v7 as uuidv7 } from "uuid";

@@ -1,4 +1,4 @@
-import { merchants, userMerchants, users } from "@repo/database/api-schema";
+import { merchants, userMerchants, users } from "@sync-contract/api-schema";
 import type { OAuth2Tokens } from "arctic";
 import { eq } from "drizzle-orm";
 import { Elysia } from "elysia";

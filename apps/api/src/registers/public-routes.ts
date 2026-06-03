@@ -1,4 +1,4 @@
-import { outlets, registers } from "@repo/database/api-schema";
+import { outlets, registers } from "@sync-contract/api-schema";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";

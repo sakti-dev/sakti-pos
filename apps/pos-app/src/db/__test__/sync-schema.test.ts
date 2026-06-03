@@ -1,11 +1,11 @@
 import {
-  assets,
   localAssetCache,
   pendingAssetProcessingJobs,
   pendingProductPhotoJobs,
   syncCursors,
   syncOutbox,
-} from "@repo/database";
+} from "@sync-contract/local-schema";
+import { assets } from "@sync-contract/local-synced-schema";
 import { getTableColumns } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 

@@ -4,7 +4,7 @@ import {
   outletProducts,
   outlets,
   products,
-} from "@repo/database/api-schema";
+} from "@sync-contract/api-schema";
 import { eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { scriptDb as db } from "../db/script";

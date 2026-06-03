@@ -1,4 +1,4 @@
-import { outlets } from "@repo/database/api-schema";
+import { outlets } from "@sync-contract/api-schema";
 import {
   createSyncPullHandler,
   createSyncPushHandler,

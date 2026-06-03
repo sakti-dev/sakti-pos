@@ -15,9 +15,9 @@
     "app:resize": "bash apps/pos-app/scripts/resize",
     "app:restart": "bash apps/pos-app/scripts/restart",
     "test": "turbo run test",
-    "generate:sync": "cd packages/database && bunx baresync generate",
-    "generate:sync:check": "cd packages/database && bunx baresync generate --check",
-    "generate:sync:doctor": "cd packages/database && bunx baresync doctor"
+    "generate:sync": "cd packages/sync-contract && bunx baresync generate",
+    "generate:sync:check": "cd packages/sync-contract && bunx baresync generate --check",
+    "generate:sync:doctor": "cd packages/sync-contract && bunx baresync doctor"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",

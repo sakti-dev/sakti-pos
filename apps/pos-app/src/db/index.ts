@@ -1,20 +1,22 @@
 import {
+  localAssetCache,
+  pendingAssetProcessingJobs,
+  pendingProductPhotoJobs,
+  syncCursors,
+  syncOutbox,
+} from "@sync-contract/local-schema";
+import {
   assets,
   categories,
-  localAssetCache,
   merchants,
   orderItems,
   orders,
   outletProducts,
   outlets,
-  pendingAssetProcessingJobs,
-  pendingProductPhotoJobs,
   products,
   registers,
   staff,
-  syncCursors,
-  syncOutbox,
-} from "@repo/database";
+} from "@sync-contract/local-synced-schema";
 import { invoke } from "@tauri-apps/api/core";
 import { createTauriDrizzleDatabase } from "baresync/db";
 import { createLogger } from "~/lib/logger";

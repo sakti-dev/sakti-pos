@@ -1,4 +1,4 @@
-import { SYNC_SCOPE } from "@repo/database/sync-constants";
+import { SYNC_SCOPE } from "@sync-contract/constants";
 import { QueryClient, useQueryClient } from "@tanstack/solid-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";

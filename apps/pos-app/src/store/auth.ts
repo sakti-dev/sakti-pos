@@ -1,4 +1,4 @@
-import { staff } from "@repo/database";
+import { staff } from "@sync-contract/local-synced-schema";
 import { eq } from "drizzle-orm";
 import { createSignal } from "solid-js";
 import { db } from "~/db";

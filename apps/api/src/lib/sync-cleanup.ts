@@ -4,7 +4,7 @@ import {
   products,
   registers,
   staff,
-} from "@repo/database/api-schema";
+} from "@sync-contract/api-schema";
 import { and, isNotNull, lt } from "drizzle-orm";
 import { db } from "../db";
 

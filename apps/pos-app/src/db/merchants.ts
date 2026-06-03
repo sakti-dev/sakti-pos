@@ -1,4 +1,4 @@
-import { merchants } from "@repo/database";
+import { merchants } from "@sync-contract/local-synced-schema";
 import { eq } from "drizzle-orm";
 import { db } from "./index";
 

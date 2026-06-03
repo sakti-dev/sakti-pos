@@ -1,4 +1,8 @@
-import { categories, outletProducts, products } from "@repo/database";
+import {
+  categories,
+  outletProducts,
+  products,
+} from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import { and, eq, isNull } from "drizzle-orm";
 import { syncClient } from "~/lib/sync";

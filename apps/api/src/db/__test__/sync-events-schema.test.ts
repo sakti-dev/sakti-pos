@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 // biome-ignore lint/performance/noNamespaceImport: this test intentionally inspects the exported schema namespace.
-import * as apiSchema from "@repo/database/api-schema";
+import * as apiSchema from "@sync-contract/api-schema";
 import { getTableColumns } from "drizzle-orm";
 
 describe("api smart sync schema", () => {

@@ -8,7 +8,7 @@
       "apps/pos-app/drizzle.config.ts",
       "apps/pos-app/tailwind.config.js",
       "apps/pos-app/postcss.config.js",
-      "packages/database/src/**",
+      "packages/sync-contract/src/**",
       "!!packages/protobuf/src",
       "*.json",
       "*.jsonc",

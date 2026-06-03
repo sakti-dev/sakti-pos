@@ -9,7 +9,7 @@ import {
   products,
   registers,
   staff,
-} from "@repo/database/api-schema";
+} from "@sync-contract/api-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { db } from "../db";

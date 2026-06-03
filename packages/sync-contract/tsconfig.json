@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "lib": ["ES2020"],
+    "types": ["node"],
     "module": "ESNext",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
@@ -12,8 +13,8 @@
     "strict": true,
     "target": "ES2020",
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "sync.config.ts"]
 }

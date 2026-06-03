@@ -3,7 +3,7 @@ import {
   outlets,
   registers,
   userMerchants,
-} from "@repo/database/api-schema";
+} from "@sync-contract/api-schema";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";

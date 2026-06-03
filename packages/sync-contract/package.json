@@ -1,5 +1,5 @@
 {
-  "name": "@repo/database",
+  "name": "@sync-contract",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,13 +8,14 @@
     "./local-schema": "./src/local-schema.ts",
     "./api-schema": "./src/api-schema.ts",
     "./api-synced-schema": "./src/api-synced-schema.ts",
-    "./local-synced-schema": "./src/local-schema.ts",
-    "./synced-schema": "./src/synced-schema.ts",
-    "./sync-constants": "./src/sync-constants.ts",
+    "./local-synced-schema": "./src/local-synced-schema.ts",
+    "./constants": "./src/sync-constants.ts",
     "./sync.config": "./sync.config.ts",
     "./generated/sync-contract": "./generated/2026-06-03/sync-contract.json",
     "./generated/sync-table-order": "./generated/2026-06-03/sync-table-order.ts",
-    "./generated/manifest": "./generated/2026-06-03/sync-contract.manifest.json"
+    "./generated/manifest": "./generated/2026-06-03/sync-contract.manifest.json",
+    "./generated/api-synced-schema": "./generated/2026-06-03/api-synced-schema.ts",
+    "./generated/local-synced-schema": "./generated/2026-06-03/local-synced-schema.ts"
   },
   "scripts": {
     "generate": "bunx baresync generate",
@@ -22,11 +23,12 @@
     "check": "bun run doctor && bun run typecheck"
   },
   "dependencies": {
-    "baresync": "0.2.3",
+    "baresync": "0.2.5",
     "drizzle-orm": "^0.45.2",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "typescript": "5.9.2"
   }
 }

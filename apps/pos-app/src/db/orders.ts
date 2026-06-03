@@ -4,7 +4,7 @@ import {
   orders,
   products,
   staff,
-} from "@repo/database";
+} from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import {
   and,

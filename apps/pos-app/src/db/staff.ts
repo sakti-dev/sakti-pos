@@ -1,4 +1,4 @@
-import { staff } from "@repo/database";
+import { staff } from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
 import { syncClient } from "~/lib/sync";
