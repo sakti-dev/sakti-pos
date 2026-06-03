@@ -5,10 +5,21 @@
   "type": "module",
   "exports": {
     ".": "./src/local-schema.ts",
+    "./local-schema": "./src/local-schema.ts",
     "./api-schema": "./src/api-schema.ts",
     "./api-synced-schema": "./src/api-synced-schema.ts",
+    "./local-synced-schema": "./src/local-schema.ts",
     "./synced-schema": "./src/synced-schema.ts",
-    "./sync-constants": "./src/sync-constants.ts"
+    "./sync-constants": "./src/sync-constants.ts",
+    "./sync.config": "./sync.config.ts",
+    "./generated/sync-contract": "./generated/2026-06-03/sync-contract.json",
+    "./generated/sync-table-order": "./generated/2026-06-03/sync-table-order.ts",
+    "./generated/manifest": "./generated/2026-06-03/sync-contract.manifest.json"
+  },
+  "scripts": {
+    "generate": "bunx baresync generate",
+    "doctor": "bunx baresync doctor",
+    "check": "bun run doctor && bun run typecheck"
   },
   "dependencies": {
     "baresync": "0.2.3",
