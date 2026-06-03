@@ -7,6 +7,7 @@ mod hardware;
 mod logging;
 mod time_utils;
 
+use tauri_plugin_baresync::builder::Builder as BaresyncBuilder;
 use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -35,6 +36,18 @@ pub fn run() {
         .plugin(auth::init())
         .plugin(android::photo_picker::init())
         .plugin(hardware::printer::init())
+        .plugin(
+            BaresyncBuilder::new()
+                .api_base_url("http://127.0.0.1:3001")
+                .db_path("baresync.db")
+                .contract_json(include_str!(
+                    "../../../../packages/database/generated/2026-06-03/sync-contract.json"
+                ))
+                .migrations_path("migrations")
+                .poll_interval_secs(300)
+                .poll_on_background(false)
+                .build(),
+        )
         .setup(app::startup::setup_app)
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -54,9 +67,6 @@ pub fn run() {
             auth::get_auth_token,
             auth::clear_auth_token,
             db::snapshot::export_db_snapshot,
-            db::drizzle_proxy::run_sql,
-            db::drizzle_proxy::run_sql_batch,
-            db::drizzle_proxy::get_db_info,
             hardware::printer::list_paired_thermal_printers,
             hardware::printer::test_thermal_printer,
             hardware::printer::print_thermal_receipt,

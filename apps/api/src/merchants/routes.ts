@@ -1,28 +1,19 @@
 import { merchants, userMerchants } from "@repo/database/api-schema";
-import { Empty } from "@repo/protobuf/common";
-import {
-  MerchantCreateRequest,
-  MerchantCreateResponse,
-  MerchantListResponse,
-} from "@repo/protobuf/merchants";
 import { eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
-import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
-import { encodeMerchant, encodeSessionMerchant } from "../protobuf/domain";
+import { MerchantCreateRequest } from "./merchants.model";
 
 export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
-  .use(tsProtoPlugin)
   .use(authenticated)
   .post(
     "/create",
     async ({ body, session, set }) => {
-      const request = body as MerchantCreateRequest;
       let name: string;
       try {
-        name = requireNonEmptyString(request.name, "name", {
+        name = requireNonEmptyString(body.name, "name", {
           minLength: 1,
           maxLength: 100,
         });
@@ -40,6 +31,7 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
           .insert(merchants)
           .values({
             name,
+            syncUpdatedAt: Date.now(),
             createdAt: now,
             updatedAt: now,
           })
@@ -56,14 +48,16 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
       });
 
       return {
-        merchant: encodeMerchant(merchant),
+        merchant: {
+          id: merchant.id,
+          name: merchant.name,
+          createdAt: merchant.createdAt,
+          updatedAt: merchant.updatedAt,
+        },
       };
     },
     {
-      proto: {
-        req: MerchantCreateRequest,
-        res: MerchantCreateResponse,
-      },
+      body: MerchantCreateRequest,
     }
   )
   .post(
@@ -80,13 +74,12 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
         .where(eq(userMerchants.userId, session.userId));
 
       return {
-        merchants: results.map(encodeSessionMerchant),
+        merchants: results.map((row) => ({
+          merchantId: row.merchantId,
+          name: row.name,
+          role: row.role,
+        })),
       };
     },
-    {
-      proto: {
-        req: Empty,
-        res: MerchantListResponse,
-      },
-    }
+    {}
   );

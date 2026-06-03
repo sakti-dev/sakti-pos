@@ -15,14 +15,14 @@
     "app:resize": "bash apps/pos-app/scripts/resize",
     "app:restart": "bash apps/pos-app/scripts/restart",
     "test": "turbo run test",
-    "sync-proto:check": "cd packages/sync-proto-generator && bun x vitest run src/__test__/drift.test.ts",
-    "sync-proto:verify": "cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate && cd ../.. && bun run sync-proto:check && cd packages/sync-proto-generator && bun x vitest run",
     "generate:sync": "cd packages/database && bunx baresync generate",
     "generate:sync:check": "cd packages/database && bunx baresync generate --check",
     "generate:sync:doctor": "cd packages/database && bunx baresync doctor"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.10.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "turbo": "^2.9.8",

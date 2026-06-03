@@ -1,9 +1,24 @@
-import type { Asset } from "@repo/protobuf/assets";
 import type {
   AssetAttachmentField,
   AssetEntityType,
   AssetProcessingTarget,
 } from "./targets";
+
+export interface Asset {
+  byteSize: number;
+  contentHash: string;
+  contentType: string;
+  createdAt: string;
+  height: number | null;
+  id: string;
+  kind: string;
+  merchantId: string;
+  objectKey: string;
+  originalFilename: string | null;
+  status: string;
+  updatedAt: string;
+  width: number | null;
+}
 
 export interface PreparedLocalAsset {
   asset: Asset;

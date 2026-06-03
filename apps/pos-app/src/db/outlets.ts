@@ -2,9 +2,9 @@ import { outlets } from "@repo/database";
 import dayjs from "dayjs";
 import { eq } from "drizzle-orm";
 import { currentMerchantId } from "~/store/outlet";
+import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 import { getMerchantById } from "./merchants";
-import { recordLocalChange } from "./sync-outbox";
 
 export interface OutletRecord {
   address: string | null;
@@ -92,11 +92,11 @@ export async function updateOutletTimezone(
   outletId: string,
   timezone: string
 ): Promise<{ id: string; name: string; timezone: string } | undefined> {
-  const now = dayjs().toISOString();
-  const row = await db.transaction(async (tx) => {
+  const client = getSyncClient();
+  const row = await client.writeTransaction(db, async (tx) => {
     const [result] = await tx
       .update(outlets)
-      .set({ timezone, updatedAt: now, isSynced: false })
+      .set({ timezone, updatedAt: dayjs().toISOString(), isSynced: false })
       .where(eq(outlets.id, outletId))
       .returning({
         id: outlets.id,
@@ -109,16 +109,11 @@ export async function updateOutletTimezone(
       return;
     }
 
-    await recordLocalChange(
-      {
-        operation: "update",
-        rowId: result.id,
-        scopeId: result.merchantId,
-        scopeType: "merchant",
-        tableName: "outlets",
-      },
-      tx
-    );
+    await client.enqueueChange(tx, {
+      operation: "update",
+      rowId: result.id,
+      table: outlets,
+    });
 
     return result;
   });
@@ -150,14 +145,14 @@ export async function saveOutletReceiptHeader(
     }
   | undefined
 > {
-  const now = dayjs().toISOString();
-  const row = await db.transaction(async (tx) => {
+  const client = getSyncClient();
+  const row = await client.writeTransaction(db, async (tx) => {
     const [result] = await tx
       .update(outlets)
       .set({
         receiptAddress: effectiveAddress,
         receiptName: effectiveName,
-        updatedAt: now,
+        updatedAt: dayjs().toISOString(),
         isSynced: false,
       })
       .where(eq(outlets.id, outletId))
@@ -175,16 +170,11 @@ export async function saveOutletReceiptHeader(
       return;
     }
 
-    await recordLocalChange(
-      {
-        operation: "update",
-        rowId: result.id,
-        scopeId: result.merchantId,
-        scopeType: "merchant",
-        tableName: "outlets",
-      },
-      tx
-    );
+    await client.enqueueChange(tx, {
+      operation: "update",
+      rowId: result.id,
+      table: outlets,
+    });
 
     return result;
   });

@@ -7,6 +7,7 @@ use tokio::fs;
 
 use crate::time_utils::current_time_iso_string;
 
+#[allow(dead_code)]
 async fn load_assets_for_upload(
     pool: &SqlitePool,
     merchant_id: &str,
@@ -97,6 +98,7 @@ async fn load_assets_for_upload(
     Ok(assets)
 }
 
+#[allow(dead_code)]
 async fn mark_local_asset_cache_ready(
     pool: &SqlitePool,
     asset_id: &str,
@@ -113,6 +115,7 @@ async fn mark_local_asset_cache_ready(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub(super) async fn mark_asset_uploading(pool: &SqlitePool, asset_id: &str) -> Result<(), String> {
     sqlx::query(
         "UPDATE local_asset_cache SET status = 'uploading', upload_attempts = upload_attempts + 1, last_error = NULL, updated_at = ?2 WHERE asset_id = ?1",
@@ -125,6 +128,7 @@ pub(super) async fn mark_asset_uploading(pool: &SqlitePool, asset_id: &str) -> R
     Ok(())
 }
 
+#[allow(dead_code)]
 pub(super) async fn mark_asset_upload_failed(
     pool: &SqlitePool,
     asset_id: &str,
@@ -152,6 +156,7 @@ pub(super) async fn mark_asset_upload_failed(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub(super) async fn mark_asset_ready(
     pool: &SqlitePool,
     asset_id: &str,
@@ -169,6 +174,7 @@ pub(super) async fn mark_asset_ready(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub(super) async fn mark_reused_asset_ready(
     pool: &SqlitePool,
     asset_id: &str,
@@ -200,6 +206,7 @@ pub(super) async fn mark_reused_asset_ready(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub(super) async fn load_pending_upload_assets(
     pool: &SqlitePool,
     merchant_id: &str,
@@ -208,6 +215,7 @@ pub(super) async fn load_pending_upload_assets(
     load_assets_for_upload(pool, merchant_id, limit, false).await
 }
 
+#[allow(dead_code)]
 pub(super) async fn load_ready_assets(
     pool: &SqlitePool,
     merchant_id: &str,

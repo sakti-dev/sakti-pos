@@ -1,6 +1,8 @@
+import { SYNC_SCOPE } from "@repo/database/sync-constants";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { createSyncClient, type SyncClient } from "baresync/tauri";
 import { createSignal } from "solid-js";
-import { getSyncStatus } from "~/lib/api/sync";
 import { processPendingAssetJobs } from "~/lib/assets/processing";
 import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { AuthStorage } from "~/lib/auth/storage";
@@ -9,7 +11,6 @@ import { describeError } from "~/lib/utils";
 import { currentMerchantId, currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";
-export type SyncMode = "skipped" | "push_only" | "pull_only" | "full";
 
 const [syncStatus, setSyncStatus] = createSignal<SyncStatus>("idle");
 const [lastSyncTime, setLastSyncTime] = createSignal<string | null>(null);
@@ -22,38 +23,90 @@ const syncLogger = createLogger({
 export { lastAssetQueueCount, lastSyncTime, syncStatus };
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
-const NATIVE_HTTP_STATUS_PATTERN = /\((\d{3})(?:\s+[A-Za-z][^)]+)?\)/;
 
-interface StructuredSyncError {
-  kind?: string;
-  message?: string;
-  status?: number;
+let syncClient: SyncClient | null = null;
+let cleanupListeners: (() => Promise<void>) | null = null;
+
+export function getSyncClient(): SyncClient {
+  if (!syncClient) {
+    syncClient = createSyncClient({
+      scopeId: SYNC_SCOPE,
+      invoke,
+    });
+  }
+  return syncClient;
 }
 
-let syncInterval: ReturnType<typeof setInterval> | null = null;
-let inFlightSync: Promise<SyncNowResult> | null = null;
-let followUpSyncRequested = false;
-let inFlightAssetHydration: Promise<void> | null = null;
-let followUpAssetHydrationRequested = false;
-
 export function startSyncScheduler() {
-  if (syncInterval) {
-    return;
-  }
-
-  syncNow();
-  syncInterval = setInterval(() => syncNow(), 5 * 60 * 1000);
+  const client = getSyncClient();
+  client.startPolling();
 }
 
 export function stopSyncScheduler() {
-  if (syncInterval) {
-    clearInterval(syncInterval);
-    syncInterval = null;
+  const client = getSyncClient();
+  client.stopPolling().catch(() => {});
+}
+
+export async function startEventListeners(): Promise<void> {
+  if (cleanupListeners) {
+    return;
+  }
+
+  let disposed = false;
+  const unlisteners: (() => Promise<void>)[] = [];
+
+  const unlistenData = await listen("baresync://data-changed", () => {
+    syncLogger.info("data_changed", {});
+  });
+  const unlistenStatus = await listen(
+    "baresync://sync-status-changed",
+    async () => {
+      try {
+        const client = getSyncClient();
+        const state = await client.getState();
+        if (state.needs_baseline_sync) {
+          setSyncStatus("syncing");
+        } else if (state.local_dirty_count > 0) {
+          setSyncStatus("syncing");
+        } else {
+          setSyncStatus("idle");
+        }
+        setLastSyncTime(new Date().toISOString());
+      } catch {
+        // ignore
+      }
+    }
+  );
+
+  unlisteners.push(
+    async () => {
+      await unlistenData();
+    },
+    async () => {
+      await unlistenStatus();
+    }
+  );
+
+  cleanupListeners = async () => {
+    if (disposed) {
+      return;
+    }
+    disposed = true;
+    for (const unlisten of unlisteners) {
+      await unlisten();
+    }
+    cleanupListeners = null;
+  };
+}
+
+export function stopEventListeners(): void {
+  if (cleanupListeners) {
+    cleanupListeners();
   }
 }
 
-export interface SyncNowResult {
-  mode: SyncMode;
+interface SyncNowResult {
+  mode: string;
   pull: { rows_received: number; server_time: string };
   purged: number;
   push: {
@@ -65,42 +118,20 @@ export interface SyncNowResult {
 }
 
 export function formatSyncSuccessMessage(result: SyncNowResult): string {
-  if (result.mode === "skipped") {
+  if (result.mode === "NoOp") {
     return "Data sudah terbaru";
   }
 
-  if (result.mode === "pull_only") {
+  if (result.mode === "PullOnly") {
     return `Sinkronisasi berhasil (${result.pull.rows_received} diterima)`;
   }
 
   const sentTables = result.push.tables_synced.length;
-  if (result.mode === "push_only") {
+  if (result.mode === "PushOnly") {
     return `Sinkronisasi berhasil (${sentTables} tabel dikirim)`;
   }
 
   return `Sinkronisasi berhasil (${result.pull.rows_received} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
-}
-
-interface LocalSyncState {
-  last_server_watermark: string;
-  local_dirty_count: number;
-  needs_baseline_sync?: boolean;
-}
-
-function emptySyncResult(mode: SyncMode): SyncNowResult {
-  return {
-    mode,
-    pull: { rows_received: 0, server_time: "" },
-    purged: 0,
-    push: { server_time: "", server_wins_count: 0, tables_synced: [] },
-  };
-}
-
-function withMode(
-  result: Omit<SyncNowResult, "mode"> | SyncNowResult,
-  mode: SyncMode
-) {
-  return { ...result, mode };
 }
 
 async function uploadPendingProductImages(
@@ -139,30 +170,10 @@ function hydrateProductImagesInBackground(
   merchantId: string,
   sessionToken: string
 ): void {
-  if (inFlightAssetHydration) {
-    followUpAssetHydrationRequested = true;
-    return;
-  }
-
-  inFlightAssetHydration = drainAssetHydrationRequests(
-    merchantId,
-    sessionToken
-  ).finally(() => {
-    inFlightAssetHydration = null;
-  });
+  drainAssetHydrationRequests(merchantId, sessionToken).catch(() => {});
 }
 
 async function drainAssetHydrationRequests(
-  merchantId: string,
-  sessionToken: string
-): Promise<void> {
-  do {
-    followUpAssetHydrationRequested = false;
-    await hydrateProductImagesOnce(merchantId, sessionToken);
-  } while (followUpAssetHydrationRequested);
-}
-
-async function hydrateProductImagesOnce(
   merchantId: string,
   sessionToken: string
 ): Promise<void> {
@@ -184,126 +195,15 @@ async function hydrateProductImagesOnce(
   }
 }
 
-async function invokeSyncTransfer(
-  command: "sync_full_resync" | "sync_now" | "sync_pull" | "sync_push",
-  params: Record<string, unknown>,
-  mode: SyncMode
-): Promise<SyncNowResult> {
-  const result = await invoke<Omit<SyncNowResult, "mode"> | SyncNowResult>(
-    command,
-    params
-  );
-  return withMode(result, mode);
-}
-
 export async function syncNow(): Promise<SyncNowResult> {
-  if (inFlightSync) {
-    followUpSyncRequested = true;
-    return await inFlightSync;
-  }
-
-  inFlightSync = drainSyncRequests().finally(() => {
-    inFlightSync = null;
-  });
-  return await inFlightSync;
-}
-
-async function drainSyncRequests(): Promise<SyncNowResult> {
-  let result = await syncNowInner();
-  while (followUpSyncRequested) {
-    followUpSyncRequested = false;
-    result = await syncNowInner();
-  }
-  return result;
-}
-
-function getErrorStatus(error: unknown): number | null {
-  const structured = parseStructuredSyncError(error);
-  if (typeof structured?.status === "number") {
-    return structured.status;
-  }
-
-  if (
-    error &&
-    typeof error === "object" &&
-    "status" in error &&
-    typeof error.status === "number"
-  ) {
-    return error.status;
-  }
-
-  const message = describeError(error);
-  const nativeStatusMatch = NATIVE_HTTP_STATUS_PATTERN.exec(message);
-  if (nativeStatusMatch?.[1]) {
-    return Number(nativeStatusMatch[1]);
-  }
-
-  return null;
-}
-
-function parseStructuredSyncError(error: unknown): StructuredSyncError | null {
-  let raw: string | null = null;
-  if (typeof error === "string") {
-    raw = error;
-  } else if (error instanceof Error) {
-    raw = error.message;
-  }
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as StructuredSyncError;
-    if (parsed && typeof parsed === "object") {
-      return parsed;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function classifySyncError(
-  error: unknown
-): "auth" | "payload_too_large" | "network" | "server" | "unknown" {
-  const structured = parseStructuredSyncError(error);
-  if (structured?.kind === "auth") {
-    return "auth";
-  }
-  if (
-    structured?.kind === "payload_too_large" ||
-    structured?.kind === "payload_too_large_single_row"
-  ) {
-    return "payload_too_large";
-  }
-
-  const status = getErrorStatus(error);
-  if (status === 401 || status === 403) {
-    return "auth";
-  }
-  if (status === 413) {
-    return "payload_too_large";
-  }
-  if (status !== null && status >= 500) {
-    return "server";
-  }
-
-  const message = describeError(error).toLowerCase();
-  if (
-    message.includes("network") ||
-    message.includes("fetch") ||
-    message.includes("timeout")
-  ) {
-    return "network";
-  }
-
-  return "unknown";
-}
-
-async function syncNowInner(): Promise<SyncNowResult> {
   const outletId = currentOutletId();
   if (!outletId) {
-    return emptySyncResult("skipped");
+    return {
+      mode: "NoOp",
+      pull: { rows_received: 0, server_time: "" },
+      purged: 0,
+      push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+    };
   }
 
   const sessionToken = await AuthStorage.getToken();
@@ -319,54 +219,8 @@ async function syncNowInner(): Promise<SyncNowResult> {
       await uploadPendingProductImages(merchantId, sessionToken);
     }
 
-    const localState = await invoke<LocalSyncState>("get_sync_local_state", {
-      outletId,
-    });
-    const serverStatus = await getSyncStatus({
-      cursor: localState.last_server_watermark,
-      outletId,
-    });
-    const hasLocalChanges = localState.local_dirty_count > 0;
-    const hasServerChanges = serverStatus.hasChanges;
-    const baseParams = {
-      apiUrl: API_URL,
-      outletId,
-      sessionToken,
-    };
-
-    syncLogger.info("decision", {
-      hasLocalChanges,
-      hasServerChanges,
-      cursor: serverStatus.cursor,
-      localDirtyCount: localState.local_dirty_count,
-      needsBaselineSync: localState.needs_baseline_sync ?? false,
-      outletId,
-    });
-
-    let result: SyncNowResult;
-    if (localState.needs_baseline_sync) {
-      result = await invokeSyncTransfer(
-        "sync_full_resync",
-        { ...baseParams, tables: serverStatus.changedTables },
-        "full"
-      );
-    } else if (!(hasLocalChanges || hasServerChanges)) {
-      result = emptySyncResult("skipped");
-    } else if (hasLocalChanges && hasServerChanges) {
-      result = await invokeSyncTransfer(
-        "sync_now",
-        { ...baseParams, tables: serverStatus.changedTables },
-        "full"
-      );
-    } else if (hasLocalChanges) {
-      result = await invokeSyncTransfer("sync_push", baseParams, "push_only");
-    } else {
-      result = await invokeSyncTransfer(
-        "sync_pull",
-        { ...baseParams, tables: serverStatus.changedTables },
-        "pull_only"
-      );
-    }
+    const client = getSyncClient();
+    const result = (await client.syncNow()) as SyncNowResult;
 
     syncLogger.info("result", {
       mode: result.mode,
@@ -384,17 +238,21 @@ async function syncNowInner(): Promise<SyncNowResult> {
     setSyncStatus("idle");
     return result;
   } catch (err) {
-    const errorType = classifySyncError(err);
-    syncLogger.error("failed", err, { apiUrl: API_URL, errorType, outletId });
+    const message = describeError(err);
+    syncLogger.error("failed", err, { apiUrl: API_URL, outletId });
 
-    if (errorType === "auth") {
+    if (
+      message.includes("401") ||
+      message.includes("403") ||
+      message.includes("auth")
+    ) {
       setSyncStatus("error");
       stopSyncScheduler();
     } else {
       setSyncStatus("offline");
     }
 
-    throw new Error(`Gagal menyinkronkan: ${describeError(err)}`);
+    throw new Error(`Gagal menyinkronkan: ${message}`);
   }
 }
 
@@ -411,6 +269,8 @@ export async function runStartupSync(): Promise<void> {
 
   setSyncStatus("syncing");
   try {
+    await startEventListeners();
+    startSyncScheduler();
     await syncNow();
     setSyncStatus("idle");
   } catch {
@@ -422,10 +282,7 @@ export async function runStartupSync(): Promise<void> {
 
 export function __resetSyncStateForTests() {
   stopSyncScheduler();
-  inFlightSync = null;
-  followUpSyncRequested = false;
-  inFlightAssetHydration = null;
-  followUpAssetHydrationRequested = false;
+  stopEventListeners();
   setSyncStatus("idle");
   setLastSyncTime(null);
   setLastAssetQueueCount(0);

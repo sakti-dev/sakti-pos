@@ -56,21 +56,7 @@ export const staff = sqliteTable("staff", {
   ...localSyncColumns(),
 });
 
-export const syncMeta = sqliteTable("sync_meta", {
-  tableName: text("table_name").notNull(),
-  outletId: text("outlet_id").notNull(),
-  lastSyncAt: text("last_sync_at").notNull(),
-});
-
 export const syncOutbox = createSyncOutboxTable();
-
-export const syncClientIdentity = sqliteTable("sync_client_identity", {
-  id: integer("id").primaryKey(),
-  clientId: text("client_id").notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-});
 
 export const syncCursors = createSyncCursorsTable();
 

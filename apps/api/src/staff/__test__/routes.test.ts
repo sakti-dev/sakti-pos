@@ -1,16 +1,4 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
-import { DeleteResponse } from "@repo/protobuf/common";
-import {
-  StaffCreateRequest,
-  StaffCreateResponse,
-  StaffCurrentRequest,
-  StaffCurrentResponse,
-  StaffDeleteRequest,
-  StaffListRequest,
-  StaffListResponse,
-  StaffUpdatePinRequest,
-  StaffUpdatePinResponse,
-} from "@repo/protobuf/staff";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
@@ -63,20 +51,20 @@ vi.mock("cloudflare:workers", () => ({
 
 const { staffRoutes } = await import("../routes");
 
-function makeProtoRequest(
+function makeJsonRequest(
   path: string,
-  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
+  options: { body?: unknown; cookie?: string; method?: string } = {}
 ) {
   const headers: Record<string, string> = {
-    Accept: "application/x-protobuf",
-    "Content-Type": "application/x-protobuf",
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
 
   const request = new Request(`http://localhost${path}`, {
-    body: options.body ?? new Uint8Array(),
+    body: options.body ? JSON.stringify(options.body) : undefined,
     headers,
     method: options.method ?? "POST",
   });
@@ -99,14 +87,14 @@ function mockSelectQueue(rowsByCall: unknown[][]) {
   }));
 }
 
-describe("staff protobuf routes", () => {
+describe("staff JSON routes", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   test("POST /api/staff/current returns 401 when unauthenticated", async () => {
-    const response = await makeProtoRequest("/api/staff/current", {
-      body: StaffCurrentRequest.encode({ merchantId: "merchant-1" }).finish(),
+    const response = await makeJsonRequest("/api/staff/current", {
+      body: { merchantId: "merchant-1" },
     });
 
     expect(response.status).toBe(401);
@@ -159,18 +147,16 @@ describe("staff protobuf routes", () => {
       values: vi.fn().mockResolvedValue(undefined),
     });
 
-    const response = await makeProtoRequest("/api/staff/current", {
-      body: StaffCurrentRequest.encode({ merchantId: "merchant-1" }).finish(),
+    const response = await makeJsonRequest("/api/staff/current", {
+      body: { merchantId: "merchant-1" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = StaffCurrentResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
+    const decoded = (await response.json()) as Record<string, unknown>;
     expect(decoded.claimed).toBe(true);
     expect(decoded.hasStaff).toBe(true);
-    expect(decoded.staff?.id).toBe("staff-1");
+    expect((decoded.staff as Record<string, unknown>)?.id).toBe("staff-1");
     expect(updateValues).toHaveBeenCalledWith(
       expect.objectContaining({ cloudUserId: "user-1" })
     );
@@ -201,23 +187,21 @@ describe("staff protobuf routes", () => {
       }),
     }));
 
-    const response = await makeProtoRequest("/api/staff/create", {
-      body: StaffCreateRequest.encode({
+    const response = await makeJsonRequest("/api/staff/create", {
+      body: {
         hasOutletId: true,
         merchantId: "merchant-1",
         name: "Cashier",
         outletId: "outlet-1",
         pin: "123456",
         role: "cashier",
-      }).finish(),
+      },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = StaffCreateResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
-    expect(decoded.staff?.name).toBe("Cashier");
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.staff as Record<string, unknown>)?.name).toBe("Cashier");
   });
 
   test("POST /api/staff/list returns staff rows", async () => {
@@ -251,17 +235,17 @@ describe("staff protobuf routes", () => {
         }),
       }));
 
-    const response = await makeProtoRequest("/api/staff/list", {
-      body: StaffListRequest.encode({ merchantId: "merchant-1" }).finish(),
+    const response = await makeJsonRequest("/api/staff/list", {
+      body: { merchantId: "merchant-1" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = StaffListResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
+    const decoded = (await response.json()) as Record<string, unknown>;
     expect(decoded.staff).toHaveLength(1);
-    expect(decoded.staff[0]?.name).toBe("Cashier");
+    expect((decoded.staff as Record<string, unknown>[])[0]?.name).toBe(
+      "Cashier"
+    );
   });
 
   test("POST /api/staff/update-pin updates the pin", async () => {
@@ -291,19 +275,14 @@ describe("staff protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtoRequest("/api/staff/update-pin", {
-      body: StaffUpdatePinRequest.encode({
-        id: "staff-1",
-        pin: "654321",
-      }).finish(),
+    const response = await makeJsonRequest("/api/staff/update-pin", {
+      body: { id: "staff-1", pin: "654321" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = StaffUpdatePinResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
-    expect(decoded.staff?.id).toBe("staff-1");
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.staff as Record<string, unknown>)?.id).toBe("staff-1");
   });
 
   test("POST /api/staff/delete deactivates staff", async () => {
@@ -321,15 +300,14 @@ describe("staff protobuf routes", () => {
       values: vi.fn().mockResolvedValue(undefined),
     });
 
-    const response = await makeProtoRequest("/api/staff/delete", {
-      body: StaffDeleteRequest.encode({ id: "staff-1" }).finish(),
+    const response = await makeJsonRequest("/api/staff/delete", {
+      body: { id: "staff-1" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    expect(
-      DeleteResponse.decode(new Uint8Array(await response.arrayBuffer()))
-        .success
-    ).toBe(true);
+    expect(((await response.json()) as Record<string, unknown>).success).toBe(
+      true
+    );
   });
 });

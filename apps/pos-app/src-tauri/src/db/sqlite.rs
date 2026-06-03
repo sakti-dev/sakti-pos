@@ -8,11 +8,12 @@ use tauri::{AppHandle, Manager};
 
 pub fn get_app_db_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
-        .app_config_dir()
-        .map(|p| p.join("sakti-pos.db"))
-        .map_err(|_| "Could not resolve app config directory".to_string())
+        .app_data_dir()
+        .map(|p| p.join("baresync.db"))
+        .map_err(|_| "Could not resolve app data directory".to_string())
 }
 
+#[allow(dead_code)]
 pub fn sqlx_value_to_json(row: &SqliteRow, index: usize) -> Value {
     let column = row.column(index);
     let type_name = column.type_info().name();

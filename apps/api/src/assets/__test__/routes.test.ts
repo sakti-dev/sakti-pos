@@ -1,12 +1,4 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
-import {
-  AssetCompleteUploadRequest,
-  AssetCompleteUploadResponse,
-  AssetPresignDownloadRequest,
-  AssetPresignDownloadResponse,
-  AssetPresignUploadRequest,
-  AssetPresignUploadResponse,
-} from "@repo/protobuf/assets";
 
 const mockSelect = vi.fn();
 const mockInsert = vi.fn();
@@ -86,15 +78,15 @@ function mockMerchantAccess() {
     }));
 }
 
-async function makeProtobufRequest(
+async function makeJsonRequest(
   path: string,
-  body: Uint8Array,
+  body: unknown,
   options: { cookie?: string } = { cookie: "narvik_session=valid-token" }
 ) {
   const app = assetsRoutes.compile();
   const headers: Record<string, string> = {
-    Accept: "application/x-protobuf",
-    "Content-Type": "application/x-protobuf",
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
   if (options.cookie) {
     headers.cookie = options.cookie;
@@ -102,14 +94,14 @@ async function makeProtobufRequest(
 
   return await app.handle(
     new Request(`http://localhost${path}`, {
-      body,
+      body: JSON.stringify(body),
       headers,
       method: "POST",
     })
   );
 }
 
-describe("asset protobuf routes", () => {
+describe("asset JSON routes", () => {
   afterEach(() => {
     mockSelect.mockReset();
     mockInsert.mockReset();
@@ -120,20 +112,18 @@ describe("asset protobuf routes", () => {
   });
 
   test("returns 401 when upload presign request has no session", async () => {
-    const response = await makeProtobufRequest(
+    const response = await makeJsonRequest(
       "/api/assets/presign-upload",
-      AssetPresignUploadRequest.encode(
-        AssetPresignUploadRequest.create({
-          byteSize: 12_345n,
-          contentHash: "a".repeat(64),
-          contentType: "image/webp",
-          height: 600,
-          kind: "product_photo",
-          merchantId: "merchant-1",
-          originalFilename: "coffee.webp",
-          width: 800,
-        })
-      ).finish(),
+      {
+        byteSize: 12_345,
+        contentHash: "a".repeat(64),
+        contentType: "image/webp",
+        height: 600,
+        kind: "product_photo",
+        merchantId: "merchant-1",
+        originalFilename: "coffee.webp",
+        width: 800,
+      },
       { cookie: undefined }
     );
 
@@ -143,7 +133,7 @@ describe("asset protobuf routes", () => {
     );
   });
 
-  test("returns a protobuf upload url for an accessible merchant", async () => {
+  test("returns a JSON upload url for an accessible merchant", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockMerchantAccess();
     mockPresignUploadUrl.mockResolvedValue("https://upload.example.test");
@@ -174,27 +164,20 @@ describe("asset protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtobufRequest(
-      "/api/assets/presign-upload",
-      AssetPresignUploadRequest.encode(
-        AssetPresignUploadRequest.create({
-          byteSize: 12_345n,
-          contentHash: "a".repeat(64),
-          contentType: "image/webp",
-          height: 600,
-          kind: "product_photo",
-          merchantId: "merchant-1",
-          originalFilename: "coffee.webp",
-          width: 800,
-        })
-      ).finish()
-    );
+    const response = await makeJsonRequest("/api/assets/presign-upload", {
+      byteSize: 12_345,
+      contentHash: "a".repeat(64),
+      contentType: "image/webp",
+      height: 600,
+      kind: "product_photo",
+      merchantId: "merchant-1",
+      originalFilename: "coffee.webp",
+      width: 800,
+    });
 
     expect(response.status).toBe(200);
-    const decoded = AssetPresignUploadResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
-    expect(decoded.asset?.id).toBe("asset-1");
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.asset as Record<string, unknown>)?.id).toBe("asset-1");
     expect(decoded.uploadUrl).toBe("https://upload.example.test");
     expect(decoded.requiredHeaders).toEqual([
       { name: "Content-Type", value: "image/webp" },
@@ -227,30 +210,23 @@ describe("asset protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtobufRequest(
-      "/api/assets/presign-upload",
-      AssetPresignUploadRequest.encode(
-        AssetPresignUploadRequest.create({
-          assetId: "hash-1",
-          byteSize: 12_345n,
-          contentHash: "a".repeat(64),
-          contentType: "image/webp",
-          height: 600,
-          kind: "product_photo",
-          merchantId: "merchant-1",
-          objectKey: "merchant-1/assets/hash-1",
-          originalFilename: "coffee.webp",
-          width: 800,
-        })
-      ).finish()
-    );
+    const response = await makeJsonRequest("/api/assets/presign-upload", {
+      assetId: "hash-1",
+      byteSize: 12_345,
+      contentHash: "a".repeat(64),
+      contentType: "image/webp",
+      height: 600,
+      kind: "product_photo",
+      merchantId: "merchant-1",
+      objectKey: "merchant-1/assets/hash-1",
+      originalFilename: "coffee.webp",
+      width: 800,
+    });
 
     expect(response.status).toBe(200);
-    const decoded = AssetPresignUploadResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
-    expect(decoded.asset?.id).toBe("hash-1");
-    expect(decoded.asset?.status).toBe("ready");
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.asset as Record<string, unknown>)?.id).toBe("hash-1");
+    expect((decoded.asset as Record<string, unknown>)?.status).toBe("ready");
     expect(decoded.uploadUrl).toBe("");
     expect(decoded.requiredHeaders).toHaveLength(0);
     expect(mockInsert).not.toHaveBeenCalled();
@@ -283,29 +259,24 @@ describe("asset protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtobufRequest(
-      "/api/assets/presign-upload",
-      AssetPresignUploadRequest.encode(
-        AssetPresignUploadRequest.create({
-          assetId: "hash-1",
-          byteSize: 12_345n,
-          contentHash: "a".repeat(64),
-          contentType: "image/webp",
-          height: 600,
-          kind: "product_photo",
-          merchantId: "merchant-1",
-          objectKey: "merchant-1/assets/hash-1",
-          originalFilename: "coffee.webp",
-          width: 800,
-        })
-      ).finish()
-    );
+    const response = await makeJsonRequest("/api/assets/presign-upload", {
+      assetId: "hash-1",
+      byteSize: 12_345,
+      contentHash: "a".repeat(64),
+      contentType: "image/webp",
+      height: 600,
+      kind: "product_photo",
+      merchantId: "merchant-1",
+      objectKey: "merchant-1/assets/hash-1",
+      originalFilename: "coffee.webp",
+      width: 800,
+    });
 
     expect(response.status).toBe(200);
-    const decoded = AssetPresignUploadResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.asset as Record<string, unknown>)?.status).toBe(
+      "pending_upload"
     );
-    expect(decoded.asset?.status).toBe("pending_upload");
     expect(decoded.uploadUrl).toBe("https://upload.example.test");
     expect(decoded.requiredHeaders).toEqual([
       { name: "Content-Type", value: "image/webp" },
@@ -341,23 +312,18 @@ describe("asset protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtobufRequest(
-      "/api/assets/presign-upload",
-      AssetPresignUploadRequest.encode(
-        AssetPresignUploadRequest.create({
-          assetId: "hash-1",
-          byteSize: 12_345n,
-          contentHash: "a".repeat(64),
-          contentType: "image/webp",
-          height: 600,
-          kind: "product_photo",
-          merchantId: "merchant-1",
-          objectKey: "merchant-1/assets/hash-1",
-          originalFilename: "coffee.webp",
-          width: 800,
-        })
-      ).finish()
-    );
+    const response = await makeJsonRequest("/api/assets/presign-upload", {
+      assetId: "hash-1",
+      byteSize: 12_345,
+      contentHash: "a".repeat(64),
+      contentType: "image/webp",
+      height: 600,
+      kind: "product_photo",
+      merchantId: "merchant-1",
+      objectKey: "merchant-1/assets/hash-1",
+      originalFilename: "coffee.webp",
+      width: 800,
+    });
 
     expect(response.status).toBe(200);
     expect(mockPresignUploadUrl).toHaveBeenCalledWith(
@@ -367,7 +333,7 @@ describe("asset protobuf routes", () => {
     );
   });
 
-  test("returns a protobuf download url for an accessible asset", async () => {
+  test("returns a JSON download url for an accessible asset", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockSelect
       .mockReturnValueOnce({
@@ -393,19 +359,12 @@ describe("asset protobuf routes", () => {
       });
     mockPresignDownloadUrl.mockResolvedValue("https://download.example.test");
 
-    const response = await makeProtobufRequest(
-      "/api/assets/presign-download",
-      AssetPresignDownloadRequest.encode(
-        AssetPresignDownloadRequest.create({
-          assetId: "asset-1",
-        })
-      ).finish()
-    );
+    const response = await makeJsonRequest("/api/assets/presign-download", {
+      assetId: "asset-1",
+    });
 
     expect(response.status).toBe(200);
-    const decoded = AssetPresignDownloadResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
+    const decoded = (await response.json()) as Record<string, unknown>;
     expect(decoded.downloadUrl).toBe("https://download.example.test");
     const [presignInput] = mockPresignDownloadUrl.mock.calls[0];
     expect(presignInput).not.toHaveProperty("contentType");
@@ -459,22 +418,15 @@ describe("asset protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtobufRequest(
-      "/api/assets/complete-upload",
-      AssetCompleteUploadRequest.encode(
-        AssetCompleteUploadRequest.create({
-          assetId: "asset-1",
-          byteSize: 1234n,
-          contentHash: "a".repeat(64),
-          objectKey: "merchant-1/assets/asset-1",
-        })
-      ).finish()
-    );
+    const response = await makeJsonRequest("/api/assets/complete-upload", {
+      assetId: "asset-1",
+      byteSize: 1234,
+      contentHash: "a".repeat(64),
+      objectKey: "merchant-1/assets/asset-1",
+    });
 
     expect(response.status).toBe(200);
-    const decoded = AssetCompleteUploadResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
-    expect(decoded.asset?.status).toBe("ready");
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.asset as Record<string, unknown>)?.status).toBe("ready");
   });
 });

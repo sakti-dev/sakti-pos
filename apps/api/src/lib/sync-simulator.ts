@@ -75,6 +75,7 @@ export async function simulateProductChange({
       merchantId,
       name: categoryName,
       sortOrder: 999,
+      syncUpdatedAt: Date.now(),
       updatedAt: timestamp,
     });
 
@@ -87,6 +88,7 @@ export async function simulateProductChange({
       name: productName,
       priceMinorUnits: DEFAULT_PRICE,
       sortOrder: 999,
+      syncUpdatedAt: Date.now(),
       updatedAt: timestamp,
     });
 
@@ -98,6 +100,7 @@ export async function simulateProductChange({
       priceMinorUnits: DEFAULT_PRICE,
       productId,
       sortOrder: 999,
+      syncUpdatedAt: Date.now(),
       updatedAt: timestamp,
     });
   });

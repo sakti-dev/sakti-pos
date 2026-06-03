@@ -43,13 +43,13 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 - Use `status: accepted` for active decisions unless the user says otherwise. Do not delete old ADRs; mark them `deprecated` or `superseded`.
 - Keep operational references such as log prefix inventories in `docs/knowledge/`, and link them from ADRs when relevant.
 
-## Sync Schema And Protobuf
+## Sync Schema
 
 - Before adding or updating Drizzle schema fields that may sync between API and POS app, read `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
 - Do not hand-edit sync protobuf runtime artifacts for durable changes. Update the Drizzle schema, sync manifest, or generator writers, then run `bun run generate:sync-proto:write`.
 - Money fields must use explicit `MinorUnits` Drizzle property names and `_minor_units` SQLite columns. Do not keep aliases for hidden-unit names once the schema is cut over.
-- Runtime generated sync artifacts are `packages/protobuf/proto/sync.proto`, `apps/api/src/sync/protobuf.generated.ts`, `apps/api/src/sync/push-adapters.generated.ts`, and `apps/pos-app/src-tauri/src/sync/protobuf_generated.rs`.
-- `bun run generate:sync-proto:compare` writes disposable inspection output to `.logs/sync-proto-compare/`; do not commit compare artifacts or add generated fixture directories.
+- Sync now uses the published `baresync` plugin (npm + crates.io). All sync logic flows through `baresync/server/drizzle`, `baresync/server`, `baresync/tauri`, and `baresync/db`.
+- API validation uses TypeBox (`t`) schemas in `*.model.ts` files. Client uses Eden Treaty for fully typed API calls.
 - For synced column/table changes, run `bun run sync-proto:check` and the focused API/Rust sync tests listed in `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
 
 ## Cloudflare Workers

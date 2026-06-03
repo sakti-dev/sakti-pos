@@ -1,12 +1,4 @@
 import { beforeEach, describe, expect, test, vi } from "bun:test";
-import {
-  OutletCreateRequest,
-  OutletCreateResponse,
-  OutletListRequest,
-  OutletListResponse,
-  OutletUpdateRequest,
-  OutletUpdateResponse,
-} from "@repo/protobuf/outlets";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
@@ -51,20 +43,20 @@ vi.mock("cloudflare:workers", () => ({
 
 const { outletsRoutes } = await import("../routes");
 
-function makeProtoRequest(
+function makeJsonRequest(
   path: string,
-  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
+  options: { body?: unknown; cookie?: string; method?: string } = {}
 ) {
   const headers: Record<string, string> = {
-    Accept: "application/x-protobuf",
-    "Content-Type": "application/x-protobuf",
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
 
   const request = new Request(`http://localhost${path}`, {
-    body: options.body ?? new Uint8Array(),
+    body: options.body ? JSON.stringify(options.body) : undefined,
     headers,
     method: options.method ?? "POST",
   });
@@ -72,7 +64,7 @@ function makeProtoRequest(
   return outletsRoutes.compile().handle(request);
 }
 
-describe("outlets protobuf routes", () => {
+describe("outlets JSON routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInsert.mockReset();
@@ -82,14 +74,14 @@ describe("outlets protobuf routes", () => {
   });
 
   test("returns 401 when no session", async () => {
-    const response = await makeProtoRequest("/api/outlets/create", {
-      body: OutletCreateRequest.encode({
+    const response = await makeJsonRequest("/api/outlets/create", {
+      body: {
         address: "",
         hasAddress: false,
         merchantId: "merchant-1",
         name: "Test Outlet",
         timezone: "Asia/Jakarta",
-      }).finish(),
+      },
     });
 
     expect(response.status).toBe(401);
@@ -159,25 +151,31 @@ describe("outlets protobuf routes", () => {
       }),
     }));
 
-    const response = await makeProtoRequest("/api/outlets/create", {
-      body: OutletCreateRequest.encode({
+    const response = await makeJsonRequest("/api/outlets/create", {
+      body: {
         address: "Jl. Test",
         hasAddress: true,
         merchantId: "merchant-1",
         name: "Test Outlet",
         timezone: "Asia/Jakarta",
-      }).finish(),
+      },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = OutletCreateResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.outlet as Record<string, unknown>)?.name).toBe(
+      "Test Outlet"
     );
-    expect(decoded.outlet?.name).toBe("Test Outlet");
-    expect(decoded.outlet?.receiptName).toBe("Warung");
-    expect(decoded.outlet?.receiptAddress).toBe("Jl. Test");
-    expect(decoded.register?.name).toBe("Register 1");
+    expect((decoded.outlet as Record<string, unknown>)?.receiptName).toBe(
+      "Warung"
+    );
+    expect((decoded.outlet as Record<string, unknown>)?.receiptAddress).toBe(
+      "Jl. Test"
+    );
+    expect((decoded.register as Record<string, unknown>)?.name).toBe(
+      "Register 1"
+    );
   });
 
   test("lists merchant outlets", async () => {
@@ -213,17 +211,17 @@ describe("outlets protobuf routes", () => {
         }),
       }));
 
-    const response = await makeProtoRequest("/api/outlets/list", {
-      body: OutletListRequest.encode({ merchantId: "merchant-1" }).finish(),
+    const response = await makeJsonRequest("/api/outlets/list", {
+      body: { merchantId: "merchant-1" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = OutletListResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
+    const decoded = (await response.json()) as Record<string, unknown>;
     expect(decoded.outlets).toHaveLength(1);
-    expect(decoded.outlets[0]?.name).toBe("Outlet 1");
+    expect((decoded.outlets as Record<string, unknown>[])[0]?.name).toBe(
+      "Outlet 1"
+    );
   });
 
   test("updates an outlet", async () => {
@@ -289,8 +287,8 @@ describe("outlets protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtoRequest("/api/outlets/update", {
-      body: OutletUpdateRequest.encode({
+    const response = await makeJsonRequest("/api/outlets/update", {
+      body: {
         address: "Jl. Baru",
         hasAddress: true,
         hasIsActive: true,
@@ -304,16 +302,18 @@ describe("outlets protobuf routes", () => {
         receiptName: "Warung Baru",
         hasTimezone: true,
         timezone: "Asia/Jakarta",
-      }).finish(),
+      },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = OutletUpdateResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.outlet as Record<string, unknown>)?.name).toBe(
+      "Outlet Baru"
     );
-    expect(decoded.outlet?.name).toBe("Outlet Baru");
-    expect(decoded.outlet?.isActive).toBe(false);
-    expect(decoded.outlet?.receiptName).toBe("Warung Baru");
+    expect((decoded.outlet as Record<string, unknown>)?.isActive).toBe(false);
+    expect((decoded.outlet as Record<string, unknown>)?.receiptName).toBe(
+      "Warung Baru"
+    );
   });
 });

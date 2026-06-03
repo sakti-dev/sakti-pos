@@ -5,9 +5,11 @@ The `baresync-foundation` change installed baresync packages, converted infrastr
 1. **Old custom code**: Rust sync module (~4,300 lines) + TypeScript server sync (~1,700 lines) + protobuf codecs (~650 lines)
 2. **New baresync plugin**: Tauri plugin (Rust) + npm package (TS) that does the same thing with less code
 
+Additionally, ALL API endpoints use protobuf encoding via a custom `tsProtoPlugin` Elysia plugin. This adds unnecessary complexity for a POS app that runs on a local network.
+
 The wire format coupling forces an atomic switch: the old server uses protobuf encoding, the new plugin uses JSON encoding. The server cannot serve both formats simultaneously, so client and server must switch in the same deployment.
 
-This change replaces all custom sync code with the baresync plugin.
+This change replaces all custom sync code with the baresync plugin AND converts all endpoints from protobuf to JSON.
 
 ## Goals / Non-Goals
 
@@ -17,7 +19,10 @@ This change replaces all custom sync code with the baresync plugin.
 - Replace custom client sync orchestrator with `createSyncClient` from `baresync`
 - Replace all `recordLocalChange()` calls with `writeTransaction` + `writeLocalChange` pattern
 - Remove `syncMeta` and `syncClientIdentity` tables (baresync manages these internally)
-- Remove protobuf infrastructure (`prost`, `prost-build`, `protoc-bin-vendored`, `packages/protobuf/`, `packages/sync-proto-generator/`)
+- Remove protobuf infrastructure (`prost`, `prost-build`, `protoc-bin-vendored`, `packages/protobuf/`)
+- Convert ALL API endpoints from protobuf to JSON encoding
+- Remove `tsProtoPlugin` and all protobuf encode/decode from routes and clients
+- Simplify response types by removing `hasXxx` boolean wrapper fields
 - Preserve all existing business behavior and sync semantics
 
 **Non-Goals:**
@@ -101,6 +106,106 @@ BaresyncBuilder::new()
 
 **Why:** The plugin's migration runner tracks applied migrations by hash in `__drizzle_migrations`. Existing migrations are already applied; new ones handle the schema changes (removing `syncMeta`, `syncClientIdentity`).
 
+### 9. Convert ALL endpoints from protobuf to TypeBox + Eden Treaty
+
+**Decision:** Remove `tsProtoPlugin` from all API routes, replace with TypeBox (`t`) schemas for validation. On the client, replace `protoFetch` with Eden Treaty for fully typed API calls.
+
+**Why:** TypeBox provides runtime validation, compile-time types, and OpenAPI schema generation from a single source of truth. Eden Treaty provides end-to-end type safety between server and client. This eliminates:
+- Generated protobuf code maintenance (7 proto files → 7 model files)
+- `@bufbuild/protobuf` and `protobufjs` dependencies
+- Manual `protoFetch` helper with binary encoding/decoding
+- `hasXxx` boolean wrapper fields (replaced by `t.Nullable(...)`)
+- Runtime type mismatches between client and server
+
+**Conversion pattern (server routes):**
+```typescript
+// Before: protobuf
+import { AuthLoginRequest, AuthResponse } from "@repo/protobuf/auth";
+import { tsProtoPlugin } from "../lib/ts-proto-plugin";
+
+export const authRoutes = new Elysia({ prefix: "/api/auth" })
+  .use(tsProtoPlugin)
+  .post("/login", async ({ body }) => {
+    const request = body as AuthLoginRequest;
+    return { sessionToken: token, user: encodeApiUser(user) };
+  }, { proto: { req: AuthLoginRequest, res: AuthResponse } });
+
+// After: TypeBox
+import { t } from "elysia";
+import { AuthLoginRequest, AuthResponse } from "./auth.model";
+
+export const authRoutes = new Elysia({ prefix: "/api/auth" })
+  .post("/login", async ({ body }) => {
+    // body is typed as { email: string; password: string }
+    return { sessionToken: token, user: { id: user.id, email: user.email, name: user.name } };
+  }, {
+    body: AuthLoginRequest,
+    response: AuthResponse,
+  });
+```
+
+**Conversion pattern (client with Eden Treaty):**
+```typescript
+// Before: protobuf + protoFetch
+import { AuthLoginRequest, AuthResponse } from "@repo/protobuf/auth";
+import { protoFetch } from "./client";
+
+export const authApi = {
+  login: (payload: AuthLoginRequest) =>
+    protoFetch("api/auth/login", { req: AuthLoginRequest, res: AuthResponse }, payload),
+};
+
+// After: Eden Treaty
+import { eden } from "./eden";
+
+export const authApi = {
+  login: (payload: { email: string; password: string }) =>
+    eden.auth.login.post(payload),
+  // Returns: { data: { sessionToken: string, user: ApiUser } | null, error: Error | null }
+};
+```
+
+### 10. Simplify response types (remove hasXxx fields)
+
+**Decision:** Remove `hasXxx` boolean wrapper fields from response TypeBox schemas. Use `t.Nullable(...)` instead.
+
+**Why:** Protobuf uses `hasXxx` booleans to distinguish between "field not set" and "field set to empty/null". TypeBox's `t.Nullable(...)` handles this naturally in JSON.
+
+**Example:**
+```typescript
+// Before (protobuf)
+interface Outlet {
+  address: string;
+  hasAddress: boolean;
+  receiptName: string;
+  hasReceiptName: boolean;
+}
+
+// After (TypeBox)
+const OutletResponse = t.Object({
+  address: t.Nullable(t.String()),
+  receiptName: t.Nullable(t.String()),
+});
+```
+
+### 11. Remove protobuf domain encoder helpers
+
+**Decision:** Delete `apps/api/src/protobuf/domain.ts` and `apps/api/src/assets/protobuf.ts`. The encoding logic is no longer needed — routes return plain objects directly.
+
+**Why:** The encoder functions (`encodeApiUser`, `encodeMerchant`, `encodeOutlet`, etc.) exist to map database rows to protobuf message shapes. With TypeBox + JSON, we return the data directly as plain object literals. The `optionalString` helper (converting `null` → `{ hasValue: false, value: "" }`) is replaced by `t.Nullable(...)`.
+
+### 12. Type sharing via workspace type imports
+
+**Decision:** Export the composed Elysia app type from `apps/api`. The POS app imports it via `import type { App } from '@repo/api'` (compile-time only, no runtime dependency).
+
+**Why:** Eden Treaty needs the server's Elysia app type to generate the typed client. TypeScript's `import type` ensures no runtime code is pulled into the POS app — only the type information is used at compile time.
+
+**Setup:**
+1. `apps/api/package.json` must have `"name": "@repo/api"`
+2. `apps/api/src/app.ts` exports `export type App = typeof app`
+3. POS app's `tsconfig.json` must include `"paths": { "@repo/api": ["../../apps/api/src"] }`
+4. POS app uses `import type { App } from "@repo/api"` (type-only import)
+
 ## Risks / Trade-offs
 
 | Risk | Mitigation |
@@ -111,6 +216,9 @@ BaresyncBuilder::new()
 | `include_str!` path may break if directory structure changes | Document the expected path; add build-time verification |
 | Server scope resolution must handle both merchant and outlet scopes | Test with both scope types; verify cursor tracking works correctly |
 | Removing `syncMeta` may break per-table sync frequency tracking | Baresync uses `sync_cursors` for this; verify the plugin provides equivalent visibility |
+| JSON conversion may break existing API clients during transition | Atomic switch — all clients and server deploy together; no partial rollout |
+| Removing `hasXxx` fields may break clients that check these booleans | Search all client code for `hasXxx` references; replace with null checks |
+| Protobuf `int64` (bigint) → JSON number may lose precision for large values | POS app uses safe integer range; verify no values exceed `Number.MAX_SAFE_INTEGER` |
 
 ## Migration Plan
 

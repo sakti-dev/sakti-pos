@@ -25,7 +25,7 @@ describe("api client", () => {
         })
       )
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const { api } = await import("../http");
 
@@ -49,7 +49,7 @@ describe("api client", () => {
         })
       )
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const { api } = await import("../http");
 

@@ -10,6 +10,17 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use zenwebp::DecodeRequest;
 
+fn is_valid_asset_status(status: &str) -> bool {
+    matches!(
+        status,
+        "pending_upload" | "uploading" | "ready" | "pending_download" | "downloading"
+    )
+}
+
+fn is_valid_pending_product_photo_job_status(status: &str) -> bool {
+    matches!(status, "pending" | "processing" | "done" | "failed")
+}
+
 fn create_png_bytes(width: u32, height: u32) -> Vec<u8> {
     let mut image = ImageBuffer::new(width, height);
     for (x, y, pixel) in image.enumerate_pixels_mut() {

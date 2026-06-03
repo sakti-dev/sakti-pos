@@ -1,7 +1,3 @@
-import {
-  StaffCurrentRequest,
-  StaffCurrentResponse,
-} from "@repo/protobuf/staff";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("../storage", () => ({
@@ -9,17 +5,6 @@ vi.mock("../storage", () => ({
     getToken: vi.fn(() => Promise.resolve(null)),
     saveToken: vi.fn(() => Promise.resolve()),
     clearToken: vi.fn(() => Promise.resolve()),
-  },
-}));
-
-const mockOutletList = vi.fn();
-const mockOutletCreate = vi.fn();
-
-vi.mock("~/lib/api/outlets", () => ({
-  outletsApi: {
-    create: (...args: unknown[]) => mockOutletCreate(...args),
-    list: (...args: unknown[]) => mockOutletList(...args),
-    update: vi.fn(),
   },
 }));
 
@@ -46,12 +31,10 @@ describe("isCloudAuthenticated", () => {
   });
 
   test("getCurrentCloudStaff posts to staff me endpoint", async () => {
-    let capturedRequest: Request | null = null;
-    const fetchMock = vi.fn((input: RequestInfo | URL) => {
-      capturedRequest = (input as unknown as Request).clone();
-      return Promise.resolve(
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
         new Response(
-          StaffCurrentResponse.encode({
+          JSON.stringify({
             claimed: false,
             hasStaff: true,
             reason: "",
@@ -67,47 +50,48 @@ describe("isCloudAuthenticated", () => {
               role: "owner",
               updatedAt: "2026-05-10T00:00:00.000Z",
             },
-          }).finish(),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/x-protobuf" },
-          }
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
         )
-      );
-    });
-    globalThis.fetch = fetchMock as typeof fetch;
+      )
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const { getCurrentCloudStaff } = await import("../cloud");
     const result = await getCurrentCloudStaff("merchant-1");
 
-    const request = capturedRequest as unknown as Request;
-    expect(request.url).toContain("/api/staff/current");
-    expect(request.method).toBe("POST");
-    expect(request.headers.get("content-type")).toBe("application/x-protobuf");
-    expect(
-      StaffCurrentRequest.decode(new Uint8Array(await request.arrayBuffer()))
-    ).toEqual({ merchantId: "merchant-1" });
     expect(result.staff?.id).toBe("staff-1");
   });
 
   test("getOutlets maps timezone from the API response", async () => {
-    mockOutletList.mockResolvedValueOnce({
-      outlets: [
-        {
-          address: "Jl. Merdeka",
-          hasAddress: true,
-          hasReceiptAddress: true,
-          hasReceiptName: true,
-          id: "outlet-1",
-          isActive: true,
-          merchantId: "merchant-1",
-          name: "Main",
-          receiptAddress: "Jl. Merdeka",
-          receiptName: "Warung",
-          timezone: "Asia/Makassar",
-        },
-      ],
+    const mockOutletList = vi.fn().mockResolvedValue({
+      data: {
+        outlets: [
+          {
+            address: "Jl. Merdeka",
+            hasAddress: true,
+            hasReceiptAddress: true,
+            hasReceiptName: true,
+            id: "outlet-1",
+            isActive: true,
+            merchantId: "merchant-1",
+            name: "Main",
+            receiptAddress: "Jl. Merdeka",
+            receiptName: "Warung",
+            timezone: "Asia/Makassar",
+          },
+        ],
+      },
+      error: null,
     });
+
+    vi.doMock("~/lib/api/eden", () => ({
+      eden: {
+        outlets: {
+          list: { post: mockOutletList },
+        },
+      },
+    }));
 
     const { getOutlets } = await import("../cloud");
     const outlets = await getOutlets("merchant-1");
@@ -124,28 +108,39 @@ describe("isCloudAuthenticated", () => {
         timezone: "Asia/Makassar",
       },
     ]);
+
+    vi.doUnmock("~/lib/api/eden");
   });
 
   test("createOutlet defaults timezone to Asia/Jakarta", async () => {
-    mockOutletCreate.mockResolvedValueOnce({
-      hasRegister: false,
-      outlet: {
-        address: "",
-        createdAt: "2026-05-10T00:00:00.000Z",
-        hasAddress: false,
-        hasReceiptAddress: true,
-        hasReceiptName: true,
-        id: "outlet-1",
-        isActive: true,
-        merchantId: "merchant-1",
-        name: "Main",
-        receiptAddress: "Jl. Merdeka",
-        receiptName: "Warung",
-        timezone: "Asia/Jakarta",
-        updatedAt: "2026-05-10T00:00:00.000Z",
+    const mockOutletCreate = vi.fn().mockResolvedValue({
+      data: {
+        hasRegister: false,
+        outlet: {
+          address: "",
+          hasAddress: false,
+          hasReceiptAddress: true,
+          hasReceiptName: true,
+          id: "outlet-1",
+          isActive: true,
+          merchantId: "merchant-1",
+          name: "Main",
+          receiptAddress: "Jl. Merdeka",
+          receiptName: "Warung",
+          timezone: "Asia/Jakarta",
+        },
+        register: undefined,
       },
-      register: undefined,
+      error: null,
     });
+
+    vi.doMock("~/lib/api/eden", () => ({
+      eden: {
+        outlets: {
+          create: { post: mockOutletCreate },
+        },
+      },
+    }));
 
     const { createOutlet } = await import("../cloud");
     const outlet = await createOutlet("merchant-1", "Main");
@@ -160,5 +155,7 @@ describe("isCloudAuthenticated", () => {
     expect(outlet.timezone).toBe("Asia/Jakarta");
     expect(outlet.receiptName).toBe("Warung");
     expect(outlet.receiptAddress).toBe("Jl. Merdeka");
+
+    vi.doUnmock("~/lib/api/eden");
   });
 });

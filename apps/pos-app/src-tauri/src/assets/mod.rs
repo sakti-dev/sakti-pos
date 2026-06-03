@@ -55,6 +55,7 @@ fn resolve_local_asset_persist_state(existing_status: Option<&str>) -> LocalAsse
     }
 }
 
+#[allow(dead_code)]
 fn resolve_reused_asset_ready_state(existing_status: Option<&str>) -> LocalAssetPersistState {
     let _ = existing_status;
     LocalAssetPersistState {
@@ -66,6 +67,7 @@ fn resolve_reused_asset_ready_state(existing_status: Option<&str>) -> LocalAsset
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct PendingUploadAsset {
     asset_id: String,
     merchant_id: String,
@@ -80,6 +82,7 @@ struct PendingUploadAsset {
     local_path: String,
 }
 
+#[allow(dead_code)]
 async fn load_pending_upload_assets(
     pool: &SqlitePool,
     merchant_id: &str,
@@ -88,6 +91,7 @@ async fn load_pending_upload_assets(
     self::local::load_pending_upload_assets(pool, merchant_id, limit).await
 }
 
+#[allow(dead_code)]
 async fn load_ready_assets(
     pool: &SqlitePool,
     merchant_id: &str,
@@ -338,10 +342,12 @@ fn emit_asset_attachment_ready(app: &AppHandle, payload: AssetAttachmentReadyPay
     }
 }
 
+#[allow(dead_code)]
 async fn mark_asset_uploading(pool: &SqlitePool, asset_id: &str) -> Result<(), String> {
     self::local::mark_asset_uploading(pool, asset_id).await
 }
 
+#[allow(dead_code)]
 async fn mark_asset_upload_failed(
     pool: &SqlitePool,
     asset_id: &str,
@@ -351,6 +357,7 @@ async fn mark_asset_upload_failed(
     self::local::mark_asset_upload_failed(pool, asset_id, merchant_id, error_message).await
 }
 
+#[allow(dead_code)]
 async fn mark_asset_ready(
     pool: &SqlitePool,
     asset_id: &str,
@@ -359,6 +366,7 @@ async fn mark_asset_ready(
     self::local::mark_asset_ready(pool, asset_id, merchant_id).await
 }
 
+#[allow(dead_code)]
 async fn mark_reused_asset_ready(
     pool: &SqlitePool,
     asset_id: &str,

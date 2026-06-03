@@ -7,7 +7,8 @@
     ".": "./src/local-schema.ts",
     "./api-schema": "./src/api-schema.ts",
     "./api-synced-schema": "./src/api-synced-schema.ts",
-    "./synced-schema": "./src/synced-schema.ts"
+    "./synced-schema": "./src/synced-schema.ts",
+    "./sync-constants": "./src/sync-constants.ts"
   },
   "dependencies": {
     "baresync": "0.2.3",

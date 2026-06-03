@@ -2,8 +2,8 @@ import { staff } from "@repo/database";
 import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
 import { currentMerchantId } from "~/store/outlet";
+import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
-import { recordLocalChange } from "./sync-outbox";
 
 export type StaffMember = typeof staff.$inferSelect;
 export type NewStaffMember = typeof staff.$inferInsert;
@@ -50,18 +50,18 @@ export async function getStaffByCloudUserId(
 export async function createStaffMember(
   data: NewStaffMember
 ): Promise<StaffMember> {
-  return await db.transaction(async (tx) => {
-    const [row] = await tx.insert(staff).values(data).returning();
-    await recordLocalChange(
-      {
-        operation: "insert",
-        rowId: row.id,
-        scopeId: row.merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
-      },
-      tx
-    );
+  const client = getSyncClient();
+  const now = dayjs().toISOString();
+  return await client.writeTransaction(db, async (tx) => {
+    const [row] = await tx
+      .insert(staff)
+      .values({ ...data, createdAt: now, updatedAt: now })
+      .returning();
+    await client.enqueueChange(tx, {
+      operation: "insert",
+      rowId: row.id,
+      table: staff,
+    });
     return row;
   });
 }
@@ -70,22 +70,18 @@ export async function updateStaffMember(
   id: string,
   data: Partial<Omit<NewStaffMember, "id">>
 ): Promise<StaffMember> {
-  return await db.transaction(async (tx) => {
+  const client = getSyncClient();
+  return await client.writeTransaction(db, async (tx) => {
     const [row] = await tx
       .update(staff)
       .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
       .where(eq(staff.id, id))
       .returning();
-    await recordLocalChange(
-      {
-        operation: "update",
-        rowId: row.id,
-        scopeId: row.merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
-      },
-      tx
-    );
+    await client.enqueueChange(tx, {
+      operation: "update",
+      rowId: row.id,
+      table: staff,
+    });
     return row;
   });
 }

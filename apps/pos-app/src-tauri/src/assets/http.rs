@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+#[allow(dead_code)]
 pub(super) fn build_api_client(session_token: &str) -> Result<reqwest::Client, String> {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert(
@@ -14,6 +15,7 @@ pub(super) fn build_api_client(session_token: &str) -> Result<reqwest::Client, S
         .map_err(|error| format!("Failed to build HTTP client: {}", error))
 }
 
+#[allow(dead_code)]
 pub(super) fn build_signed_url_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(60))

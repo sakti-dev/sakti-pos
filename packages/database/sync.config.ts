@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/performance/noNamespaceImport: <memudahkan> */
 import { defineSyncConfig } from "baresync/generator";
 import * as apiSyncedSchema from "./src/api-synced-schema.ts";
 import * as localSyncedSchema from "./src/synced-schema.ts";

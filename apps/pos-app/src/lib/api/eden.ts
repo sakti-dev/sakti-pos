@@ -12,6 +12,6 @@ const authFetcher = (async (url: URL | RequestInfo, options?: RequestInit) => {
   return globalThis.fetch(url, { ...options, headers });
 }) as typeof fetch;
 
-export const cloudApi = treaty<App>(API_URL, {
+export const eden = treaty<App>(API_URL, {
   fetcher: authFetcher,
 });

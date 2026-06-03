@@ -4,11 +4,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(target_os = "android")]
 use tauri::Manager;
 
+#[allow(dead_code)]
 pub const ANDROID_FS_PICKER_MIME_TYPES: [&str; 1] = ["image/*"];
 #[cfg(any(not(target_os = "android"), test))]
 pub const ANDROID_FS_UNSUPPORTED_ERROR: &str =
     "Android FS gallery picker is only supported on Android";
 
+#[allow(dead_code)]
 pub fn extension_for_mime_type(mime_type: &str) -> &'static str {
     match mime_type.to_ascii_lowercase().as_str() {
         "image/png" => "png",
@@ -19,6 +21,7 @@ pub fn extension_for_mime_type(mime_type: &str) -> &'static str {
     }
 }
 
+#[allow(dead_code)]
 fn safe_source_extension(original_filename: &str) -> Option<String> {
     let extension = original_filename
         .rsplit_once('.')
@@ -36,6 +39,7 @@ fn safe_source_extension(original_filename: &str) -> Option<String> {
     Some(extension)
 }
 
+#[allow(dead_code)]
 pub fn build_product_photo_input_path(
     cache_root: &Path,
     prefix: &str,
@@ -148,11 +152,13 @@ pub async fn pick_gallery_to_product_photo_input<R: tauri::Runtime>(
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 enum GalleryPickerStrategy {
     VisualMedia,
     FilePicker,
 }
 
+#[allow(dead_code)]
 fn gallery_picker_strategy(visual_media_picker_available: bool) -> GalleryPickerStrategy {
     if visual_media_picker_available {
         GalleryPickerStrategy::VisualMedia

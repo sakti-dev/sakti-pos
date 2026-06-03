@@ -1,79 +1,120 @@
 import { outlets, registers } from "@repo/database/api-schema";
-import {
-  RegisterPairRequest,
-  RegisterPairResponse,
-} from "@repo/protobuf/registers";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
-import { tsProtoPlugin } from "../lib/ts-proto-plugin";
-import { encodeOutlet, encodeRegister } from "../protobuf/domain";
+import { RegisterPairRequest } from "./registers.model";
 
-export const publicRegisterRoutes = new Elysia({ prefix: "/api/registers" })
-  .use(tsProtoPlugin)
-  .post(
-    "/pair",
-    async ({ body, set }) => {
-      const request = body as RegisterPairRequest;
-      const [register] = await db
-        .select()
-        .from(registers)
-        .where(eq(registers.pairingCode, request.pairingCode))
-        .limit(1);
+function encodeOutlet(row: {
+  address: string | null;
+  createdAt?: string;
+  id: string;
+  isActive: boolean;
+  merchantId: string;
+  name: string;
+  receiptAddress: string | null;
+  receiptName: string | null;
+  timezone?: string | null;
+  updatedAt?: string;
+}) {
+  return {
+    id: row.id,
+    merchantId: row.merchantId,
+    name: row.name,
+    address: row.address,
+    timezone: row.timezone ?? "Asia/Jakarta",
+    isActive: row.isActive,
+    createdAt: row.createdAt ?? "",
+    updatedAt: row.updatedAt ?? "",
+    receiptName: row.receiptName,
+    receiptAddress: row.receiptAddress,
+  };
+}
 
-      if (!register) {
-        set.status = 400;
-        return { error: "Invalid pairing code" };
-      }
+function encodeRegister(row: {
+  createdAt?: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  outletId: string;
+  pairingCode: string | null;
+  pairingExpiresAt: string | null;
+  shortId: string;
+  updatedAt?: string;
+}) {
+  return {
+    id: row.id,
+    outletId: row.outletId,
+    name: row.name,
+    shortId: row.shortId,
+    pairingCode: row.pairingCode,
+    pairingExpiresAt: row.pairingExpiresAt,
+    isActive: row.isActive,
+    createdAt: row.createdAt ?? "",
+    updatedAt: row.updatedAt ?? "",
+  };
+}
 
-      if (
-        !register.pairingExpiresAt ||
-        new Date(register.pairingExpiresAt) < new Date()
-      ) {
+export const publicRegisterRoutes = new Elysia({
+  prefix: "/api/registers",
+}).post(
+  "/pair",
+  async ({ body, set }) => {
+    const [register] = await db
+      .select()
+      .from(registers)
+      .where(eq(registers.pairingCode, body.pairingCode))
+      .limit(1);
+
+    if (!register) {
+      set.status = 400;
+      return { error: "Invalid pairing code" };
+    }
+
+    if (
+      !register.pairingExpiresAt ||
+      new Date(register.pairingExpiresAt) < new Date()
+    ) {
+      set.status = 400;
+      return { error: "Pairing code expired" };
+    }
+
+    const now = new Date().toISOString();
+    return await db.transaction(async (tx) => {
+      const [updatedRegister] = await tx
+        .update(registers)
+        .set({
+          pairingCode: null,
+          pairingExpiresAt: null,
+          lastSeenAt: now,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(registers.id, register.id),
+            eq(registers.pairingCode, body.pairingCode)
+          )
+        )
+        .returning();
+
+      if (!updatedRegister) {
         set.status = 400;
         return { error: "Pairing code expired" };
       }
 
-      const now = new Date().toISOString();
-      return await db.transaction(async (tx) => {
-        const [updatedRegister] = await tx
-          .update(registers)
-          .set({
-            pairingCode: null,
-            pairingExpiresAt: null,
-            lastSeenAt: now,
-            updatedAt: now,
-          })
-          .where(
-            and(
-              eq(registers.id, register.id),
-              eq(registers.pairingCode, request.pairingCode)
-            )
-          )
-          .returning();
+      const [outlet] = await tx
+        .select()
+        .from(outlets)
+        .where(eq(outlets.id, updatedRegister.outletId))
+        .limit(1);
 
-        if (!updatedRegister) {
-          set.status = 400;
-          return { error: "Pairing code expired" };
-        }
-
-        const [outlet] = await tx
-          .select()
-          .from(outlets)
-          .where(eq(outlets.id, updatedRegister.outletId))
-          .limit(1);
-
-        return {
-          hasOutlet: !!outlet,
-          outlet: outlet ? encodeOutlet(outlet) : undefined,
-          register: encodeRegister(updatedRegister),
-        };
-      });
-    },
-    {
-      proto: {
-        req: RegisterPairRequest,
-        res: RegisterPairResponse,
-      },
-    }
-  );
+      return {
+        hasOutlet: !!outlet,
+        outlet: outlet ? encodeOutlet(outlet) : undefined,
+        register: encodeRegister(updatedRegister),
+      };
+    });
+  },
+  {
+    body: RegisterPairRequest,
+  }
+);

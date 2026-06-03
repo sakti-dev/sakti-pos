@@ -1,20 +1,15 @@
 import { outlets, registers, userMerchants } from "@repo/database/api-schema";
-import { DeleteResponse } from "@repo/protobuf/common";
-import {
-  RegisterCreateRequest,
-  RegisterCreateResponse,
-  RegisterDeleteRequest,
-  RegisterListRequest,
-  RegisterListResponse,
-} from "@repo/protobuf/registers";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
-import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
-import { encodeRegister } from "../protobuf/domain";
+import {
+  RegisterCreateRequest,
+  RegisterDeleteRequest,
+  RegisterListRequest,
+} from "./registers.model";
 
 function generatePairingCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -57,18 +52,40 @@ async function verifyOutletOwnership(
   return !!membership;
 }
 
+function encodeRegister(row: {
+  createdAt?: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  outletId: string;
+  pairingCode: string | null;
+  pairingExpiresAt: string | null;
+  shortId: string;
+  updatedAt?: string;
+}) {
+  return {
+    id: row.id,
+    outletId: row.outletId,
+    name: row.name,
+    shortId: row.shortId,
+    pairingCode: row.pairingCode,
+    pairingExpiresAt: row.pairingExpiresAt,
+    isActive: row.isActive,
+    createdAt: row.createdAt ?? "",
+    updatedAt: row.updatedAt ?? "",
+  };
+}
+
 export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
-  .use(tsProtoPlugin)
   .use(authenticated)
   .post(
     "/create",
     async ({ body, session, set }) => {
-      const request = body as RegisterCreateRequest;
       let outletId: string;
       let name: string;
       try {
-        outletId = requireNonEmptyString(request.outletId, "outletId");
-        name = requireNonEmptyString(request.name, "name", {
+        outletId = requireNonEmptyString(body.outletId, "outletId");
+        name = requireNonEmptyString(body.name, "name", {
           minLength: 1,
           maxLength: 100,
         });
@@ -100,6 +117,7 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
             shortId: generateShortId(),
             pairingCode,
             pairingExpiresAt,
+            syncUpdatedAt: Date.now(),
             createdAt: now,
             updatedAt: now,
           })
@@ -113,45 +131,37 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
       };
     },
     {
-      proto: {
-        req: RegisterCreateRequest,
-        res: RegisterCreateResponse,
-      },
+      body: RegisterCreateRequest,
     }
   )
   .post(
     "/list",
     async ({ body, session }) => {
-      const request = body as RegisterListRequest;
       throwIfFalse(
-        await verifyOutletOwnership(session.userId, request.outletId),
+        await verifyOutletOwnership(session.userId, body.outletId),
         new ForbiddenRequestError()
       );
 
       const results = await db
         .select()
         .from(registers)
-        .where(eq(registers.outletId, request.outletId));
+        .where(eq(registers.outletId, body.outletId));
 
       return {
         registers: results.map(encodeRegister),
       };
     },
     {
-      proto: {
-        req: RegisterListRequest,
-        res: RegisterListResponse,
-      },
+      body: RegisterListRequest,
     }
   )
   .post(
     "/delete",
     async ({ body, session, set }) => {
-      const request = body as RegisterDeleteRequest;
       const [register] = await db
         .select()
         .from(registers)
-        .where(eq(registers.id, request.id))
+        .where(eq(registers.id, body.id))
         .limit(1);
 
       if (!register) {
@@ -169,15 +179,12 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
         await tx
           .update(registers)
           .set({ isActive: false, updatedAt: now })
-          .where(eq(registers.id, request.id));
+          .where(eq(registers.id, body.id));
       });
 
       return { success: true };
     },
     {
-      proto: {
-        req: RegisterDeleteRequest,
-        res: DeleteResponse,
-      },
+      body: RegisterDeleteRequest,
     }
   );

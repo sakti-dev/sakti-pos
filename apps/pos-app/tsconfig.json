@@ -1,9 +1,11 @@
 {
   "extends": "@repo/typescript-config/solid.json",
   "compilerOptions": {
+    "skipLibCheck": true,
     "paths": {
       "~/*": ["./src/*"],
-      "@repo/database": ["../../packages/database/src/schema.ts"]
+      "@repo/database": ["../../packages/database/src/schema.ts"],
+      "@repo/api": ["../../apps/api/src/app.ts"]
     },
     "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
   },

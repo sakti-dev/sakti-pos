@@ -5,7 +5,6 @@ import {
   products,
   staff,
 } from "@repo/database";
-import { invoke } from "@tauri-apps/api/core";
 import dayjs from "dayjs";
 import {
   and,
@@ -29,19 +28,9 @@ import {
   currentOutletTimezone,
   currentRegisterId,
 } from "~/store/outlet";
+import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 import type { Product } from "./menu";
-import { recordLocalChange } from "./sync-outbox";
-
-interface SqlStatement {
-  params: unknown[];
-  sql: string;
-}
-
-interface BatchResult {
-  last_insert_id: number;
-  rows_affected: number;
-}
 
 export async function createOrder(data: {
   amountPaidMinorUnits: number | null;
@@ -66,79 +55,60 @@ export async function createOrder(data: {
   const outletId = currentOutletId();
   const registerId = currentRegisterId();
   const orderId = crypto.randomUUID();
-
-  const insertOrder: SqlStatement = {
-    sql: `INSERT INTO orders (id, order_number, staff_id, register_id, outlet_id, total_minor_units, payment_method, amount_paid_minor_units, change_amount_minor_units, status, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, 0)`,
-    params: [
-      orderId,
-      orderNumber,
-      data.staffId,
-      registerId ?? null,
-      outletId ?? null,
-      data.totalMinorUnits,
-      data.paymentMethod,
-      data.amountPaidMinorUnits,
-      data.changeAmountMinorUnits,
-      createdAt,
-      createdAt,
-    ],
-  };
+  const client = getSyncClient();
 
   const orderItemsWithIds = data.items.map((item) => ({
     id: crypto.randomUUID(),
     item,
   }));
 
-  const itemStatements: SqlStatement[] = orderItemsWithIds.map(
-    ({ id, item }) => ({
-      sql: "INSERT INTO order_items (id, order_id, outlet_id, product_id, product_name, quantity, unit_price_minor_units, original_price_minor_units, subtotal_minor_units, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
-      params: [
+  await client.writeTransaction(db, async (tx) => {
+    await tx.insert(orders).values({
+      id: orderId,
+      orderNumber,
+      staffId: data.staffId,
+      registerId: registerId ?? undefined,
+      outletId: outletId ?? "",
+      totalMinorUnits: data.totalMinorUnits,
+      paymentMethod: data.paymentMethod,
+      amountPaidMinorUnits: data.amountPaidMinorUnits,
+      changeAmountMinorUnits: data.changeAmountMinorUnits,
+      status: "completed",
+      isSynced: false,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    for (const { id, item } of orderItemsWithIds) {
+      await tx.insert(orderItems).values({
         id,
         orderId,
-        outletId ?? null,
-        item.product_id,
-        item.product_name,
-        item.qty,
-        item.priceMinorUnits,
-        item.originalPriceMinorUnits ?? null,
-        item.qty * item.priceMinorUnits,
+        outletId: outletId ?? "",
+        productId: item.product_id,
+        productName: item.product_name,
+        quantity: item.qty,
+        unitPriceMinorUnits: item.priceMinorUnits,
+        originalPriceMinorUnits: item.originalPriceMinorUnits ?? undefined,
+        subtotalMinorUnits: item.qty * item.priceMinorUnits,
+        isSynced: false,
         createdAt,
-        createdAt,
-      ],
-    })
-  );
+        updatedAt: createdAt,
+      });
+    }
 
-  const scopeId = outletId ?? "";
-  const outboxChangedAt = createdAt;
-  const outboxStatements: SqlStatement[] = [
-    {
-      sql: "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_id, scope_type, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      params: [
-        crypto.randomUUID(),
-        "orders",
-        orderId,
-        "insert",
-        scopeId,
-        "outlet",
-        outboxChangedAt,
-      ],
-    },
-    ...orderItemsWithIds.map(({ id }) => ({
-      sql: "INSERT INTO sync_outbox (id, table_name, row_id, operation, scope_id, scope_type, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      params: [
-        crypto.randomUUID(),
-        "order_items",
-        id,
-        "insert",
-        scopeId,
-        "outlet",
-        outboxChangedAt,
-      ],
-    })),
-  ];
+    await client.enqueueChange(tx, {
+      operation: "insert",
+      rowId: orderId,
+      table: orders,
+    });
 
-  await invoke<BatchResult>("run_sql_batch", {
-    statements: [insertOrder, ...itemStatements, ...outboxStatements],
+    for (const { id } of orderItemsWithIds) {
+      await client.enqueueChange(tx, {
+        operation: "insert",
+        rowId: id,
+        table: orderItems,
+      });
+    }
   });
 
   return orderNumber;
@@ -301,20 +271,22 @@ export async function getOrderItems(orderId: string): Promise<OrderItemRow[]> {
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {
-  await db
-    .update(orders)
-    .set({
-      status: "cancelled",
-      updatedAt: dayjs().toISOString(),
-      isSynced: false,
-    })
-    .where(eq(orders.id, orderId));
-  await recordLocalChange({
-    operation: "update",
-    rowId: orderId,
-    scopeId: currentOutletId() ?? "",
-    scopeType: "outlet",
-    tableName: "orders",
+  const client = getSyncClient();
+  await client.writeTransaction(db, async (tx) => {
+    await client.writeLocalChange(tx, {
+      operation: "update",
+      rowId: orderId,
+      table: orders,
+      write: (writeTx) =>
+        writeTx
+          .update(orders)
+          .set({
+            status: "cancelled",
+            updatedAt: dayjs().toISOString(),
+            isSynced: false,
+          })
+          .where(eq(orders.id, orderId)),
+    });
   });
 }
 
