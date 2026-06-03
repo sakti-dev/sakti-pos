@@ -6,6 +6,7 @@ import { createSignal } from "solid-js";
 import { processPendingAssetJobs } from "~/lib/assets/processing";
 import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { AuthStorage } from "~/lib/auth/storage";
+import { API_URL } from "~/lib/api/eden";
 import { createLogger } from "~/lib/logger";
 import { describeError } from "~/lib/utils";
 import { currentMerchantId, currentOutletId } from "./outlet";
@@ -21,8 +22,6 @@ const syncLogger = createLogger({
 });
 
 export { lastAssetQueueCount, lastSyncTime, syncStatus };
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 let syncClient: SyncClient | null = null;
 let cleanupListeners: (() => Promise<void>) | null = null;

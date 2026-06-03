@@ -1,5 +1,4 @@
-import { eden } from "~/lib/api/eden";
-import { API_URL } from "~/lib/http";
+import { eden, API_URL } from "~/lib/api/eden";
 import { createLogger } from "~/lib/logger";
 import { AuthStorage } from "./storage";
 
