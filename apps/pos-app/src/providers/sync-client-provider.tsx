@@ -1,5 +1,5 @@
 import { SYNC_SCOPE } from "@repo/database/sync-constants";
-import { useQueryClient } from "@tanstack/solid-query";
+import { QueryClient, useQueryClient } from "@tanstack/solid-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { createSyncClient, type SyncClient } from "baresync/tauri";
@@ -13,6 +13,15 @@ import {
 } from "solid-js";
 import { setSyncDataVersion } from "~/lib/use-drizzle-query";
 import { setSyncStatus } from "~/store/sync";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const SyncClientContext = createContext<SyncClient>();
 
