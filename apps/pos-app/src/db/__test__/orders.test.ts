@@ -59,8 +59,8 @@ vi.mock("~/store/outlet", () => ({
   currentOutletTimezone: vi.fn(() => "Asia/Jakarta"),
 }));
 
-vi.mock("~/store/sync", () => ({
-  getSyncClient: vi.fn(() => ({
+vi.mock("~/lib/sync", () => ({
+  syncClient: {
     enqueueChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
       const tableName =
         opts.table?.[Symbol.for("drizzle:Name")] ??
@@ -109,7 +109,7 @@ vi.mock("~/store/sync", () => ({
     writeTransaction: vi
       .fn()
       .mockImplementation(async (_db: any, fn: any) => fn(mocks.getTestDb())),
-  })),
+  },
 }));
 
 vi.mock("../index", () => ({

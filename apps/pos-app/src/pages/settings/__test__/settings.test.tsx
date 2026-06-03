@@ -336,7 +336,7 @@ describe("formatSyncSuccessMessage", () => {
   test("shows data already current for skipped sync", () => {
     expect(
       formatSyncSuccessMessage({
-        mode: "skipped",
+        mode: "NoOp",
         pull: { rows_received: 0, server_time: "" },
         purged: 0,
         push: { server_time: "", server_wins_count: 0, tables_synced: [] },
@@ -347,7 +347,7 @@ describe("formatSyncSuccessMessage", () => {
   test("shows received rows for pull only sync", () => {
     expect(
       formatSyncSuccessMessage({
-        mode: "pull_only",
+        mode: "PullOnly",
         pull: { rows_received: 4, server_time: "2026-05-09T12:00:00.000Z" },
         purged: 0,
         push: { server_time: "", server_wins_count: 0, tables_synced: [] },
@@ -358,7 +358,7 @@ describe("formatSyncSuccessMessage", () => {
   test("shows sent table count for push only sync", () => {
     expect(
       formatSyncSuccessMessage({
-        mode: "push_only",
+        mode: "PushOnly",
         pull: { rows_received: 0, server_time: "" },
         purged: 0,
         push: {

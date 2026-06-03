@@ -14,21 +14,13 @@ import {
   TbOutlineSettings,
 } from "solid-icons/tb";
 import type { JSX } from "solid-js";
-import {
-  createEffect,
-  createSignal,
-  For,
-  onCleanup,
-  onMount,
-  Show,
-} from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { Toaster } from "solid-sonner";
 import { SyncStatusIndicator } from "~/components/sync-status";
 import { OfflineBanner } from "~/components/ui/offline-banner";
 import { createLogger } from "~/lib/logger";
 import { currentUserRole, isAuthenticated, logout } from "~/store/auth";
 import { currentOutletId, isDevicePaired } from "~/store/outlet";
-import { startSyncScheduler, stopSyncScheduler } from "~/store/sync";
 
 const layoutLogger = createLogger({
   domain: "UI",
@@ -119,15 +111,6 @@ export function AppShell(props: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
-
-  onMount(() => {
-    if (currentOutletId()) {
-      startSyncScheduler();
-    }
-  });
-  onCleanup(() => {
-    stopSyncScheduler();
-  });
 
   createEffect(() => {
     setSidebarOpen(false);

@@ -1,3 +1,4 @@
+import { SYNC_SCOPE } from "@repo/database/sync-constants";
 import { useQueryClient } from "@tanstack/solid-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -7,10 +8,9 @@ import {
   createEffect,
   createSignal,
   onCleanup,
-  useContext,
   type ParentComponent,
+  useContext,
 } from "solid-js";
-import { SYNC_SCOPE } from "@repo/database/sync-constants";
 import { setSyncDataVersion } from "~/lib/use-drizzle-query";
 import { setSyncStatus } from "~/store/sync";
 
@@ -28,7 +28,11 @@ export const SyncClientProvider: ParentComponent = (props) => {
 
   createEffect(() => {
     client().startPolling();
-    onCleanup(() => client().stopPolling().catch(() => {}));
+    onCleanup(() =>
+      client()
+        .stopPolling()
+        .catch(() => {})
+    );
   });
 
   createEffect(() => {
@@ -66,7 +70,9 @@ export const SyncClientProvider: ParentComponent = (props) => {
 
     onCleanup(() => {
       disposed = true;
-      if (cleanup) cleanup();
+      if (cleanup) {
+        cleanup();
+      }
     });
   });
 

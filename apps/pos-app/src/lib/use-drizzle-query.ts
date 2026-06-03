@@ -1,16 +1,17 @@
 import { createQuery } from "@tanstack/solid-query";
-import { createSignal, type Accessor } from "solid-js";
+import { type Accessor, createSignal } from "solid-js";
 
 const [syncDataVersion, setSyncDataVersion] = createSignal(0);
+
 export { setSyncDataVersion };
 
 type Fetcher<T> = () => Promise<T>;
 
 export function useDrizzleQuery<T>(
-  key: unknown[],
-  fetcher: Fetcher<T>
+  queryKey: unknown[],
+  buildQuery: () => Promise<T>
 ): {
-  data: Accessor<T | undefined>;
+  data: Accessor<T>;
   loading: Accessor<boolean>;
   error: Accessor<string | null>;
   refetch: () => void;
@@ -18,9 +19,9 @@ export function useDrizzleQuery<T>(
 
 export function useDrizzleQuery<T, S>(
   source: Accessor<S>,
-  fetcher: Fetcher<T>
+  buildQuery: () => Promise<T>
 ): {
-  data: Accessor<T | undefined>;
+  data: Accessor<T>;
   loading: Accessor<boolean>;
   error: Accessor<string | null>;
   refetch: () => void;
@@ -28,7 +29,7 @@ export function useDrizzleQuery<T, S>(
 
 export function useDrizzleQuery<T, S>(
   keyOrSource: unknown[] | Accessor<S>,
-  fetcher: Fetcher<T>
+  buildQuery: Fetcher<T>
 ) {
   const isSource = typeof keyOrSource === "function";
 
@@ -40,12 +41,12 @@ export function useDrizzleQuery<T, S>(
 
     return {
       queryKey,
-      queryFn: async () => await fetcher(),
+      queryFn: async () => await buildQuery(),
     };
   });
 
   return {
-    data: () => query.data,
+    data: () => query.data as T,
     loading: () => query.isPending,
     error: () => (query.error ? String(query.error) : null),
     refetch: () => {

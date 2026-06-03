@@ -22,13 +22,13 @@ import {
   getBusinessDateFromInstant,
   toUtcRangeForBusinessDate,
 } from "~/lib/date-time";
+import { syncClient } from "~/lib/sync";
 import {
   currentMerchantId,
   currentOutletId,
   currentOutletTimezone,
   currentRegisterId,
 } from "~/store/outlet";
-import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 import type { Product } from "./menu";
 
@@ -55,14 +55,13 @@ export async function createOrder(data: {
   const outletId = currentOutletId();
   const registerId = currentRegisterId();
   const orderId = crypto.randomUUID();
-  const client = getSyncClient();
 
   const orderItemsWithIds = data.items.map((item) => ({
     id: crypto.randomUUID(),
     item,
   }));
 
-  await client.writeTransaction(db, async (tx) => {
+  await syncClient.writeTransaction(db, async (tx) => {
     await tx.insert(orders).values({
       id: orderId,
       orderNumber,
@@ -96,14 +95,14 @@ export async function createOrder(data: {
       });
     }
 
-    await client.enqueueChange(tx, {
+    await syncClient.enqueueChange(tx, {
       operation: "insert",
       rowId: orderId,
       table: orders,
     });
 
     for (const { id } of orderItemsWithIds) {
-      await client.enqueueChange(tx, {
+      await syncClient.enqueueChange(tx, {
         operation: "insert",
         rowId: id,
         table: orderItems,
@@ -271,9 +270,8 @@ export async function getOrderItems(orderId: string): Promise<OrderItemRow[]> {
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {
-  const client = getSyncClient();
-  await client.writeTransaction(db, async (tx) => {
-    await client.writeLocalChange(tx, {
+  await syncClient.writeTransaction(db, async (tx) => {
+    await syncClient.writeLocalChange(tx, {
       operation: "update",
       rowId: orderId,
       table: orders,

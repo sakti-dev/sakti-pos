@@ -1,8 +1,8 @@
 import { staff } from "@repo/database";
 import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
+import { syncClient } from "~/lib/sync";
 import { currentMerchantId } from "~/store/outlet";
-import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 
 type StaffMember = typeof staff.$inferSelect;
@@ -50,14 +50,13 @@ export async function getStaffByCloudUserId(
 export async function createStaffMember(
   data: NewStaffMember
 ): Promise<StaffMember> {
-  const client = getSyncClient();
   const now = dayjs().toISOString();
-  return await client.writeTransaction(db, async (tx) => {
+  return await syncClient.writeTransaction(db, async (tx) => {
     const [row] = await tx
       .insert(staff)
       .values({ ...data, createdAt: now, updatedAt: now })
       .returning();
-    await client.enqueueChange(tx, {
+    await syncClient.enqueueChange(tx, {
       operation: "insert",
       rowId: row.id,
       table: staff,
@@ -70,14 +69,13 @@ export async function updateStaffMember(
   id: string,
   data: Partial<Omit<NewStaffMember, "id">>
 ): Promise<StaffMember> {
-  const client = getSyncClient();
-  return await client.writeTransaction(db, async (tx) => {
+  return await syncClient.writeTransaction(db, async (tx) => {
     const [row] = await tx
       .update(staff)
       .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
       .where(eq(staff.id, id))
       .returning();
-    await client.enqueueChange(tx, {
+    await syncClient.enqueueChange(tx, {
       operation: "update",
       rowId: row.id,
       table: staff,

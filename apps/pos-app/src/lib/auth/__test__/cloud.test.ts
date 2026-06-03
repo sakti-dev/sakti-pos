@@ -64,6 +64,8 @@ describe("isCloudAuthenticated", () => {
   });
 
   test("getOutlets maps timezone from the API response", async () => {
+    vi.resetModules();
+
     const mockOutletList = vi.fn().mockResolvedValue({
       data: {
         outlets: [
@@ -87,8 +89,10 @@ describe("isCloudAuthenticated", () => {
 
     vi.doMock("~/lib/api/eden", () => ({
       eden: {
-        outlets: {
-          list: { post: mockOutletList },
+        api: {
+          outlets: {
+            list: { post: mockOutletList },
+          },
         },
       },
     }));
@@ -99,6 +103,9 @@ describe("isCloudAuthenticated", () => {
     expect(outlets).toEqual([
       {
         address: "Jl. Merdeka",
+        hasAddress: true,
+        hasReceiptAddress: true,
+        hasReceiptName: true,
         id: "outlet-1",
         isActive: true,
         merchantId: "merchant-1",
@@ -113,6 +120,8 @@ describe("isCloudAuthenticated", () => {
   });
 
   test("createOutlet defaults timezone to Asia/Jakarta", async () => {
+    vi.resetModules();
+
     const mockOutletCreate = vi.fn().mockResolvedValue({
       data: {
         hasRegister: false,
@@ -136,8 +145,10 @@ describe("isCloudAuthenticated", () => {
 
     vi.doMock("~/lib/api/eden", () => ({
       eden: {
-        outlets: {
-          create: { post: mockOutletCreate },
+        api: {
+          outlets: {
+            create: { post: mockOutletCreate },
+          },
         },
       },
     }));
@@ -147,7 +158,6 @@ describe("isCloudAuthenticated", () => {
 
     expect(mockOutletCreate).toHaveBeenCalledWith({
       address: "",
-      hasAddress: false,
       merchantId: "merchant-1",
       name: "Main",
       timezone: "Asia/Jakarta",

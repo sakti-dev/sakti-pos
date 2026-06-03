@@ -23,6 +23,6 @@ describe("local smart sync schema", () => {
     const columns = getTableColumns(syncCursors);
 
     expect(columns).not.toHaveProperty("lastServerEventId");
-    expect(columns).toHaveProperty("lastServerWatermark");
+    expect(columns).toHaveProperty("lastCursor");
   });
 });

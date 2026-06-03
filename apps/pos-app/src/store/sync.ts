@@ -1,108 +1,23 @@
-import { SYNC_SCOPE } from "@repo/database/sync-constants";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { createSyncClient, type SyncClient } from "baresync/tauri";
 import { createSignal } from "solid-js";
+import { API_URL } from "~/lib/api/eden";
 import { processPendingAssetJobs } from "~/lib/assets/processing";
 import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { AuthStorage } from "~/lib/auth/storage";
-import { API_URL } from "~/lib/api/eden";
 import { createLogger } from "~/lib/logger";
+import { syncClient } from "~/lib/sync";
 import { describeError } from "~/lib/utils";
 import { currentMerchantId, currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";
 
 const [syncStatus, setSyncStatus] = createSignal<SyncStatus>("idle");
-const [lastSyncTime, setLastSyncTime] = createSignal<string | null>(null);
 const [lastAssetQueueCount, setLastAssetQueueCount] = createSignal(0);
 const syncLogger = createLogger({
   domain: "SYNC",
   module: "sync",
 });
 
-export { lastAssetQueueCount, lastSyncTime, setSyncStatus, syncStatus };
-
-let syncClient: SyncClient | null = null;
-let cleanupListeners: (() => Promise<void>) | null = null;
-
-export function getSyncClient(): SyncClient {
-  if (!syncClient) {
-    syncClient = createSyncClient({
-      scopeId: SYNC_SCOPE,
-      invoke,
-    });
-  }
-  return syncClient;
-}
-
-export function startSyncScheduler() {
-  const client = getSyncClient();
-  client.startPolling();
-}
-
-export function stopSyncScheduler() {
-  const client = getSyncClient();
-  client.stopPolling().catch(() => {});
-}
-
-export async function startEventListeners(): Promise<void> {
-  if (cleanupListeners) {
-    return;
-  }
-
-  let disposed = false;
-  const unlisteners: (() => Promise<void>)[] = [];
-
-  const unlistenData = await listen("baresync://data-changed", () => {
-    syncLogger.info("data_changed", {});
-  });
-  const unlistenStatus = await listen(
-    "baresync://sync-status-changed",
-    async () => {
-      try {
-        const client = getSyncClient();
-        const state = await client.getState();
-        if (state.needs_baseline_sync) {
-          setSyncStatus("syncing");
-        } else if (state.local_dirty_count > 0) {
-          setSyncStatus("syncing");
-        } else {
-          setSyncStatus("idle");
-        }
-        setLastSyncTime(new Date().toISOString());
-      } catch {
-        // ignore
-      }
-    }
-  );
-
-  unlisteners.push(
-    async () => {
-      await unlistenData();
-    },
-    async () => {
-      await unlistenStatus();
-    }
-  );
-
-  cleanupListeners = async () => {
-    if (disposed) {
-      return;
-    }
-    disposed = true;
-    for (const unlisten of unlisteners) {
-      await unlisten();
-    }
-    cleanupListeners = null;
-  };
-}
-
-export function stopEventListeners(): void {
-  if (cleanupListeners) {
-    cleanupListeners();
-  }
-}
+export { lastAssetQueueCount, setSyncStatus, syncStatus };
 
 interface SyncNowResult {
   mode: string;
@@ -218,8 +133,7 @@ export async function syncNow(): Promise<SyncNowResult> {
       await uploadPendingProductImages(merchantId, sessionToken);
     }
 
-    const client = getSyncClient();
-    const result = (await client.syncNow()) as SyncNowResult;
+    const result = (await syncClient.syncNow()) as SyncNowResult;
 
     syncLogger.info("result", {
       mode: result.mode,
@@ -230,7 +144,6 @@ export async function syncNow(): Promise<SyncNowResult> {
       serverWins: result.push.server_wins_count,
       tablesSynced: result.push.tables_synced,
     });
-    setLastSyncTime(result.pull.server_time);
     if (merchantId) {
       hydrateProductImagesInBackground(merchantId, sessionToken);
     }
@@ -246,7 +159,6 @@ export async function syncNow(): Promise<SyncNowResult> {
       message.includes("auth")
     ) {
       setSyncStatus("error");
-      stopSyncScheduler();
     } else {
       setSyncStatus("offline");
     }
@@ -268,8 +180,6 @@ export async function runStartupSync(): Promise<void> {
 
   setSyncStatus("syncing");
   try {
-    await startEventListeners();
-    startSyncScheduler();
     await syncNow();
     setSyncStatus("idle");
   } catch {

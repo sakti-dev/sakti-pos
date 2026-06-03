@@ -1,8 +1,8 @@
 import { categories, outletProducts, products } from "@repo/database";
 import dayjs from "dayjs";
 import { and, eq, isNull } from "drizzle-orm";
+import { syncClient } from "~/lib/sync";
 import { currentMerchantId, currentOutletId } from "~/store/outlet";
-import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 
 export type Category = typeof categories.$inferSelect;
@@ -43,9 +43,9 @@ export async function getCategory(id: string): Promise<Category | undefined> {
 
 export async function createCategory(data: NewCategory): Promise<Category> {
   const merchantId = currentMerchantId() ?? "";
-  const client = getSyncClient();
+
   const now = dayjs().toISOString();
-  return await client.writeTransaction(db, async (tx) => {
+  return await syncClient.writeTransaction(db, async (tx) => {
     const [row] = await tx
       .insert(categories)
       .values({
@@ -56,7 +56,7 @@ export async function createCategory(data: NewCategory): Promise<Category> {
         updatedAt: now,
       })
       .returning();
-    await client.enqueueChange(tx, {
+    await syncClient.enqueueChange(tx, {
       operation: "insert",
       rowId: row.id,
       table: categories,
@@ -69,14 +69,13 @@ export async function updateCategory(
   id: string,
   data: Partial<Omit<NewCategory, "id">>
 ): Promise<Category> {
-  const client = getSyncClient();
-  return await client.writeTransaction(db, async (tx) => {
+  return await syncClient.writeTransaction(db, async (tx) => {
     const [row] = await tx
       .update(categories)
       .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
       .where(eq(categories.id, id))
       .returning();
-    await client.enqueueChange(tx, {
+    await syncClient.enqueueChange(tx, {
       operation: "update",
       rowId: row.id,
       table: categories,
@@ -87,9 +86,9 @@ export async function updateCategory(
 
 export async function deleteCategory(id: string): Promise<void> {
   const now = dayjs().toISOString();
-  const client = getSyncClient();
-  await client.writeTransaction(db, async (tx) => {
-    await client.writeLocalChange(tx, {
+
+  await syncClient.writeTransaction(db, async (tx) => {
+    await syncClient.writeLocalChange(tx, {
       operation: "update",
       rowId: id,
       table: categories,
@@ -157,9 +156,9 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 
 export async function createProduct(data: NewProduct): Promise<Product> {
   const merchantId = currentMerchantId() ?? "";
-  const client = getSyncClient();
+
   const now = dayjs().toISOString();
-  return await client.writeTransaction(db, async (tx) => {
+  return await syncClient.writeTransaction(db, async (tx) => {
     const [row] = await tx
       .insert(products)
       .values({
@@ -170,7 +169,7 @@ export async function createProduct(data: NewProduct): Promise<Product> {
         updatedAt: now,
       })
       .returning();
-    await client.enqueueChange(tx, {
+    await syncClient.enqueueChange(tx, {
       operation: "insert",
       rowId: row.id,
       table: products,
@@ -183,14 +182,13 @@ export async function updateProduct(
   id: string,
   data: Partial<Omit<NewProduct, "id">>
 ): Promise<Product> {
-  const client = getSyncClient();
-  return await client.writeTransaction(db, async (tx) => {
+  return await syncClient.writeTransaction(db, async (tx) => {
     const [row] = await tx
       .update(products)
       .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
       .where(eq(products.id, id))
       .returning();
-    await client.enqueueChange(tx, {
+    await syncClient.enqueueChange(tx, {
       operation: "update",
       rowId: row.id,
       table: products,
@@ -201,9 +199,9 @@ export async function updateProduct(
 
 export async function deleteProduct(id: string): Promise<void> {
   const now = dayjs().toISOString();
-  const client = getSyncClient();
-  await client.writeTransaction(db, async (tx) => {
-    await client.writeLocalChange(tx, {
+
+  await syncClient.writeTransaction(db, async (tx) => {
+    await syncClient.writeLocalChange(tx, {
       operation: "update",
       rowId: id,
       table: products,
