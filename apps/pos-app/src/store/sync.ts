@@ -21,7 +21,7 @@ const syncLogger = createLogger({
   module: "sync",
 });
 
-export { lastAssetQueueCount, lastSyncTime, syncStatus };
+export { lastAssetQueueCount, lastSyncTime, setSyncStatus, syncStatus };
 
 let syncClient: SyncClient | null = null;
 let cleanupListeners: (() => Promise<void>) | null = null;
