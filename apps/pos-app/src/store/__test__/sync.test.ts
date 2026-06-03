@@ -57,11 +57,9 @@ const {
   lastSyncTime,
   startSyncScheduler,
   stopSyncScheduler,
-  __resetSyncStateForTests,
 } = await import("~/store/sync");
 
 function resetSyncMocks() {
-  __resetSyncStateForTests();
   mockInvoke.mockReset();
   mockGetSyncStatus.mockReset();
   mockProcessPendingAssetJobs.mockReset();

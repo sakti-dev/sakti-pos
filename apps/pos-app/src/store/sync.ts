@@ -278,11 +278,3 @@ export async function runStartupSync(): Promise<void> {
     }
   }
 }
-
-export function __resetSyncStateForTests() {
-  stopSyncScheduler();
-  stopEventListeners();
-  setSyncStatus("idle");
-  setLastSyncTime(null);
-  setLastAssetQueueCount(0);
-}
