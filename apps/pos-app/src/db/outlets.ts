@@ -6,7 +6,7 @@ import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 import { getMerchantById } from "./merchants";
 
-export interface OutletRecord {
+interface OutletRecord {
   address: string | null;
   id: string;
   merchantId: string;

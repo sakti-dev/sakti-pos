@@ -16,12 +16,6 @@ export function formatUtcTimestamp(now = dayjs()): string {
   return now.utc().toISOString();
 }
 
-export function getBusinessNow(
-  timezoneName = DEFAULT_BUSINESS_TIMEZONE
-): dayjs.Dayjs {
-  return dayjs().tz(timezoneName);
-}
-
 export function getBusinessDate(
   timezoneName = DEFAULT_BUSINESS_TIMEZONE,
   now = dayjs()

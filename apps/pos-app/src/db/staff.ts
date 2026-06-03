@@ -5,8 +5,8 @@ import { currentMerchantId } from "~/store/outlet";
 import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 
-export type StaffMember = typeof staff.$inferSelect;
-export type NewStaffMember = typeof staff.$inferInsert;
+type StaffMember = typeof staff.$inferSelect;
+type NewStaffMember = typeof staff.$inferInsert;
 
 export async function getStaff(): Promise<StaffMember[]> {
   const merchantId = currentMerchantId();

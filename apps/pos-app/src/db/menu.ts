@@ -6,11 +6,11 @@ import { getSyncClient } from "~/store/sync";
 import { db } from "./index";
 
 export type Category = typeof categories.$inferSelect;
-export type NewCategory = typeof categories.$inferInsert;
+type NewCategory = typeof categories.$inferInsert;
 export type Product = Omit<typeof products.$inferSelect, "imageAssetId"> & {
   imageAssetId?: string | null;
 };
-export type NewProduct = typeof products.$inferInsert;
+type NewProduct = typeof products.$inferInsert;
 export type OutletProduct = typeof outletProducts.$inferSelect;
 
 export async function getCategories(): Promise<Category[]> {

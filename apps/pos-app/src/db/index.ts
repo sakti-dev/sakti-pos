@@ -50,5 +50,3 @@ export const db = createTauriDrizzleDatabase({
     });
   },
 });
-
-export type DatabaseType = typeof db;
