@@ -1,10 +1,9 @@
-import { sql } from "drizzle-orm";
 import {
-  integer,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+  createSyncCursorsTable,
+  createSyncOutboxTable,
+  localSyncColumns,
+} from "baresync/schema";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 
 export const merchants = sqliteTable("merchants", {
@@ -12,14 +11,7 @@ export const merchants = sqliteTable("merchants", {
     .primaryKey()
     .$defaultFn(() => uuidv7()),
   name: text("name").notNull(),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const outlets = sqliteTable("outlets", {
@@ -33,14 +25,7 @@ export const outlets = sqliteTable("outlets", {
   receiptName: text("receipt_name"),
   receiptAddress: text("receipt_address"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const registers = sqliteTable("registers", {
@@ -54,14 +39,7 @@ export const registers = sqliteTable("registers", {
   pairingExpiresAt: text("pairing_expires_at"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   lastSeenAt: text("last_seen_at"),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const staff = sqliteTable("staff", {
@@ -75,14 +53,7 @@ export const staff = sqliteTable("staff", {
   pin: text("pin"),
   role: text("role", { enum: ["cashier", "manager", "owner"] }).notNull(),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const syncMeta = sqliteTable("sync_meta", {
@@ -91,30 +62,7 @@ export const syncMeta = sqliteTable("sync_meta", {
   lastSyncAt: text("last_sync_at").notNull(),
 });
 
-export const syncOutbox = sqliteTable(
-  "sync_outbox",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => uuidv7()),
-    tableName: text("table_name").notNull(),
-    rowId: text("row_id").notNull(),
-    operation: text("operation", {
-      enum: ["insert", "update", "delete"],
-    }).notNull(),
-    scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
-    scopeId: text("scope_id").notNull(),
-    changedAt: text("changed_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    syncedAt: text("synced_at"),
-  },
-  (table) => [
-    uniqueIndex("sync_outbox_pending_row_unique")
-      .on(table.tableName, table.rowId)
-      .where(sql`${table.syncedAt} IS NULL`),
-  ]
-);
+export const syncOutbox = createSyncOutboxTable();
 
 export const syncClientIdentity = sqliteTable("sync_client_identity", {
   id: integer("id").primaryKey(),
@@ -124,14 +72,7 @@ export const syncClientIdentity = sqliteTable("sync_client_identity", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const syncCursors = sqliteTable("sync_cursors", {
-  scopeType: text("scope_type", { enum: ["merchant", "outlet"] }).notNull(),
-  scopeId: text("scope_id").notNull(),
-  lastServerWatermark: text("last_server_watermark"),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-});
+export const syncCursors = createSyncCursorsTable();
 
 export const categories = sqliteTable("categories", {
   id: text("id")
@@ -141,14 +82,7 @@ export const categories = sqliteTable("categories", {
   name: text("name").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const assets = sqliteTable("assets", {
@@ -166,14 +100,7 @@ export const assets = sqliteTable("assets", {
   height: integer("height"),
   status: text("status").notNull().default("pending_upload"),
   createdByUserId: text("created_by_user_id"),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const localAssetCache = sqliteTable("local_asset_cache", {
@@ -260,14 +187,7 @@ export const products = sqliteTable("products", {
   imageAssetId: text("image_asset_id"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const outletProducts = sqliteTable("outlet_products", {
@@ -281,14 +201,7 @@ export const outletProducts = sqliteTable("outlet_products", {
     .notNull()
     .default(true),
   sortOrder: integer("sort_order"),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const orders = sqliteTable("orders", {
@@ -304,14 +217,7 @@ export const orders = sqliteTable("orders", {
   amountPaidMinorUnits: integer("amount_paid_minor_units"),
   changeAmountMinorUnits: integer("change_amount_minor_units"),
   status: text("status", { enum: ["completed", "cancelled"] }).notNull(),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });
 
 export const orderItems = sqliteTable("order_items", {
@@ -326,12 +232,5 @@ export const orderItems = sqliteTable("order_items", {
   unitPriceMinorUnits: integer("unit_price_minor_units").notNull(),
   originalPriceMinorUnits: integer("original_price_minor_units"),
   subtotalMinorUnits: integer("subtotal_minor_units").notNull(),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  deletedAt: text("deleted_at"),
-  isSynced: integer("is_synced", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
+  ...localSyncColumns(),
 });

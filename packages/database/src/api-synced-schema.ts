@@ -10,4 +10,4 @@ export {
   products,
   registers,
   staff,
-} from "./api-schema";
+} from "./api-schema.ts";

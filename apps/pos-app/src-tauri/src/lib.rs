@@ -5,7 +5,6 @@ mod auth;
 mod db;
 mod hardware;
 mod logging;
-mod sync;
 mod time_utils;
 
 use tauri_plugin_log::{Target, TargetKind};
@@ -62,13 +61,6 @@ pub fn run() {
             hardware::printer::test_thermal_printer,
             hardware::printer::print_thermal_receipt,
             hardware::printer::request_bluetooth_permission,
-            sync::commands::sync_push,
-            sync::commands::sync_pull,
-            sync::commands::get_sync_local_state,
-            sync::commands::sync_full_resync,
-            sync::commands::purge_synced_outbox,
-            sync::commands::run_garbage_collection,
-            sync::commands::sync_now
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

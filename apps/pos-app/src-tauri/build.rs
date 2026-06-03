@@ -6,20 +6,7 @@ use std::{env, fmt::Write as _, fs, path::PathBuf};
 fn main() {
     println!("cargo:rustc-link-arg=-Wl,-z,max-page-size=16384");
     println!("cargo:rustc-link-arg=-Wl,-z,common-page-size=16384");
-    println!("cargo:rerun-if-changed=../../../packages/protobuf/proto/sync.proto");
-    println!("cargo:rerun-if-changed=../../../packages/protobuf/proto/assets.proto");
     println!("cargo:rerun-if-changed=src/db/migrations.rs");
-
-    let protoc = protoc_bin_vendored::protoc_bin_path().expect("failed to find protoc binary");
-    std::env::set_var("PROTOC", protoc);
-    prost_build::compile_protos(
-        &[
-            "../../../packages/protobuf/proto/sync.proto",
-            "../../../packages/protobuf/proto/assets.proto",
-        ],
-        &["../../../packages/protobuf/proto"],
-    )
-    .expect("failed to compile protobuf sync schema");
 
     generate_migration_manifest();
 

@@ -21,6 +21,7 @@
     "@libsql/client": "^0.17.3",
     "@repo/database": "*",
     "@repo/protobuf": "*",
+    "baresync": "0.2.3",
     "arctic": "^3.6.0",
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.3",

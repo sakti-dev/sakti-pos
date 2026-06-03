@@ -1,6 +1,5 @@
 use base64::engine::general_purpose;
 use base64::Engine;
-use prost::Message;
 use sqlx::{Row, SqlitePool};
 use tauri::{AppHandle, Emitter, State};
 
@@ -26,62 +25,9 @@ use self::targets::{resolve_asset_target_merchant_id, validate_asset_attachment_
 use crate::app::state::AppState;
 use crate::time_utils::current_time_iso_string;
 
-#[allow(dead_code)]
-mod asset_proto {
-    include!(concat!(env!("OUT_DIR"), "/sakti.assets.v1.rs"));
-}
-
 const PHOTO_PIPELINE_LOG_PREFIX: &str = "RUST] [PHOTO:TRACE";
 
 // DTOs live in `assets/dto.rs`.
-
-#[cfg(test)]
-fn is_valid_asset_status(status: &str) -> bool {
-    matches!(
-        status,
-        "pending_upload" | "uploading" | "ready" | "pending_download" | "downloading" | "failed"
-    )
-}
-
-#[cfg(test)]
-fn is_valid_pending_product_photo_job_status(status: &str) -> bool {
-    matches!(status, "pending" | "processing" | "done" | "failed")
-}
-
-fn presign_response_means_already_ready(
-    response: &asset_proto::AssetPresignUploadResponse,
-) -> bool {
-    self::http::presign_response_means_already_ready(response)
-}
-
-fn build_api_client(session_token: &str) -> Result<reqwest::Client, String> {
-    self::http::build_api_client(session_token)
-}
-
-fn build_signed_url_client() -> Result<reqwest::Client, String> {
-    self::http::build_signed_url_client()
-}
-
-async fn post_protobuf<Req, Res>(
-    client: &reqwest::Client,
-    url: &str,
-    request: &Req,
-) -> Result<Res, String>
-where
-    Req: Message,
-    Res: Message + Default,
-{
-    self::http::post_protobuf(client, url, request).await
-}
-
-async fn put_bytes_to_signed_url(
-    client: &reqwest::Client,
-    url: &str,
-    headers: &[asset_proto::AssetHeader],
-    bytes: &[u8],
-) -> Result<(), String> {
-    self::http::put_bytes_to_signed_url(client, url, headers, bytes).await
-}
 
 #[derive(Debug, PartialEq, Eq)]
 struct LocalAssetPersistState {

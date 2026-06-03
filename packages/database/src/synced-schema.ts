@@ -10,4 +10,4 @@ export {
   products,
   registers,
   staff,
-} from "./local-schema";
+} from "./local-schema.ts";

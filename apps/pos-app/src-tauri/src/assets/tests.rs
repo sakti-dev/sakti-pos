@@ -492,17 +492,6 @@ fn original_filename_falls_back_to_path_file_name() {
 }
 
 #[test]
-fn empty_upload_url_means_asset_is_already_ready() {
-    let response = asset_proto::AssetPresignUploadResponse {
-        asset: None,
-        upload_url: String::new(),
-        required_headers: vec![],
-    };
-
-    assert!(presign_response_means_already_ready(&response));
-}
-
-#[test]
 fn ready_assets_keep_ready_status_when_reused() {
     assert_eq!(
         resolve_local_asset_persist_state(Some("ready")),

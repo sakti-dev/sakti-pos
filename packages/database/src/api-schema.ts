@@ -1,10 +1,6 @@
+import { apiSyncColumns, createSyncBatchRequestsTable } from "baresync/schema";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
-import {
-  integer,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 
 export const merchants = sqliteTable("merchants", {
@@ -12,10 +8,7 @@ export const merchants = sqliteTable("merchants", {
     .primaryKey()
     .$defaultFn(() => uuidv7()),
   name: text("name").notNull(),
-  deletedAt: text("deleted_at"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const userMerchants = sqliteTable("user_merchants", {
@@ -55,25 +48,7 @@ export const userSessions = sqliteTable("user_sessions", {
   expiresAt: integer("expires_at").notNull(),
 });
 
-export const syncBatchRequests = sqliteTable(
-  "sync_batch_requests",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    clientId: text("client_id").notNull(),
-    idempotencyKey: text("idempotency_key").notNull(),
-    requestHash: text("request_hash").notNull(),
-    responseJson: text("response_json").notNull(),
-    serverTime: text("server_time").notNull(),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
-  },
-  (table) => [
-    uniqueIndex("sync_batch_requests_client_id_idempotency_key_unique").on(
-      table.clientId,
-      table.idempotencyKey
-    ),
-  ]
-);
+export const syncBatchRequests = createSyncBatchRequestsTable();
 
 export const outlets = sqliteTable("outlets", {
   id: text("id")
@@ -88,10 +63,7 @@ export const outlets = sqliteTable("outlets", {
   receiptName: text("receipt_name"),
   receiptAddress: text("receipt_address"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  deletedAt: text("deleted_at"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const registers = sqliteTable("registers", {
@@ -107,10 +79,7 @@ export const registers = sqliteTable("registers", {
   pairingExpiresAt: text("pairing_expires_at"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   lastSeenAt: text("last_seen_at"),
-  deletedAt: text("deleted_at"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const staff = sqliteTable("staff", {
@@ -126,10 +95,7 @@ export const staff = sqliteTable("staff", {
   pin: text("pin"),
   role: text("role", { enum: ["cashier", "manager", "owner"] }).notNull(),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  deletedAt: text("deleted_at"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const categories = sqliteTable("categories", {
@@ -142,10 +108,7 @@ export const categories = sqliteTable("categories", {
   name: text("name").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  deletedAt: text("deleted_at"),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const assets = sqliteTable("assets", {
@@ -167,10 +130,7 @@ export const assets = sqliteTable("assets", {
     enum: ["pending_upload", "ready", "failed"],
   }).notNull(),
   createdByUserId: text("created_by_user_id").references(() => users.id),
-  deletedAt: text("deleted_at"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const products = sqliteTable("products", {
@@ -187,10 +147,7 @@ export const products = sqliteTable("products", {
   imageAssetId: text("image_asset_id").references(() => assets.id),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  deletedAt: text("deleted_at"),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const outletProducts = sqliteTable("outlet_products", {
@@ -208,10 +165,7 @@ export const outletProducts = sqliteTable("outlet_products", {
     .notNull()
     .default(true),
   sortOrder: integer("sort_order"),
-  deletedAt: text("deleted_at"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const orders = sqliteTable("orders", {
@@ -229,10 +183,7 @@ export const orders = sqliteTable("orders", {
   amountPaidMinorUnits: integer("amount_paid_minor_units"),
   changeAmountMinorUnits: integer("change_amount_minor_units"),
   status: text("status", { enum: ["completed", "cancelled"] }).notNull(),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  deletedAt: text("deleted_at"),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
 
 export const orderItems = sqliteTable("order_items", {
@@ -251,8 +202,5 @@ export const orderItems = sqliteTable("order_items", {
   unitPriceMinorUnits: integer("unit_price_minor_units").notNull(),
   originalPriceMinorUnits: integer("original_price_minor_units"),
   subtotalMinorUnits: integer("subtotal_minor_units").notNull(),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  deletedAt: text("deleted_at"),
-  syncUpdatedAt: integer("sync_updated_at").notNull().default(0),
+  ...apiSyncColumns(),
 });
