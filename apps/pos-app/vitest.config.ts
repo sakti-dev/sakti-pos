@@ -10,10 +10,6 @@ export default defineConfig({
     },
     conditions: ["development", "browser"],
   },
-  esbuild: {
-    jsx: "automatic",
-    jsxImportSource: "solid-js",
-  },
   test: {
     environment: "jsdom",
     globals: true,
