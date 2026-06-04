@@ -70,7 +70,7 @@ const resolveScope = async ({
 const push = createSyncPushHandler<ScopeContext, ResolvedScope>({
   resolveScope,
   upsertOrder: repository.tableNames,
-  idempotency: { db: db as never },
+  idempotency: { db },
   applyPushChanges: async ({ changes, scope, syncUpdatedAt }) =>
     repository.applyPushChanges({
       changes,
