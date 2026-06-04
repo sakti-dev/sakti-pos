@@ -1,4 +1,3 @@
-import { SYNC_SCOPE } from "@sync-contract/constants";
 import { QueryClient, useQueryClient } from "@tanstack/solid-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -11,7 +10,9 @@ import {
   type ParentComponent,
   useContext,
 } from "solid-js";
+import { setSyncClient } from "~/lib/sync";
 import { setSyncDataVersion } from "~/lib/use-drizzle-query";
+import { scopeId } from "~/store/auth";
 import { setSyncStatus } from "~/store/sync";
 
 export const queryClient = new QueryClient({
@@ -27,26 +28,19 @@ const SyncClientContext = createContext<SyncClient>();
 
 export const SyncClientProvider: ParentComponent = (props) => {
   const queryClient = useQueryClient();
-
-  const [client] = createSignal(
-    createSyncClient({
-      scopeId: SYNC_SCOPE,
-      invoke,
-    })
-  );
+  const [client, setClient] = createSignal<SyncClient | null>(null);
 
   createEffect(() => {
-    client().startPolling();
-    onCleanup(() =>
-      client()
-        .stopPolling()
-        .catch(() => {})
-    );
-  });
+    const scope = scopeId();
+    if (!scope) {
+      return;
+    }
 
-  createEffect(() => {
-    let disposed = false;
-    let cleanup: (() => Promise<void> | void) | null = null;
+    const newClient = createSyncClient({ scopeId: scope, invoke });
+    setSyncClient(newClient);
+    setClient(newClient);
+
+    newClient.startPolling().catch(() => {});
 
     const pending = Promise.all([
       listen("baresync://data-changed", async () => {
@@ -55,7 +49,7 @@ export const SyncClientProvider: ParentComponent = (props) => {
       }),
       listen("baresync://sync-status-changed", async () => {
         try {
-          const state = await client().getState();
+          const state = await newClient.getState();
           if (state.needs_baseline_sync || state.local_dirty_count > 0) {
             setSyncStatus("syncing");
           } else {
@@ -65,28 +59,23 @@ export const SyncClientProvider: ParentComponent = (props) => {
           // ignore
         }
       }),
-    ]).then(([unlistenDataChanged, unlistenStatusChanged]) => {
-      const release = async () => {
-        await Promise.all([unlistenDataChanged(), unlistenStatusChanged()]);
-      };
-      if (disposed) {
-        release();
-        return;
-      }
-      cleanup = release;
-    });
+    ]);
+
     pending.catch(() => undefined);
 
-    onCleanup(() => {
-      disposed = true;
-      if (cleanup) {
-        cleanup();
-      }
+    onCleanup(async () => {
+      pending.then(([unlistenDataChanged, unlistenStatusChanged]) => {
+        unlistenDataChanged();
+        unlistenStatusChanged();
+      });
+      await newClient.stopPolling().catch(() => {});
+      setSyncClient(null);
+      setClient(null);
     });
   });
 
   return (
-    <SyncClientContext.Provider value={client()}>
+    <SyncClientContext.Provider value={client()!}>
       {props.children}
     </SyncClientContext.Provider>
   );

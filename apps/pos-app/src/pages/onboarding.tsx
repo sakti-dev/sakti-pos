@@ -12,7 +12,7 @@ import {
   getSession,
   type Merchant,
 } from "~/lib/auth/cloud";
-import { login } from "~/store/auth";
+import { login, setScope } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
@@ -164,6 +164,7 @@ export default function Onboarding() {
       const activeStaff = await getOwnerStaff(merchant.id);
       if (activeStaff) {
         await login(activeStaff.id, pin());
+        setScope(merchant.id);
         navigate("/pos", { replace: true });
       } else {
         setError("Gagal memuat staff setelah sync");

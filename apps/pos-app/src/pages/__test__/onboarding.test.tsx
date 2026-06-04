@@ -84,6 +84,7 @@ vi.mock("~/db/staff", () => ({
 
 vi.mock("~/store/auth", () => ({
   login: (staffId: string, pin: string) => mockLogin(staffId, pin),
+  setScope: vi.fn(),
 }));
 
 import Onboarding from "../onboarding";

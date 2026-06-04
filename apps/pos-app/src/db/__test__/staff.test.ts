@@ -45,7 +45,7 @@ vi.mock("~/store/outlet", () => ({
 }));
 
 vi.mock("~/lib/sync", () => ({
-  syncClient: {
+  getSyncClient: vi.fn(() => ({
     enqueueChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
       const tableName =
         opts.table?.[Symbol.for("drizzle:Name")] ??
@@ -94,7 +94,7 @@ vi.mock("~/lib/sync", () => ({
     writeTransaction: vi
       .fn()
       .mockImplementation(async (_db: any, fn: any) => fn(mocks.getTestDb())),
-  },
+  })),
 }));
 
 vi.mock("../index", () => ({

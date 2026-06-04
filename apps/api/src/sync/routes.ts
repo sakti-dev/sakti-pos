@@ -1,4 +1,4 @@
-import { outlets } from "@sync-contract/api-schema";
+import { merchants, outlets } from "@sync-contract/api-schema";
 import {
   createSyncPullHandler,
   createSyncPushHandler,
@@ -17,6 +17,16 @@ interface ScopeContext {
 interface ResolvedScope {
   merchantId: string;
   scopeId: string;
+  scopeType: "merchant" | "outlet";
+}
+
+async function getMerchantById(id: string): Promise<{ id: string } | null> {
+  const [row] = await db
+    .select({ id: merchants.id })
+    .from(merchants)
+    .where(eq(merchants.id, id))
+    .limit(1);
+  return row ?? null;
 }
 
 async function getOutletMerchantId(outletId: string): Promise<string | null> {
@@ -38,11 +48,23 @@ const resolveScope = async ({
   | { ok: true; scope: ResolvedScope }
   | { ok: false; status: number; body: { error: string } }
 > => {
-  const merchantId = await getOutletMerchantId(scopeId);
-  if (!merchantId) {
-    return { ok: false, status: 404, body: { error: "Outlet not found" } };
+  const merchant = await getMerchantById(scopeId);
+  if (merchant) {
+    return {
+      ok: true,
+      scope: { scopeId, merchantId: merchant.id, scopeType: "merchant" },
+    };
   }
-  return { ok: true, scope: { scopeId, merchantId } };
+
+  const merchantId = await getOutletMerchantId(scopeId);
+  if (merchantId) {
+    return {
+      ok: true,
+      scope: { scopeId, merchantId, scopeType: "outlet" },
+    };
+  }
+
+  return { ok: false, status: 404, body: { error: "Scope not found" } };
 };
 
 const push = createSyncPushHandler<ScopeContext, ResolvedScope>({

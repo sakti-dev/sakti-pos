@@ -7,9 +7,6 @@
       "@sync-contract/local-synced-schema": [
         "../../packages/sync-contract/src/local-synced-schema.ts"
       ],
-      "@sync-contract/constants": [
-        "../../packages/sync-contract/src/sync-constants.ts"
-      ],
       "@sync-contract/api-schema": [
         "../../packages/sync-contract/src/api-schema.ts"
       ],

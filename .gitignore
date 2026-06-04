@@ -54,5 +54,5 @@ graphify-out
 .graphifyignore
 .logs
 .security-key
-*log*
+*.log
 *.sqlite

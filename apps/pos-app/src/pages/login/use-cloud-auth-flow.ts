@@ -11,7 +11,7 @@ import {
 } from "~/lib/auth/cloud";
 import { createLogger } from "~/lib/logger";
 import { describeError } from "~/lib/utils";
-import { getActiveStaff, loginWithCloudStaff } from "~/store/auth";
+import { getActiveStaff, loginWithCloudStaff, setScope } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
@@ -120,6 +120,7 @@ export function useCloudAuthFlow() {
     if (currentCloudStaff.staff) {
       try {
         const authUser = await loginWithCloudStaff(currentCloudStaff.staff.id);
+        setScope(outlet.merchantId);
         navigate(routeForRole(authUser.role), { replace: true });
       } catch (err) {
         cloudLoginLogger.error("local_cloud_staff_login:failed", err, {

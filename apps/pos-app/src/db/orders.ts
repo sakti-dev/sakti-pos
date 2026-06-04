@@ -22,7 +22,7 @@ import {
   getBusinessDateFromInstant,
   toUtcRangeForBusinessDate,
 } from "~/lib/date-time";
-import { syncClient } from "~/lib/sync";
+import { getSyncClient } from "~/lib/sync";
 import {
   currentMerchantId,
   currentOutletId,
@@ -61,7 +61,7 @@ export async function createOrder(data: {
     item,
   }));
 
-  await syncClient.writeTransaction(db, async (tx) => {
+  await getSyncClient().writeTransaction(db, async (tx) => {
     await tx.insert(orders).values({
       id: orderId,
       orderNumber,
@@ -95,14 +95,14 @@ export async function createOrder(data: {
       });
     }
 
-    await syncClient.enqueueChange(tx, {
+    await getSyncClient().enqueueChange(tx, {
       operation: "insert",
       rowId: orderId,
       table: orders,
     });
 
     for (const { id } of orderItemsWithIds) {
-      await syncClient.enqueueChange(tx, {
+      await getSyncClient().enqueueChange(tx, {
         operation: "insert",
         rowId: id,
         table: orderItems,
@@ -270,8 +270,8 @@ export async function getOrderItems(orderId: string): Promise<OrderItemRow[]> {
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {
-  await syncClient.writeTransaction(db, async (tx) => {
-    await syncClient.writeLocalChange(tx, {
+  await getSyncClient().writeTransaction(db, async (tx) => {
+    await getSyncClient().writeLocalChange(tx, {
       operation: "update",
       rowId: orderId,
       table: orders,

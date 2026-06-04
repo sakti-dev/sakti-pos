@@ -1,7 +1,7 @@
 import { outlets } from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import { eq } from "drizzle-orm";
-import { syncClient } from "~/lib/sync";
+import { getSyncClient } from "~/lib/sync";
 import { currentMerchantId } from "~/store/outlet";
 import { db } from "./index";
 import { getMerchantById } from "./merchants";
@@ -92,7 +92,7 @@ export async function updateOutletTimezone(
   outletId: string,
   timezone: string
 ): Promise<{ id: string; name: string; timezone: string } | undefined> {
-  const row = await syncClient.writeTransaction(db, async (tx) => {
+  const row = await getSyncClient().writeTransaction(db, async (tx) => {
     const [result] = await tx
       .update(outlets)
       .set({ timezone, updatedAt: dayjs().toISOString(), isSynced: false })
@@ -108,7 +108,7 @@ export async function updateOutletTimezone(
       return;
     }
 
-    await syncClient.enqueueChange(tx, {
+    await getSyncClient().enqueueChange(tx, {
       operation: "update",
       rowId: result.id,
       table: outlets,
@@ -144,7 +144,7 @@ export async function saveOutletReceiptHeader(
     }
   | undefined
 > {
-  const row = await syncClient.writeTransaction(db, async (tx) => {
+  const row = await getSyncClient().writeTransaction(db, async (tx) => {
     const [result] = await tx
       .update(outlets)
       .set({
@@ -168,7 +168,7 @@ export async function saveOutletReceiptHeader(
       return;
     }
 
-    await syncClient.enqueueChange(tx, {
+    await getSyncClient().enqueueChange(tx, {
       operation: "update",
       rowId: result.id,
       table: outlets,

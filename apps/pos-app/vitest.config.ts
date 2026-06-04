@@ -11,10 +11,6 @@ export default defineConfig({
         import.meta.dirname,
         "../../packages/sync-contract/src/local-synced-schema.ts"
       ),
-      "@sync-contract/constants": path.resolve(
-        import.meta.dirname,
-        "../../packages/sync-contract/src/sync-constants.ts"
-      ),
       "@sync-contract/api-schema": path.resolve(
         import.meta.dirname,
         "../../packages/sync-contract/src/api-schema.ts"

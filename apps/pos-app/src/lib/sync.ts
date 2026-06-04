@@ -1,5 +1,16 @@
-import { SYNC_SCOPE } from "@sync-contract/constants";
-import { invoke } from "@tauri-apps/api/core";
-import { createSyncClient } from "baresync/tauri";
+import type { SyncClient } from "baresync/tauri";
 
-export const syncClient = createSyncClient({ scopeId: SYNC_SCOPE, invoke });
+let currentClient: SyncClient | null = null;
+
+export function getSyncClient(): SyncClient {
+  if (!currentClient) {
+    throw new Error(
+      "Sync client not initialized. Ensure SyncClientProvider is mounted."
+    );
+  }
+  return currentClient;
+}
+
+export function setSyncClient(client: SyncClient | null) {
+  currentClient = client;
+}

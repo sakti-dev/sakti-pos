@@ -9,7 +9,6 @@
     "./api-schema": "./src/api-schema.ts",
     "./api-synced-schema": "./src/api-synced-schema.ts",
     "./local-synced-schema": "./src/local-synced-schema.ts",
-    "./constants": "./src/sync-constants.ts",
     "./sync.config": "./sync.config.ts",
     "./generated/sync-contract": "./generated/2026-06-03/sync-contract.json",
     "./generated/sync-table-order": "./generated/2026-06-03/sync-table-order.ts",
@@ -23,7 +22,7 @@
     "check": "bun run doctor && bun run typecheck"
   },
   "dependencies": {
-    "baresync": "0.2.5",
+    "baresync": "0.2.6",
     "drizzle-orm": "^0.45.2",
     "uuid": "^14.0.0"
   },

@@ -1,7 +1,7 @@
 import { staff } from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
-import { syncClient } from "~/lib/sync";
+import { getSyncClient } from "~/lib/sync";
 import { currentMerchantId } from "~/store/outlet";
 import { db } from "./index";
 
@@ -51,12 +51,12 @@ export async function createStaffMember(
   data: NewStaffMember
 ): Promise<StaffMember> {
   const now = dayjs().toISOString();
-  return await syncClient.writeTransaction(db, async (tx) => {
+  return await getSyncClient().writeTransaction(db, async (tx) => {
     const [row] = await tx
       .insert(staff)
       .values({ ...data, createdAt: now, updatedAt: now })
       .returning();
-    await syncClient.enqueueChange(tx, {
+    await getSyncClient().enqueueChange(tx, {
       operation: "insert",
       rowId: row.id,
       table: staff,
@@ -69,13 +69,13 @@ export async function updateStaffMember(
   id: string,
   data: Partial<Omit<NewStaffMember, "id">>
 ): Promise<StaffMember> {
-  return await syncClient.writeTransaction(db, async (tx) => {
+  return await getSyncClient().writeTransaction(db, async (tx) => {
     const [row] = await tx
       .update(staff)
       .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
       .where(eq(staff.id, id))
       .returning();
-    await syncClient.enqueueChange(tx, {
+    await getSyncClient().enqueueChange(tx, {
       operation: "update",
       rowId: row.id,
       table: staff,

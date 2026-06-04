@@ -12,8 +12,25 @@ export type { StaffRole } from "~/lib/auth/provider";
 export type { AuthUser };
 
 const LAST_USER_KEY = "sakti-pos:last-staff-id";
+const SCOPE_STORAGE_KEY = "sakti-pos:sync-scope";
 
 const [user, setUser] = createSignal<AuthUser | null>(null);
+
+const [scopeId, setScopeId] = createSignal<string | null>(
+  localStorage.getItem(SCOPE_STORAGE_KEY)
+);
+
+export { scopeId };
+
+export function setScope(id: string) {
+  setScopeId(id);
+  localStorage.setItem(SCOPE_STORAGE_KEY, id);
+}
+
+export function clearScope() {
+  setScopeId(null);
+  localStorage.removeItem(SCOPE_STORAGE_KEY);
+}
 
 export const isAuthenticated = () => user() !== null;
 export const currentUser = () => user();
@@ -91,6 +108,7 @@ export const loginWithCloudStaff = async (
 
 export const logout = () => {
   setUser(null);
+  clearScope();
 };
 
 export const changeCurrentUserPin = async (newPin: string) => {

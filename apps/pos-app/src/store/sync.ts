@@ -4,7 +4,7 @@ import { processPendingAssetJobs } from "~/lib/assets/processing";
 import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
-import { syncClient } from "~/lib/sync";
+import { getSyncClient } from "~/lib/sync";
 import { describeError } from "~/lib/utils";
 import { currentMerchantId, currentOutletId } from "./outlet";
 
@@ -133,7 +133,7 @@ export async function syncNow(): Promise<SyncNowResult> {
       await uploadPendingProductImages(merchantId, sessionToken);
     }
 
-    const result = (await syncClient.syncNow()) as SyncNowResult;
+    const result = (await getSyncClient().syncNow()) as SyncNowResult;
 
     syncLogger.info("result", {
       mode: result.mode,

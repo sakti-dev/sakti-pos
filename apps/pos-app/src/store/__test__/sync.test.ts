@@ -42,26 +42,28 @@ vi.mock("~/lib/assets/sync", () => ({
   uploadPendingAssets: vi.fn(() => Promise.resolve(0)),
 }));
 
+const mockSyncClient = {
+  syncNow: vi.fn(() =>
+    Promise.resolve({
+      mode: "NoOp",
+      pull: { rows_received: 0, server_time: "" },
+      purged: 0,
+      push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+    })
+  ),
+  getState: vi.fn(() =>
+    Promise.resolve({
+      local_dirty_count: 0,
+      last_server_watermark: "",
+      needs_baseline_sync: false,
+    })
+  ),
+  startPolling: vi.fn(),
+  stopPolling: vi.fn(() => Promise.resolve()),
+};
+
 vi.mock("~/lib/sync", () => ({
-  syncClient: {
-    syncNow: vi.fn(() =>
-      Promise.resolve({
-        mode: "NoOp",
-        pull: { rows_received: 0, server_time: "" },
-        purged: 0,
-        push: { server_time: "", server_wins_count: 0, tables_synced: [] },
-      })
-    ),
-    getState: vi.fn(() =>
-      Promise.resolve({
-        local_dirty_count: 0,
-        last_server_watermark: "",
-        needs_baseline_sync: false,
-      })
-    ),
-    startPolling: vi.fn(),
-    stopPolling: vi.fn(() => Promise.resolve()),
-  },
+  getSyncClient: vi.fn(() => mockSyncClient),
 }));
 
 const { syncNow, runStartupSync, syncStatus } = await import("~/store/sync");
@@ -83,8 +85,7 @@ describe("syncNow", () => {
   });
 
   test("calls syncClient.syncNow when outlet and token exist", async () => {
-    const { syncClient } = await import("~/lib/sync");
-    vi.mocked(syncClient.syncNow).mockResolvedValueOnce({
+    vi.mocked(mockSyncClient.syncNow).mockResolvedValueOnce({
       mode: "PullOnly",
       pull: { rows_received: 3, server_time: "2026-01-01T00:00:00.000Z" },
       purged: 0,
@@ -97,20 +98,14 @@ describe("syncNow", () => {
   });
 
   test("sets error status on auth failure", async () => {
-    const { syncClient } = await import("~/lib/sync");
-    vi.mocked(syncClient.syncNow).mockRejectedValueOnce(
-      new Error("401 Unauthorized")
-    );
+    mockSyncClient.syncNow.mockRejectedValueOnce(new Error("401 Unauthorized"));
 
     await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
     expect(syncStatus()).toBe("error");
   });
 
   test("sets offline status on network failure", async () => {
-    const { syncClient } = await import("~/lib/sync");
-    vi.mocked(syncClient.syncNow).mockRejectedValueOnce(
-      new Error("Network error")
-    );
+    mockSyncClient.syncNow.mockRejectedValueOnce(new Error("Network error"));
 
     await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
     expect(syncStatus()).toBe("offline");
@@ -138,10 +133,7 @@ describe("runStartupSync", () => {
   });
 
   test("sets offline on error", async () => {
-    const { syncClient } = await import("~/lib/sync");
-    vi.mocked(syncClient.syncNow).mockRejectedValueOnce(
-      new Error("Network error")
-    );
+    mockSyncClient.syncNow.mockRejectedValueOnce(new Error("Network error"));
 
     await runStartupSync();
     expect(syncStatus()).toBe("offline");

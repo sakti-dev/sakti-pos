@@ -57,6 +57,7 @@ vi.mock("~/store/sync", () => ({
 vi.mock("~/store/auth", () => ({
   getActiveStaff: () => mockGetActiveStaff(),
   loginWithCloudStaff: (...a: unknown[]) => mockLoginWithCloudStaff(...a),
+  setScope: vi.fn(),
 }));
 
 import CloudLogin from "../cloud-login";
