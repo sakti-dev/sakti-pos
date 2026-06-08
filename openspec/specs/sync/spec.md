@@ -8,10 +8,10 @@ Sakti POS uses bidirectional cloud sync powered by the `baresync` plugin to keep
 
 ### R1: Baresync Plugin Architecture
 
-The system SHALL use the `baresync` npm package (v0.2.3) and `tauri-plugin-baresync` Rust crate (v0.2.0) for sync infrastructure. Wire encoding SHALL be JSON (not protobuf).
+-The system SHALL use the `baresync` npm package (v0.4.2) and `tauri-plugin-baresync` Rust crate (v0.4.2) for sync infrastructure. Wire encoding SHALL be JSON (not protobuf).
 
 - The client uses `createSyncClient` from `baresync/tauri` to create a `SyncClient` instance.
-- The server uses `createSyncPushHandler`, `createSyncPullHandler`, `createSyncStatusHandler` from `baresync/server` for route handlers.
+- The server uses `createSyncServer` from `baresync/server` for route handlers (push, pull, status).
 - The server uses `createDrizzleSyncRepository` from `baresync/server/drizzle` for the data access layer.
 - The client uses `createTauriDrizzleDatabase` from `baresync/db` for local SQLite access.
 
