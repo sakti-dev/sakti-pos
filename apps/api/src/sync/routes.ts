@@ -1,9 +1,5 @@
 import { merchants, outlets } from "@sync-contract/api-schema";
-import {
-  createSyncPullHandler,
-  createSyncPushHandler,
-  createSyncStatusHandler,
-} from "baresync/server";
+import { createSyncServer } from "baresync/server";
 import { eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
@@ -67,40 +63,50 @@ const resolveScope = async ({
   return { ok: false, status: 404, body: { error: "Scope not found" } };
 };
 
-const push = createSyncPushHandler<ScopeContext, ResolvedScope>({
+const syncServer = createSyncServer<ScopeContext, ResolvedScope>({
+  db,
   resolveScope,
-  upsertOrder: repository.tableNames,
-  idempotency: { db },
-  applyPushChanges: async ({ changes, scope, syncUpdatedAt }) =>
-    repository.applyPushChanges({
-      changes,
-      scopeId: scope.scopeId,
-      syncUpdatedAt,
-    }),
+  push: {
+    upsertOrder: repository.tableNames,
+    applyPushChanges: async ({ changes, scope, syncUpdatedAt }) =>
+      repository.applyPushChanges({
+        changes,
+        scopeId: scope.scopeId,
+        syncUpdatedAt,
+      }),
+  },
+  pull: {
+    limit: 1000,
+    loadPullChanges: async ({ cursor, scope, tables }) =>
+      repository.loadPullChanges({
+        cursor,
+        scopeId: scope.scopeId,
+        tables,
+      }),
+  },
+  status: {
+    loadSyncStatus: async ({ cursor, scope }) =>
+      repository.loadSyncStatus({
+        cursor,
+        scopeId: scope.scopeId,
+      }),
+  },
 });
 
-const pull = createSyncPullHandler<ScopeContext, ResolvedScope>({
-  limit: 1000,
-  resolveScope,
-  loadPullChanges: async ({ cursor, scope, tables }) =>
-    repository.loadPullChanges({
-      cursor,
-      scopeId: scope.scopeId,
-      tables,
-    }),
-});
-
-const status = createSyncStatusHandler<ScopeContext, ResolvedScope>({
-  resolveScope,
-  loadSyncStatus: async ({ cursor, scope }) =>
-    repository.loadSyncStatus({
-      cursor,
-      scopeId: scope.scopeId,
-    }),
-});
-
-export const syncRoutes = new Elysia({ prefix: "/api/sync" })
+export const syncRoutes = new Elysia({ prefix: "/api/sync/v1" })
   .use(authenticated)
-  .post("/push", (c) => push(c.request, { userId: c.session.userId }))
-  .post("/pull", (c) => pull(c.request, { userId: c.session.userId }))
-  .post("/status", (c) => status(c.request, { userId: c.session.userId }));
+  .post(
+    "/push",
+    (c) => syncServer.push(c.request, { userId: c.session.userId }),
+    { parse: "none" }
+  )
+  .post(
+    "/pull",
+    (c) => syncServer.pull(c.request, { userId: c.session.userId }),
+    { parse: "none" }
+  )
+  .post(
+    "/status",
+    (c) => syncServer.status(c.request, { userId: c.session.userId }),
+    { parse: "none" }
+  );

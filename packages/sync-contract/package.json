@@ -10,11 +10,11 @@
     "./api-synced-schema": "./src/api-synced-schema.ts",
     "./local-synced-schema": "./src/local-synced-schema.ts",
     "./sync.config": "./sync.config.ts",
-    "./generated/sync-contract": "./generated/2026-06-03/sync-contract.json",
-    "./generated/sync-table-order": "./generated/2026-06-03/sync-table-order.ts",
-    "./generated/manifest": "./generated/2026-06-03/sync-contract.manifest.json",
-    "./generated/api-synced-schema": "./generated/2026-06-03/api-synced-schema.ts",
-    "./generated/local-synced-schema": "./generated/2026-06-03/local-synced-schema.ts"
+    "./generated/sync-contract": "./generated/2026-06-04/sync-contract.json",
+    "./generated/sync-table-order": "./generated/2026-06-04/sync-table-order.ts",
+    "./generated/manifest": "./generated/2026-06-04/sync-contract.manifest.json",
+    "./generated/api-synced-schema": "./generated/2026-06-04/api-synced-schema.ts",
+    "./generated/local-synced-schema": "./generated/2026-06-04/local-synced-schema.ts"
   },
   "scripts": {
     "generate": "bunx baresync generate",
@@ -22,7 +22,7 @@
     "check": "bun run doctor && bun run typecheck"
   },
   "dependencies": {
-    "baresync": "0.2.6",
+    "baresync": "0.4.2",
     "drizzle-orm": "^0.45.2",
     "uuid": "^14.0.0"
   },
