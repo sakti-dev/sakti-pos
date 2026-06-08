@@ -41,6 +41,7 @@ const mockGetOwnerStaff = vi.fn();
 const mockLogin = vi.fn((_staffId: string, _pin: string) =>
   Promise.resolve({ id: "staff-1", name: "Test Biz", role: "owner" })
 );
+const mockSetScope = vi.fn();
 
 vi.mock("@solidjs/router", () => ({
   useNavigate: () => mockNavigate,
@@ -84,7 +85,7 @@ vi.mock("~/db/staff", () => ({
 
 vi.mock("~/store/auth", () => ({
   login: (staffId: string, pin: string) => mockLogin(staffId, pin),
-  setScope: vi.fn(),
+  setScope: (id: string) => mockSetScope(id),
 }));
 
 import Onboarding from "../onboarding";
@@ -199,5 +200,64 @@ describe("Onboarding", () => {
     await vi.waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/pos", { replace: true });
     });
+  });
+
+  test("sets scope before calling syncNow so sync client is initialized", async () => {
+    mockCreateMerchant.mockResolvedValue({
+      id: "merchant-1",
+      name: "Test Biz",
+      createdAt: "",
+      updatedAt: "",
+    });
+    mockCreateOutlet.mockResolvedValue({
+      id: "outlet-1",
+      merchantId: "merchant-1",
+      register: { id: "register-1" },
+    });
+    mockGetOwnerStaff.mockResolvedValueOnce(undefined).mockResolvedValueOnce({
+      id: "staff-1",
+      name: "Test Biz",
+      role: "owner",
+    });
+    mockCreateStaffApi.mockResolvedValue({ id: "staff-1" });
+    mockLogin.mockResolvedValue({
+      id: "staff-1",
+      name: "Test Biz",
+      role: "owner",
+    });
+    render(() => <Onboarding />);
+    await user.type(
+      screen.getByPlaceholderText("Contoh: PT Sakti Jaya"),
+      "Test Biz"
+    );
+    await user.click(screen.getByText("Lanjutkan"));
+    await screen.findByText("Buat outlet pertama");
+    await user.type(
+      screen.getByPlaceholderText("Contoh: Cabang Sudirman"),
+      "Cabang Utama"
+    );
+    await user.click(screen.getByText("Buat Outlet"));
+    expect(await screen.findByText("Buat PIN")).toBeInTheDocument();
+
+    for (const digit of "123456") {
+      await user.click(screen.getByText(digit));
+    }
+    await user.click(screen.getByText("OK"));
+
+    await screen.findByText("Konfirmasi PIN");
+    for (const digit of "123456") {
+      await user.click(screen.getByText(digit));
+    }
+    await user.click(screen.getByText("OK"));
+
+    await vi.waitFor(() => {
+      expect(mockSetScope).toHaveBeenCalledWith("merchant-1");
+    });
+    await vi.waitFor(() => {
+      expect(mockSyncNow).toHaveBeenCalled();
+    });
+    expect(mockSetScope.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSyncNow.mock.invocationCallOrder[0]
+    );
   });
 });

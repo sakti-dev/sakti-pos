@@ -38,10 +38,10 @@ pub fn run() {
         .plugin(hardware::printer::init())
         .plugin(
             BaresyncBuilder::new()
-                .api_base_url("http://127.0.0.1:3001")
+                .api_base_url("http://192.168.1.2:3001/api/sync/v1")
                 .db_path("baresync.db")
                 .contract_json(include_str!(
-                    "../../../../packages/sync-contract/generated/2026-06-03/sync-contract.json"
+                    "../../../../packages/sync-contract/generated/2026-06-04/sync-contract.json"
                 ))
                 .migrations_path("migrations")
                 .poll_interval_secs(300)

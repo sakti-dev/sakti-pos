@@ -9,6 +9,7 @@
     "core:event:default",
     "deep-link:default",
     "log:default",
-    "opener:default"
+    "opener:default",
+    "baresync:default"
   ]
 }

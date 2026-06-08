@@ -50,6 +50,7 @@ docs/external/
 
 .turso
 .opencode
+.omp/
 graphify-out
 .graphifyignore
 .logs

@@ -10,6 +10,7 @@ import {
   type ParentComponent,
   useContext,
 } from "solid-js";
+import { AuthStorage } from "~/lib/auth/storage";
 import { setSyncClient } from "~/lib/sync";
 import { setSyncDataVersion } from "~/lib/use-drizzle-query";
 import { scopeId } from "~/store/auth";
@@ -40,7 +41,14 @@ export const SyncClientProvider: ParentComponent = (props) => {
     setSyncClient(newClient);
     setClient(newClient);
 
-    newClient.startPolling().catch(() => {});
+    AuthStorage.getToken().then((token) => {
+      if (token) {
+        newClient
+          .setHeaders({ Authorization: `Bearer ${token}` })
+          .catch(() => {});
+      }
+      newClient.startPolling().catch(() => {});
+    });
 
     const pending = Promise.all([
       listen("baresync://data-changed", async () => {

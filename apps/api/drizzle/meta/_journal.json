@@ -1,12 +1,10 @@
 {
-  "version": "7",
-  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
       "version": "6",
-      "when": 1779138950733,
-      "tag": "0000_dapper_penance",
+      "when": 1780557830316,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

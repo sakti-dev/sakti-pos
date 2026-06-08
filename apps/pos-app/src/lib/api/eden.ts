@@ -2,7 +2,8 @@ import { treaty } from "@elysia/eden";
 import type { App } from "@repo/api";
 import { AuthStorage } from "~/lib/auth/storage";
 
-export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+export const API_URL =
+  import.meta.env.VITE_API_URL ?? "http://192.168.1.2:3001";
 
 const authFetcher = (async (url: URL | RequestInfo, options?: RequestInit) => {
   const token = await AuthStorage.getToken();
