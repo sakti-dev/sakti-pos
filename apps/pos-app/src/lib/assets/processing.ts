@@ -3,30 +3,12 @@ import { createLogger } from "~/lib/logger";
 import type {
   EnqueueAssetProcessingInput,
   EnqueueAssetProcessingResult,
-  PreparedLocalAsset,
 } from "./types";
 
 const assetLogger = createLogger({
   domain: "ASSET",
   module: "assets",
 });
-
-export async function prepareLocalImageAssetFromPath(input: {
-  kind: string;
-  merchantId: string;
-  originalFilename: string;
-  path: string;
-}): Promise<PreparedLocalAsset> {
-  return await invoke<PreparedLocalAsset>(
-    "prepare_local_image_asset_from_path",
-    {
-      kind: input.kind,
-      merchantId: input.merchantId,
-      originalFilename: input.originalFilename,
-      path: input.path,
-    }
-  );
-}
 
 export async function enqueueAssetProcessing(
   input: EnqueueAssetProcessingInput

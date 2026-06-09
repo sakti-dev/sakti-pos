@@ -1,4 +1,3 @@
-mod android;
 mod app;
 mod assets;
 mod auth;
@@ -31,12 +30,10 @@ pub fn run() {
                 .level_for("rustls", log::LevelFilter::Info)
                 .build(),
         )
-        .plugin(tauri_plugin_android_fs::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_image_pipeline::init())
         .plugin(auth::init())
-        .plugin(android::photo_picker::init())
         .plugin(hardware::printer::init())
         .plugin(
             BaresyncBuilder::new()
@@ -61,8 +58,6 @@ pub fn run() {
             assets::commands::enqueue_asset_processing,
             assets::commands::get_pending_preview_path,
             assets::commands::process_pending_asset_jobs,
-            android::photo_picker::pick_product_photo,
-            android::photo_picker::delete_temp_product_photo,
             assets::commands::upload_pending_assets,
             assets::commands::hydrate_missing_assets,
             auth::save_auth_token,

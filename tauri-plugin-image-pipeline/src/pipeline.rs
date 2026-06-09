@@ -228,7 +228,7 @@ mod tests {
         let queue = JobQueue::production(dir.path().to_path_buf());
         let req = sample_request_with_source(source);
 
-        let resp = enqueue_job(&queue, dir.path(), req).await.unwrap();
+        let _resp = enqueue_job(&queue, dir.path(), req).await.unwrap();
 
         // Verify job is pending
         let completed = queue.get_completed().await.unwrap();
@@ -351,7 +351,7 @@ mod tests {
         let queue = JobQueue::production(dir.path().to_path_buf());
         let req = sample_request_with_source(source);
 
-        let resp = enqueue_job(&queue, dir.path(), req).await.unwrap();
+        let _resp = enqueue_job(&queue, dir.path(), req).await.unwrap();
         process_pending_jobs(&queue, dir.path(), 10).await.unwrap();
 
         let completed = queue.get_completed().await.unwrap();

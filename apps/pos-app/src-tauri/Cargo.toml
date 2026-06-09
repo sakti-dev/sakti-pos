@@ -20,10 +20,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
-tauri-plugin-android-fs = "28.1.0"
 tauri-plugin-deep-link = "2.0.0"
-tauri-plugin-dialog = { path = "../../../tauri-plugin-dialog" }
 tauri-plugin-image-pipeline = { path = "../../../tauri-plugin-image-pipeline" }
+tauri-plugin-dialog = { path = "../../../tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio"] }

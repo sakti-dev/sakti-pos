@@ -21,7 +21,7 @@
 
 ## 4. POS App Integration
 
-- [x] 4.1 Replace the app-owned `pickProductPhoto` path with the plugin `pick_image` command inside `createImageUpload`, and stop staging separate temp picker files in app code.
+- [x] 4.1 Wire `createImageUpload` directly to the plugin `pick_image` command and keep all picker staging inside `tauri-plugin-image-pipeline`.
 - [x] 4.2 Update `createImageUpload` so it tracks `jobId`, shows the preview immediately, exposes a pending/completed readiness signal, and invokes `onAssetReady` when the matching plugin completion event arrives.
 - [x] 4.3 Update the product form so save/persist is gated on the plugin completion event rather than on an app-owned background enqueue step.
 - [x] 4.4 Remove or retire the old app-owned picker/enqueue helpers (`apps/pos-app/src-tauri/src/android/photo_picker.rs`, `apps/pos-app/src/lib/assets/picking.ts`, `apps/pos-app/src/lib/assets/processing.ts`, and any callers that only exist for the old flow).

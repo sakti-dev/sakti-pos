@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+> Historical note: this plan predates the current plugin-owned picker flow and still contains older picker examples. The asset protocol guidance itself remains relevant.
+
 **Goal:** Eliminate all base64 image data transfer over the Tauri IPC bridge by serving local files through Tauri's Asset Protocol (`convertFileSrc`), reducing memory usage, eliminating UI stuttering, and removing ~200 lines of dead base64 utility code.
 
 **Architecture:** Add new Rust commands that return file paths instead of base64-encoded bytes. The JS layer converts these paths to `asset://` URLs via Tauri's `convertFileSrc`. The `ProductImage` component and image upload primitive render these URLs directly in `<img>` tags. The WebView's native HTTP client handles binary file reading and WebP decoding — zero JS involvement. A cache-buster query param (`?v=N`) ensures invalidation when assets change.

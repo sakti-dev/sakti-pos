@@ -3,7 +3,7 @@
 Purpose: canonical prefix inventory and logcat filters for current app behavior.
 Scope: app log prefixes only, not feature walkthroughs or design rationale.
 Related: `README.md`, `../adr/0001-use-tauri-plugin-log-with-structured-prefixes.md`
-Last updated: 2026-05-18
+Last updated: 2026-06-09
 
 Logs are production support evidence for the offline Android POS. Keep this document focused on the prefixes to grep.
 
@@ -166,7 +166,7 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST]` | image pipeline preview generation started |
 | `[RUST] [IMAGE-PIPELINE:PICKER_STAGE_REQUEST]` | image pipeline picker source staging started |
 | `[RUST] [IMAGE-PIPELINE:PICKER_STAGE_DONE]` | image pipeline picker source staging completed |
-| `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `delete_temp_product_photo`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `pick_product_photo`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
+| `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
 | `[RUST] [PRINTER:TRACE]` | Android printer bridge failures, including list, test print, print receipt, and permission calls |
 | `[RUST] [SYNC:TRACE]` | local state, row upsert, push (including byte-aware `push_batch` chunking, `payload_too_large` split retries, `sync_push` rejection follow-up, `marked_rejected_outbox_synced`), pull (including `pull_batch`, `deleted_ids`, `soft_delete_row`), sync outbox push, row-state pull, `sync_now` diagnostics (including `rejected push rows detected`), garbage collection, and `server_newer` reconciliation |
 | `[RUST] [IMAGE-PIPELINE:EVENT_EMIT]` | Plugin event emission for `image_pipeline://job_completed` and `image_pipeline://job_failed` |
@@ -181,6 +181,10 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_FILE_WRITTEN]` | Android preview file was written |
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE]` | Android preview generation completed |
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST]` | Android preview generation started |
+| `[ANDROID] [IMAGE-PIPELINE:URI_STAGE_START]` | Vendored URI staging helper started copying content:// URI to cache |
+| `[ANDROID] [IMAGE-PIPELINE:URI_STAGE_DONE]` | Vendored URI staging helper completed copying content:// URI to cache |
+| `[ANDROID] [IMAGE-PIPELINE:LOCAL_STAGE_START]` | Vendored local file staging helper started copying to cache |
+| `[ANDROID] [IMAGE-PIPELINE:LOCAL_STAGE_DONE]` | Vendored local file staging helper completed copying to cache |
 | `[baresync]` | Plugin setup and runtime messages emitted by the Baresync Rust dependency, including setup, contract table load, HTTP requests, and sync failure traces |
 
 ## Key Names

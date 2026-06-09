@@ -260,21 +260,6 @@ pub struct AndroidGeneratePreviewResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AndroidStagePickerSourceRequest {
-    pub source_path: String,
-    pub output_path: String,
-    pub original_filename: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AndroidStagePickerSourceResponse {
-    pub staged_path: String,
-    pub original_filename: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AndroidCompressImageRequest {
     pub source_path: PathBuf,
     pub output_dir: PathBuf,

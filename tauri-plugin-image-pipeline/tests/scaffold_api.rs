@@ -11,13 +11,10 @@ mod scaffold_api {
     use tauri_plugin_image_pipeline::{
         dto::{
             AndroidCompressImageRequest, AndroidCompressImageResponse,
-            AndroidGeneratePreviewRequest, AndroidGeneratePreviewResponse, AttachmentLookup,
-            CachedPathResponse, CompletedJob, EnqueueJobRequest, EnqueueJobResponse, FailedJob,
-            JobCompletedPayload, JobFailedPayload, JobResult, JobStatus, ProcessJobsResponse,
-            QueueDocument,
+            AndroidGeneratePreviewRequest, AndroidGeneratePreviewResponse, EnqueueJobRequest,
+            JobStatus, QueueDocument,
         },
         error::PluginError,
-        ImagePipeline, ImagePipelineExt,
     };
 
     /// Compile-time proof that all DTO types exist and derive the right traits.

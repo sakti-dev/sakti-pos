@@ -83,27 +83,41 @@ impl<R: Runtime> ImagePipeline<R> {
         };
 
         let app = self.inner.app.clone();
-        tokio::task::spawn_blocking(move || {
-            app.dialog()
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_SPAWN_BLOCKING] spawning_blocking_pick"
+        );
+        let result = tokio::task::spawn_blocking(move || {
+            log::info!(
+                "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_CALLING_DIALOG] calling_dialog_blocking"
+            );
+            let picker_result = app
+                .dialog()
                 .file()
                 .set_picker_mode(picker_mode)
                 .set_file_access_mode(FileAccessMode::Copy)
-                .blocking_pick_file()
+                .blocking_pick_file();
+            log::info!(
+                "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_DIALOG_RETURNED] dialog_returned is_some={}",
+                picker_result.is_some()
+            );
+            picker_result
         })
         .await
         .map_err(|source| error::PluginError::Processing {
             job_id: None,
             stage: "open_picker",
             reason: source.to_string(),
-        })?
-        .map(|selected_path| {
-            log::info!(
+        })?;
+        match &result {
+            Some(path) => log::info!(
                 "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_SELECTED] picker_selected path={}",
-                selected_path
-            );
-            selected_path
-        })
-        .ok_or(error::PluginError::PickerCancelled)
+                path
+            ),
+            None => log::warn!(
+                "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_NONE] picker returned None (cancelled?)"
+            ),
+        }
+        result.ok_or(error::PluginError::PickerCancelled)
     }
 
     async fn stage_picker_source(
@@ -114,17 +128,6 @@ impl<R: Runtime> ImagePipeline<R> {
         let selected = self.pick_source_file(picker_mode).await?;
         let selection = picker_stage::PickerSelection::from_file_path(selected)?;
         let cache_root = self.cache_root()?;
-        #[cfg(target_os = "android")]
-        let staged = picker_stage::stage_picker_selection(
-            &self.inner.app,
-            self.mobile_handle().clone(),
-            &cache_root,
-            job_id,
-            selection,
-        )
-        .await?;
-
-        #[cfg(not(target_os = "android"))]
         let staged =
             picker_stage::stage_picker_selection(&self.inner.app, &cache_root, job_id, selection)
                 .await?;
@@ -802,7 +805,6 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
 
             #[cfg(not(target_os = "android"))]
             {
-                let _ = api;
                 let state = Arc::new(PluginState { app: app.clone() });
                 app.manage(ImagePipeline { inner: state });
             }

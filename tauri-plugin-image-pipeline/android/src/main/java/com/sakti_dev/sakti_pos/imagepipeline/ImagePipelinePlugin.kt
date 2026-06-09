@@ -4,9 +4,9 @@ import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.Uri
 import android.os.Build
 import android.util.Log
-import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
@@ -15,6 +15,7 @@ import app.tauri.plugin.Invoke
 import app.tauri.plugin.Plugin
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileNotFoundException
 import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +28,7 @@ private const val TAG = "ImagePipelinePlugin"
 @InvokeArg
 class CompressImageArgs {
     lateinit var sourcePath: String
-    lateinit var outputDir: String
+    var outputDir: String? = null
     var previewOutputDir: String? = null
     lateinit var originalFilename: String
     var apiLevel: Int? = null
@@ -41,13 +42,6 @@ class PickImageArgs {
     var compressionMaxLongEdge: Int = 400
     var compressionPreviewMaxLongEdge: Int = 320
     var compressionQuality: Int = 75
-}
-
-@InvokeArg
-class AndroidStagePickerSourceArgs {
-    lateinit var sourcePath: String
-    lateinit var outputPath: String
-    lateinit var originalFilename: String
 }
 
 data class PickImageResult(
@@ -71,11 +65,6 @@ data class AndroidCompressionResult(
 data class AndroidPreviewResult(
     val previewPath: String?,
     val previewMimeType: String,
-)
-
-data class AndroidStagePickerSourceResult(
-    val stagedPath: String,
-    val originalFilename: String,
 )
 
 interface AndroidImageCodec {
@@ -150,9 +139,10 @@ class AndroidImageCompressor(
 
     suspend fun compressFinal(args: CompressImageArgs): AndroidCompressionResult {
         return withContext(dispatcher) {
+            val outDir = args.outputDir ?: throw IllegalStateException("outputDir is required for compressFinal")
             Log.i(
                 TAG,
-                "[ANDROID] [IMAGE-PIPELINE:COMPRESS_REQUEST] compress_requested sourcePath=${args.sourcePath} outputDir=${args.outputDir} previewOutputDir=${args.previewOutputDir ?: args.outputDir} originalFilename=${args.originalFilename} maxLongEdge=${args.maxLongEdge} previewMaxLongEdge=${args.previewMaxLongEdge}",
+                "[ANDROID] [IMAGE-PIPELINE:COMPRESS_REQUEST] compress_requested sourcePath=${args.sourcePath} outputDir=$outDir previewOutputDir=${args.previewOutputDir ?: outDir} originalFilename=${args.originalFilename} maxLongEdge=${args.maxLongEdge} previewMaxLongEdge=${args.previewMaxLongEdge}",
             )
             val sourceFile = File(args.sourcePath)
             val plan = buildFinalCompressionPlan(
@@ -164,14 +154,14 @@ class AndroidImageCompressor(
             val sized = resizeIfNeeded(decoded.bitmap, plan.maxLongEdge)
             val bytes = codec.encode(sized, plan.format, plan.quality)
             val contentHash = sha256(bytes)
-            val outputFile = File(args.outputDir, "$contentHash.webp")
+            val outputFile = File(outDir, "$contentHash.webp")
             outputFile.parentFile?.mkdirs()
             outputFile.writeBytes(bytes)
 
             val previewResult = if (args.previewMaxLongEdge > 0) {
                 generatePreviewInternal(
                     sourceFile = sourceFile,
-                    previewOutputDir = File(args.previewOutputDir ?: args.outputDir),
+                    previewOutputDir = File(args.previewOutputDir ?: outDir),
                     previewMaxLongEdge = args.previewMaxLongEdge,
                 )
             } else {
@@ -199,13 +189,14 @@ class AndroidImageCompressor(
 
     suspend fun generatePreview(args: CompressImageArgs): AndroidPreviewResult {
         return withContext(dispatcher) {
+            val previewDir = args.previewOutputDir ?: args.outputDir ?: throw IllegalStateException("previewOutputDir or outputDir is required for generatePreview")
             Log.i(
                 TAG,
-                "[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST] generate_preview_requested sourcePath=${args.sourcePath} outputDir=${args.outputDir} originalFilename=${args.originalFilename} previewMaxLongEdge=${args.previewMaxLongEdge}",
+                "[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST] generate_preview_requested sourcePath=${args.sourcePath} previewOutputDir=$previewDir originalFilename=${args.originalFilename} previewMaxLongEdge=${args.previewMaxLongEdge}",
             )
             generatePreviewInternal(
                 sourceFile = File(args.sourcePath),
-                previewOutputDir = File(args.previewOutputDir ?: args.outputDir),
+                previewOutputDir = File(previewDir),
                 previewMaxLongEdge = args.previewMaxLongEdge,
             ).also { result ->
                 Log.i(
@@ -213,54 +204,6 @@ class AndroidImageCompressor(
                     "[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE] preview_generated previewPath=${result.previewPath ?: "<none>"} previewMimeType=${result.previewMimeType}",
                 )
             }
-        }
-    }
-
-    suspend fun stagePickerSource(args: AndroidStagePickerSourceArgs): AndroidStagePickerSourceResult {
-        return withContext(dispatcher) {
-            Log.i(
-                TAG,
-                "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_REQUEST] stage_picker_source_requested sourcePath=${args.sourcePath} outputPath=${args.outputPath} originalFilename=${args.originalFilename}",
-            )
-            val outputFile = File(args.outputPath)
-            val parentDir = outputFile.parentFile
-                ?: throw IllegalStateException("Picker staging output path has no parent")
-            parentDir.mkdirs()
-
-            if (args.sourcePath.startsWith("content://")) {
-                val resolver = activity?.contentResolver
-                    ?: throw IllegalStateException("Android activity unavailable for picker staging")
-                Log.i(
-                    TAG,
-                    "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_READ_START] stage_picker_source_read_start uri=${args.sourcePath}",
-                )
-                val inputStream = resolver.openInputStream(Uri.parse(args.sourcePath))
-                    ?: throw IllegalArgumentException("Unable to open picker content URI")
-                inputStream.use { input ->
-                    outputFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-            } else {
-                Log.i(
-                    TAG,
-                    "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_READ_START] stage_picker_source_read_start uri=${args.sourcePath}",
-                )
-                File(args.sourcePath).inputStream().use { input ->
-                    outputFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-            }
-
-            Log.i(
-                TAG,
-                "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_DONE] stage_picker_source_done stagedPath=${outputFile.absolutePath}",
-            )
-            AndroidStagePickerSourceResult(
-                stagedPath = outputFile.absolutePath,
-                originalFilename = args.originalFilename,
-            )
         }
     }
 
@@ -319,6 +262,53 @@ class AndroidImageCompressor(
     )
 }
 
+/**
+ * Copy the bytes from a content:// URI into a cache-local file.
+ *
+ * Mirrors the ContentResolver staging pattern from the tauri-plugin-android-fs
+ * reference. The caller is responsible for opening the input stream via
+ * [android.content.ContentResolver.openInputStream].
+ *
+ * @param sourceUri   The content:// URI string returned by the picker (for logging).
+ * @param outputFile  Destination file inside plugin cache.
+ * @param openStream  Provider that opens the URI's byte stream.
+ * @return The populated output file.
+ * @throws FileNotFoundException if [openStream] returns null.
+ * @throws IllegalStateException if output parent directory cannot be created.
+ */
+fun stagePickedUri(
+    sourceUri: String,
+    outputFile: File,
+    openStream: () -> java.io.InputStream?,
+): File {
+    Log.i(
+        TAG,
+        "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_REQUEST] stage_picker_uri_requested sourceUri=$sourceUri outputFile=${outputFile.absolutePath}",
+    )
+
+    if (!outputFile.parentFile?.isDirectory!! && !outputFile.parentFile!!.mkdirs()) {
+        throw IllegalStateException(
+            "Failed to create staging directory: ${outputFile.parentFile!!.absolutePath}",
+        )
+    }
+
+    val input = openStream()
+        ?: throw FileNotFoundException("Unable to open picker content URI: $sourceUri")
+
+    input.use { inputStream ->
+        outputFile.outputStream().use { output ->
+            inputStream.copyTo(output)
+        }
+    }
+
+    Log.i(
+        TAG,
+        "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_DONE] stage_picker_uri_done outputFile=${outputFile.absolutePath} byteSize=${outputFile.length()}",
+    )
+
+    return outputFile
+}
+
 @TauriPlugin
 class ImagePipelinePlugin(private val activity: Activity) : Plugin(activity) {
     private val compressor = AndroidImageCompressor(activity)
@@ -361,31 +351,6 @@ class ImagePipelinePlugin(private val activity: Activity) : Plugin(activity) {
                 )
             } catch (error: Exception) {
                 invoke.reject(error.message ?: "Android preview generation failed")
-            }
-        }
-    }
-
-    @Command
-    fun stagePickerSource(invoke: Invoke) {
-        val args = invoke.parseArgs(AndroidStagePickerSourceArgs::class.java)
-        CoroutineScope(Dispatchers.Default).launch {
-            try {
-                val result = compressor.stagePickerSource(args)
-                invoke.resolveObject(
-                    mapOf(
-                        "stagedPath" to result.stagedPath,
-                        "originalFilename" to result.originalFilename,
-                    ),
-                )
-            } catch (error: Exception) {
-                Log.e(
-                    TAG,
-                    "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_FAILED] stage_picker_source_failed error=${error::class.java.name}: ${error.message}",
-                    error,
-                )
-                invoke.reject(
-                    "${error::class.java.simpleName}: ${error.message ?: "Android picker staging failed"}\n${error.stackTraceToString()}",
-                )
             }
         }
     }

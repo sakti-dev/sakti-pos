@@ -2,7 +2,7 @@
 id: 2
 title: Use Hybrid Native Product Photo Picker
 date: 2026-05-14
-status: accepted
+status: superseded
 domains: [photo, android, tauri, assets]
 ---
 
@@ -10,23 +10,19 @@ domains: [photo, android, tauri, assets]
 
 ## Context
 
-Product photo picking must produce a durable app-private file path because the selected image becomes input for a persisted asset processing job.
-
-Gallery selection is generic Android Storage Access Framework work. Camera capture is tied to the product-photo lifecycle because it must create an app-owned capture target and return a stable path for later processing.
+This ADR recorded the old app-owned product photo picker design. It has been superseded by the plugin-owned image pipeline picker flow, where `tauri-plugin-image-pipeline` owns native picking, preview staging, and completion events across platforms.
 
 ## Decision
 
-Use a hybrid native picker:
+The new architecture uses a single plugin-owned picker entrypoint:
 
-- Gallery selection uses `tauri-plugin-android-fs`.
-- Camera capture stays in the project-specific Android plugin.
-- Rust exposes one stable command, `pick_product_photo`.
-- Frontend product code calls `pickProductPhoto(source)` from `apps/pos-app/src/lib/assets.ts`.
-
-Both picker paths write under `product_photo_inputs` so persisted jobs can safely reference the selected file after form submission.
+- `pick_image`
+- immediate preview staging in the plugin cache
+- `image_pipeline://job_completed` and `image_pipeline://job_failed` for async completion
+- the host app converts returned local paths with `convertFileSrc()`
 
 ## Consequences
 
-Frontend code does not depend directly on Android-FS or the custom camera plugin.
+Frontend code no longer owns image selection for this flow.
 
-Startup cleanup must not delete `product_photo_inputs`, because files there may be referenced by `pending_asset_processing_jobs`.
+Historical note: the old `product_photo_inputs` staging directory and the app-side photo picker command are no longer part of the current implementation.

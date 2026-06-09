@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+> Historical note: this plan documents the old app-owned product photo picker. The current implementation uses the plugin-owned `tauri-plugin-image-pipeline` picker flow instead.
+
 **Goal:** Replace Android WebView file-input product photo acquisition with a native Tauri Android plugin that supports both camera and gallery, returns a stable app-cache file path, and lets Rust compress/persist only the WebP asset.
 
 **Architecture:** Add an internal Android plugin modeled after `docs/external/tauri-plugin-native-camera`, but change the contract from "return JPEG base64" to "return temporary app-cache file path". JS only requests a photo source and receives metadata; Rust reads the path, compresses to max 800px WebP, saves the compressed file and asset rows, then deletes the temporary original. The existing local-first upload queue remains unchanged.

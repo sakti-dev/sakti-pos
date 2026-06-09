@@ -51,6 +51,7 @@ docs/external/
 .turso
 .codex/
 .omp/
+.commandcode/
 graphify-out
 .graphifyignore
 .logs

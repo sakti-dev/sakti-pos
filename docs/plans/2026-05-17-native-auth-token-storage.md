@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+> Historical note: the reference to `apps/pos-app/src-tauri/src/android/photo_picker.rs` below is from an older architecture snapshot and is no longer part of the current picker flow.
+
 **Goal:** Replace `tauri-plugin-stronghold` with a tiny Android-native encrypted session-token store, migrate existing `localStorage` tokens silently, and reduce Android APK bloat without changing auth UX.
 
 **Architecture:** Add a Tauri mobile plugin named `auth-token` following the existing photo/printer plugin pattern. The Kotlin side encrypts a single bearer token with an Android Keystore AES-GCM key and stores `{ iv, ciphertext }` in `SharedPreferences`; the Rust side exposes stable Tauri commands; the TypeScript `AuthStorage` module uses those commands and only keeps an in-memory cache plus one-time legacy `localStorage` migration.

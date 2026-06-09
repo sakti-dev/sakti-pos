@@ -37,13 +37,24 @@ The image pipeline plugin SHALL return a stable public contract consisting of `j
 - **WHEN** background compression or staging fails
 - **THEN** the plugin SHALL emit `image_pipeline://job_failed` with the job ID and error details
 
-### Requirement: Vendored build inputs are the source of truth
-The image pipeline plugin build SHALL use vendored source under `tauri-plugin-image-pipeline/vendor/` as the buildable implementation for picker-facing behavior, and SHALL keep `tauri-plugin-image-pipeline/vendor/references/` out of the build path.
+### Requirement: Reference snapshots are guidance only
+The image pipeline plugin SHALL keep upstream source snapshots under `tauri-plugin-image-pipeline/vendor/references/` as implementation guidance only, and SHALL NOT compile code from that directory.
 
-#### Scenario: Build resolves vendored implementation
+#### Scenario: Build ignores reference snapshots
 - **WHEN** the plugin crate is built
-- **THEN** Cargo and Gradle SHALL resolve picker/staging implementation from vendored source paths inside `vendor/`
+- **THEN** Cargo and Gradle SHALL resolve picker/staging implementation from the plugin crate source tree, not from `vendor/references/`
 
-#### Scenario: Reference snapshots are not compiled
+#### Scenario: Reference snapshots do not affect runtime
 - **WHEN** the repository contains upstream reference snapshots under `vendor/references/`
-- **THEN** the build SHALL ignore them and SHALL not compile code from that directory
+- **THEN** the build SHALL ignore them and SHALL not compile or package code from that directory
+
+### Requirement: Production picker code lives in the plugin crate
+The image pipeline plugin SHALL implement its picker boundary and Android URI staging behavior inside the plugin crate source tree, using the reference snapshots only to mirror upstream semantics.
+
+#### Scenario: Picker behavior is owned by the plugin crate
+- **WHEN** the host app invokes the public picker command
+- **THEN** the plugin SHALL own the picker entrypoint, stage the selected file or URI into plugin cache, and return a cache-local preview path without delegating ownership back to the app
+
+#### Scenario: Android staging happens before preview generation
+- **WHEN** the Android picker returns a `content://` URI
+- **THEN** the plugin SHALL copy the URI into plugin cache before preview generation or compression continues

@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+> Historical note: this plan includes the earlier `android/photo_picker` module layout. The current app no longer registers that picker wrapper.
+
 **Goal:** Reorganize the Tauri Rust crate into stable domain modules so future development can add assets, sync, Android integrations, and hardware features without growing giant files.
 
 **Architecture:** Keep `src-tauri/src/lib.rs` as thin app wiring. Move implementation into domain modules: `app`, `db`, `sync`, `assets`, `android`, and `hardware`. Rename generic asset pipeline commands while preserving product-specific database linkers only where the schema is product-specific.

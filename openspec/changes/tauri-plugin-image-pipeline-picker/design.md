@@ -2,7 +2,7 @@
 
 `tauri-plugin-image-pipeline` already owns compression and job recovery, but the POS app still owns the image-picker UX and temp-file staging. That split is the wrong boundary for a public plugin. The plugin should own the whole user-facing selection flow on every platform, while the host app should only render the preview, wait for completion, and persist the final asset into its own database.
 
-The repo already has a working precedent for this shape in `tauri-plugin-dialog`: desktop uses native Rust dialogs, mobile registers a Kotlin/Swift plugin behind the same Rust API, and the JavaScript guest layer stays thin. This change should follow that pattern instead of inventing a second picker stack in app code.
+The repo already has a working precedent for this shape in `tauri-plugin-dialog`: desktop uses native Rust dialogs, mobile registers a Kotlin/Swift plugin behind the same Rust API, and the JavaScript guest layer stays thin. This change should follow that pattern inside `tauri-plugin-image-pipeline` instead of inventing a second picker stack in app code.
 
 The POS app also already uses local file paths plus `convertFileSrc(...)` to render cached files. That means the plugin does not need to invent its own URL layer. It should return stable local paths and let the host app convert them into asset URLs.
 
@@ -172,12 +172,11 @@ The key TDD rule for this change: do not implement any picker or completion logi
 
 1. Add failing tests for the new plugin command, events, and job recovery APIs.
 2. Update the guest JS wrappers and app-side image upload state to use the new plugin command.
-3. Replace app-owned picker helpers with plugin-driven selection and preview handling.
+3. Remove the old app-owned picker helpers and keep the flow plugin-driven end to end.
 4. Update the product form so it waits for `job_completed` before persisting the final asset-linked product state.
-5. Keep the old app picker helpers only long enough to prove the new path; then remove them.
+5. Keep the old app picker helpers only as a short-lived migration aid if they still exist; the target state is direct plugin consumption.
 6. Verify the flow on desktop and Android using the repo's existing host-app/dev boot path.
 
 ## Open Questions
 
 - No blocking open questions remain. The implementation can choose whether `createImageUpload` owns a per-instance event listener or shares a singleton listener, as long as listener cleanup is deterministic and the `jobId` match is explicit.
-

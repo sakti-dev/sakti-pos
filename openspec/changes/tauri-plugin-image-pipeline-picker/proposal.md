@@ -29,6 +29,6 @@ This change moves native image picking behind the plugin boundary on every platf
 
 - `tauri-plugin-image-pipeline` gains the public picker command, event emission, and recovery surface for image selection.
 - `apps/pos-app/src/lib/assets/*` and `apps/pos-app/src/components/image-upload.tsx` move from picker/staging ownership to event-driven plugin consumption.
-- `apps/pos-app/src-tauri/src/android/photo_picker.rs` and related app-side picker helpers should be retired or reduced to compatibility wrappers during the cutover.
+- `apps/pos-app/src-tauri/src/android/photo_picker.rs` and related app-side picker helpers have been removed; the frontend now consumes `tauri-plugin-image-pipeline` directly.
 - The host app continues to use `convertFileSrc(...)` for preview and asset rendering, but it no longer generates the file selection workflow itself.
 - OpenSpec requirements for asset upload, product image upload, and sync order must be updated so the implementation agent does not reintroduce app-owned picker logic.

@@ -28,16 +28,16 @@ The system SHALL derive the `objectKey` from `{merchantId}/assets/{contentHash}`
 
 ### R3: Image Picking
 
-The system SHALL provide a `pickProductPhoto(source)` Tauri command that accepts `"camera"` or `"gallery"` as the source. It SHALL return a `PickedProductPhoto` containing `path`, `mimeType`, `originalFilename`, and `source`.
+The system SHALL provide a plugin-owned `pick_image` command through `tauri-plugin-image-pipeline`. It SHALL return a `PickImageResponse` containing `jobId`, `previewPath`, `previewMimeType`, and `status`.
 
-**WHEN** the user picks from the gallery
-**THEN** the system SHALL use the Android Storage Access Framework via `tauri-plugin-android-fs`.
+**WHEN** the user picks an image
+**THEN** the plugin SHALL open the native picker on the current platform, stage the selection into its own cache, and return a cache-local `previewPath` that the host app can render with `convertFileSrc()`.
 
-**WHEN** the user captures from the camera
-**THEN** the system SHALL use the project-specific Android camera plugin.
+**WHEN** the picker completes successfully
+**THEN** the plugin SHALL start background compression and emit `image_pipeline://job_completed` when the final asset is ready.
 
-**WHEN** either picker completes
-**THEN** the selected file SHALL be written under the `product_photo_inputs` directory so persisted processing jobs can reference it.
+**WHEN** the picker or compression fails
+**THEN** the plugin SHALL emit `image_pipeline://job_failed` with diagnostic fields.
 
 ### R4: Image Processing
 
@@ -204,11 +204,11 @@ The system SHALL execute asset work in a fixed order during `syncNow()`.
 
 The system SHALL provide a `createImageUpload(options)` factory that manages the full pick-preview-enqueue lifecycle.
 
-**WHEN** the user picks an image via `pickImage(source)`
-**THEN** the system SHALL call `pickProductPhoto`, stage the pending image, and set `previewUrl` to the local file path via `convertFileSrc()`.
+**WHEN** the user picks an image via `pickImage()`
+**THEN** the system SHALL call the plugin-owned `pick_image` command, set `previewUrl` to the returned local path via `convertFileSrc()`, and retain the returned `jobId` until completion.
 
-**WHEN** `enqueueFor(target)` is called with a staged image
-**THEN** the system SHALL call `enqueueAssetProcessing`, clear the staged state, and return the job result.
+**WHEN** the matching `image_pipeline://job_completed` event arrives
+**THEN** the system SHALL call `onAssetReady` with the final asset metadata and clear the staged state.
 
 **WHEN** `clear()` is called
 **THEN** the system SHALL delete the temp file if a staged image exists, or invoke `onClearExisting` if clearing an existing asset.

@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+> Historical note: this plan predates the plugin-owned picker flow. The current `createImageUpload` implementation now consumes `tauri-plugin-image-pipeline` directly.
+
 **Goal:** Refactor `ImageUpload` from a callback-controller pattern to a SolidJS-idiomatic headless primitive (`createImageUpload`), eliminating `let` refs, `onController`, `onBusyChange`, and `onExistingAssetClear` callbacks.
 
 **Architecture:** Extract all reactive state and actions into a `createImageUpload()` primitive that returns typed accessors and action functions. The existing `ImageUpload` component becomes a thin UI wrapper that accepts the primitive's return value as `state`. The only consumer (`product-form.tsx`) is migrated to call the primitive directly. Old callback-based API is removed entirely (no backwards compat shim).

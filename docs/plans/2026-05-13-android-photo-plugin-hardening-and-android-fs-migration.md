@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+> Historical note: this plan documents the intermediate `tauri-plugin-android-fs` migration path. The current implementation uses a plugin-owned picker flow in `tauri-plugin-image-pipeline` instead.
+
 **Goal:** Make Android product photo picking reliable for long-term use by hardening our camera temp-file contract first, then migrating gallery/file-system handling to `tauri-plugin-android-fs` while keeping the existing product photo job and sync pipeline intact.
 
 **Architecture:** Keep the application-specific asset pipeline in Rust: persisted `pending_product_photo_jobs`, WebP compression, content-hash dedupe, R2 upload, sync ordering, and hydration remain ours. Replace only the fragile Android gallery/content-URI boundary with `tauri-plugin-android-fs`, and keep camera custom unless/until a community camera plugin supports returning a stable file path without deleting source bytes. Maintain the existing frontend API shape so product form/list code does not know which native plugin performs picking.

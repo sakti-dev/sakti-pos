@@ -1,18 +1,25 @@
 package com.sakti_dev.sakti_pos.imagepipeline
 
 import android.graphics.Bitmap
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import kotlinx.coroutines.runBlocking
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FileNotFoundException
 
 /**
  * Tests for the Android picker backend.
  *
- * These verify preview staging, background compression, and error handling
- * using the existing AndroidImageCompressor and compression plan infrastructure.
+ * These verify preview staging, background compression, error handling,
+ * and URI staging using the existing AndroidImageCompressor and
+ * compression plan infrastructure.
  */
 
 // ── PickImageArgs defaults ─────────────────────────────────────
@@ -74,12 +81,10 @@ class ImagePipelinePreviewStagingTest {
 
     @Test
     fun stagedPreviewPathDoesNotContainContentUri() = runBlocking {
-        // Verify the output path format from the compressor
         val stagingDir = createTempDir(prefix = "image-pipeline-staging")
-        val outputDir = createTempDir(prefix = "image-pipeline-staged")
+        val previewOutDir = createTempDir(prefix = "image-pipeline-staged")
         try {
             val sourceFile = File(stagingDir, "source.jpg").apply {
-                // Write a minimal valid PNG (1x1 pixel)
                 writeBytes(
                     Base64.getDecoder().decode(
                         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2LpXcAAAAASUVORK5CYII="
@@ -94,7 +99,7 @@ class ImagePipelinePreviewStagingTest {
             val result = compressor.generatePreview(
                 CompressImageArgs().apply {
                     sourcePath = sourceFile.absolutePath
-                    outputDir = outputDir.absolutePath
+                    outputDir = previewOutDir.absolutePath
                     originalFilename = "source.jpg"
                     previewMaxLongEdge = 320
                 },
@@ -116,7 +121,7 @@ class ImagePipelinePreviewStagingTest {
             )
         } finally {
             stagingDir.deleteRecursively()
-            outputDir.deleteRecursively()
+            previewOutDir.deleteRecursively()
         }
     }
 }
@@ -142,7 +147,14 @@ class ImagePipelineBackgroundCompressionTest {
     @Test
     fun decodeFailureProducesExplicitError() = runBlocking {
         val compressor = AndroidImageCompressor(
-            codec = FailingAndroidImageCodec(decodeError = RuntimeException("bad image")),
+            codec = object : AndroidImageCodec {
+                override fun decode(sourceFile: File): Bitmap =
+                    throw RuntimeException("bad image")
+                override fun readOrientation(sourceFile: File): Int = 1
+                override fun encode(bitmap: Bitmap, format: Bitmap.CompressFormat, quality: Int): ByteArray =
+                    ByteArray(8)
+                override fun orient(bitmap: Bitmap, orientation: Int): Bitmap = bitmap
+            },
         )
 
         try {
@@ -167,7 +179,14 @@ class ImagePipelineBackgroundCompressionTest {
     @Test
     fun encodeFailureProducesExplicitError() = runBlocking {
         val compressor = AndroidImageCompressor(
-            codec = FailingAndroidImageCodec(encodeError = RuntimeException("encoder crash")),
+            codec = object : AndroidImageCodec {
+                override fun decode(sourceFile: File): Bitmap =
+                    Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888)
+                override fun readOrientation(sourceFile: File): Int = 1
+                override fun encode(bitmap: Bitmap, format: Bitmap.CompressFormat, quality: Int): ByteArray =
+                    throw RuntimeException("encoder crash")
+                override fun orient(bitmap: Bitmap, orientation: Int): Bitmap = bitmap
+            },
         )
 
         try {
@@ -190,6 +209,91 @@ class ImagePipelineBackgroundCompressionTest {
     }
 }
 
+// ── URI staging ───────────────────────────────────────────────
+
+/**
+ * Tests for [stagePickedUri], which copies content:// URIs
+ * into plugin cache before preview or compression.
+ */
+class ImagePipelineUriStagingTest {
+
+    @get:Rule
+    val tempDir = TemporaryFolder()
+
+    private val testBytes = byteArrayOf(0x01, 0x02, 0x03, 0x7f, 0x55.toByte(), 0xff.toByte())
+
+    @Test
+    fun stagePickedUri_copiesContentUriIntoCache() {
+        val outputFile = File(tempDir.root, "picked/staged.source")
+
+        val result = stagePickedUri("content://media/external/images/media/42", outputFile) {
+            ByteArrayInputStream(testBytes)
+        }
+
+        assertTrue("staged file must exist", result.exists())
+        assertTrue("staged path must be absolute", result.isAbsolute)
+        val pathStr = result.absolutePath
+        assertTrue("path must not start with content://", !pathStr.startsWith("content://"))
+        assertTrue("path must not start with file://", !pathStr.startsWith("file://"))
+        assertArrayEquals("staged file must contain original bytes", testBytes, result.readBytes())
+    }
+
+    @Test
+    fun stagePickedUri_createsIntermediateDirectories() {
+        val outputFile = File(tempDir.root, "nested/deep/staging/source.data")
+
+        val result = stagePickedUri("content://example/file", outputFile) {
+            ByteArrayInputStream(testBytes)
+        }
+
+        assertTrue("parent dirs must be created", outputFile.parentFile!!.isDirectory)
+        assertTrue("staged file must exist", result.exists())
+    }
+
+    @Test
+    fun stagePickedUri_throwsWhenStreamIsNull() {
+        val outputFile = File(tempDir.root, "missing.source")
+
+        assertThrows("expected FileNotFoundException", FileNotFoundException::class.java) {
+            stagePickedUri("content://missing/uri", outputFile) { null }
+        }
+    }
+
+    @Test
+    fun stagePickedUri_throwsOnPermissionFailure() {
+        val outputFile = File(tempDir.root, "denied.source")
+
+        assertThrows("expected SecurityException", SecurityException::class.java) {
+            stagePickedUri("content://denied/uri", outputFile) {
+                throw SecurityException("Permission Denial: opening provider")
+            }
+        }
+    }
+
+    @Test
+    fun stagePickedUri_throwsOnInvalidOutputParent() {
+        val outputFile = File("/proc/00000_cannot_create/staged.source")
+
+        assertThrows("expected IllegalStateException", IllegalStateException::class.java) {
+            stagePickedUri("content://media/image", outputFile) {
+                ByteArrayInputStream(testBytes)
+            }
+        }
+    }
+
+    @Test
+    fun stagePickedUri_resultIsNotContentUri() {
+        val outputFile = File(tempDir.root, "final.source")
+
+        val result = stagePickedUri("content://media/external/images/media/99", outputFile) {
+            ByteArrayInputStream(testBytes)
+        }
+
+        val pathStr = result.absolutePath
+        assertTrue("result must not start with content://", !pathStr.startsWith("content://"))
+    }
+}
+
 // ── Helpers ────────────────────────────────────────────────────
 
 /** Minimal stub for tests that don't need real codec behavior. */
@@ -205,29 +309,6 @@ private class StubAndroidImageCodec : AndroidImageCodec {
         format: Bitmap.CompressFormat,
         quality: Int,
     ): ByteArray = ByteArray(8) { 1 }
-
-    override fun orient(bitmap: Bitmap, orientation: Int): Bitmap = bitmap
-}
-
-private class FailingAndroidImageCodec(
-    private val decodeError: Throwable? = null,
-    private val encodeError: Throwable? = null,
-) : AndroidImageCodec {
-    override fun decode(sourceFile: File): Bitmap {
-        decodeError?.let { throw it }
-        return Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888)
-    }
-
-    override fun readOrientation(sourceFile: File): Int = 1
-
-    override fun encode(
-        bitmap: Bitmap,
-        format: Bitmap.CompressFormat,
-        quality: Int,
-    ): ByteArray {
-        encodeError?.let { throw it }
-        return ByteArray(8) { 1 }
-    }
 
     override fun orient(bitmap: Bitmap, orientation: Int): Bitmap = bitmap
 }

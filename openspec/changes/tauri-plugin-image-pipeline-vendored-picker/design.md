@@ -2,13 +2,13 @@
 
 `tauri-plugin-image-pipeline` already owns the public image-pipeline contract, but the picker boundary has proven too fragile when it depends on app-owned Android file helpers or external plugin behavior at runtime. The failure mode is consistent: Android file pickers return `content://` URIs, and any extra hop that tries to reinterpret those URIs as local paths can fail in a way that looks like user cancellation or a generic processing error.
 
-This change makes the image pipeline self-contained. The plugin itself remains the public API surface; picker-related code and the small Android URI staging behavior live under `tauri-plugin-image-pipeline/vendor/` so the build no longer relies on the app for picker plumbing. Upstream source snapshots from `tauri-plugin-dialog` and `tauri-plugin-android-fs` may be stored under `vendor/references/` as gitignored reference material for implementation guidance, but those references are not part of the compiled build.
+This change makes the image pipeline self-contained. The plugin itself remains the public API surface; picker-related code and the Android URI staging behavior live inside `tauri-plugin-image-pipeline` so the build no longer relies on the app for picker plumbing. Upstream source snapshots from `tauri-plugin-dialog` and `tauri-plugin-android-fs` may be stored under `vendor/references/` as gitignored reference material for implementation guidance, but those references are not part of the compiled build.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Keep the public plugin API stable while moving picker and staging ownership fully into `tauri-plugin-image-pipeline`.
-- Make the build self-contained by vendoring the small picker-facing dependency surface inside the plugin crate.
+- Make the build self-contained by implementing the picker-facing dependency surface inside the plugin crate and using `vendor/references/` only as source guidance.
 - Treat Android `content://` URIs as first-class picker results by copying them into plugin cache before preview generation or compression.
 - Preserve cache-local preview paths and completion/failure events so the host app can remain generic.
 - Provide a TDD-friendly structure so the implementation agent can write tests before code and verify the result at each step.
@@ -16,26 +16,29 @@ This change makes the image pipeline self-contained. The plugin itself remains t
 **Non-Goals:**
 - Redesigning the asset persistence model or the sync pipeline.
 - Adding a custom in-app gallery UI.
-- Expanding the vendored Android file helper into the full `tauri-plugin-android-fs` surface area.
+- Expanding the Android file helper into the full `tauri-plugin-android-fs` surface area.
 - Changing the host app's business logic beyond consuming the plugin's picker/completion contract.
 
 ## Decisions
 
-### 1. Vendor source inside the plugin crate instead of depending on external picker/FS crates directly
+### 1. Implement picker logic inside the plugin crate and use references only for guidance
 
-The build SHALL use vendored source under `tauri-plugin-image-pipeline/vendor/` rather than reaching across the app boundary or keeping the picker as a standalone dependency. This gives the plugin one ownership boundary and one release artifact.
+The production build SHALL use code that lives inside `tauri-plugin-image-pipeline` itself rather than reaching across the app boundary or depending on a separate picker/FS plugin at runtime. `tauri-plugin-image-pipeline/vendor/references/` is a read-only source guide, not a build input.
 
 Alternatives considered:
-- **Git submodule**: rejected because it adds operational overhead and still leaves the implementation outside the plugin crate.
+- **Git submodule**: rejected because it adds operational overhead and still leaves the implementation boundary ambiguous for the build.
 - **Direct crates.io dependencies**: rejected because the current bug is caused by the runtime boundary, not just dependency versioning; direct dependencies still make the implementation feel external.
-- **Ad hoc reimplementation only**: possible, but too easy to drift without a reference copy while the implementation agent is working.
+- **Copying source into `vendor/` and compiling from there**: rejected because the build should not depend on a “shadow dependency tree”; the plugin crate itself should own the compiled implementation.
 
 Recommended layout:
 ```text
 tauri-plugin-image-pipeline/
+  src/
+    picker.rs
+    picker_stage.rs
+  android/
+    src/main/java/com/sakti_dev/sakti_pos/imagepipeline/
   vendor/
-    tauri-plugin-dialog/
-    android-uri-cache/
     references/
 ```
 
@@ -71,9 +74,13 @@ pub async fn pick_image(
     &self,
     request: PickImageRequest,
 ) -> Result<PickImageResponse, PluginError> {
+    let job_id = uuid::Uuid::new_v4().to_string();
     let selection = self.pick_source_file(&request.picker_mode).await?;
     let staged = self.stage_picker_source(&selection, &job_id).await?;
-    let preview = self.generate_preview(&staged.path, request.compression.preview_max_long_edge)?;
+    let preview = self.generate_preview(
+        &staged.path,
+        request.compression.preview_max_long_edge,
+    )?;
     Ok(PickImageResponse {
         job_id,
         preview_path: preview.path,
@@ -102,6 +109,21 @@ fun stagePickedUri(context: Context, sourceUri: Uri, outputFile: File): File {
 }
 ```
 
+Example Android picker shape:
+```kotlin
+@Command
+fun showOpenVisualMediaDialog(invoke: Invoke) {
+    val args = invoke.parseArgs(Args::class.java)
+    val intent = createVisualMediaPickerIntent(args.multiple, args.target)
+
+    if (args.localOnly) {
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
+    }
+
+    startActivityForResult(invoke, intent, "handleShowOpenFileAndVisualMediaDialog")
+}
+```
+
 ### 5. Use TDD slices that start with contracts and failure cases
 
 The first tests SHALL describe the desired plugin behavior before the implementation agent writes the vendored code. That reduces the risk of shipping a large fork with hidden path/URI bugs.
@@ -125,29 +147,40 @@ fn android_content_uri_is_not_treated_like_a_local_path() {
 }
 ```
 
+Example Kotlin test target:
+```kotlin
+@Test
+fun stagePickedUri_copiesContentUriIntoCache() {
+    val output = File(tempDir, "picked.source")
+    val staged = stagePickedUri(context, sourceUri, output)
+
+    assertThat(staged).exists()
+    assertThat(staged.readBytes()).isEqualTo(expectedBytes)
+}
+```
+
 ## Risks / Trade-offs
 
-- [Risk] Vendored code can drift from upstream → [Mitigation] keep `vendor/references/` updated and add focused tests around the exact staging contract.
-- [Risk] The build may accidentally pick up the wrong source tree → [Mitigation] path dependencies and explicit source-set wiring must point at `vendor/` only.
-- [Risk] Android helper code can become too large if we absorb the full upstream FS plugin → [Mitigation] vendor only the minimal staging behavior needed by the image pipeline.
-- [Risk] Maintaining a fork increases merge cost → [Mitigation] keep the vendored surface narrow and preserve the public API so the app does not need churn.
+- [Risk] The implementation can drift from upstream behavior → [Mitigation] keep `vendor/references/` updated and add focused tests around the exact staging contract.
+- [Risk] The build may accidentally pick up the wrong source tree → [Mitigation] source paths and Gradle wiring must point at the plugin crate's own production code only.
+- [Risk] Android helper code can become too large if we absorb the full upstream FS plugin → [Mitigation] implement only the minimal staging behavior needed by the image pipeline.
+- [Risk] Maintaining a local reimplementation increases merge cost → [Mitigation] keep the reference surface narrow and preserve the public API so the app does not need churn.
 
 ## Migration Plan
 
-1. Add the vendored source tree under `tauri-plugin-image-pipeline/vendor/`.
-2. Point `tauri-plugin-image-pipeline` at the vendored picker implementation.
-3. Add the minimal Android URI staging helper under the vendored tree and wire the Android module to it.
-4. Add `vendor/references/` and keep it gitignored so upstream snapshots can be used as implementation guidance.
-5. Remove the app-facing direct dependency on picker/FS behavior where it is only used for image selection.
-6. Add and run contract tests before making the implementation the default.
-7. Verify on Android with the host app and log capture after the picker returns a staged path.
+1. Add `vendor/references/` and keep it gitignored so upstream snapshots can be used as implementation guidance.
+2. Add production picker/staging code inside `tauri-plugin-image-pipeline` itself, with the picker boundary and Android staging helpers living under the plugin crate source tree.
+3. Wire the Android source set for the plugin crate to compile the plugin-owned Android implementation, not the reference snapshots.
+4. Remove app-facing direct picker/FS glue where it only exists to bridge image selection.
+5. Add contract tests for request/response shape, URI staging, preview path stability, and failure events before changing runtime behavior.
+6. Verify on Android with the host app and log capture after the picker returns a staged path.
 
 Rollback strategy:
-- Repoint the plugin dependency back to the previous upstream crate only if the vendored fork cannot be stabilized quickly.
+- Repoint any temporary experiment back to the previous upstream crate only if the local reimplementation cannot be stabilized quickly.
 - Keep the public `pick_image` response shape unchanged so the host app can remain on the same contract during rollback.
 
 ## Open Questions
 
-- Should the vendored picker copy be a true subtree mirror or a manually curated vendored snapshot refreshed from upstream when needed?
-- Should the Android staging helper be a Kotlin source-set under `vendor/android-uri-cache/` or a tiny Gradle module included by source path?
-- Do we want a small sync script for refreshing `vendor/references/` from the upstream repositories, or should updates remain fully manual?
+- Should the reference snapshots be refreshed manually or via a small sync script that mirrors upstream commits into `vendor/references/`?
+- Should the Android picker implementation prefer `ACTION_OPEN_DOCUMENT`, `ACTION_GET_CONTENT` chooser fallback, or `PickVisualMedia` depending on mode and API level, mirroring the upstream behavior as closely as possible?
+- Should URI staging use a single cache-root helper shared by desktop and Android, or keep a platform-specific staging helper per backend?
