@@ -100,6 +100,7 @@ export function useCloudAuthFlow() {
         merchantId: outlet.merchantId,
         outletId: outlet.id,
       });
+      setScope(outlet.merchantId);
       await syncNow();
       cloudLoginLogger.info("sync:result", {
         merchantId: outlet.merchantId,
@@ -120,7 +121,6 @@ export function useCloudAuthFlow() {
     if (currentCloudStaff.staff) {
       try {
         const authUser = await loginWithCloudStaff(currentCloudStaff.staff.id);
-        setScope(outlet.merchantId);
         navigate(routeForRole(authUser.role), { replace: true });
       } catch (err) {
         cloudLoginLogger.error("local_cloud_staff_login:failed", err, {

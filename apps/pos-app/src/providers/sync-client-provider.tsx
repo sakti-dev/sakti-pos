@@ -11,10 +11,16 @@ import {
   useContext,
 } from "solid-js";
 import { AuthStorage } from "~/lib/auth/storage";
+import { createLogger } from "~/lib/logger";
 import { setSyncClient } from "~/lib/sync";
 import { setSyncDataVersion } from "~/lib/use-drizzle-query";
 import { scopeId } from "~/store/auth";
 import { setSyncStatus } from "~/store/sync";
+
+const syncProviderLogger = createLogger({
+  domain: "SYNC",
+  module: "provider",
+});
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,9 +51,22 @@ export const SyncClientProvider: ParentComponent = (props) => {
       if (token) {
         newClient
           .setHeaders({ Authorization: `Bearer ${token}` })
-          .catch(() => {});
+          .then(() => {
+            syncProviderLogger.info("headers_set", { hasToken: true });
+          })
+          .catch((err) => {
+            syncProviderLogger.error("headers_set_failed", err, {});
+          });
       }
-      newClient.startPolling().catch(() => {});
+      syncProviderLogger.info("polling_starting", { scope });
+      newClient
+        .startPolling()
+        .then(() => {
+          syncProviderLogger.info("polling_started", { scope });
+        })
+        .catch((err) => {
+          syncProviderLogger.error("polling_start_failed", err, { scope });
+        });
     });
 
     const pending = Promise.all([
@@ -58,13 +77,17 @@ export const SyncClientProvider: ParentComponent = (props) => {
       listen("baresync://sync-status-changed", async () => {
         try {
           const state = await newClient.getState();
-          if (state.needs_baseline_sync || state.local_dirty_count > 0) {
+          syncProviderLogger.info("status_changed", {
+            needsBaselineSync: state.needs_baseline_sync,
+            localDirtyCount: state.local_dirty_count,
+          });
+          if (state.local_dirty_count > 0) {
             setSyncStatus("syncing");
           } else {
             setSyncStatus("idle");
           }
-        } catch {
-          // ignore
+        } catch (err) {
+          syncProviderLogger.error("status_get_state_failed", err, {});
         }
       }),
     ]);

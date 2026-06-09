@@ -60,6 +60,7 @@ const mockSyncClient = {
   ),
   startPolling: vi.fn(),
   stopPolling: vi.fn(() => Promise.resolve()),
+  setHeaders: vi.fn(() => Promise.resolve()),
 };
 
 vi.mock("~/lib/sync", () => ({
@@ -109,6 +110,24 @@ describe("syncNow", () => {
 
     await expect(syncNow()).rejects.toThrow("Gagal menyinkronkan");
     expect(syncStatus()).toBe("offline");
+  });
+
+  test("setHeaders is called on client before syncNow", async () => {
+    vi.mocked(mockSyncClient.syncNow).mockResolvedValueOnce({
+      mode: "PullOnly",
+      pull: { rows_received: 1, server_time: "2026-01-01T00:00:00.000Z" },
+      purged: 0,
+      push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+    } as never);
+
+    await syncNow();
+
+    expect(mockSyncClient.setHeaders).toHaveBeenCalledWith({
+      Authorization: "Bearer test-session-token",
+    });
+    const headersOrder = mockSyncClient.setHeaders.mock.invocationCallOrder[0];
+    const syncOrder = mockSyncClient.syncNow.mock.invocationCallOrder[0];
+    expect(headersOrder).toBeLessThan(syncOrder);
   });
 });
 

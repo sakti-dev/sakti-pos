@@ -133,7 +133,21 @@ export async function syncNow(): Promise<SyncNowResult> {
       await uploadPendingProductImages(merchantId, sessionToken);
     }
 
-    const result = (await getSyncClient().syncNow()) as SyncNowResult;
+    const client = getSyncClient();
+    await client.setHeaders({ Authorization: `Bearer ${sessionToken}` });
+    const raw = await client.syncNow();
+
+    if (!raw || raw.mode === "NoOp") {
+      setSyncStatus("idle");
+      return {
+        mode: "NoOp",
+        pull: { rows_received: 0, server_time: "" },
+        purged: 0,
+        push: { server_time: "", server_wins_count: 0, tables_synced: [] },
+      };
+    }
+
+    const result = raw as SyncNowResult;
 
     syncLogger.info("result", {
       mode: result.mode,

@@ -119,6 +119,13 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SYNC:MANUAL_SYNC_REQUESTED]` | `components/sync-status.tsx` — header cloud icon tapped |
 | `[JS] [SYNC:MANUAL_SYNC_SUCCEEDED]` | `components/sync-status.tsx` — header cloud icon manual sync completed |
 | `[JS] [SYNC:RESULT]` | `store/sync.ts` |
+| `[JS] [SYNC:HEADERS_SET]` | `providers/sync-client-provider.tsx` — auth headers applied to sync client |
+| `[JS] [SYNC:HEADERS_SET_FAILED]` | `providers/sync-client-provider.tsx` — auth header setup failed |
+| `[JS] [SYNC:POLLING_STARTING]` | `providers/sync-client-provider.tsx` — about to call `startPolling` |
+| `[JS] [SYNC:POLLING_STARTED]` | `providers/sync-client-provider.tsx` — polling loop confirmed running |
+| `[JS] [SYNC:POLLING_START_FAILED]` | `providers/sync-client-provider.tsx` — `startPolling` rejected |
+| `[JS] [SYNC:STATUS_CHANGED]` | `providers/sync-client-provider.tsx` — polling cycle emitted state, includes `needsBaselineSync`, `localDirtyCount` |
+| `[JS] [SYNC:STATUS_GET_STATE_FAILED]` | `providers/sync-client-provider.tsx` — `getState()` threw inside status listener |
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
 | `[JS] [UI:REQUIRE_AUTH_GUARD]` | `App.tsx` |
