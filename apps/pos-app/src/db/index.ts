@@ -1,6 +1,5 @@
 import {
   localAssetCache,
-  pendingAssetProcessingJobs,
   pendingProductPhotoJobs,
   syncCursors,
   syncOutbox,
@@ -25,7 +24,6 @@ const schema = {
   assets,
   categories,
   localAssetCache,
-  pendingAssetProcessingJobs,
   pendingProductPhotoJobs,
   merchants,
   orderItems,

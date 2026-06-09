@@ -88,27 +88,28 @@ pub async fn prepare_local_image_asset_from_path(
 
 #[command]
 pub async fn get_pending_preview_path(
+    app: AppHandle,
     product_id: String,
-    state: State<'_, AppState>,
 ) -> Result<Option<PendingPreviewPathResponse>, String> {
-    super::processing_jobs::get_pending_preview_path(product_id, state).await
+    super::processing_jobs::get_pending_preview_path(app, product_id).await
 }
 
 #[command]
 pub async fn process_pending_asset_jobs(
+    app: AppHandle,
     limit: Option<i64>,
     state: State<'_, AppState>,
-    app: AppHandle,
 ) -> Result<i64, String> {
-    super::processing_jobs::process_pending_asset_jobs(limit, state, app).await
+    super::processing_jobs::process_pending_asset_jobs(app, state, limit).await
 }
 
 #[command]
 pub async fn enqueue_asset_processing(
+    app: AppHandle,
     state: State<'_, AppState>,
     request: EnqueueAssetProcessingRequest,
 ) -> Result<EnqueueAssetProcessingResponse, String> {
-    super::processing_jobs::enqueue_asset_processing(state, request).await
+    super::processing_jobs::enqueue_asset_processing(app, state, request).await
 }
 
 #[command]

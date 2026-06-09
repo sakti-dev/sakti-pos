@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-failed-jobs"
+description = "Enables the get_failed_jobs command without any pre-configured scope."
+commands.allow = ["get_failed_jobs"]
+
+[[permission]]
+identifier = "deny-get-failed-jobs"
+description = "Denies the get_failed_jobs command without any pre-configured scope."
+commands.deny = ["get_failed_jobs"]

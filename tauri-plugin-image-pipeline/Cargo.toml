@@ -1,0 +1,32 @@
+[package]
+name = "tauri-plugin-image-pipeline"
+version = "0.1.0"
+description = "Tauri plugin for image processing, content-addressed caching, and durable job queue"
+edition = "2021"
+links = "tauri-plugin-image-pipeline"
+
+[dependencies]
+tauri = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+tokio = { version = "1", features = ["fs", "sync"] }
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+async-trait = "0.1"
+
+# Non-Android codec dependencies — these are NOT compiled on Android targets.
+# The Android processor delegates to Kotlin native APIs instead.
+[target.'cfg(not(target_os = "android"))'.dependencies]
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+kamadak-exif = "0.6"
+zenwebp = "0.4"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+filetime = "0.2"

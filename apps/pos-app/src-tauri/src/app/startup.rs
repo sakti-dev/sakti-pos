@@ -2,6 +2,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, S
 use std::str::FromStr;
 use std::time::Duration;
 use tauri::Manager;
+use tauri_plugin_image_pipeline::ImagePipelineExt;
 
 pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
@@ -91,10 +92,7 @@ pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
             }
 
             tauri::async_runtime::spawn(async move {
-                if let Err(error) =
-                    crate::assets::reset_incomplete_pending_asset_processing_jobs(&pool_for_jobs)
-                        .await
-                {
+                if let Err(error) = handle.image_pipeline().reset_stuck_jobs().await {
                     crate::pos_log!(
                         error,
                         "ASSET",

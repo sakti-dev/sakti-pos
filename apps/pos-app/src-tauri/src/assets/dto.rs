@@ -70,19 +70,6 @@ pub struct AssetAttachmentTarget {
     pub(super) field: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
-pub(super) struct AssetAttachmentReadyPayload {
-    pub(super) asset_id: String,
-    pub(super) entity_id: String,
-    pub(super) entity_type: String,
-    pub(super) field: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub(super) struct AssetCacheReadyPayload {
-    pub(super) asset_id: String,
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CachedAssetPathResponse {

@@ -43,32 +43,6 @@ export const pendingProductPhotoJobs = sqliteTable(
   }
 );
 
-export const pendingAssetProcessingJobs = sqliteTable(
-  "pending_asset_processing_jobs",
-  {
-    id: text("id").primaryKey(),
-    merchantId: text("merchant_id").notNull(),
-    sourcePath: text("source_path").notNull(),
-    originalFilename: text("original_filename").notNull(),
-    sourceMimeType: text("source_mime_type"),
-    processingKind: text("processing_kind").notNull(),
-    entityType: text("entity_type").notNull(),
-    entityId: text("entity_id").notNull(),
-    attachmentField: text("attachment_field").notNull(),
-    previewPath: text("preview_path"),
-    previewMimeType: text("preview_mime_type"),
-    status: text("status").notNull().default("pending"),
-    attempts: integer("attempts").notNull().default(0),
-    lastError: text("last_error"),
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text("updated_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  }
-);
-
 export const syncOutbox = createSyncOutboxTable();
 
 export const syncCursors = createSyncCursorsTable();

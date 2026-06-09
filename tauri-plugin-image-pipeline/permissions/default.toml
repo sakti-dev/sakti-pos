@@ -1,0 +1,16 @@
+# Default permissions for tauri-plugin-image-pipeline.
+#
+# Sakti POS uses the public Rust API for mutating workflow operations
+# (enqueue, process, consume, retry, reset). These Rust-to-Rust calls
+# do not require frontend command permissions.
+#
+# Grant only the read-only commands that JavaScript consumers may call
+# directly through the guest-js bindings.
+[default]
+description = "Default permissions for image-pipeline plugin"
+permissions = [
+    "allow-get-completed-jobs",
+    "allow-get-failed-jobs",
+    "allow-get-pending-preview",
+    "allow-get-cached-asset-path",
+]

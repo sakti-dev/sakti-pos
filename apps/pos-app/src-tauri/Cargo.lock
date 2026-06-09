@@ -4228,6 +4228,7 @@ dependencies = [
  "tauri-plugin-android-fs",
  "tauri-plugin-baresync",
  "tauri-plugin-deep-link",
+ "tauri-plugin-image-pipeline",
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "time",
@@ -5315,6 +5316,26 @@ dependencies = [
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
  "url",
+]
+
+[[package]]
+name = "tauri-plugin-image-pipeline"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "image",
+ "kamadak-exif",
+ "log",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.18",
+ "tokio",
+ "uuid",
+ "zenwebp",
 ]
 
 [[package]]
