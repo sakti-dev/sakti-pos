@@ -23,6 +23,7 @@ async-trait = "0.1"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 kamadak-exif = "0.6"
 zenwebp = "0.4"
+tauri-plugin-dialog = "2"
 
 [build-dependencies]
 tauri-plugin = { version = "2", features = ["build"] }

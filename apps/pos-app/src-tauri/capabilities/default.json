@@ -8,6 +8,7 @@
     "core:default",
     "core:event:default",
     "deep-link:default",
+    "image-pipeline:allow-pick-image",
     "log:default",
     "opener:default",
     "baresync:default"

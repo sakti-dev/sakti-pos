@@ -8,6 +8,18 @@ fn plugin_error_to_string(error: crate::error::PluginError) -> String {
 }
 
 #[command]
+pub(crate) async fn pick_image<R: Runtime>(
+    _app: AppHandle<R>,
+    pipeline: State<'_, ImagePipeline<R>>,
+    request: crate::dto::PickImageRequest,
+) -> Result<crate::dto::PickImageResponse, String> {
+    pipeline
+        .pick_image(request)
+        .await
+        .map_err(plugin_error_to_string)
+}
+
+#[command]
 pub(crate) async fn enqueue_job<R: Runtime>(
     _app: AppHandle<R>,
     pipeline: State<'_, ImagePipeline<R>>,

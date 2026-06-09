@@ -1,4 +1,5 @@
 const COMMANDS: &[&str] = &[
+    "pick_image",
     "enqueue_job",
     "process_pending_jobs",
     "get_completed_jobs",

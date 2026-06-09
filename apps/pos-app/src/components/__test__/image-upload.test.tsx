@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@solidjs/testing-library";
+import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
 import { describe, expect, test, vi } from "vitest";
@@ -7,85 +7,62 @@ import { ImageUpload } from "~/components/image-upload";
 import { createImageUpload } from "~/lib/assets/image-upload";
 
 const mockConvertFileSrc = vi.fn();
-const mockPickProductPhoto = vi.fn();
-const mockDeleteTempProductPhoto = vi.fn();
-const mockEnqueueAssetProcessing = vi.fn();
+const mockPluginPickImage = vi.fn();
+const mockListen = vi.fn();
+const mockUnlisten = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (...args: unknown[]) => mockConvertFileSrc(...args),
 }));
 
-vi.mock("~/lib/assets/picking", () => ({
-  deleteTempProductPhoto: (...args: unknown[]) =>
-    mockDeleteTempProductPhoto(...args),
-  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (...args: unknown[]) => mockListen(...args),
 }));
 
-vi.mock("~/lib/assets/processing", () => ({
-  enqueueAssetProcessing: (...args: unknown[]) =>
-    mockEnqueueAssetProcessing(...args),
+vi.mock("~/lib/assets/plugin-bridge", () => ({
+  pluginPickImage: (...args: unknown[]) => mockPluginPickImage(...args),
 }));
 
-vi.mock("~/components/ui/button", () => ({
-  Button: (props: {
-    children: JSX.Element;
-    disabled?: boolean;
-    onClick?: () => void;
-    type?: "button" | "submit";
-  }) => (
-    <button
-      disabled={props.disabled}
-      onClick={props.onClick}
-      type={props.type ?? "button"}
-    >
-      {props.children}
-    </button>
-  ),
-}));
-
-vi.mock("~/components/ui/drawer", () => ({
-  Drawer: (props: { children: JSX.Element; open: boolean }) =>
-    props.open ? props.children : null,
-  DrawerClose: (props: { children?: JSX.Element }) => (
-    <div>{props.children}</div>
-  ),
-  DrawerContent: (props: { children?: JSX.Element }) => (
-    <div>{props.children}</div>
-  ),
-  DrawerDescription: (props: { children?: JSX.Element }) => (
-    <div>{props.children}</div>
-  ),
-  DrawerHeader: (props: { children?: JSX.Element }) => (
-    <div>{props.children}</div>
-  ),
-  DrawerOverlay: (props: { children?: JSX.Element }) => (
-    <div>{props.children}</div>
-  ),
-  DrawerPortal: (props: { children?: JSX.Element }) => (
-    <div>{props.children}</div>
-  ),
-  DrawerTitle: (props: { children: JSX.Element }) => <h2>{props.children}</h2>,
-  DrawerTrigger: (props: { children?: JSX.Element }) => (
-    <div>{props.children}</div>
-  ),
-}));
+vi.mock("~/components/ui/button", (importOriginal) => {
+  const _original = importOriginal as () => Promise<Record<string, unknown>>;
+  return {
+    Button: (props: {
+      children?: JSX.Element;
+      class?: string;
+      disabled?: boolean;
+      onClick?: () => void;
+      type?: "button" | "submit";
+      variant?: string;
+    }) => (
+      <button
+        class={props.class}
+        disabled={props.disabled}
+        onClick={props.onClick}
+        type={props.type}
+      >
+        {props.children}
+      </button>
+    ),
+  };
+});
 
 const leadingSlashRegex = /^\//;
 
 const user = userEvent.setup();
 
 describe("ImageUpload", () => {
-  test("photo source drawer shows only camera and gallery actions", async () => {
+  test("trigger opens the plugin-owned picker directly", async () => {
     mockConvertFileSrc.mockImplementation(
       (path: string) =>
         `https://asset.localhost/${path.replace(leadingSlashRegex, "")}`
     );
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/cam_1.jpg",
-      originalFilename: "photo.jpg",
-      mimeType: "image/jpeg",
-      source: "camera",
+    mockPluginPickImage.mockResolvedValue({
+      jobId: "job-test-1",
+      previewPath: "/data/app_cache/sakti-image/previews/test_preview.jpg",
+      previewMimeType: "image/jpeg",
+      status: "pending",
     });
+    mockListen.mockResolvedValue(mockUnlisten);
 
     const upload = createImageUpload({
       processingKind: "image:webp-thumbnail",
@@ -100,30 +77,22 @@ describe("ImageUpload", () => {
 
     await user.click(screen.getByText("Pilih Foto"));
 
-    expect(
-      screen.getByText("Pilih Foto", { selector: "h2" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Ambil Foto")).toBeInTheDocument();
-    expect(screen.getByText("Pilih dari Galeri")).toBeInTheDocument();
-    expect(screen.queryByText("Batal")).not.toBeInTheDocument();
-
-    await user.click(screen.getByText("Ambil Foto"));
-
-    expect(await screen.findByText("photo.jpg")).toBeInTheDocument();
+    expect(mockPluginPickImage).toHaveBeenCalledOnce();
+    expect(upload.hasStagedImage()).toBe(true);
   });
 
-  test("stages a picked image and enqueues it for a supplied asset target", async () => {
+  test("stages a picked image and shows preview", async () => {
     mockConvertFileSrc.mockImplementation(
       (path: string) =>
         `https://asset.localhost/${path.replace(leadingSlashRegex, "")}`
     );
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/gallery_1.png",
-      originalFilename: "menu.png",
-      mimeType: "image/png",
-      source: "gallery",
+    mockPluginPickImage.mockResolvedValue({
+      jobId: "job-test-2",
+      previewPath: "/data/app_cache/sakti-image/previews/abc123_preview.jpg",
+      previewMimeType: "image/jpeg",
+      status: "pending",
     });
-    mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
+    mockListen.mockResolvedValue(mockUnlisten);
 
     const upload = createImageUpload({
       processingKind: "image:webp-thumbnail",
@@ -139,35 +108,12 @@ describe("ImageUpload", () => {
     ));
 
     await user.click(screen.getByText("Pilih Foto"));
-    await user.click(screen.getByText("Pilih dari Galeri"));
 
-    expect(await screen.findByText("menu.png")).toBeInTheDocument();
-    expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
-      "src",
-      "https://asset.localhost/tmp/product_photo_inputs/gallery_1.png"
-    );
-    expect(
-      screen.getByText("Foto akan diproses saat disimpan.")
-    ).toBeInTheDocument();
     expect(upload.hasStagedImage()).toBe(true);
-
-    await upload.enqueueFor({
-      entityId: "product-1",
-      entityType: "product",
-      field: "image_asset_id",
-    });
-
-    expect(mockEnqueueAssetProcessing).toHaveBeenCalledWith({
-      originalFilename: "menu.png",
-      processingKind: "image:webp-thumbnail",
-      sourceMimeType: "image/png",
-      sourcePath: "/tmp/product_photo_inputs/gallery_1.png",
-      target: {
-        entityId: "product-1",
-        entityType: "product",
-        field: "image_asset_id",
-      },
-    });
-    await waitFor(() => expect(upload.hasStagedImage()).toBe(false));
+    expect(upload.isReady()).toBe(false);
+    expect(upload.jobId()).toBe("job-test-2");
+    expect(
+      screen.getByRole("img", { name: "Preview foto produk" })
+    ).toBeInTheDocument();
   });
 });

@@ -83,7 +83,57 @@ export interface CachedPathResponse {
   localPath: string;
 }
 
+// ── Picker DTOs ──────────────────────────────────────────────────
+
+export interface PickImageCompressionOptions {
+  maxLongEdge: number;
+  previewMaxLongEdge: number;
+  quality: number;
+}
+
+export interface PickImageRequest {
+  compression: PickImageCompressionOptions;
+  pickerMode: string;
+}
+
+export interface PickImageResponse {
+  jobId: string;
+  previewMimeType: string;
+  previewPath: string;
+  status: "pending" | "processing";
+}
+
+export interface JobCompletedEventPayload {
+  assetPath: string;
+  byteSize: number;
+  contentHash: string;
+  contentType: string;
+  height: number;
+  jobId: string;
+  originalFilename: string;
+  width: number;
+}
+
+export interface JobFailedEventPayload {
+  attempts: number;
+  error: string;
+  jobId: string;
+  maxAttempts: number;
+  terminal: boolean;
+}
+
+// ── Event names ──────────────────────────────────────────────────
+
+export const JOB_COMPLETED_EVENT = "image_pipeline://job_completed";
+export const JOB_FAILED_EVENT = "image_pipeline://job_failed";
+
 // ── Commands ────────────────────────────────────────────────────────
+
+export function pickImage(
+  request: PickImageRequest
+): Promise<PickImageResponse> {
+  return invoke("plugin:image-pipeline|pick_image", { request });
+}
 
 export function enqueueJob(
   request: EnqueueJobRequest

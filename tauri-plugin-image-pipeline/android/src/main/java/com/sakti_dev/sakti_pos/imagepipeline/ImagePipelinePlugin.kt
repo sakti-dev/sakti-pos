@@ -31,6 +31,21 @@ class CompressImageArgs {
     var previewMaxLongEdge: Int = 320
 }
 
+@InvokeArg
+class PickImageArgs {
+    var pickerMode: String = "image"
+    var compressionMaxLongEdge: Int = 400
+    var compressionPreviewMaxLongEdge: Int = 320
+    var compressionQuality: Int = 75
+}
+
+data class PickImageResult(
+    val jobId: String,
+    val previewPath: String,
+    val previewMimeType: String,
+    val status: String,
+)
+
 data class AndroidCompressionResult(
     val assetPath: String,
     val previewPath: String?,
@@ -259,6 +274,31 @@ class ImagePipelinePlugin(private val activity: Activity) : Plugin(activity) {
             } catch (error: Exception) {
                 invoke.reject(error.message ?: "Android preview generation failed")
             }
+        }
+    }
+
+    /**
+     * Stage a picker result as a preview file in the plugin cache.
+     * Called from [pickImage] to write the preview before returning.
+     */
+    private suspend fun stagePickerPreview(
+        sourceFile: File,
+        outputDir: File,
+        originalFilename: String,
+        previewMaxLongEdge: Int,
+    ): String {
+        return withContext(Dispatchers.Default) {
+            outputDir.mkdirs()
+            val previewResult = AndroidImageCompressor().generatePreview(
+                CompressImageArgs().apply {
+                    sourcePath = sourceFile.absolutePath
+                    outputDir = outputDir.absolutePath
+                    this.originalFilename = originalFilename
+                    maxLongEdge = previewMaxLongEdge
+                    previewMaxLongEdge = previewMaxLongEdge
+                },
+            )
+            previewResult.previewPath ?: sourceFile.absolutePath
         }
     }
 }

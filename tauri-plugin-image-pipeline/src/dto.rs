@@ -282,6 +282,38 @@ pub struct AndroidCompressImageResponse {
     pub byte_size: u64,
     pub original_filename: String,
 }
+// ── Picker DTOs ────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickImageCompressionOptions {
+    pub max_long_edge: u32,
+    pub preview_max_long_edge: u32,
+    pub quality: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickImageRequest {
+    pub picker_mode: String,
+    pub compression: PickImageCompressionOptions,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PickImageStatus {
+    Pending,
+    Processing,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PickImageResponse {
+    pub job_id: String,
+    pub preview_path: PathBuf,
+    pub preview_mime_type: String,
+    pub status: PickImageStatus,
+}
 
 // ── Event payloads ──────────────────────────────────────────────────
 
@@ -289,6 +321,13 @@ pub struct AndroidCompressImageResponse {
 #[serde(rename_all = "camelCase")]
 pub struct JobCompletedPayload {
     pub job_id: String,
+    pub asset_path: PathBuf,
+    pub content_hash: String,
+    pub content_type: String,
+    pub byte_size: u64,
+    pub width: u32,
+    pub height: u32,
+    pub original_filename: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -33,6 +33,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_android_fs::init())
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_image_pipeline::init())
         .plugin(auth::init())
         .plugin(android::photo_picker::init())

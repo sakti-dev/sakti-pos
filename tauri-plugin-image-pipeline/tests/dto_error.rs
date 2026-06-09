@@ -215,6 +215,13 @@ fn completed_job_camel_case() {
 fn event_payloads_camel_case() {
     let completed = JobCompletedPayload {
         job_id: "j1".into(),
+        asset_path: std::path::PathBuf::from("/cache/abc.webp"),
+        content_hash: "sha256:abc".into(),
+        content_type: "image/webp".into(),
+        byte_size: 1234,
+        width: 400,
+        height: 300,
+        original_filename: "photo.jpg".into(),
     };
     let json = serde_json::to_string(&completed).unwrap();
     assert!(json.contains("\"jobId\""));

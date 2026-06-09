@@ -203,6 +203,32 @@ Denies the get_pending_preview command without any pre-configured scope.
 <tr>
 <td>
 
+`image-pipeline:allow-pick-image`
+
+</td>
+<td>
+
+Enables the pick_image command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`image-pipeline:deny-pick-image`
+
+</td>
+<td>
+
+Denies the pick_image command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `image-pipeline:allow-process-pending-jobs`
 
 </td>

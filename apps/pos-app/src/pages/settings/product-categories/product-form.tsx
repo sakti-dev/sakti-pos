@@ -15,7 +15,6 @@ import {
 } from "~/db/menu";
 import { productImageAdapter } from "~/lib/assets/adapters/product-images";
 import { createImageUpload } from "~/lib/assets/image-upload";
-import { createAssetProcessingTarget } from "~/lib/assets/targets";
 import { createLogger } from "~/lib/logger";
 import {
   type ProductFormValues,
@@ -57,24 +56,32 @@ export default function ProductForm() {
         ? productImageAdapter.resolveCachedImageUrl(imageAssetId()!)
         : Promise.resolve(null)
   );
-  const upload = createImageUpload({
-    existingAssetId: imageAssetId,
-    existingImageUrl: () => savedImagePreviewUrlQuery.data() ?? null,
-    onClearExisting: () => setImageAssetId(null),
-    processingKind: "image:webp-thumbnail",
-  });
   const photoLogger = createLogger({
     domain: "PHOTO",
     module: "product-photo",
   });
 
+  const upload = createImageUpload({
+    existingAssetId: imageAssetId,
+    existingImageUrl: () => savedImagePreviewUrlQuery.data() ?? null,
+    onClearExisting: () => setImageAssetId(null),
+    processingKind: "image:webp-thumbnail",
+    onAssetReady: (result) => {
+      setImageAssetId(result.contentHash);
+      photoLogger.info("asset_ready_received");
+      toast.success("Foto siap disimpan");
+    },
+  });
+
   const canSubmit = createMemo(() => {
     const input = getInput(form);
+    const hasPendingImage = upload.hasStagedImage() && !upload.isReady();
     return (
       !!input?.name?.trim() &&
       !!input?.categoryId &&
       !!input?.price?.trim() &&
       !upload.isBusy() &&
+      !hasPendingImage &&
       !form.isSubmitting
     );
   });
@@ -108,7 +115,6 @@ export default function ProductForm() {
       }
 
       const nextImageAssetId = imageAssetId();
-      const hasStagedImage = upload.hasStagedImage();
       const data = {
         name: values.name,
         categoryId: values.categoryId,
@@ -117,57 +123,30 @@ export default function ProductForm() {
       };
       photoLogger.info("submit_started", {
         hasExistingAsset: !!nextImageAssetId,
-        hasStagedPhoto: hasStagedImage,
+        hasStagedPhoto: upload.hasStagedImage(),
         isEdit: isEdit(),
         merchantId,
         productId: params.id ?? null,
       });
 
-      let savedProductId: string;
       if (isEdit()) {
         const updatedProduct = await updateProduct(params.id ?? "", data);
-        savedProductId = updatedProduct.id;
         photoLogger.info("product_updated", {
           imageAssetId: data.imageAssetId,
-          productId: savedProductId,
+          productId: updatedProduct.id,
         });
       } else {
         const createdProduct = await createProduct({
           ...data,
           merchantId,
         });
-        savedProductId = createdProduct.id;
         photoLogger.info("product_created", {
           imageAssetId: data.imageAssetId,
-          productId: savedProductId,
+          productId: createdProduct.id,
         });
       }
 
-      if (hasStagedImage) {
-        try {
-          const enqueueResult = await upload.enqueueFor(
-            createAssetProcessingTarget("productImage", savedProductId)
-          );
-
-          if (!enqueueResult) {
-            throw new Error("Tidak ada foto staged untuk diproses");
-          }
-
-          photoLogger.info("pending_photo_job_enqueued", {
-            jobId: enqueueResult.jobId,
-            productId: savedProductId,
-          });
-          toast.success("Foto akan diproses di background");
-        } catch (enqueueError) {
-          photoLogger.error("photo_job_enqueue_failed", enqueueError, {
-            productId: savedProductId,
-          });
-          toast.error("Foto tersimpan, tapi job background gagal dijadwalkan");
-        }
-      }
-      photoLogger.info("navigate_to_product_list", {
-        productId: savedProductId,
-      });
+      photoLogger.info("navigate_to_product_list");
       navigate("/settings/products-categories", { replace: true });
       syncNow().catch(() => {});
     } catch (e) {

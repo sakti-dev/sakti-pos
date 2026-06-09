@@ -7,9 +7,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 const mockNavigate = vi.fn();
 const mockCreateProduct = vi.fn();
 const mockUpdateProduct = vi.fn();
-const mockPickProductPhoto = vi.fn();
-const mockDeleteTempProductPhoto = vi.fn();
-const mockEnqueueAssetProcessing = vi.fn();
+const mockPluginPickImage = vi.fn();
+const mockListen = vi.fn();
+const mockUnlisten = vi.fn();
 const mockResolveCachedProductImageUrl = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockSyncNow = vi.fn();
@@ -66,15 +66,12 @@ vi.mock("~/store/sync", () => ({
   syncNow: (...args: unknown[]) => mockSyncNow(...args),
 }));
 
-vi.mock("~/lib/assets/picking", () => ({
-  deleteTempProductPhoto: (...args: unknown[]) =>
-    mockDeleteTempProductPhoto(...args),
-  pickProductPhoto: (...args: unknown[]) => mockPickProductPhoto(...args),
+vi.mock("~/lib/assets/plugin-bridge", () => ({
+  pluginPickImage: (...args: unknown[]) => mockPluginPickImage(...args),
 }));
 
-vi.mock("~/lib/assets/processing", () => ({
-  enqueueAssetProcessing: (...args: unknown[]) =>
-    mockEnqueueAssetProcessing(...args),
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (...args: unknown[]) => mockListen(...args),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -239,69 +236,40 @@ describe("ProductForm (create mode)", () => {
     expect(screen.getAllByText("*")).toHaveLength(3);
   });
 
-  test("opens the photo source drawer when pilih foto is clicked", async () => {
-    render(() => <ProductForm />);
-
-    await user.click(screen.getAllByTestId("action-btn")[0]);
-
-    expect(screen.getAllByText("Pilih Foto").length).toBeGreaterThan(0);
-    expect(screen.getByText("Ambil Foto")).toBeInTheDocument();
-    expect(screen.getByText("Pilih dari Galeri")).toBeInTheDocument();
-  });
-
-  test("choosing camera stages a temp photo without preparing a local asset", async () => {
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/photo_1.jpg",
-      originalFilename: "photo_1.jpg",
-      mimeType: "image/jpeg",
-      source: "camera",
-    });
-
-    render(() => <ProductForm />);
-    await user.click(screen.getAllByTestId("action-btn")[0]);
-    await user.click(screen.getByText("Ambil Foto"));
-
-    expect(mockPickProductPhoto).toHaveBeenCalledWith("camera");
-    expect(
-      await screen.findByText("Foto akan diproses saat disimpan.")
-    ).toBeInTheDocument();
-    expect(await screen.findByAltText("Preview foto produk")).toHaveAttribute(
-      "src",
-      "asset:///tmp/product_photo_inputs/photo_1.jpg"
-    );
-  });
-
-  test("choosing gallery stages a temp photo without preparing a local asset", async () => {
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/gallery_1.png",
-      originalFilename: "menu.png",
-      mimeType: "image/png",
-      source: "gallery",
-    });
-
-    render(() => <ProductForm />);
-    await user.click(screen.getAllByTestId("action-btn")[0]);
-    await user.click(screen.getByText("Pilih dari Galeri"));
-
-    expect(mockPickProductPhoto).toHaveBeenCalledWith("gallery");
-  });
-
-  test("submit saves the product immediately and enqueues staged photo processing", async () => {
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/gallery_1.png",
-      originalFilename: "menu.png",
-      mimeType: "image/png",
-      source: "gallery",
+  test("picking a photo calls plugin pick_image and persists the returned asset id", async () => {
+    mockPluginPickImage.mockResolvedValue({
+      jobId: "job-photo-1",
+      previewPath: "/data/app_cache/sakti-image/previews/photo_preview.jpg",
+      previewMimeType: "image/jpeg",
+      status: "pending",
     });
     mockCreateProduct.mockResolvedValue({
-      id: "product-2",
+      id: "product-photo-1",
       merchantId: "merchant-1",
       name: "Es Teh",
       categoryId: "category-1",
       price: "10000",
-      imageAssetId: null,
+      imageAssetId: "sha256:photo-ready",
     });
-    mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
+    mockListen.mockImplementation(
+      (eventName: string, handler: (event: { payload: unknown }) => void) => {
+        if (eventName === "image_pipeline://job_completed") {
+          handler({
+            payload: {
+              jobId: "job-photo-1",
+              assetPath: "/data/app_cache/sakti-image/assets/photo.webp",
+              byteSize: 42_000,
+              contentHash: "sha256:photo-ready",
+              contentType: "image/webp",
+              height: 300,
+              originalFilename: "photo.jpg",
+              width: 400,
+            },
+          });
+        }
+        return mockUnlisten;
+      }
+    );
 
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
@@ -311,30 +279,51 @@ describe("ProductForm (create mode)", () => {
     );
     await user.type(screen.getByPlaceholderText("0"), "10000");
     await user.click(screen.getAllByTestId("action-btn")[0]);
-    await user.click(screen.getByText("Pilih dari Galeri"));
+
+    expect(mockPluginPickImage).toHaveBeenCalledWith(
+      expect.objectContaining({ pickerMode: "image" })
+    );
+
+    await waitFor(
+      () => expect(screen.getByTestId("save-btn")).not.toBeDisabled(),
+      {
+        timeout: 3000,
+      }
+    );
+
+    await user.click(screen.getByTestId("save-btn"));
+
+    expect(mockCreateProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ imageAssetId: "sha256:photo-ready" })
+    );
+  });
+
+  test("submit saves the product without staged image", async () => {
+    mockCreateProduct.mockResolvedValue({
+      id: "product-2",
+      merchantId: "merchant-1",
+      name: "Es Teh",
+      categoryId: "category-1",
+      price: "10000",
+      imageAssetId: null,
+    });
+
+    render(() => <ProductForm />);
+    await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
+    await user.selectOptions(
+      screen.getByTestId("category-select"),
+      "category-1"
+    );
+    await user.type(screen.getByPlaceholderText("0"), "10000");
     await user.click(screen.getByTestId("save-btn"));
 
     expect(mockCreateProduct).toHaveBeenCalledWith(
       expect.objectContaining({ imageAssetId: null })
     );
-    expect(mockEnqueueAssetProcessing).toHaveBeenCalledWith({
-      originalFilename: "menu.png",
-      processingKind: "image:webp-thumbnail",
-      sourceMimeType: "image/png",
-      sourcePath: "/tmp/product_photo_inputs/gallery_1.png",
-      target: {
-        entityId: "product-2",
-        entityType: "product",
-        field: "image_asset_id",
-      },
-    });
-    expect(mockToastSuccess).toHaveBeenCalledWith(
-      "Foto akan diproses di background"
-    );
     await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });
 
-  test("submit navigates before starting background photo sync", async () => {
+  test("submit navigates before starting background sync", async () => {
     const callOrder: string[] = [];
     mockNavigate.mockImplementation(() => {
       callOrder.push("navigate");
@@ -348,12 +337,6 @@ describe("ProductForm (create mode)", () => {
         push: { server_time: "", server_wins_count: 0, tables_synced: [] },
       });
     });
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/gallery_1.png",
-      originalFilename: "menu.png",
-      mimeType: "image/png",
-      source: "gallery",
-    });
     mockCreateProduct.mockResolvedValue({
       id: "product-2",
       merchantId: "merchant-1",
@@ -362,7 +345,6 @@ describe("ProductForm (create mode)", () => {
       price: "10000",
       imageAssetId: null,
     });
-    mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
 
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
@@ -371,8 +353,6 @@ describe("ProductForm (create mode)", () => {
       "category-1"
     );
     await user.type(screen.getByPlaceholderText("0"), "10000");
-    await user.click(screen.getAllByTestId("action-btn")[0]);
-    await user.click(screen.getByText("Pilih dari Galeri"));
     await user.click(screen.getByTestId("save-btn"));
 
     expect(mockNavigate).toHaveBeenCalledWith("/settings/products-categories", {
@@ -382,22 +362,21 @@ describe("ProductForm (create mode)", () => {
     expect(callOrder[0]).toBe("navigate");
   });
 
-  test("removing a staged native photo deletes its temp file", async () => {
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/photo_1.jpg",
-      originalFilename: "photo_1.jpg",
-      mimeType: "image/jpeg",
-      source: "camera",
+  test("removing a staged plugin photo clears state without deleting files", async () => {
+    mockPluginPickImage.mockResolvedValue({
+      jobId: "job-remove-1",
+      previewPath: "/data/app_cache/sakti-image/previews/photo_preview.jpg",
+      previewMimeType: "image/jpeg",
+      status: "pending",
     });
+    mockListen.mockResolvedValue(mockUnlisten);
 
     render(() => <ProductForm />);
     await user.click(screen.getAllByTestId("action-btn")[0]);
-    await user.click(screen.getByText("Ambil Foto"));
     await user.click(screen.getByText("Hapus"));
 
-    expect(mockDeleteTempProductPhoto).toHaveBeenCalledWith(
-      "/tmp/product_photo_inputs/photo_1.jpg"
-    );
+    // Plugin owns temp files — app does not delete them
+    expect(mockUnlisten).toHaveBeenCalled();
   });
 });
 
@@ -443,32 +422,27 @@ describe("ProductForm (edit mode)", () => {
     expect(screen.getByText("Ganti Foto")).toBeInTheDocument();
   });
 
-  test("staging a photo after edit data loads does not delete the temp file", async () => {
+  test("staging a photo after edit data loads uses plugin pick_image", async () => {
     vi.mocked(useParams).mockReturnValue({ id: "1" });
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/edit_photo.jpg",
-      originalFilename: "edit_photo.jpg",
-      mimeType: "image/jpeg",
-      source: "gallery",
+    mockPluginPickImage.mockResolvedValue({
+      jobId: "job-edit-1",
+      previewPath: "/data/app_cache/sakti-image/previews/edit_preview.jpg",
+      previewMimeType: "image/jpeg",
+      status: "pending",
     });
+    mockListen.mockResolvedValue(mockUnlisten);
 
     render(() => <ProductForm />);
     await screen.findByDisplayValue("Kopi Susu");
     await user.click(screen.getAllByTestId("action-btn")[0]);
-    await user.click(screen.getByText("Pilih dari Galeri"));
-    await screen.findByText("Foto akan diproses saat disimpan.");
 
-    expect(mockDeleteTempProductPhoto).not.toHaveBeenCalled();
+    expect(mockPluginPickImage).toHaveBeenCalledWith(
+      expect.objectContaining({ pickerMode: "image" })
+    );
   });
 
-  test("edit submit preserves the current asset and enqueues replacement processing", async () => {
+  test("edit submit preserves the current asset without enqueueing", async () => {
     vi.mocked(useParams).mockReturnValue({ id: "1" });
-    mockPickProductPhoto.mockResolvedValue({
-      path: "/tmp/product_photo_inputs/edit_photo.jpg",
-      originalFilename: "edit_photo.jpg",
-      mimeType: "image/jpeg",
-      source: "gallery",
-    });
     mockUpdateProduct.mockResolvedValue({
       id: "1",
       merchantId: "merchant-1",
@@ -477,22 +451,14 @@ describe("ProductForm (edit mode)", () => {
       price: "15000",
       imageAssetId: "asset-existing",
     });
-    mockEnqueueAssetProcessing.mockResolvedValue({ jobId: "job-1" });
 
     render(() => <ProductForm />);
     await screen.findByDisplayValue("Kopi Susu");
-    await user.click(screen.getAllByTestId("action-btn")[0]);
-    await user.click(screen.getByText("Pilih dari Galeri"));
     await user.click(screen.getByTestId("save-btn"));
 
     expect(mockUpdateProduct).toHaveBeenCalledWith(
       "1",
       expect.objectContaining({ imageAssetId: "asset-existing" })
-    );
-    expect(mockEnqueueAssetProcessing).toHaveBeenCalledWith(
-      expect.objectContaining({
-        target: expect.objectContaining({ entityId: "1" }),
-      })
     );
     await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });

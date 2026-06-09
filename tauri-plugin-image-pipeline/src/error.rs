@@ -48,4 +48,7 @@ pub enum PluginError {
 
     #[error("Event error for {name}: {reason}")]
     Event { name: &'static str, reason: String },
+
+    #[error("Image picker was cancelled by the user")]
+    PickerCancelled,
 }
