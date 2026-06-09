@@ -302,7 +302,10 @@ fn attempts_above_max_rejected() {
     match err {
         PluginError::InvalidRequest { field, reason } => {
             assert_eq!(field, "attempts");
-            assert!(reason.contains("5"), "reason should mention actual attempts");
+            assert!(
+                reason.contains("5"),
+                "reason should mention actual attempts"
+            );
             assert!(reason.contains("3"), "reason should mention max_attempts");
         }
         e => panic!("wrong error: {:?}", e),
@@ -454,7 +457,10 @@ fn plugin_error_invalid_transition() {
     };
     let msg = err.to_string();
     assert!(msg.contains("job-123"));
-    assert!(msg.contains("Pending") || msg.contains("pending"), "should mention status");
+    assert!(
+        msg.contains("Pending") || msg.contains("pending"),
+        "should mention status"
+    );
     assert!(msg.contains("consume"), "should mention action");
 }
 

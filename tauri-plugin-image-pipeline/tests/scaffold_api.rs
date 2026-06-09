@@ -10,10 +10,11 @@
 mod scaffold_api {
     use tauri_plugin_image_pipeline::{
         dto::{
-            AndroidCompressImageRequest, AndroidCompressImageResponse, AndroidGeneratePreviewRequest,
-            AndroidGeneratePreviewResponse, AttachmentLookup, CachedPathResponse, CompletedJob,
-            EnqueueJobRequest, EnqueueJobResponse, FailedJob, JobCompletedPayload,
-            JobFailedPayload, JobResult, JobStatus, ProcessJobsResponse, QueueDocument,
+            AndroidCompressImageRequest, AndroidCompressImageResponse,
+            AndroidGeneratePreviewRequest, AndroidGeneratePreviewResponse, AttachmentLookup,
+            CachedPathResponse, CompletedJob, EnqueueJobRequest, EnqueueJobResponse, FailedJob,
+            JobCompletedPayload, JobFailedPayload, JobResult, JobStatus, ProcessJobsResponse,
+            QueueDocument,
         },
         error::PluginError,
         ImagePipeline, ImagePipelineExt,

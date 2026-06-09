@@ -136,20 +136,17 @@ pub async fn try_load_and_validate(
 
 /// Rename the current primary file to a `jobs.corrupt-<timestamp>.json`
 /// quarantine file so it is preserved for later inspection.
-pub async fn quarantine_primary(
-    dir: &Path,
-    fs: &dyn FsAdapter,
-) -> Result<(), PluginError> {
+pub async fn quarantine_primary(dir: &Path, fs: &dyn FsAdapter) -> Result<(), PluginError> {
     let primary = primary_path(dir);
     if fs.exists(&primary).await {
         let dest = corrupt_path(dir);
-        fs.rename(&primary, &dest).await.map_err(|e| {
-            PluginError::Io {
+        fs.rename(&primary, &dest)
+            .await
+            .map_err(|e| PluginError::Io {
                 operation: "quarantine",
                 path: primary,
                 source: e,
-            }
-        })?;
+            })?;
     }
     Ok(())
 }
@@ -160,10 +157,7 @@ pub async fn quarantine_primary(
 /// 2. Primary missing → try backup → return it or empty doc.
 /// 3. Primary corrupt → quarantine it, try backup.
 /// 4. Both corrupt → return `QueueCorrupt`.
-pub async fn load_queue(
-    dir: &Path,
-    fs: &dyn FsAdapter,
-) -> Result<QueueDocument, PluginError> {
+pub async fn load_queue(dir: &Path, fs: &dyn FsAdapter) -> Result<QueueDocument, PluginError> {
     let primary = primary_path(dir);
     let backup = backup_path(dir);
 
@@ -238,13 +232,13 @@ pub async fn save_queue(
     }
 
     // 3. Write temp + sync
-    fs.write_and_sync(&tmp, &bytes).await.map_err(|e| {
-        PluginError::Io {
+    fs.write_and_sync(&tmp, &bytes)
+        .await
+        .map_err(|e| PluginError::Io {
             operation: "write_tmp",
             path: tmp.clone(),
             source: e,
-        }
-    })?;
+        })?;
 
     // 4. Backup existing primary ONLY if it's valid.
     //    Do NOT overwrite a valid backup with corrupt primary data.
@@ -255,11 +249,13 @@ pub async fn save_queue(
     }
 
     // 5. Atomically replace primary
-    fs.rename(&tmp, &primary).await.map_err(|e| PluginError::Io {
-        operation: "replace_primary",
-        path: primary,
-        source: e,
-    })?;
+    fs.rename(&tmp, &primary)
+        .await
+        .map_err(|e| PluginError::Io {
+            operation: "replace_primary",
+            path: primary,
+            source: e,
+        })?;
 
     Ok(())
 }

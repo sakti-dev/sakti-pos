@@ -181,10 +181,7 @@ pub async fn cleanup_orphaned_temp_files(cache_root: &Path) -> Result<u32, Plugi
                 continue;
             }
 
-            let name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy();
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
 
             if name.ends_with(".tmp") {
                 if let Ok(metadata) = entry.metadata().await {
@@ -334,13 +331,9 @@ mod tests {
         tokio::fs::write(&tmp, b"stale").await.unwrap();
 
         // Set modification time to 2 hours ago
-        let two_hours_ago =
-            std::time::SystemTime::now() - std::time::Duration::from_secs(7200);
-        filetime::set_file_mtime(
-            &tmp,
-            filetime::FileTime::from_system_time(two_hours_ago),
-        )
-        .unwrap();
+        let two_hours_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(7200);
+        filetime::set_file_mtime(&tmp, filetime::FileTime::from_system_time(two_hours_ago))
+            .unwrap();
 
         let count = cleanup_orphaned_temp_files(dir.path()).await.unwrap();
         assert_eq!(count, 1);

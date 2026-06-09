@@ -76,12 +76,24 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PHOTO:BACKGROUND_SYNC_TRIGGERED]` | product form |
 | `[JS] [PHOTO:DRAWER_OPENED]` | product form |
 | `[JS] [PHOTO:DRAWER_STATE_CHANGED]` | product form |
+| `[JS] [PHOTO:JOB_COMPLETED_APPLIED]` | `lib/assets/image-upload.ts` — active plugin job completion consumed by the app |
+| `[JS] [PHOTO:JOB_COMPLETED_BUFFERED]` | `lib/assets/image-upload.ts` — completion arrived before the current job ID was active |
+| `[JS] [PHOTO:JOB_FAILED_APPLIED]` | `lib/assets/image-upload.ts` — active plugin job failure consumed by the app |
+| `[JS] [PHOTO:JOB_FAILED_BUFFERED]` | `lib/assets/image-upload.ts` — failure arrived before the current job ID was active |
 | `[JS] [PHOTO:NATIVE_PICKER_FINISHED]` | product form |
 | `[JS] [PHOTO:NATIVE_PICKER_REQUESTED]` | product form |
 | `[JS] [PHOTO:NAVIGATE_TO_PRODUCT_LIST]` | product form |
+| `[JS] [PHOTO:LISTENERS_STARTED]` | `lib/assets/image-upload.ts` — plugin job listeners attached |
+| `[JS] [PHOTO:LISTENERS_STARTING]` | `lib/assets/image-upload.ts` — plugin job listeners about to attach |
 | `[JS] [PHOTO:PATH_PROCESSING_STARTED]` | product form |
+| `[JS] [PHOTO:PICK_IMAGE_COMMAND_INVOKED]` | `lib/assets/plugin-bridge.ts` — plugin `pick_image` command invoked |
+| `[JS] [PHOTO:PICK_IMAGE_COMMAND_RETURNED]` | `lib/assets/plugin-bridge.ts` — plugin `pick_image` command returned |
 | `[JS] [PHOTO:PENDING_PHOTO_JOB_ENQUEUED]` | product form |
 | `[JS] [PHOTO:PHOTO_JOB_ENQUEUE_FAILED]` | product form |
+| `[JS] [PHOTO:PREVIEW_IMAGE_FAILED_TO_LOAD]` | `components/image-upload.tsx` — `<img>` preview failed to load |
+| `[JS] [PHOTO:PREVIEW_IMAGE_LOADED]` | `components/image-upload.tsx` — `<img>` preview loaded successfully |
+| `[JS] [PHOTO:PREVIEW_PATH_RECEIVED]` | `lib/assets/image-upload.ts` — plugin returned a staged preview path |
+| `[JS] [PHOTO:PREVIEW_URL_RESOLVED]` | `lib/assets/image-upload.ts` — staged preview path converted with `convertFileSrc` |
 | `[JS] [PHOTO:PROCESSING_FAILED]` | product form |
 | `[JS] [PHOTO:PRODUCT_CREATED]` | product form |
 | `[JS] [PHOTO:PRODUCT_UPDATED]` | product form |
@@ -142,12 +154,33 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [DB:SNAPSHOT_EXPORT_REQUESTED]` | started a dev DB snapshot export |
 | `[RUST] [DB:SNAPSHOT_EXPORT_FAILED]` | failed to export a dev DB snapshot |
 | `[RUST] [DB:MIGRATION:SKIP]` | idempotent migration statements skipped because they already exist |
+| `[RUST] [IMAGE-PIPELINE:COMPRESS_DONE]` | image pipeline background compression succeeded |
+| `[RUST] [IMAGE-PIPELINE:COMPRESS_JOIN_FAILED]` | image pipeline background compression task failed to join |
+| `[RUST] [IMAGE-PIPELINE:COMPRESS_REQUEST]` | image pipeline background compression was queued |
+| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_OPENING]` | image pipeline native picker is about to open |
+| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_SELECTED]` | image pipeline native picker returned a file |
+| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_RESPONSE_READY]` | image pipeline immediate picker response is ready |
+| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_SOURCE_SELECTED]` | image pipeline selected a source file |
+| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_START]` | image pipeline `pick_image` handler started |
+| `[RUST] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE]` | image pipeline preview generation completed |
+| `[RUST] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST]` | image pipeline preview generation started |
+| `[RUST] [IMAGE-PIPELINE:PICKER_STAGE_REQUEST]` | image pipeline picker source staging started |
+| `[RUST] [IMAGE-PIPELINE:PICKER_STAGE_DONE]` | image pipeline picker source staging completed |
 | `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `delete_temp_product_photo`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `pick_product_photo`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
 | `[RUST] [PRINTER:TRACE]` | Android printer bridge failures, including list, test print, print receipt, and permission calls |
 | `[RUST] [SYNC:TRACE]` | local state, row upsert, push (including byte-aware `push_batch` chunking, `payload_too_large` split retries, `sync_push` rejection follow-up, `marked_rejected_outbox_synced`), pull (including `pull_batch`, `deleted_ids`, `soft_delete_row`), sync outbox push, row-state pull, `sync_now` diagnostics (including `rejected push rows detected`), garbage collection, and `server_newer` reconciliation |
 | `[RUST] [IMAGE-PIPELINE:EVENT_EMIT]` | Plugin event emission for `image_pipeline://job_completed` and `image_pipeline://job_failed` |
 | `[RUST] [IMAGE-PIPELINE:COMPRESS]` | Background image compression failure |
 | `[RUST] [IMAGE-PIPELINE:ASSET_WRITE]` | Compressed asset write failure |
+| `[ANDROID] [IMAGE-PIPELINE:COMPRESS_DONE]` | Android image compression succeeded |
+| `[ANDROID] [IMAGE-PIPELINE:COMPRESS_REQUEST]` | Android image compression was requested |
+| `[ANDROID] [IMAGE-PIPELINE:PICKER_PREVIEW_STAGE_DONE]` | Android picker preview staging completed |
+| `[ANDROID] [IMAGE-PIPELINE:PICKER_PREVIEW_STAGE_REQUEST]` | Android picker preview staging started |
+| `[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_DONE]` | Android picker source staging completed |
+| `[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_REQUEST]` | Android picker source staging started |
+| `[ANDROID] [IMAGE-PIPELINE:PREVIEW_FILE_WRITTEN]` | Android preview file was written |
+| `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE]` | Android preview generation completed |
+| `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST]` | Android preview generation started |
 | `[baresync]` | Plugin setup and runtime messages emitted by the Baresync Rust dependency, including setup, contract table load, HTTP requests, and sync failure traces |
 
 ## Key Names

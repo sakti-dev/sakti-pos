@@ -2,11 +2,10 @@ use super::cache::{
     asset_cache_file_path_from_root, asset_relative_path, is_deletable_photo_input_path,
     normalize_original_filename,
 };
-use super::image::{asset_image_preview_from_bytes, fit_within_max_edge, process_image_bytes};
+use super::image::{fit_within_max_edge, process_image_bytes};
 use super::targets::validate_asset_attachment_target;
 use super::*;
-use crate::time_utils::current_job_id_string;
-use ::image::{DynamicImage, ImageBuffer, ImageFormat, ImageReader, Rgb, Rgba};
+use ::image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use zenwebp::DecodeRequest;
@@ -130,32 +129,6 @@ fn process_image_bytes_respects_exif_orientation() {
 }
 
 #[test]
-fn product_photo_preview_resizes_and_encodes_jpeg() {
-    let png_bytes = create_png_bytes(1600, 1000);
-
-    let result = asset_image_preview_from_bytes(&png_bytes, "coffee.png")
-        .expect("preview generation should succeed");
-
-    assert_eq!(
-        result.preview_mime_type,
-        super::image::ASSET_IMAGE_PREVIEW_MIME_TYPE
-    );
-    assert!(!result.preview_base64.is_empty());
-
-    let preview_bytes = general_purpose::STANDARD
-        .decode(result.preview_base64)
-        .expect("preview bytes should decode");
-    let decoded = ImageReader::new(Cursor::new(preview_bytes))
-        .with_guessed_format()
-        .expect("preview format should be detected")
-        .decode()
-        .expect("preview should decode");
-
-    assert_eq!(decoded.width(), 320);
-    assert_eq!(decoded.height(), 200);
-}
-
-#[test]
 fn get_cached_asset_path_returns_path_for_existing_asset() {
     tauri::async_runtime::block_on(async {
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
@@ -190,7 +163,7 @@ fn get_cached_asset_path_returns_path_for_existing_asset() {
 
         let local_path = std::env::temp_dir().join(format!(
             "sakti-pos-cache-path-test-{}.webp",
-            current_job_id_string()
+            uuid::Uuid::new_v4()
         ));
         std::fs::write(&local_path, b"webp-bytes").expect("cache file should be written");
 
@@ -489,9 +462,16 @@ fn asset_sync_outbox_writes_coalesce_existing_pending_row() {
         .await
         .expect("cache row should be inserted");
 
-        super::insert_sync_outbox(&pool, "asset-1", "merchant", "merchant-1", "assets", "update")
-            .await
-            .expect("first outbox write should insert");
+        super::insert_sync_outbox(
+            &pool,
+            "asset-1",
+            "merchant",
+            "merchant-1",
+            "assets",
+            "update",
+        )
+        .await
+        .expect("first outbox write should insert");
         super::local::mark_asset_ready(&pool, "asset-1", "merchant-1")
             .await
             .expect("second outbox write should update existing pending row");

@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 
-use super::{AssetAttachmentTarget, PendingAssetProcessingJobRecord};
+use super::AssetAttachmentTarget;
 
 pub(super) struct SupportedAssetAttachmentTarget {
     pub(super) entity_type: &'static str,
@@ -149,13 +149,39 @@ pub(super) async fn link_asset_to_attachment_target(
 }
 
 pub(super) fn asset_kind_for_processing_job(
-    job: &PendingAssetProcessingJobRecord,
+    processing_kind: &str,
+    target: &AssetAttachmentTarget,
 ) -> Result<&'static str, String> {
-    super::processing_jobs::validate_asset_processing_kind(&job.processing_kind)?;
-    let target = AssetAttachmentTarget {
-        entity_type: job.entity_type.clone(),
-        entity_id: job.entity_id.clone(),
-        field: job.attachment_field.clone(),
-    };
-    supported_asset_attachment_target(&target).map(|supported_target| supported_target.asset_kind)
+    super::processing_jobs::validate_asset_processing_kind(processing_kind)?;
+    supported_asset_attachment_target(target).map(|supported_target| supported_target.asset_kind)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn asset_kind_for_supported_processing_job_maps_to_product_photo() {
+        let target = AssetAttachmentTarget {
+            entity_type: "product".to_string(),
+            entity_id: "product-1".to_string(),
+            field: "image_asset_id".to_string(),
+        };
+
+        let asset_kind =
+            asset_kind_for_processing_job("image:webp-thumbnail", &target).expect("target");
+
+        assert_eq!(asset_kind, "product_photo");
+    }
+
+    #[test]
+    fn asset_kind_for_processing_job_rejects_unknown_processing_kind() {
+        let target = AssetAttachmentTarget {
+            entity_type: "product".to_string(),
+            entity_id: "product-1".to_string(),
+            field: "image_asset_id".to_string(),
+        };
+
+        assert!(asset_kind_for_processing_job("image:unknown", &target).is_err());
+    }
 }

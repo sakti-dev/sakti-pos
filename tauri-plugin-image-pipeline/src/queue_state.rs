@@ -80,10 +80,7 @@ impl JobQueue {
         let mut doc = job_queue::load_queue(&self.dir, self.fs.as_ref()).await?;
 
         // Find the oldest pending job
-        let idx = doc
-            .jobs
-            .iter()
-            .position(|j| j.status == JobStatus::Pending);
+        let idx = doc.jobs.iter().position(|j| j.status == JobStatus::Pending);
 
         let Some(idx) = idx else {
             return Ok(None);
@@ -131,11 +128,7 @@ impl JobQueue {
     }
 
     /// Record a retryable failure (attempts remaining).
-    pub async fn fail_retryable(
-        &self,
-        job_id: &str,
-        error: String,
-    ) -> Result<(), PluginError> {
+    pub async fn fail_retryable(&self, job_id: &str, error: String) -> Result<(), PluginError> {
         let _guard = self.lock.lock().await;
         let mut doc = job_queue::load_queue(&self.dir, self.fs.as_ref()).await?;
 
@@ -164,11 +157,7 @@ impl JobQueue {
     }
 
     /// Record a terminal failure (no attempts remaining).
-    pub async fn fail_terminal(
-        &self,
-        job_id: &str,
-        error: String,
-    ) -> Result<(), PluginError> {
+    pub async fn fail_terminal(&self, job_id: &str, error: String) -> Result<(), PluginError> {
         let _guard = self.lock.lock().await;
         let mut doc = job_queue::load_queue(&self.dir, self.fs.as_ref()).await?;
 
@@ -304,7 +293,10 @@ impl JobQueue {
         if !self.fs.exists(&job.source_path).await {
             return Err(PluginError::InvalidRequest {
                 field: "source_path",
-                reason: format!("source file no longer exists: {}", job.source_path.display()),
+                reason: format!(
+                    "source file no longer exists: {}",
+                    job.source_path.display()
+                ),
             });
         }
 
@@ -362,7 +354,11 @@ impl JobQueue {
             })
             .collect();
 
-        matches.sort_by(|a, b| b.updated_at.cmp(&a.updated_at).then(b.created_at.cmp(&a.created_at)));
+        matches.sort_by(|a, b| {
+            b.updated_at
+                .cmp(&a.updated_at)
+                .then(b.created_at.cmp(&a.created_at))
+        });
 
         for job in matches {
             let Some(preview_path) = job.preview_path.clone() else {

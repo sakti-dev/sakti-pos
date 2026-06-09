@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Build
+import android.util.Log
+import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
@@ -19,6 +21,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val TAG = "ImagePipelinePlugin"
 
 @InvokeArg
 class CompressImageArgs {
@@ -37,6 +41,13 @@ class PickImageArgs {
     var compressionMaxLongEdge: Int = 400
     var compressionPreviewMaxLongEdge: Int = 320
     var compressionQuality: Int = 75
+}
+
+@InvokeArg
+class AndroidStagePickerSourceArgs {
+    lateinit var sourcePath: String
+    lateinit var outputPath: String
+    lateinit var originalFilename: String
 }
 
 data class PickImageResult(
@@ -60,6 +71,11 @@ data class AndroidCompressionResult(
 data class AndroidPreviewResult(
     val previewPath: String?,
     val previewMimeType: String,
+)
+
+data class AndroidStagePickerSourceResult(
+    val stagedPath: String,
+    val originalFilename: String,
 )
 
 interface AndroidImageCodec {
@@ -124,6 +140,7 @@ class DefaultAndroidImageCodec : AndroidImageCodec {
 }
 
 class AndroidImageCompressor(
+    private val activity: Activity? = null,
     private val codec: AndroidImageCodec = DefaultAndroidImageCodec(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
@@ -133,6 +150,10 @@ class AndroidImageCompressor(
 
     suspend fun compressFinal(args: CompressImageArgs): AndroidCompressionResult {
         return withContext(dispatcher) {
+            Log.i(
+                TAG,
+                "[ANDROID] [IMAGE-PIPELINE:COMPRESS_REQUEST] compress_requested sourcePath=${args.sourcePath} outputDir=${args.outputDir} previewOutputDir=${args.previewOutputDir ?: args.outputDir} originalFilename=${args.originalFilename} maxLongEdge=${args.maxLongEdge} previewMaxLongEdge=${args.previewMaxLongEdge}",
+            )
             val sourceFile = File(args.sourcePath)
             val plan = buildFinalCompressionPlan(
                 apiLevel = args.apiLevel ?: Build.VERSION.SDK_INT,
@@ -167,15 +188,78 @@ class AndroidImageCompressor(
                 byteSize = bytes.size.toLong(),
                 originalFilename = args.originalFilename,
             )
+                .also { result ->
+                    Log.i(
+                        TAG,
+                        "[ANDROID] [IMAGE-PIPELINE:COMPRESS_DONE] compress_done assetPath=${result.assetPath} previewPath=${result.previewPath ?: "<none>"} contentHash=${result.contentHash} contentType=${result.contentType} byteSize=${result.byteSize} width=${result.width} height=${result.height}",
+                    )
+                }
         }
     }
 
     suspend fun generatePreview(args: CompressImageArgs): AndroidPreviewResult {
         return withContext(dispatcher) {
+            Log.i(
+                TAG,
+                "[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST] generate_preview_requested sourcePath=${args.sourcePath} outputDir=${args.outputDir} originalFilename=${args.originalFilename} previewMaxLongEdge=${args.previewMaxLongEdge}",
+            )
             generatePreviewInternal(
                 sourceFile = File(args.sourcePath),
                 previewOutputDir = File(args.previewOutputDir ?: args.outputDir),
                 previewMaxLongEdge = args.previewMaxLongEdge,
+            ).also { result ->
+                Log.i(
+                    TAG,
+                    "[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE] preview_generated previewPath=${result.previewPath ?: "<none>"} previewMimeType=${result.previewMimeType}",
+                )
+            }
+        }
+    }
+
+    suspend fun stagePickerSource(args: AndroidStagePickerSourceArgs): AndroidStagePickerSourceResult {
+        return withContext(dispatcher) {
+            Log.i(
+                TAG,
+                "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_REQUEST] stage_picker_source_requested sourcePath=${args.sourcePath} outputPath=${args.outputPath} originalFilename=${args.originalFilename}",
+            )
+            val outputFile = File(args.outputPath)
+            val parentDir = outputFile.parentFile
+                ?: throw IllegalStateException("Picker staging output path has no parent")
+            parentDir.mkdirs()
+
+            if (args.sourcePath.startsWith("content://")) {
+                val resolver = activity?.contentResolver
+                    ?: throw IllegalStateException("Android activity unavailable for picker staging")
+                Log.i(
+                    TAG,
+                    "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_READ_START] stage_picker_source_read_start uri=${args.sourcePath}",
+                )
+                val inputStream = resolver.openInputStream(Uri.parse(args.sourcePath))
+                    ?: throw IllegalArgumentException("Unable to open picker content URI")
+                inputStream.use { input ->
+                    outputFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            } else {
+                Log.i(
+                    TAG,
+                    "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_READ_START] stage_picker_source_read_start uri=${args.sourcePath}",
+                )
+                File(args.sourcePath).inputStream().use { input ->
+                    outputFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+
+            Log.i(
+                TAG,
+                "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_DONE] stage_picker_source_done stagedPath=${outputFile.absolutePath}",
+            )
+            AndroidStagePickerSourceResult(
+                stagedPath = outputFile.absolutePath,
+                originalFilename = args.originalFilename,
             )
         }
     }
@@ -192,11 +276,15 @@ class AndroidImageCompressor(
         val decoded = decodeAndOrient(sourceFile)
         val previewPlan = buildPreviewCompressionPlan(previewMaxLongEdge)
         val sized = resizeIfNeeded(decoded.bitmap, previewPlan.maxLongEdge)
-                val previewBytes = codec.encode(sized, previewPlan.format, previewPlan.quality)
+        val previewBytes = codec.encode(sized, previewPlan.format, previewPlan.quality)
         val previewHash = sha256(previewBytes)
         val previewFile = File(previewOutputDir, "$previewHash.jpg")
         previewFile.parentFile?.mkdirs()
         previewFile.writeBytes(previewBytes)
+        Log.i(
+            TAG,
+            "[ANDROID] [IMAGE-PIPELINE:PREVIEW_FILE_WRITTEN] preview_written previewPath=${previewFile.absolutePath} previewBytes=${previewBytes.size} previewMaxLongEdge=$previewMaxLongEdge",
+        )
 
         return AndroidPreviewResult(
             previewPath = previewFile.absolutePath,
@@ -233,7 +321,7 @@ class AndroidImageCompressor(
 
 @TauriPlugin
 class ImagePipelinePlugin(private val activity: Activity) : Plugin(activity) {
-    private val compressor = AndroidImageCompressor()
+    private val compressor = AndroidImageCompressor(activity)
 
     @Command
     fun compressImage(invoke: Invoke) {
@@ -277,6 +365,31 @@ class ImagePipelinePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    @Command
+    fun stagePickerSource(invoke: Invoke) {
+        val args = invoke.parseArgs(AndroidStagePickerSourceArgs::class.java)
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                val result = compressor.stagePickerSource(args)
+                invoke.resolveObject(
+                    mapOf(
+                        "stagedPath" to result.stagedPath,
+                        "originalFilename" to result.originalFilename,
+                    ),
+                )
+            } catch (error: Exception) {
+                Log.e(
+                    TAG,
+                    "[ANDROID] [IMAGE-PIPELINE:PICKER_STAGE_FAILED] stage_picker_source_failed error=${error::class.java.name}: ${error.message}",
+                    error,
+                )
+                invoke.reject(
+                    "${error::class.java.simpleName}: ${error.message ?: "Android picker staging failed"}\n${error.stackTraceToString()}",
+                )
+            }
+        }
+    }
+
     /**
      * Stage a picker result as a preview file in the plugin cache.
      * Called from [pickImage] to write the preview before returning.
@@ -289,16 +402,25 @@ class ImagePipelinePlugin(private val activity: Activity) : Plugin(activity) {
     ): String {
         return withContext(Dispatchers.Default) {
             outputDir.mkdirs()
+            Log.i(
+                TAG,
+                "[ANDROID] [IMAGE-PIPELINE:PICKER_PREVIEW_STAGE_REQUEST] stage_picker_preview_requested sourcePath=${sourceFile.absolutePath} outputDir=${outputDir.absolutePath} originalFilename=$originalFilename previewMaxLongEdge=$previewMaxLongEdge",
+            )
             val previewResult = AndroidImageCompressor().generatePreview(
                 CompressImageArgs().apply {
-                    sourcePath = sourceFile.absolutePath
-                    outputDir = outputDir.absolutePath
+                    this.sourcePath = sourceFile.absolutePath
+                    this.outputDir = outputDir.absolutePath
                     this.originalFilename = originalFilename
-                    maxLongEdge = previewMaxLongEdge
-                    previewMaxLongEdge = previewMaxLongEdge
+                    this.maxLongEdge = previewMaxLongEdge
+                    this.previewMaxLongEdge = previewMaxLongEdge
                 },
             )
-            previewResult.previewPath ?: sourceFile.absolutePath
+            val stagedPath = previewResult.previewPath ?: sourceFile.absolutePath
+            Log.i(
+                TAG,
+                "[ANDROID] [IMAGE-PIPELINE:PICKER_PREVIEW_STAGE_DONE] stage_picker_preview_done previewPath=$stagedPath",
+            )
+            stagedPath
         }
     }
 }

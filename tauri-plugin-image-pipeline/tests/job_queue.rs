@@ -189,10 +189,7 @@ async fn failed_temp_write_preserves_old_primary() {
         .unwrap();
 
     // Read the bytes of the valid primary
-    let original_bytes =
-        tokio::fs::read(dir.path().join("jobs.json"))
-            .await
-            .unwrap();
+    let original_bytes = tokio::fs::read(dir.path().join("jobs.json")).await.unwrap();
 
     // Now fail the write on next save
     let fail_fs = FailingFs::new();
@@ -204,11 +201,11 @@ async fn failed_temp_write_preserves_old_primary() {
     assert!(result.is_err());
 
     // Primary should be unchanged
-    let current_bytes =
-        tokio::fs::read(dir.path().join("jobs.json"))
-            .await
-            .unwrap();
-    assert_eq!(original_bytes, current_bytes, "primary should be unchanged after failed write");
+    let current_bytes = tokio::fs::read(dir.path().join("jobs.json")).await.unwrap();
+    assert_eq!(
+        original_bytes, current_bytes,
+        "primary should be unchanged after failed write"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -231,10 +228,9 @@ async fn second_save_creates_backup_with_first_primary() {
         .unwrap();
 
     // Primary = doc_b
-    let primary =
-        tauri_plugin_image_pipeline::job_queue::load_queue(dir.path(), &fs)
-            .await
-            .unwrap();
+    let primary = tauri_plugin_image_pipeline::job_queue::load_queue(dir.path(), &fs)
+        .await
+        .unwrap();
     assert_eq!(primary, doc_b);
 
     // Backup = doc_a
@@ -286,7 +282,10 @@ async fn corrupt_primary_with_valid_backup_recovers() {
         .map(|e| e.file_name().to_string_lossy().to_string())
         .collect();
     let quarantined = entries.iter().any(|name| name.starts_with("jobs.corrupt-"));
-    assert!(quarantined, "corrupt file should be quarantined with jobs.corrupt- prefix");
+    assert!(
+        quarantined,
+        "corrupt file should be quarantined with jobs.corrupt- prefix"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -335,7 +334,10 @@ async fn both_corrupt_does_not_overwrite_with_empty() {
     let backup_content = tokio::fs::read_to_string(dir.path().join("jobs.json.bak"))
         .await
         .unwrap();
-    assert_eq!(backup_content, corrupt_backup, "backup should not be overwritten");
+    assert_eq!(
+        backup_content, corrupt_backup,
+        "backup should not be overwritten"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -379,9 +381,12 @@ async fn unsupported_version_with_backup_recovers() {
     .unwrap();
 
     // Write unsupported version primary
-    tokio::fs::write(dir.path().join("jobs.json"), r#"{"version": 99, "jobs": []}"#)
-        .await
-        .unwrap();
+    tokio::fs::write(
+        dir.path().join("jobs.json"),
+        r#"{"version": 99, "jobs": []}"#,
+    )
+    .await
+    .unwrap();
 
     let result = tauri_plugin_image_pipeline::job_queue::load_queue(dir.path(), &fs).await;
     // Design: unsupported version returns error immediately, does NOT fall back to backup.
@@ -485,7 +490,9 @@ async fn backup_of_corrupt_primary_does_not_overwrite_valid_backup() {
         .unwrap();
 
     // Corrupt the primary manually
-    tokio::fs::write(dir.path().join("jobs.json"), "CORRUPT").await.unwrap();
+    tokio::fs::write(dir.path().join("jobs.json"), "CORRUPT")
+        .await
+        .unwrap();
 
     // Save doc C — the old corrupt primary should NOT overwrite the valid backup (doc A)
     let doc_c = doc_with_jobs(vec![sample_job("j3")]);

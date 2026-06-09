@@ -96,20 +96,3 @@ pub(super) struct PreparedImageInput {
     pub(super) original_filename: String,
     pub(super) width: i32,
 }
-
-#[derive(Debug)]
-pub(super) struct PendingAssetProcessingJobRecord {
-    pub(super) id: String,
-    pub(super) merchant_id: String,
-    pub(super) source_path: String,
-    pub(super) original_filename: String,
-    pub(super) source_mime_type: Option<String>,
-    pub(super) processing_kind: String,
-    pub(super) entity_type: String,
-    pub(super) entity_id: String,
-    pub(super) attachment_field: String,
-    pub(super) preview_path: Option<String>,
-    pub(super) preview_mime_type: Option<String>,
-    pub(super) status: String,
-    pub(super) attempts: i64,
-}

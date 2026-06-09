@@ -37,12 +37,10 @@ pub async fn process_pending_jobs(
         attempted += 1;
 
         match process_single_job(queue, cache_root, &job).await {
-            Ok(result) => {
-                match queue.complete(&job.id, result).await {
-                    Ok(_) => completed += 1,
-                    Err(_) => terminal_failed += 1,
-                }
-            }
+            Ok(result) => match queue.complete(&job.id, result).await {
+                Ok(_) => completed += 1,
+                Err(_) => terminal_failed += 1,
+            },
             Err(e) => {
                 let error_msg = e.to_string();
                 if job.attempts < job.max_attempts {
@@ -79,9 +77,8 @@ async fn process_single_job(
         let preview_data =
             crate::processor::generate_preview(&job.source_path, job.preview_max_long_edge)?;
         let preview_hash = crate::processor::hash_bytes(&preview_data);
-        let path =
-            cache::write_preview(cache_root, &job.merchant_id, &preview_hash, &preview_data)
-                .await?;
+        let path = cache::write_preview(cache_root, &job.merchant_id, &preview_hash, &preview_data)
+            .await?;
         Some(path)
     } else {
         None
@@ -92,12 +89,8 @@ async fn process_single_job(
         crate::processor::process_image(&job.source_path, job.max_long_edge)?;
 
     // Write to cache
-    let cache_path = cache::asset_cache_path(
-        cache_root,
-        &job.merchant_id,
-        &content_hash,
-        "image/webp",
-    )?;
+    let cache_path =
+        cache::asset_cache_path(cache_root, &job.merchant_id, &content_hash, "image/webp")?;
     cache::write_cached_file(&cache_path, &webp_bytes).await?;
 
     Ok(JobResult {
@@ -364,14 +357,10 @@ mod tests {
         let completed = queue.get_completed().await.unwrap();
         let result = &completed[0].result;
 
-        let cached = get_cached_asset_path(
-            dir.path(),
-            "merchant-1",
-            &result.asset_id,
-            "image/webp",
-        )
-        .await
-        .unwrap();
+        let cached =
+            get_cached_asset_path(dir.path(), "merchant-1", &result.asset_id, "image/webp")
+                .await
+                .unwrap();
 
         assert!(cached.is_some());
         let cached = cached.unwrap();

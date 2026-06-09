@@ -15,10 +15,7 @@ pub enum PluginError {
     },
 
     #[error("Invalid request: {field} — {reason}")]
-    InvalidRequest {
-        field: &'static str,
-        reason: String,
-    },
+    InvalidRequest { field: &'static str, reason: String },
 
     #[error("Unsafe path: {path}")]
     UnsafePath { path: PathBuf },

@@ -116,8 +116,19 @@ function ImageUploadPreview(props: ImageUploadPreviewProps) {
       });
     };
 
+    const handleImageLoad = (): void => {
+      photoLogger.info("preview_image_loaded", {
+        alt: props.alt,
+        currentSrc: element.currentSrc || element.src,
+        fileName: context.fileName() || null,
+        hasPendingImage: context.hasImage(),
+      });
+    };
+
+    element.addEventListener("load", handleImageLoad);
     element.addEventListener("error", handleImageError);
     cleanupPreviewImageListener = () => {
+      element.removeEventListener("load", handleImageLoad);
       element.removeEventListener("error", handleImageError);
     };
   };

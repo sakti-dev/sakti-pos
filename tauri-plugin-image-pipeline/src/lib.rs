@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::{Manager, Runtime};
-use tauri_plugin_dialog::{DialogExt, FileAccessMode, PickerMode};
+use tauri_plugin_dialog::{DialogExt, FileAccessMode, FilePath, PickerMode};
 
 #[cfg(target_os = "android")]
 const PLUGIN_IDENTIFIER: &str = "com.sakti_dev.sakti_pos.imagepipeline";
@@ -12,17 +12,18 @@ pub const JOB_COMPLETED_EVENT: &str = "image_pipeline://job_completed";
 /// Event emitted when background image compression fails.
 pub const JOB_FAILED_EVENT: &str = "image_pipeline://job_failed";
 
+pub mod cache;
 mod commands;
 pub mod dto;
 pub mod error;
 pub mod job_queue;
-pub mod queue_state;
 pub mod path_safety;
-#[cfg(not(target_os = "android"))]
-pub mod processor;
-pub mod cache;
+pub mod picker_stage;
 #[cfg(not(target_os = "android"))]
 pub mod pipeline;
+#[cfg(not(target_os = "android"))]
+pub mod processor;
+pub mod queue_state;
 
 /// Plugin state container.
 pub(crate) struct PluginState<R: Runtime> {
@@ -63,10 +64,12 @@ impl<R: Runtime> ImagePipeline<R> {
         ))
     }
 
-    async fn pick_source_path(
-        &self,
-        picker_mode: &str,
-    ) -> Result<PathBuf, error::PluginError> {
+    async fn pick_source_file(&self, picker_mode: &str) -> Result<FilePath, error::PluginError> {
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_OPENING] open_picker picker_mode={}",
+            picker_mode
+        );
+
         let picker_mode = match picker_mode {
             "image" => PickerMode::Image,
             "media" => PickerMode::Media,
@@ -86,7 +89,6 @@ impl<R: Runtime> ImagePipeline<R> {
                 .set_picker_mode(picker_mode)
                 .set_file_access_mode(FileAccessMode::Copy)
                 .blocking_pick_file()
-                .and_then(|file_path| file_path.into_path().ok())
         })
         .await
         .map_err(|source| error::PluginError::Processing {
@@ -94,7 +96,47 @@ impl<R: Runtime> ImagePipeline<R> {
             stage: "open_picker",
             reason: source.to_string(),
         })?
+        .map(|selected_path| {
+            log::info!(
+                "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_SELECTED] picker_selected path={}",
+                selected_path
+            );
+            selected_path
+        })
         .ok_or(error::PluginError::PickerCancelled)
+    }
+
+    async fn stage_picker_source(
+        &self,
+        picker_mode: &str,
+        job_id: &str,
+    ) -> Result<picker_stage::StagedPickerSource, error::PluginError> {
+        let selected = self.pick_source_file(picker_mode).await?;
+        let selection = picker_stage::PickerSelection::from_file_path(selected)?;
+        let cache_root = self.cache_root()?;
+        #[cfg(target_os = "android")]
+        let staged = picker_stage::stage_picker_selection(
+            &self.inner.app,
+            self.mobile_handle().clone(),
+            &cache_root,
+            job_id,
+            selection,
+        )
+        .await?;
+
+        #[cfg(not(target_os = "android"))]
+        let staged =
+            picker_stage::stage_picker_selection(&self.inner.app, &cache_root, job_id, selection)
+                .await?;
+
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_SOURCE_SELECTED] source_selected job_id={} source_path={} original_filename={}",
+            job_id,
+            staged.path.to_string_lossy(),
+            staged.original_filename
+        );
+
+        Ok(staged)
     }
 
     /// Open the native image picker, stage a preview, and start background compression.
@@ -126,10 +168,21 @@ impl<R: Runtime> ImagePipeline<R> {
 
         let cache_root = self.cache_root()?;
         let image_dir = cache_root.join("sakti-image");
+        let job_id = uuid::Uuid::new_v4().to_string();
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_START] pick_image_start picker_mode={} preview_max_long_edge={} max_long_edge={}",
+            request.picker_mode,
+            request.compression.preview_max_long_edge,
+            request.compression.max_long_edge
+        );
 
-        let source_path = self.pick_source_path(&request.picker_mode).await?;
-        // Validate source path exists (picker paths are NOT under cache root,
-        // so we skip validate_source_path which enforces cache-root containment)
+        let staged_source = self
+            .stage_picker_source(&request.picker_mode, &job_id)
+            .await?;
+        let source_path = staged_source.path;
+        // Picker selections are staged into the plugin cache before processing,
+        // so this is now a stable cache-local path.
+        path_safety::validate_source_path(&source_path, &cache_root)?;
         if !source_path.exists() {
             return Err(error::PluginError::Io {
                 operation: "pick_image_source_check",
@@ -140,38 +193,36 @@ impl<R: Runtime> ImagePipeline<R> {
                 ),
             });
         }
-        let original_filename = source_path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "picked_image".into());
-
-        // Generate a job ID
-        let job_id = uuid::Uuid::new_v4().to_string();
+        let original_filename = staged_source.original_filename;
 
         // Generate preview into plugin cache
         let preview_dir = image_dir.join("previews");
-        tokio::fs::create_dir_all(&preview_dir).await.map_err(|e| {
-            error::PluginError::Io {
+        tokio::fs::create_dir_all(&preview_dir)
+            .await
+            .map_err(|e| error::PluginError::Io {
                 operation: "create_preview_dir",
                 path: preview_dir.clone(),
                 source: e,
-            }
-        })?;
+            })?;
 
-        let preview_bytes = processor::generate_preview(
-            &source_path,
-            request.compression.preview_max_long_edge,
-        )?;
+        let preview_bytes =
+            processor::generate_preview(&source_path, request.compression.preview_max_long_edge)?;
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE] preview_generated job_id={} preview_dir={} preview_bytes={}",
+            job_id,
+            preview_dir.to_string_lossy(),
+            preview_bytes.len()
+        );
 
         let preview_filename = format!("{}_preview.jpg", &job_id[..8]);
         let preview_path = preview_dir.join(&preview_filename);
-        tokio::fs::write(&preview_path, &preview_bytes).await.map_err(|e| {
-            error::PluginError::Io {
+        tokio::fs::write(&preview_path, &preview_bytes)
+            .await
+            .map_err(|e| error::PluginError::Io {
                 operation: "write_preview",
                 path: preview_path.clone(),
                 source: e,
-            }
-        })?;
+            })?;
 
         let response = dto::PickImageResponse {
             job_id: job_id.clone(),
@@ -179,10 +230,23 @@ impl<R: Runtime> ImagePipeline<R> {
             preview_mime_type: "image/jpeg".into(),
             status: dto::PickImageStatus::Pending,
         };
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_RESPONSE_READY] response_ready job_id={} preview_path={} preview_mime_type={}",
+            job_id,
+            preview_path.to_string_lossy(),
+            response.preview_mime_type
+        );
 
         // Spawn background compression task
         let app = self.inner.app.clone();
         let max_long_edge = request.compression.max_long_edge;
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:COMPRESS_REQUEST] compress_requested job_id={} source_path={} asset_dir={} max_long_edge={}",
+            job_id,
+            source_path.to_string_lossy(),
+            image_dir.join("assets").to_string_lossy(),
+            max_long_edge
+        );
         tokio::spawn(async move {
             match processor::process_image(&source_path, max_long_edge) {
                 Ok((compressed_bytes, width, height, content_type)) => {
@@ -219,10 +283,7 @@ impl<R: Runtime> ImagePipeline<R> {
                             }
                         }
                         Err(e) => {
-                            log::error!(
-                                "[RUST] [IMAGE-PIPELINE:ASSET_WRITE] failed: {}",
-                                e
-                            );
+                            log::error!("[RUST] [IMAGE-PIPELINE:ASSET_WRITE] failed: {}", e);
                             let payload = dto::JobFailedPayload {
                                 job_id: job_id.clone(),
                                 error: format!("asset write failed: {e}"),
@@ -274,8 +335,13 @@ impl<R: Runtime> ImagePipeline<R> {
 
         let cache_root = self.cache_root()?;
         let image_dir = cache_root.join("sakti-image");
+        let job_id = uuid::Uuid::new_v4().to_string();
 
-        let source_path = self.pick_source_path(&request.picker_mode).await?;
+        let staged_source = self
+            .stage_picker_source(&request.picker_mode, &job_id)
+            .await?;
+        let source_path = staged_source.path;
+        path_safety::validate_source_path(&source_path, &cache_root)?;
         if !source_path.exists() {
             return Err(error::PluginError::Io {
                 operation: "pick_image_source_check",
@@ -286,21 +352,16 @@ impl<R: Runtime> ImagePipeline<R> {
                 ),
             });
         }
-        let original_filename = source_path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "picked_image".into());
-
-        let job_id = uuid::Uuid::new_v4().to_string();
+        let original_filename = staged_source.original_filename;
 
         let preview_dir = image_dir.join("previews");
-        tokio::fs::create_dir_all(&preview_dir).await.map_err(|e| {
-            error::PluginError::Io {
+        tokio::fs::create_dir_all(&preview_dir)
+            .await
+            .map_err(|e| error::PluginError::Io {
                 operation: "create_preview_dir",
                 path: preview_dir.clone(),
                 source: e,
-            }
-        })?;
+            })?;
 
         let preview_response: dto::AndroidGeneratePreviewResponse = self
             .mobile_handle()
@@ -319,14 +380,25 @@ impl<R: Runtime> ImagePipeline<R> {
                 stage: "generate-preview",
                 reason,
             })?;
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE] preview_generated job_id={} preview_path={} preview_mime_type={}",
+            job_id,
+            preview_response
+                .preview_path
+                .as_ref()
+                .map(|path| path.to_string_lossy().to_string())
+                .unwrap_or_else(|| "<none>".to_string()),
+            preview_response.preview_mime_type
+        );
 
-        let preview_path = preview_response.preview_path.ok_or_else(|| {
-            error::PluginError::Processing {
-                job_id: Some(job_id.clone()),
-                stage: "generate-preview",
-                reason: "Android preview generation returned no preview path".into(),
-            }
-        })?;
+        let preview_path =
+            preview_response
+                .preview_path
+                .ok_or_else(|| error::PluginError::Processing {
+                    job_id: Some(job_id.clone()),
+                    stage: "generate-preview",
+                    reason: "Android preview generation returned no preview path".into(),
+                })?;
 
         let response = dto::PickImageResponse {
             job_id: job_id.clone(),
@@ -334,31 +406,60 @@ impl<R: Runtime> ImagePipeline<R> {
             preview_mime_type: preview_response.preview_mime_type,
             status: dto::PickImageStatus::Pending,
         };
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:PICK_IMAGE_RESPONSE_READY] response_ready job_id={} preview_path={} preview_mime_type={}",
+            job_id,
+            preview_path.to_string_lossy(),
+            response.preview_mime_type
+        );
 
         let app = self.inner.app.clone();
         let mobile_handle = self.mobile_handle().clone();
         let asset_dir = image_dir.join("assets");
         let max_long_edge = request.compression.max_long_edge;
+        log::info!(
+            "[RUST] [IMAGE-PIPELINE:COMPRESS_REQUEST] compress_requested job_id={} source_path={} asset_dir={} max_long_edge={}",
+            job_id,
+            source_path.to_string_lossy(),
+            asset_dir.to_string_lossy(),
+            max_long_edge
+        );
 
         tokio::spawn(async move {
-            let compression = tokio::task::spawn_blocking(move || {
-                mobile_handle.run_mobile_plugin(
-                    "compressImage",
-                    dto::AndroidCompressImageRequest {
-                        source_path: source_path.clone(),
-                        output_dir: asset_dir.clone(),
-                        preview_output_dir: None,
-                        original_filename: original_filename.clone(),
-                        api_level: None,
-                        max_long_edge,
-                        preview_max_long_edge: 0,
-                    },
-                )
-            })
-            .await;
+            let compression: Result<Result<dto::AndroidCompressImageResponse, _>, _> =
+                tokio::task::spawn_blocking(move || {
+                    mobile_handle.run_mobile_plugin(
+                        "compressImage",
+                        dto::AndroidCompressImageRequest {
+                            source_path: source_path.clone(),
+                            output_dir: asset_dir.clone(),
+                            preview_output_dir: None,
+                            original_filename: original_filename.clone(),
+                            api_level: None,
+                            max_long_edge,
+                            preview_max_long_edge: 0,
+                        },
+                    )
+                })
+                .await;
 
             match compression {
                 Ok(Ok(result)) => {
+                    log::info!(
+                        "[RUST] [IMAGE-PIPELINE:COMPRESS_DONE] compress_done job_id={} asset_path={} preview_path={} content_hash={} content_type={} byte_size={} width={} height={}",
+                        job_id,
+                        result.asset_path.to_string_lossy(),
+                        result
+                            .preview_path
+                            .as_ref()
+                            .map(|path| path.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "<none>".to_string()),
+                        result.content_hash,
+                        result.content_type,
+                        result.byte_size,
+                        result.width,
+                        result.height
+                    );
                     let payload = dto::JobCompletedPayload {
                         job_id: job_id.clone(),
                         asset_path: result.asset_path,
@@ -397,6 +498,11 @@ impl<R: Runtime> ImagePipeline<R> {
                     }
                 }
                 Err(join_error) => {
+                    log::error!(
+                        "[RUST] [IMAGE-PIPELINE:COMPRESS_JOIN_FAILED] join_failed job_id={} error={}",
+                        job_id,
+                        join_error
+                    );
                     let payload = dto::JobFailedPayload {
                         job_id: job_id.clone(),
                         error: join_error.to_string(),
@@ -448,7 +554,10 @@ impl<R: Runtime> ImagePipeline<R> {
                     "generatePreview",
                     dto::AndroidGeneratePreviewRequest {
                         source_path: request.source_path.clone(),
-                        preview_output_dir: cache_root.join("sakti-image").join(&request.merchant_id).join("previews"),
+                        preview_output_dir: cache_root
+                            .join("sakti-image")
+                            .join(&request.merchant_id)
+                            .join("previews"),
                         original_filename: request.original_filename.clone(),
                         preview_max_long_edge: request.preview_max_long_edge,
                     },
@@ -465,7 +574,10 @@ impl<R: Runtime> ImagePipeline<R> {
         };
 
         let (job_id, preview_path) = queue.enqueue(request, preview_path).await?;
-        Ok(dto::EnqueueJobResponse { job_id, preview_path })
+        Ok(dto::EnqueueJobResponse {
+            job_id,
+            preview_path,
+        })
     }
 
     pub async fn process_pending_jobs(
@@ -511,22 +623,26 @@ impl<R: Runtime> ImagePipeline<R> {
             };
             attempted += 1;
 
-            let response = self
-                .mobile_handle()
-                .run_mobile_plugin(
-                    "compressImage",
-                    dto::AndroidCompressImageRequest {
-                        source_path: job.source_path.clone(),
-                        output_dir: cache_root.join("sakti-image").join(&job.merchant_id).join("assets"),
-                        preview_output_dir: Some(
-                            cache_root.join("sakti-image").join(&job.merchant_id).join("previews"),
-                        ),
-                        original_filename: job.original_filename.clone(),
-                        api_level: None,
-                        max_long_edge: job.max_long_edge,
-                        preview_max_long_edge: job.preview_max_long_edge,
-                    },
-                );
+            let response = self.mobile_handle().run_mobile_plugin(
+                "compressImage",
+                dto::AndroidCompressImageRequest {
+                    source_path: job.source_path.clone(),
+                    output_dir: cache_root
+                        .join("sakti-image")
+                        .join(&job.merchant_id)
+                        .join("assets"),
+                    preview_output_dir: Some(
+                        cache_root
+                            .join("sakti-image")
+                            .join(&job.merchant_id)
+                            .join("previews"),
+                    ),
+                    original_filename: job.original_filename.clone(),
+                    api_level: None,
+                    max_long_edge: job.max_long_edge,
+                    preview_max_long_edge: job.preview_max_long_edge,
+                },
+            );
 
             match response {
                 Ok(android_result) => {
@@ -628,8 +744,14 @@ impl<R: Runtime> ImagePipeline<R> {
 
         #[cfg(not(target_os = "android"))]
         {
-        let cache_root = self.cache_root()?;
-            return pipeline::get_cached_asset_path(&cache_root, merchant_id, asset_id, content_type).await;
+            let cache_root = self.cache_root()?;
+            return pipeline::get_cached_asset_path(
+                &cache_root,
+                merchant_id,
+                asset_id,
+                content_type,
+            )
+            .await;
         }
     }
 
@@ -669,7 +791,8 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
         .setup(|app, api| {
             #[cfg(target_os = "android")]
             {
-                let mobile_plugin_handle = api.register_android_plugin(PLUGIN_IDENTIFIER, "ImagePipelinePlugin")?;
+                let mobile_plugin_handle =
+                    api.register_android_plugin(PLUGIN_IDENTIFIER, "ImagePipelinePlugin")?;
                 let state = Arc::new(PluginState {
                     app: app.clone(),
                     mobile_plugin_handle,
@@ -680,9 +803,7 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
             #[cfg(not(target_os = "android"))]
             {
                 let _ = api;
-                let state = Arc::new(PluginState {
-                    app: app.clone(),
-                });
+                let state = Arc::new(PluginState { app: app.clone() });
                 app.manage(ImagePipeline { inner: state });
             }
             Ok(())

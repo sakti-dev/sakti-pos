@@ -7,7 +7,9 @@ use tauri_plugin_image_pipeline::dto::{
 };
 use tauri_plugin_image_pipeline::ImagePipelineExt;
 
-use super::dto::{AssetAttachmentTarget, EnqueueAssetProcessingRequest, EnqueueAssetProcessingResponse};
+use super::dto::{
+    AssetAttachmentTarget, EnqueueAssetProcessingRequest, EnqueueAssetProcessingResponse,
+};
 
 pub(super) fn validate_asset_processing_kind(processing_kind: &str) -> Result<(), String> {
     match processing_kind {
@@ -151,21 +153,8 @@ async fn persist_completed_asset_job(
         entity_id: job.entity_id.clone(),
         field: job.attachment_field.clone(),
     };
-    let asset_kind = super::targets::asset_kind_for_processing_job(&super::PendingAssetProcessingJobRecord {
-        id: job.id.clone(),
-        merchant_id: job.merchant_id.clone(),
-        source_path: job.result.cache_path.to_string_lossy().to_string(),
-        original_filename: job.result.original_filename.clone(),
-        source_mime_type: Some(job.result.content_type.clone()),
-        processing_kind: job.processing_kind.clone(),
-        entity_type: job.entity_type.clone(),
-        entity_id: job.entity_id.clone(),
-        attachment_field: job.attachment_field.clone(),
-        preview_path: job.result.preview_path.as_ref().map(|path| path.to_string_lossy().to_string()),
-        preview_mime_type: Some("image/jpeg".into()),
-        status: "completed".into(),
-        attempts: job.attempts as i64,
-    })?;
+    let asset_kind =
+        super::targets::asset_kind_for_processing_job(&job.processing_kind, &attachment_target)?;
 
     let prepared = super::local::prepare_local_image_asset_inner(
         app,

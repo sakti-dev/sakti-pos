@@ -10,6 +10,7 @@ use tauri_plugin_image_pipeline::dto::{
     PickImageCompressionOptions, PickImageRequest, PickImageResponse, PickImageStatus,
 };
 use tauri_plugin_image_pipeline::error::PluginError;
+use tauri_plugin_image_pipeline::picker_stage::PickerSelection;
 
 // ═══════════════════════════════════════════════════════════════
 // Event name constants
@@ -62,9 +63,18 @@ fn pick_image_request_serde_camel_case() {
     };
 
     let json = serde_json::to_string(&request).unwrap();
-    assert!(json.contains("pickerMode"), "expected camelCase pickerMode in: {json}");
-    assert!(json.contains("maxLongEdge"), "expected camelCase maxLongEdge in: {json}");
-    assert!(json.contains("previewMaxLongEdge"), "expected camelCase previewMaxLongEdge in: {json}");
+    assert!(
+        json.contains("pickerMode"),
+        "expected camelCase pickerMode in: {json}"
+    );
+    assert!(
+        json.contains("maxLongEdge"),
+        "expected camelCase maxLongEdge in: {json}"
+    );
+    assert!(
+        json.contains("previewMaxLongEdge"),
+        "expected camelCase previewMaxLongEdge in: {json}"
+    );
 }
 
 #[test]
@@ -81,7 +91,10 @@ fn pick_image_request_deserialize_roundtrip() {
     let json = serde_json::to_string(&request).unwrap();
     let parsed: PickImageRequest = serde_json::from_str(&json).unwrap();
     assert_eq!(request.picker_mode, parsed.picker_mode);
-    assert_eq!(request.compression.max_long_edge, parsed.compression.max_long_edge);
+    assert_eq!(
+        request.compression.max_long_edge,
+        parsed.compression.max_long_edge
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -98,7 +111,10 @@ fn pick_image_response_contains_required_fields() {
     };
 
     assert_eq!(response.job_id, "job-abc-123");
-    assert_eq!(response.preview_path, PathBuf::from("/cache/previews/abc.jpg"));
+    assert_eq!(
+        response.preview_path,
+        PathBuf::from("/cache/previews/abc.jpg")
+    );
     assert_eq!(response.preview_mime_type, "image/jpeg");
     assert_eq!(response.status, PickImageStatus::Pending);
 }
@@ -110,7 +126,10 @@ fn pick_image_response_status_variants() {
 
     // Status must serialize to snake_case per the spec
     assert_eq!(serde_json::to_string(&pending).unwrap(), "\"pending\"");
-    assert_eq!(serde_json::to_string(&processing).unwrap(), "\"processing\"");
+    assert_eq!(
+        serde_json::to_string(&processing).unwrap(),
+        "\"processing\""
+    );
 }
 
 #[test]
@@ -123,9 +142,18 @@ fn pick_image_response_serde_camel_case() {
     };
 
     let json = serde_json::to_string(&response).unwrap();
-    assert!(json.contains("jobId"), "expected camelCase jobId in: {json}");
-    assert!(json.contains("previewPath"), "expected camelCase previewPath in: {json}");
-    assert!(json.contains("previewMimeType"), "expected camelCase previewMimeType in: {json}");
+    assert!(
+        json.contains("jobId"),
+        "expected camelCase jobId in: {json}"
+    );
+    assert!(
+        json.contains("previewPath"),
+        "expected camelCase previewPath in: {json}"
+    );
+    assert!(
+        json.contains("previewMimeType"),
+        "expected camelCase previewMimeType in: {json}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -171,12 +199,30 @@ fn job_completed_payload_serde_camel_case() {
     };
 
     let json = serde_json::to_string(&payload).unwrap();
-    assert!(json.contains("jobId"), "expected camelCase jobId in: {json}");
-    assert!(json.contains("assetPath"), "expected camelCase assetPath in: {json}");
-    assert!(json.contains("contentHash"), "expected camelCase contentHash in: {json}");
-    assert!(json.contains("contentType"), "expected camelCase contentType in: {json}");
-    assert!(json.contains("byteSize"), "expected camelCase byteSize in: {json}");
-    assert!(json.contains("originalFilename"), "expected camelCase originalFilename in: {json}");
+    assert!(
+        json.contains("jobId"),
+        "expected camelCase jobId in: {json}"
+    );
+    assert!(
+        json.contains("assetPath"),
+        "expected camelCase assetPath in: {json}"
+    );
+    assert!(
+        json.contains("contentHash"),
+        "expected camelCase contentHash in: {json}"
+    );
+    assert!(
+        json.contains("contentType"),
+        "expected camelCase contentType in: {json}"
+    );
+    assert!(
+        json.contains("byteSize"),
+        "expected camelCase byteSize in: {json}"
+    );
+    assert!(
+        json.contains("originalFilename"),
+        "expected camelCase originalFilename in: {json}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -286,5 +332,25 @@ fn preview_path_is_local_file_path() {
     assert!(
         !path_str.starts_with("file://"),
         "preview_path must not be a file:// URI: {path_str}"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Android picker selection must preserve content:// selections
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn content_uri_picker_selection_is_not_treated_like_a_local_path() {
+    let selected =
+        PickerSelection::from_picker_path_string("content://media/external/images/media/42")
+            .expect("content uri should remain selectable");
+
+    assert!(
+        selected.is_content_uri(),
+        "content:// picker selections must stay as URIs so they can be staged into cache"
+    );
+    assert!(
+        selected.local_path().is_none(),
+        "content:// picker selections must not be converted into a local path before staging"
     );
 }

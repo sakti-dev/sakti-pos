@@ -317,7 +317,10 @@ async fn explicit_retry_resets_failed_job() {
     // Should be claimable again with reset attempts
     let claimed = queue.claim_next().await.unwrap().unwrap();
     assert_eq!(claimed.id, job_id);
-    assert_eq!(claimed.attempts, 1, "attempts reset to 0 then incremented to 1 on claim");
+    assert_eq!(
+        claimed.attempts, 1,
+        "attempts reset to 0 then incremented to 1 on claim"
+    );
     assert!(claimed.last_error.is_none());
 }
 
@@ -355,10 +358,7 @@ async fn retry_with_missing_source_returns_error() {
         .await
         .unwrap();
     queue.claim_next().await.unwrap().unwrap();
-    queue
-        .fail_terminal(&job_id, "err".into())
-        .await
-        .unwrap();
+    queue.fail_terminal(&job_id, "err".into()).await.unwrap();
 
     // Source doesn't exist
     let result = queue.retry_failed(&job_id).await;
@@ -492,10 +492,7 @@ async fn failed_jobs_appear_in_failed_list() {
         .await
         .unwrap();
     queue.claim_next().await.unwrap().unwrap();
-    queue
-        .fail_terminal(&id1, "bad image".into())
-        .await
-        .unwrap();
+    queue.fail_terminal(&id1, "bad image".into()).await.unwrap();
 
     let failed = queue.get_failed().await.unwrap();
     assert_eq!(failed.len(), 1);

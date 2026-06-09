@@ -110,16 +110,32 @@ export function createImageUpload(
 
   function handleCompletedPayload(payload: JobCompletedPayload): void {
     if (payload.jobId !== currentJobId) {
+      photoLogger.debug("job_completed_buffered", {
+        bufferedJobId: payload.jobId,
+        currentJobId,
+      });
       pendingCompletedPayload = payload;
       return;
     }
 
     photoLogger.info("job_completed_received", {
+      assetPath: payload.assetPath,
+      byteSize: payload.byteSize,
+      contentHash: payload.contentHash,
+      contentType: payload.contentType,
+      height: payload.height,
       jobId: payload.jobId,
+      originalFilename: payload.originalFilename,
+      width: payload.width,
     });
 
     setIsReady(true);
     cleanupListener();
+    photoLogger.info("job_completed_applied", {
+      jobId: payload.jobId,
+      assetPath: payload.assetPath,
+      contentHash: payload.contentHash,
+    });
 
     options.onAssetReady?.({
       assetPath: payload.assetPath,
@@ -135,6 +151,10 @@ export function createImageUpload(
 
   function handleFailedPayload(payload: JobFailedPayload): void {
     if (payload.jobId !== currentJobId) {
+      photoLogger.debug("job_failed_buffered", {
+        bufferedJobId: payload.jobId,
+        currentJobId,
+      });
       pendingFailedPayload = payload;
       return;
     }
@@ -143,6 +163,7 @@ export function createImageUpload(
     setError(payload.error);
     setIsReady(false);
     cleanupListener();
+    photoLogger.error("job_failed_applied", payload);
   }
 
   function flushPendingJobEvents(jobId: string): void {
@@ -184,6 +205,10 @@ export function createImageUpload(
       // Clean up any previous listener/job before starting new one
       cleanupPending();
 
+      photoLogger.info("listeners_starting", {
+        completedEvent: JOB_COMPLETED_EVENT,
+        failedEvent: JOB_FAILED_EVENT,
+      });
       unlistenCompletedFn = await listen<JobCompletedPayload>(
         JOB_COMPLETED_EVENT,
         (event) => {
@@ -196,6 +221,10 @@ export function createImageUpload(
           handleFailedPayload(event.payload);
         }
       );
+      photoLogger.info("listeners_started", {
+        completedEvent: JOB_COMPLETED_EVENT,
+        failedEvent: JOB_FAILED_EVENT,
+      });
 
       const result = await pluginPickImage({
         pickerMode: "image",
@@ -213,6 +242,12 @@ export function createImageUpload(
         status: result.status,
       });
 
+      photoLogger.info("preview_path_received", {
+        jobId: result.jobId,
+        previewMimeType: result.previewMimeType,
+        previewPath: result.previewPath,
+      });
+
       // Extract filename from preview path for display
       const displayName =
         result.previewPath
@@ -220,7 +255,14 @@ export function createImageUpload(
           .pop()
           ?.replace(PREVIEW_FILENAME_SUFFIX, ".jpg") ?? "image";
 
-      setStagedPreviewUrl(convertFileSrc(result.previewPath));
+      const previewUrl = convertFileSrc(result.previewPath);
+      photoLogger.info("preview_url_resolved", {
+        jobId: result.jobId,
+        previewPath: result.previewPath,
+        previewUrl,
+      });
+
+      setStagedPreviewUrl(previewUrl);
       setFileName(displayName);
       setActiveJobId(result.jobId);
       setIsReady(false);

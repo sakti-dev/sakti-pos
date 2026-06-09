@@ -52,10 +52,7 @@ pub fn read_exif_orientation_bytes(data: &[u8]) -> u32 {
 }
 
 /// Apply EXIF orientation to an image buffer.
-pub fn apply_exif_orientation(
-    img: image::DynamicImage,
-    orientation: u32,
-) -> image::DynamicImage {
+pub fn apply_exif_orientation(img: image::DynamicImage, orientation: u32) -> image::DynamicImage {
     let rgba = img.to_rgba8();
     let transformed = match orientation {
         2 => image::imageops::flip_horizontal(&rgba),
@@ -303,7 +300,9 @@ mod tests {
     fn preview_large_image() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("large.png");
-        image::DynamicImage::new_rgb8(1000, 800).save(&path).unwrap();
+        image::DynamicImage::new_rgb8(1000, 800)
+            .save(&path)
+            .unwrap();
 
         let preview = generate_preview(&path, 320).unwrap();
         let preview_img = image::load_from_memory(&preview).unwrap();
@@ -331,7 +330,10 @@ mod tests {
 
         assert!(matches!(
             process_image(&path, 400),
-            Err(PluginError::Processing { stage: "decode", .. })
+            Err(PluginError::Processing {
+                stage: "decode",
+                ..
+            })
         ));
     }
 
@@ -361,7 +363,10 @@ mod tests {
             let oriented = apply_exif_orientation(img.clone(), orientation);
             let w = oriented.width();
             let h = oriented.height();
-            assert!(w > 0 && h > 0, "orientation {orientation} produced zero dimension");
+            assert!(
+                w > 0 && h > 0,
+                "orientation {orientation} produced zero dimension"
+            );
         }
     }
 }
