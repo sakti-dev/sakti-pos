@@ -22,7 +22,7 @@
     "check": "bun run doctor && bun run typecheck"
   },
   "dependencies": {
-    "baresync": "0.4.2",
+    "baresync": "0.4.3",
     "drizzle-orm": "^0.45.2",
     "uuid": "^14.0.0"
   },

@@ -29,7 +29,7 @@
         "@libsql/client": "^0.17.3",
         "@sync-contract": "*",
         "arctic": "^3.6.0",
-        "baresync": "0.4.2",
+        "baresync": "0.4.3",
         "drizzle-orm": "^0.45.2",
         "elysia": "^1.3",
         "narvik": "^0.2.16",
@@ -59,7 +59,7 @@
         "@tauri-apps/api": "^2",
         "@tauri-apps/plugin-log": "^2.8.0",
         "@tauri-apps/plugin-opener": "^2",
-        "baresync": "0.4.2",
+        "baresync": "0.4.3",
         "chart.js": "^4.5.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -93,7 +93,7 @@
       "name": "@sync-contract",
       "version": "0.1.0",
       "dependencies": {
-        "baresync": "0.4.2",
+        "baresync": "0.4.3",
         "drizzle-orm": "^0.45.2",
         "uuid": "^14.0.0",
       },
@@ -666,7 +666,7 @@
 
     "balanced-match": ["balanced-match@4.0.4", "", {}, "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA=="],
 
-    "baresync": ["baresync@0.4.2", "", { "dependencies": { "@clack/prompts": "1.4.0", "drizzle-orm": "^0.45.2", "prettier": "^3.6.2" }, "bin": { "baresync": "dist/cli/index.js" } }, "sha512-Xl0bKXLh4m46OkKERMkKx0quU/ww/P+MSo7b+pPaQLQEAjc14TloC92zcyHSlUwW/TTTJ4SpIlC9pB9I6nr6mA=="],
+    "baresync": ["baresync@0.4.3", "", { "dependencies": { "@clack/prompts": "1.4.0", "drizzle-orm": "^0.45.2", "prettier": "^3.6.2" }, "bin": { "baresync": "dist/cli/index.js" } }, "sha512-9BZvohBXdejulVL5QR2xlVRCjinX4sXfR3fBlXGTfFYS23I/FpKC8SKfTn9pEUa2kSnpOqsK+K1BxTokvfyLAA=="],
 
     "base64-js": ["base64-js@1.5.1", "", {}, "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA=="],
 

@@ -356,9 +356,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "baresync-core"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed64559e9be64450f05a9e004e0c3b96a043930e9d4671981bb41a68c165cafc"
+checksum = "78307cd003568526301e9689a7aacf3d14e703bbadb076a07fcc09042755bdfe"
 dependencies = [
  "log",
  "reqwest 0.12.28",
@@ -5255,9 +5255,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-baresync"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5b6f6ba7b1f759b098face08b1a3ece2d83c3a5442c2163239cb0e3c79cedd8"
+checksum = "005ef3a24d449ed07399a577df9ce73bbd21f62fd27286ebecb0a5fc4bd9dcfc"
 dependencies = [
  "baresync-core",
  "chrono",
