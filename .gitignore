@@ -49,7 +49,7 @@ docs/external/
 .worktrees/
 
 .turso
-.opencode
+.codex/
 .omp/
 graphify-out
 .graphifyignore
