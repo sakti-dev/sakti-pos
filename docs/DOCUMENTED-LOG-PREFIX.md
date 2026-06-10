@@ -174,7 +174,7 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [IMAGE-PIPELINE:COMPRESS_ASSET_REQUEST]` | `compress_asset` command started (deferred compression) |
 | `[RUST] [IMAGE-PIPELINE:DELETE_ASSET]` | `delete_asset` command executed |
 | `[RUST] [IMAGE-PIPELINE:GC]` | TTL-based GC for staging and preview files |
-| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_CONTENT_URI_STAGED]` | Android content:// URI staged via Kotlin ContentResolver |
+| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_ANDROID_DELEGATE]` | Android `pick_image` delegates to native Kotlin `pickAndStageImage` |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_OPENING]` | image pipeline native picker is about to open |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_SELECTED]` | image pipeline native picker returned a file |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_RESPONSE_READY]` | image pipeline immediate picker response is ready |
@@ -202,9 +202,15 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_FILE_WRITTEN]` | Android preview file was written |
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE]` | Android preview generation completed |
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST]` | Android preview generation started |
-| `[ANDROID] [IMAGE-PIPELINE:STAGE_CONTENT_URI]` | Android content:// URI staging started (via `stageContentUri` Kotlin command) |
-| `[ANDROID] [IMAGE-PIPELINE:STAGE_CONTENT_URI_DONE]` | Android content:// URI staging completed |
-| `[ANDROID] [IMAGE-PIPELINE:STAGE_CONTENT_URI_FAILED]` | Android content:// URI staging failed |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_START]` | Android native picker launching `ACTION_OPEN_DOCUMENT` |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_URI_RECEIVED]` | Android native picker received content:// URI |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_STAGED]` | Android content:// URI staged to local file (with method used) |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_FALLBACK]` | Android openInputStream failed, falling back to openFileDescriptor |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_DONE]` | Android native pick + stage + preview complete |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_CANCELLED]` | User cancelled the native picker |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_PREVIEW_FAILED]` | Preview generation failed (staged path still returned) |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_STAGING_FAILED]` | Content:// URI staging failed entirely |
+| `[ANDROID] [IMAGE-PIPELINE:NATIVE_PICK_START_FAILED]` | Failed to launch ACTION_OPEN_DOCUMENT |
 | `[ANDROID] [IMAGE-PIPELINE:URI_STAGE_START]` | Vendored URI staging helper started copying content:// URI to cache |
 | `[ANDROID] [IMAGE-PIPELINE:URI_STAGE_DONE]` | Vendored URI staging helper completed copying content:// URI to cache |
 | `[ANDROID] [IMAGE-PIPELINE:LOCAL_STAGE_START]` | Vendored local file staging helper started copying to cache |
