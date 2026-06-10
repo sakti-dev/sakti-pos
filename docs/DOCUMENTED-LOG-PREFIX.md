@@ -23,13 +23,13 @@ Rules:
 Useful grep:
 
 ```bash
-PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|\[baresync\]|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image|snapshot_export_requested|snapshot_export_finished|snapshot_export_failed|snapshot_export_done'
+PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST|ANDROID)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|\[baresync\]|IMAGE-PIPELINE|ImagePipelinePlugin|stage_content_uri|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image|snapshot_export_requested|snapshot_export_finished|snapshot_export_failed|snapshot_export_done'
 ```
 
 Crash and native-failure follow-up:
 
 ```bash
-PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|\[baresync\]|AndroidRuntime|libc|fatal|exception|crash|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image|snapshot_export_requested|snapshot_export_finished|snapshot_export_failed|snapshot_export_done'
+PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST|ANDROID)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|\[baresync\]|IMAGE-PIPELINE|ImagePipelinePlugin|stage_content_uri|AndroidRuntime|libc|fatal|exception|crash|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image|snapshot_export_requested|snapshot_export_finished|snapshot_export_failed|snapshot_export_done'
 ```
 
 ## JS Prefixes
@@ -74,6 +74,8 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PHOTO:ASSET_SYNC_FAILED]` | product form |
 | `[JS] [PHOTO:ASSET_SYNC_FINISHED]` | product form |
 | `[JS] [PHOTO:BACKGROUND_SYNC_TRIGGERED]` | product form |
+| `[JS] [PHOTO:CLEAR_REQUESTED]` | product form — user cleared the photo selection |
+| `[JS] [PHOTO:COMPRESS_ASSET_FAILED]` | product form — `compress_asset` command failed |
 | `[JS] [PHOTO:DRAWER_OPENED]` | product form |
 | `[JS] [PHOTO:DRAWER_STATE_CHANGED]` | product form |
 | `[JS] [PHOTO:JOB_COMPLETED_APPLIED]` | ~~removed~~ — event listener lifecycle removed in deferred-compression |
@@ -90,6 +92,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PHOTO:PATH_PROCESSING_STARTED]` | product form |
 | `[JS] [PHOTO:PICK_IMAGE_COMMAND_INVOKED]` | `lib/assets/plugin-bridge.ts` — plugin `pick_image` command invoked |
 | `[JS] [PHOTO:PICK_IMAGE_COMMAND_RETURNED]` | `lib/assets/plugin-bridge.ts` — plugin `pick_image` command returned |
+| `[JS] [PHOTO:PICK_IMAGE_COMPLETED]` | `lib/assets/image-upload.ts` — plugin `pick_image` command completed successfully |
+| `[JS] [PHOTO:PICK_IMAGE_FAILED]` | `lib/assets/image-upload.ts` — plugin `pick_image` command failed |
+| `[JS] [PHOTO:PICK_IMAGE_REQUESTED]` | `lib/assets/image-upload.ts` — user tapped photo picker button |
 | `[JS] [PHOTO:COMPRESS_ASSET_COMMAND_INVOKED]` | `lib/assets/plugin-bridge.ts` — plugin `compress_asset` command invoked |
 | `[JS] [PHOTO:COMPRESS_ASSET_COMMAND_RETURNED]` | `lib/assets/plugin-bridge.ts` — plugin `compress_asset` command returned |
 | `[JS] [PHOTO:DELETE_ASSET_COMMAND_INVOKED]` | `lib/assets/plugin-bridge.ts` — plugin `delete_asset` command invoked |
@@ -165,10 +170,11 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [DB:MIGRATION:SKIP]` | idempotent migration statements skipped because they already exist |
 | `[RUST] [IMAGE-PIPELINE:COMPRESS_DONE]` | image pipeline background compression succeeded |
 | `[RUST] [IMAGE-PIPELINE:COMPRESS_JOIN_FAILED]` | image pipeline background compression task failed to join |
-| `[RUST] [IMAGE-PIPELINE:COMPRESS_REQUEST]` | image pipeline background compression was queued |
+| `[RUST] [IMAGE-PIPELINE:COMPRESS_START]` | `compress_asset` command started (was `COMPRESS_REQUEST`) |
 | `[RUST] [IMAGE-PIPELINE:COMPRESS_ASSET_REQUEST]` | `compress_asset` command started (deferred compression) |
 | `[RUST] [IMAGE-PIPELINE:DELETE_ASSET]` | `delete_asset` command executed |
 | `[RUST] [IMAGE-PIPELINE:GC]` | TTL-based GC for staging and preview files |
+| `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_CONTENT_URI_STAGED]` | Android content:// URI staged via Kotlin ContentResolver |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_OPENING]` | image pipeline native picker is about to open |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_SELECTED]` | image pipeline native picker returned a file |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_RESPONSE_READY]` | image pipeline immediate picker response is ready |
@@ -196,6 +202,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_FILE_WRITTEN]` | Android preview file was written |
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_DONE]` | Android preview generation completed |
 | `[ANDROID] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST]` | Android preview generation started |
+| `[ANDROID] [IMAGE-PIPELINE:STAGE_CONTENT_URI]` | Android content:// URI staging started (via `stageContentUri` Kotlin command) |
+| `[ANDROID] [IMAGE-PIPELINE:STAGE_CONTENT_URI_DONE]` | Android content:// URI staging completed |
+| `[ANDROID] [IMAGE-PIPELINE:STAGE_CONTENT_URI_FAILED]` | Android content:// URI staging failed |
 | `[ANDROID] [IMAGE-PIPELINE:URI_STAGE_START]` | Vendored URI staging helper started copying content:// URI to cache |
 | `[ANDROID] [IMAGE-PIPELINE:URI_STAGE_DONE]` | Vendored URI staging helper completed copying content:// URI to cache |
 | `[ANDROID] [IMAGE-PIPELINE:LOCAL_STAGE_START]` | Vendored local file staging helper started copying to cache |
