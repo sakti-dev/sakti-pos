@@ -5406,8 +5406,6 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-dialog"
 version = "2.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65981abb771e74e571a38196c3baa11c459379164791eba0e67abc1a5fac9884"
 dependencies = [
  "log",
  "raw-window-handle",
@@ -5473,8 +5471,6 @@ dependencies = [
 name = "tauri-plugin-image-pipeline"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "chrono",
  "image",
  "kamadak-exif",
  "log",
