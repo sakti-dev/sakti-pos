@@ -1,4 +1,4 @@
-import { productImageAdapter } from "~/lib/assets/adapters/product-images";
+import { startAssetLifecycleListener } from "~/lib/assets/lifecycle";
 import { createLogger } from "~/lib/logger";
 
 const appListenerLogger = createLogger({
@@ -8,7 +8,7 @@ const appListenerLogger = createLogger({
 });
 
 export function startAppEventListeners(): void {
-  productImageAdapter.startEventListeners().catch((error: unknown) => {
-    appListenerLogger.error("asset_event_listeners_start_failed", error);
+  startAssetLifecycleListener().catch((error: unknown) => {
+    appListenerLogger.error("asset_lifecycle_listener_start_failed", error);
   });
 }

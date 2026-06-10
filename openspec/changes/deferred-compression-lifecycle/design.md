@@ -69,13 +69,13 @@ await invoke("plugin:image-pipeline|compress_asset", {
 
 **Status progression:**
 ```
-pending → compressed → pending_upload → ready
-  │           │              │            │
-  │           │              │            └─ synced to server, downloadable
-  │           │              └─ S3 presigned URL obtained, uploading
-  │           └─ local compression done, metadata filled in
+pending → compressed → ready
+  │           │          │
+  │           │          └─ uploaded to S3, synced to server, downloadable
+  │           └─ local compression done, metadata filled in, awaiting upload
   └─ created at submit time, no contentHash yet
 ```
+Also supports `failed` as a terminal state for irrecoverable errors.
 
 **Schema change (local-synced-schema.ts):**
 ```ts

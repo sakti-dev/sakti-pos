@@ -1,46 +1,47 @@
-import {
-  categories,
-  outletProducts,
-  products,
-} from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import { and, eq, isNull } from "drizzle-orm";
 import { getSyncClient } from "~/lib/sync";
 import { currentMerchantId, currentOutletId } from "~/store/outlet";
-import { db } from "./index";
+import { db, TABLE } from "./index";
 
-export type Category = typeof categories.$inferSelect;
-type NewCategory = typeof categories.$inferInsert;
-export type Product = Omit<typeof products.$inferSelect, "imageAssetId"> & {
+export type Category = typeof TABLE.categories.$inferSelect;
+type NewCategory = typeof TABLE.categories.$inferInsert;
+export type Product = Omit<
+  typeof TABLE.products.$inferSelect,
+  "imageAssetId"
+> & {
   imageAssetId?: string | null;
 };
-type NewProduct = typeof products.$inferInsert;
-export type OutletProduct = typeof outletProducts.$inferSelect;
+type NewProduct = typeof TABLE.products.$inferInsert;
+export type OutletProduct = typeof TABLE.outletProducts.$inferSelect;
 
 export async function getCategories(): Promise<Category[]> {
   const merchantId = currentMerchantId();
-  const conditions = [isNull(categories.deletedAt)];
+  const conditions = [isNull(TABLE.categories.deletedAt)];
   if (merchantId) {
-    conditions.push(eq(categories.merchantId, merchantId));
+    conditions.push(eq(TABLE.categories.merchantId, merchantId));
   }
 
   return await db
     .select()
-    .from(categories)
+    .from(TABLE.categories)
     .where(and(...conditions))
-    .orderBy(categories.name, categories.id);
+    .orderBy(TABLE.categories.name, TABLE.categories.id);
 }
 
 export async function getCategory(id: string): Promise<Category | undefined> {
   const merchantId = currentMerchantId();
-  const conditions = [eq(categories.id, id), isNull(categories.deletedAt)];
+  const conditions = [
+    eq(TABLE.categories.id, id),
+    isNull(TABLE.categories.deletedAt),
+  ];
   if (merchantId) {
-    conditions.push(eq(categories.merchantId, merchantId));
+    conditions.push(eq(TABLE.categories.merchantId, merchantId));
   }
 
   const [row] = await db
     .select()
-    .from(categories)
+    .from(TABLE.categories)
     .where(and(...conditions));
   return row;
 }
@@ -51,7 +52,7 @@ export async function createCategory(data: NewCategory): Promise<Category> {
   const now = dayjs().toISOString();
   return await getSyncClient().writeTransaction(db, async (tx) => {
     const [row] = await tx
-      .insert(categories)
+      .insert(TABLE.categories)
       .values({
         ...data,
         isSynced: false,
@@ -63,7 +64,7 @@ export async function createCategory(data: NewCategory): Promise<Category> {
     await getSyncClient().enqueueChange(tx, {
       operation: "insert",
       rowId: row.id,
-      table: categories,
+      table: TABLE.categories,
     });
     return row;
   });
@@ -75,14 +76,14 @@ export async function updateCategory(
 ): Promise<Category> {
   return await getSyncClient().writeTransaction(db, async (tx) => {
     const [row] = await tx
-      .update(categories)
+      .update(TABLE.categories)
       .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
-      .where(eq(categories.id, id))
+      .where(eq(TABLE.categories.id, id))
       .returning();
     await getSyncClient().enqueueChange(tx, {
       operation: "update",
       rowId: row.id,
-      table: categories,
+      table: TABLE.categories,
     });
     return row;
   });
@@ -95,12 +96,12 @@ export async function deleteCategory(id: string): Promise<void> {
     await getSyncClient().writeLocalChange(tx, {
       operation: "update",
       rowId: id,
-      table: categories,
+      table: TABLE.categories,
       write: (writeTx) =>
         writeTx
-          .update(categories)
+          .update(TABLE.categories)
           .set({ deletedAt: now, updatedAt: now, isSynced: false })
-          .where(eq(categories.id, id)),
+          .where(eq(TABLE.categories.id, id)),
     });
   });
 }
@@ -110,16 +111,16 @@ export async function getProductCountByCategory(
 ): Promise<number> {
   const merchantId = currentMerchantId();
   const conditions = [
-    eq(products.categoryId, categoryId),
-    isNull(products.deletedAt),
+    eq(TABLE.products.categoryId, categoryId),
+    isNull(TABLE.products.deletedAt),
   ];
   if (merchantId) {
-    conditions.push(eq(products.merchantId, merchantId));
+    conditions.push(eq(TABLE.products.merchantId, merchantId));
   }
 
   const rows = await db
-    .select({ id: products.id })
-    .from(products)
+    .select({ id: TABLE.products.id })
+    .from(TABLE.products)
     .where(and(...conditions))
     .limit(1);
   return rows.length;
@@ -129,44 +130,85 @@ export async function getProducts(
   filterCategoryId?: string
 ): Promise<Product[]> {
   const merchantId = currentMerchantId();
-  const conditions = [isNull(products.deletedAt)];
+  const conditions = [isNull(TABLE.products.deletedAt)];
   if (merchantId) {
-    conditions.push(eq(products.merchantId, merchantId));
+    conditions.push(eq(TABLE.products.merchantId, merchantId));
   }
 
   if (filterCategoryId !== undefined) {
-    conditions.push(eq(products.categoryId, filterCategoryId));
+    conditions.push(eq(TABLE.products.categoryId, filterCategoryId));
   }
   return await db
     .select()
-    .from(products)
+    .from(TABLE.products)
     .where(and(...conditions))
-    .orderBy(products.name, products.id);
+    .orderBy(TABLE.products.name, TABLE.products.id);
 }
 
 export async function getProduct(id: string): Promise<Product | undefined> {
   const merchantId = currentMerchantId();
-  const conditions = [eq(products.id, id), isNull(products.deletedAt)];
+  const conditions = [
+    eq(TABLE.products.id, id),
+    isNull(TABLE.products.deletedAt),
+  ];
   if (merchantId) {
-    conditions.push(eq(products.merchantId, merchantId));
+    conditions.push(eq(TABLE.products.merchantId, merchantId));
   }
 
   const [row] = await db
     .select()
-    .from(products)
+    .from(TABLE.products)
     .where(and(...conditions));
   return row;
 }
 
-export async function createProduct(data: NewProduct): Promise<Product> {
+export interface AssetCreationParams {
+  jobId: string;
+  merchantId: string;
+}
+
+export async function createProduct(
+  data: NewProduct,
+  assetParams?: AssetCreationParams
+): Promise<Product & { newImageAssetId?: string }> {
   const merchantId = currentMerchantId() ?? "";
 
   const now = dayjs().toISOString();
   return await getSyncClient().writeTransaction(db, async (tx) => {
+    let imageAssetId = data.imageAssetId ?? null;
+
+    // If a new image was staged, create the assets row with status = "pending"
+    if (assetParams) {
+      const assetId = crypto.randomUUID();
+      const objectKey = `${assetParams.merchantId}/assets/${assetId}`;
+      await tx
+        .insert(TABLE.assets)
+        .values({
+          id: assetId,
+          merchantId: assetParams.merchantId,
+          jobId: assetParams.jobId,
+          objectKey,
+          contentType: "image/webp",
+          kind: "product_photo",
+          status: "pending",
+          isSynced: false,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      await getSyncClient().enqueueChange(tx, {
+        operation: "insert",
+        rowId: assetId,
+        table: TABLE.assets,
+      });
+      imageAssetId = assetId;
+    }
+
     const [row] = await tx
-      .insert(products)
+      .insert(TABLE.products)
       .values({
         ...data,
+        imageAssetId,
         isSynced: false,
         merchantId,
         createdAt: now,
@@ -176,28 +218,64 @@ export async function createProduct(data: NewProduct): Promise<Product> {
     await getSyncClient().enqueueChange(tx, {
       operation: "insert",
       rowId: row.id,
-      table: products,
+      table: TABLE.products,
     });
-    return row;
+    return { ...row, newImageAssetId: imageAssetId ?? undefined };
   });
 }
 
 export async function updateProduct(
   id: string,
-  data: Partial<Omit<NewProduct, "id">>
-): Promise<Product> {
+  data: Partial<Omit<NewProduct, "id">>,
+  assetParams?: AssetCreationParams
+): Promise<Product & { newImageAssetId?: string }> {
+  const now = dayjs().toISOString();
   return await getSyncClient().writeTransaction(db, async (tx) => {
+    let imageAssetId = data.imageAssetId ?? null;
+
+    // If a new image was staged, create the assets row with status = "pending"
+    if (assetParams) {
+      const assetId = crypto.randomUUID();
+      const objectKey = `${assetParams.merchantId}/assets/${assetId}`;
+      await tx
+        .insert(TABLE.assets)
+        .values({
+          id: assetId,
+          merchantId: assetParams.merchantId,
+          jobId: assetParams.jobId,
+          objectKey,
+          contentType: "image/webp",
+          kind: "product_photo",
+          status: "pending",
+          isSynced: false,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      await getSyncClient().enqueueChange(tx, {
+        operation: "insert",
+        rowId: assetId,
+        table: TABLE.assets,
+      });
+      imageAssetId = assetId;
+    }
+
     const [row] = await tx
-      .update(products)
-      .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
-      .where(eq(products.id, id))
+      .update(TABLE.products)
+      .set({
+        ...data,
+        imageAssetId,
+        updatedAt: dayjs().toISOString(),
+        isSynced: false,
+      })
+      .where(eq(TABLE.products.id, id))
       .returning();
     await getSyncClient().enqueueChange(tx, {
       operation: "update",
       rowId: row.id,
-      table: products,
+      table: TABLE.products,
     });
-    return row;
+    return { ...row, newImageAssetId: imageAssetId ?? undefined };
   });
 }
 
@@ -208,12 +286,12 @@ export async function deleteProduct(id: string): Promise<void> {
     await getSyncClient().writeLocalChange(tx, {
       operation: "update",
       rowId: id,
-      table: products,
+      table: TABLE.products,
       write: (writeTx) =>
         writeTx
-          .update(products)
+          .update(TABLE.products)
           .set({ deletedAt: now, updatedAt: now, isSynced: false })
-          .where(eq(products.id, id)),
+          .where(eq(TABLE.products.id, id)),
     });
   });
 }
@@ -226,6 +304,6 @@ export async function getOutletProducts(): Promise<OutletProduct[]> {
 
   return await db
     .select()
-    .from(outletProducts)
-    .where(eq(outletProducts.outletId, outletId));
+    .from(TABLE.outletProducts)
+    .where(eq(TABLE.outletProducts.outletId, outletId));
 }

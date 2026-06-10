@@ -9,7 +9,7 @@ import {
   products,
   registers,
   staff,
-} from "@sync-contract/api-schema";
+} from "@sync-contract/generated/2026-06-10/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -448,7 +448,6 @@ export const repository = createDrizzleSyncRepository({
           row.priceMinorUnits,
           "products.priceMinorUnits"
         ),
-        imageUrl: optionalString(row.imageUrl),
         imageAssetId: optionalString(row.imageAssetId),
         isActive: requiredBoolean(row.isActive),
         sortOrder: requiredNumber(row.sortOrder, "products.sortOrder"),
@@ -496,7 +495,6 @@ export const repository = createDrizzleSyncRepository({
               categoryId: sql.raw("excluded.category_id"),
               name: sql.raw("excluded.name"),
               priceMinorUnits: sql.raw("excluded.price_minor_units"),
-              imageUrl: sql.raw("excluded.image_url"),
               imageAssetId: sql.raw("excluded.image_asset_id"),
               isActive: sql.raw("excluded.is_active"),
               sortOrder: sql.raw("excluded.sort_order"),

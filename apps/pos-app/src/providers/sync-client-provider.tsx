@@ -100,7 +100,9 @@ export const SyncClientProvider: ParentComponent = (props) => {
         unlistenStatusChanged();
       });
       await newClient.stopPolling().catch(() => {});
-      setSyncClient(null);
+      // Don't null the global sync client here — the new effect
+      // will overwrite it immediately. Nulling creates a window
+      // where getSyncClient() throws during scope transitions.
       setClient(null);
     });
   });

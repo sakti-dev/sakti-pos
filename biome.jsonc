@@ -15,8 +15,10 @@
       "!!**/tauri-drizzle-proxy",
       "!!**/dist",
       "!!**/src-tauri/target",
+      "!!**/vendor",
+      "!!**/src-tauri/gen",
+      "!!**/permissions/schemas",
       "!!packages/protobuf/src/proto",
-      "!!**/.wrangler/tmp",
       "!!**/node_modules",
       "!!**/drizzle/meta",
       "!!docs/external"

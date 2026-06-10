@@ -13,7 +13,6 @@ const makeProduct = (id: string, priceMinorUnits = 10_000) => ({
   categoryId: "category-1",
   createdAt: "2026-01-01",
   id,
-  imageUrl: null,
   isActive: true,
   merchantId: "merchant-1",
   name: `Product ${id}`,

@@ -23,32 +23,15 @@ export const AssetHeader = t.Object({
 
 export const AssetPresignUploadRequest = t.Object({
   merchantId: t.String(),
-  kind: t.String(),
   contentType: t.String(),
-  contentHash: t.String(),
-  byteSize: t.Number(),
   assetId: t.Optional(t.String()),
   objectKey: t.Optional(t.String()),
-  originalFilename: t.Optional(t.String()),
-  width: t.Optional(t.Number()),
-  height: t.Optional(t.Number()),
 });
 
 export const AssetPresignUploadResponse = t.Object({
-  asset: Asset,
-  requiredHeaders: t.Array(AssetHeader),
   uploadUrl: t.String(),
-});
-
-export const AssetCompleteUploadRequest = t.Object({
-  assetId: t.String(),
   objectKey: t.String(),
-  contentHash: t.String(),
-  byteSize: t.Number(),
-});
-
-export const AssetCompleteUploadResponse = t.Object({
-  asset: Asset,
+  requiredHeaders: t.Array(AssetHeader),
 });
 
 export const AssetPresignDownloadRequest = t.Object({
@@ -64,10 +47,6 @@ export type AssetHeader = typeof AssetHeader.static;
 export type AssetPresignUploadRequest = typeof AssetPresignUploadRequest.static;
 export type AssetPresignUploadResponse =
   typeof AssetPresignUploadResponse.static;
-export type AssetCompleteUploadRequest =
-  typeof AssetCompleteUploadRequest.static;
-export type AssetCompleteUploadResponse =
-  typeof AssetCompleteUploadResponse.static;
 export type AssetPresignDownloadRequest =
   typeof AssetPresignDownloadRequest.static;
 export type AssetPresignDownloadResponse =

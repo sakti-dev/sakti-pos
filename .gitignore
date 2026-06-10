@@ -49,6 +49,7 @@ docs/external/
 .worktrees/
 
 .turso
+.db
 .codex/
 .omp/
 .commandcode/

@@ -41,7 +41,6 @@ interface ImageUploadContextValue {
   fileName: Accessor<string>;
   hasImage: Accessor<boolean>;
   isBusy: Accessor<boolean>;
-  isReady: Accessor<boolean>;
   label: Accessor<string>;
   pickImage: () => void;
   previewUrl: Accessor<string | null>;
@@ -71,7 +70,6 @@ function ImageUploadRoot(props: ImageUploadProps) {
     fileName: props.state.fileName,
     hasImage: props.state.hasImage,
     isBusy: props.state.isBusy,
-    isReady: props.state.isReady,
     label: () => props.label,
     pickImage: () => {
       props.state.pickImage().catch((pickError: unknown) => {
@@ -178,16 +176,9 @@ function ImageUploadDescription(props: ImageUploadDescriptionProps) {
 function ImageUploadStateText() {
   const context = useImageUploadContext();
   return (
-    <>
-      <Show when={context.hasImage() && !context.isReady()}>
-        <p class="text-muted-foreground text-xs">
-          Foto sedang diproses di latar belakang.
-        </p>
-      </Show>
-      <Show when={context.hasImage() && context.isReady()}>
-        <p class="text-muted-foreground text-xs">Foto siap disimpan.</p>
-      </Show>
-    </>
+    <Show when={context.hasImage()}>
+      <p class="text-muted-foreground text-xs">Foto siap disimpan.</p>
+    </Show>
   );
 }
 

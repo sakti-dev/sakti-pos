@@ -63,6 +63,13 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 - Run `wrangler types` after changing bindings in `wrangler.jsonc`.
 - For CPU/memory errors such as 1102, verify current limits from Cloudflare docs.
 
+## Git Safety
+
+- **NEVER use `git checkout HEAD --`, `git restore`, `git reset --hard`, or `git clean` to "fix" a failed operation.** If a remote is unreachable, an auth token is missing, or a command fails — stop and ask. These commands destroy uncommitted work irreversibly.
+- **Uncommitted changes are sacred.** Staged, unstaged, or untracked — they must survive every operation. If a command fails, the fix is never to nuke the working tree.
+- **Before any destructive git operation**, verify no uncommitted changes would be lost. If there are any, preserve them first (stash, copy, or move — never discard).
+- **Default to the safest approach.** To undo recent work, edit the files back — do not reach for `git revert`, `git reset`, `git checkout --`, or any git history command. Treat the working tree as the source of truth and use the edit tools to change it directly. Git operations that rewrite or traverse history are the absolute last resort, never the first.
+
 ## Verification Definition Of Done
 
 When completing a feature, bug fix, or refactor, include a concise Verification Guide with:

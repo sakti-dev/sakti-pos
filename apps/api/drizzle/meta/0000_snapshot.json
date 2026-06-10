@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "5f967a85-7b5b-491d-a605-e0994de7266e",
+  "id": "9ba1e9df-b8fa-4799-b05a-2d10b8bd801f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "assets": {
@@ -21,11 +21,18 @@
           "notNull": true,
           "autoincrement": false
         },
+        "job_id": {
+          "name": "job_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "object_key": {
           "name": "object_key",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "original_filename": {
@@ -46,14 +53,14 @@
           "name": "byte_size",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "content_hash": {
           "name": "content_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "kind": {
@@ -121,13 +128,6 @@
         }
       },
       "indexes": {
-        "assets_object_key_unique": {
-          "name": "assets_object_key_unique",
-          "columns": [
-            "object_key"
-          ],
-          "isUnique": true
-        },
         "assets_scope_sync_idx": {
           "name": "assets_scope_sync_idx",
           "columns": [
@@ -888,13 +888,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "image_url": {
-          "name": "image_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "image_asset_id": {

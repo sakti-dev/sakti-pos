@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import { API_URL } from "~/lib/api/eden";
-import { processPendingAssetJobs } from "~/lib/assets/processing";
+import { recoverAssets } from "~/lib/assets/recovery";
 import { hydrateMissingAssets, uploadPendingAssets } from "~/lib/assets/sync";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/logger";
@@ -53,12 +53,7 @@ async function uploadPendingProductImages(
   sessionToken: string
 ): Promise<void> {
   try {
-    syncLogger.info("asset_upload_queue_started", { merchantId });
-    const queuedCount = await uploadPendingAssets({
-      apiUrl: API_URL,
-      merchantId,
-      sessionToken,
-    });
+    const queuedCount = await uploadPendingAssets(merchantId, sessionToken);
     setLastAssetQueueCount(queuedCount);
     syncLogger.info("asset_upload_queue_finished", {
       merchantId,
@@ -67,16 +62,6 @@ async function uploadPendingProductImages(
   } catch (error) {
     setLastAssetQueueCount(0);
     syncLogger.error("asset_upload_queue_failed", error, { merchantId });
-  }
-}
-
-async function processPendingAssetProcessingJobs(): Promise<void> {
-  try {
-    syncLogger.info("asset_processing_jobs_started", {});
-    const processedCount = await processPendingAssetJobs({ limit: 20 });
-    syncLogger.info("asset_processing_jobs_finished", { processedCount });
-  } catch (error) {
-    syncLogger.error("asset_processing_jobs_failed", error, {});
   }
 }
 
@@ -89,15 +74,11 @@ function hydrateProductImagesInBackground(
 
 async function drainAssetHydrationRequests(
   merchantId: string,
-  sessionToken: string
+  _sessionToken: string
 ): Promise<void> {
   try {
     syncLogger.info("asset_hydration_started", { merchantId });
-    const hydratedCount = await hydrateMissingAssets({
-      apiUrl: API_URL,
-      merchantId,
-      sessionToken,
-    });
+    const hydratedCount = await hydrateMissingAssets();
     syncLogger.info("asset_hydration_finished", {
       hydratedCount,
       merchantId,
@@ -127,15 +108,10 @@ export async function syncNow(): Promise<SyncNowResult> {
 
   setSyncStatus("syncing");
   try {
-    const merchantId = currentMerchantId();
-    if (merchantId) {
-      await processPendingAssetProcessingJobs();
-      await uploadPendingProductImages(merchantId, sessionToken);
-    }
-
+    // 1. Core sync: push dirty rows, pull server changes
     const client = getSyncClient();
     await client.setHeaders({ Authorization: `Bearer ${sessionToken}` });
-    const raw = await client.syncNow();
+    const raw = (await client.syncNow()) as SyncNowResult | null;
 
     if (!raw || raw.mode === "NoOp") {
       setSyncStatus("idle");
@@ -158,6 +134,14 @@ export async function syncNow(): Promise<SyncNowResult> {
       serverWins: result.push.server_wins_count,
       tablesSynced: result.push.tables_synced,
     });
+
+    // 2. Upload compressed assets to object storage
+    const merchantId = currentMerchantId();
+    if (merchantId) {
+      await uploadPendingProductImages(merchantId, sessionToken);
+    }
+
+    // 3. Hydrate missing assets in the background
     if (merchantId) {
       hydrateProductImagesInBackground(merchantId, sessionToken);
     }
@@ -201,4 +185,6 @@ export async function runStartupSync(): Promise<void> {
       setSyncStatus("offline");
     }
   }
+
+  recoverAssets().catch(() => {});
 }

@@ -21,7 +21,7 @@ The current `pick_image` command triggers background compression immediately on 
 - `deferred-compression`: Plugin-owned deferred compression lifecycle — `compress_asset` command, `jobId` on assets table, startup recovery for pending and compressed assets, manual `deleteAsset` cleanup command.
 
 ### Modified Capabilities
-- `assets`: Asset metadata schema changes (nullable columns, `jobId`), lifecycle status progression (`pending` → `compressed` → `pending_upload` → `ready`), upload gating on compression completion.
+- `assets`: Asset metadata schema changes (nullable columns, `jobId`), lifecycle status progression (`pending` → `compressed` → `ready`), upload gating on compression completion.
 - `menu`: Product creation/update now creates an `assets` row at submit time and sets `imageAssetId` immediately, rather than waiting for compression to complete.
 - `sync`: Sync startup no longer owns image-processing job execution; the plugin owns deferred compression and the `assets` table owns lifecycle state. Sync only pushes/pulls assets with `status = "ready"`.
 

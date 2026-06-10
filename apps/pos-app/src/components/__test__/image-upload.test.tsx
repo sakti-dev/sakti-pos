@@ -23,28 +23,25 @@ vi.mock("~/lib/assets/plugin-bridge", () => ({
   pluginPickImage: (...args: unknown[]) => mockPluginPickImage(...args),
 }));
 
-vi.mock("~/components/ui/button", (importOriginal) => {
-  const _original = importOriginal as () => Promise<Record<string, unknown>>;
-  return {
-    Button: (props: {
-      children?: JSX.Element;
-      class?: string;
-      disabled?: boolean;
-      onClick?: () => void;
-      type?: "button" | "submit";
-      variant?: string;
-    }) => (
-      <button
-        class={props.class}
-        disabled={props.disabled}
-        onClick={props.onClick}
-        type={props.type}
-      >
-        {props.children}
-      </button>
-    ),
-  };
-});
+vi.mock("~/components/ui/button", (_importOriginal) => ({
+  Button: (props: {
+    children?: JSX.Element;
+    class?: string;
+    disabled?: boolean;
+    onClick?: () => void;
+    type?: "button" | "submit";
+    variant?: string;
+  }) => (
+    <button
+      class={props.class}
+      disabled={props.disabled}
+      onClick={props.onClick}
+      type={props.type}
+    >
+      {props.children}
+    </button>
+  ),
+}));
 
 const leadingSlashRegex = /^\//;
 
@@ -64,9 +61,7 @@ describe("ImageUpload", () => {
     });
     mockListen.mockResolvedValue(mockUnlisten);
 
-    const upload = createImageUpload({
-      processingKind: "image:webp-thumbnail",
-    });
+    const upload = createImageUpload({});
 
     render(() => (
       <ImageUpload label="Foto Produk" state={upload}>
@@ -94,9 +89,7 @@ describe("ImageUpload", () => {
     });
     mockListen.mockResolvedValue(mockUnlisten);
 
-    const upload = createImageUpload({
-      processingKind: "image:webp-thumbnail",
-    });
+    const upload = createImageUpload({});
 
     render(() => (
       <ImageUpload label="Foto Produk" state={upload}>
@@ -110,7 +103,6 @@ describe("ImageUpload", () => {
     await user.click(screen.getByText("Pilih Foto"));
 
     expect(upload.hasStagedImage()).toBe(true);
-    expect(upload.isReady()).toBe(false);
     expect(upload.jobId()).toBe("job-test-2");
     expect(
       screen.getByRole("img", { name: "Preview foto produk" })

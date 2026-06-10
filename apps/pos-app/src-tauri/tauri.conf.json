@@ -24,7 +24,7 @@
         "enable": true,
         "scope": ["$APPCACHE/**/*", "$APPCONFIG/asset-cache/**/*"]
       },
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:;"
+      "csp": "default-src 'self'; connect-src 'self' http://192.168.1.2:3001 http://localhost:3001; img-src 'self' asset: http://asset.localhost data: blob:;"
     }
   },
   "plugins": {

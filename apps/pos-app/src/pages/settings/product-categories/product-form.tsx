@@ -1,7 +1,6 @@
 import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
 import { createEffect, createMemo, createSignal, Show } from "solid-js";
-import { toast } from "solid-sonner";
 import { FormTextField } from "~/components/form/form-text-field";
 import { ImageUpload } from "~/components/image-upload";
 import { Button } from "~/components/ui/button";
@@ -13,8 +12,12 @@ import {
   getProduct,
   updateProduct,
 } from "~/db/menu";
-import { productImageAdapter } from "~/lib/assets/adapters/product-images";
+import { resolveAssetUrl } from "~/lib/assets/cache";
 import { createImageUpload } from "~/lib/assets/image-upload";
+import {
+  pluginCompressAsset,
+  pluginDeleteAsset,
+} from "~/lib/assets/plugin-bridge";
 import { createLogger } from "~/lib/logger";
 import {
   type ProductFormValues,
@@ -52,9 +55,7 @@ export default function ProductForm() {
   const savedImagePreviewUrlQuery = useDrizzleQuery(
     () => ["product-image-preview", imageAssetId()],
     () =>
-      imageAssetId()
-        ? productImageAdapter.resolveCachedImageUrl(imageAssetId()!)
-        : Promise.resolve(null)
+      imageAssetId() ? resolveAssetUrl(imageAssetId()!) : Promise.resolve(null)
   );
   const photoLogger = createLogger({
     domain: "PHOTO",
@@ -65,23 +66,15 @@ export default function ProductForm() {
     existingAssetId: imageAssetId,
     existingImageUrl: () => savedImagePreviewUrlQuery.data() ?? null,
     onClearExisting: () => setImageAssetId(null),
-    processingKind: "image:webp-thumbnail",
-    onAssetReady: (result) => {
-      setImageAssetId(result.contentHash);
-      photoLogger.info("asset_ready_received");
-      toast.success("Foto siap disimpan");
-    },
   });
 
   const canSubmit = createMemo(() => {
     const input = getInput(form);
-    const hasPendingImage = upload.hasStagedImage() && !upload.isReady();
     return (
       !!input?.name?.trim() &&
       !!input?.categoryId &&
       !!input?.price?.trim() &&
       !upload.isBusy() &&
-      !hasPendingImage &&
       !form.isSubmitting
     );
   });
@@ -107,6 +100,93 @@ export default function ProductForm() {
     setInitializedProductId(data.id);
   });
 
+  async function handleEdit(
+    values: ProductFormValues,
+    merchantId: string
+  ): Promise<string | null> {
+    const hasNewImage = upload.hasStagedImage();
+    const oldImageAssetId = imageAssetId();
+    const updatedProduct = await updateProduct(
+      params.id ?? "",
+      {
+        name: values.name,
+        categoryId: values.categoryId,
+        priceMinorUnits: Number(values.price),
+        imageAssetId: imageAssetId(),
+      },
+      hasNewImage && upload.jobId() && upload.stagedSourcePath()
+        ? { jobId: upload.jobId()!, merchantId }
+        : undefined
+    );
+
+    const nextAssetId = updatedProduct.newImageAssetId ?? imageAssetId();
+    if (updatedProduct.newImageAssetId) {
+      setImageAssetId(nextAssetId);
+      if (oldImageAssetId && oldImageAssetId !== nextAssetId) {
+        try {
+          await pluginDeleteAsset({ assetPath: oldImageAssetId });
+        } catch (cleanupError) {
+          photoLogger.error("old_asset_delete_failed", cleanupError, {
+            oldImageAssetId,
+          });
+        }
+      }
+    }
+    photoLogger.info("product_updated", {
+      imageAssetId: nextAssetId,
+      productId: updatedProduct.id,
+    });
+    return nextAssetId;
+  }
+
+  async function handleCreate(
+    values: ProductFormValues,
+    merchantId: string
+  ): Promise<string | null> {
+    const hasNewImage = upload.hasStagedImage();
+    const createdProduct = await createProduct(
+      {
+        name: values.name,
+        categoryId: values.categoryId,
+        priceMinorUnits: Number(values.price),
+        imageAssetId: imageAssetId(),
+        merchantId,
+      },
+      hasNewImage && upload.jobId() && upload.stagedSourcePath()
+        ? { jobId: upload.jobId()!, merchantId }
+        : undefined
+    );
+
+    const nextAssetId = createdProduct.newImageAssetId ?? imageAssetId();
+    if (createdProduct.newImageAssetId) {
+      setImageAssetId(nextAssetId);
+    }
+    photoLogger.info("product_created", {
+      imageAssetId: nextAssetId,
+      productId: createdProduct.id,
+    });
+    return nextAssetId;
+  }
+
+  function triggerCompression(nextAssetId: string | null) {
+    const jobId = upload.jobId();
+    const stagedSourcePath = upload.stagedSourcePath();
+    if (
+      !(upload.hasStagedImage() && jobId && stagedSourcePath && nextAssetId)
+    ) {
+      return;
+    }
+    pluginCompressAsset({
+      assetId: nextAssetId,
+      jobId,
+      stagedSourcePath,
+      maxLongEdge: 400,
+      quality: 75,
+    }).catch((err: unknown) =>
+      photoLogger.error("compress_asset_failed", err, { jobId })
+    );
+  }
+
   const handleSave = async (values: ProductFormValues) => {
     try {
       const merchantId = currentMerchantId();
@@ -114,45 +194,23 @@ export default function ProductForm() {
         throw new Error("Merchant belum dipilih");
       }
 
-      const nextImageAssetId = imageAssetId();
-      const data = {
-        name: values.name,
-        categoryId: values.categoryId,
-        priceMinorUnits: Number(values.price),
-        imageAssetId: nextImageAssetId,
-      };
       photoLogger.info("submit_started", {
-        hasExistingAsset: !!nextImageAssetId,
-        hasStagedPhoto: upload.hasStagedImage(),
+        hasNewImage: upload.hasStagedImage(),
         isEdit: isEdit(),
         merchantId,
         productId: params.id ?? null,
       });
 
-      if (isEdit()) {
-        const updatedProduct = await updateProduct(params.id ?? "", data);
-        photoLogger.info("product_updated", {
-          imageAssetId: data.imageAssetId,
-          productId: updatedProduct.id,
-        });
-      } else {
-        const createdProduct = await createProduct({
-          ...data,
-          merchantId,
-        });
-        photoLogger.info("product_created", {
-          imageAssetId: data.imageAssetId,
-          productId: createdProduct.id,
-        });
-      }
+      const nextAssetId = isEdit()
+        ? await handleEdit(values, merchantId)
+        : await handleCreate(values, merchantId);
 
+      triggerCompression(nextAssetId);
       photoLogger.info("navigate_to_product_list");
       navigate("/settings/products-categories", { replace: true });
       syncNow().catch(() => {});
     } catch (e) {
-      photoLogger.error("submit_failed", e, {
-        productId: params.id ?? null,
-      });
+      photoLogger.error("submit_failed", e, { productId: params.id ?? null });
       setError(e instanceof Error ? e.message : "Gagal menyimpan produk");
     }
   };

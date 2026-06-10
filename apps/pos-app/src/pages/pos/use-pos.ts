@@ -6,7 +6,6 @@ import {
   type ProductWithCategory,
 } from "~/db/orders";
 import { getAllOutlets, getOutletReceiptHeader } from "~/db/outlets";
-import { getDomainCatalogVersion } from "~/lib/assets/cache";
 import { formatUtcTimestamp } from "~/lib/date-time";
 import { createLogger } from "~/lib/logger";
 import { getDefaultPrinter, printReceipt } from "~/lib/printer/client";
@@ -51,9 +50,8 @@ export interface PosState {
 
 export function usePos(): PosState {
   const isPhone = useIsPhone();
-  const groupedDataQuery = useDrizzleQuery(
-    () => getDomainCatalogVersion("product"),
-    () => getActiveProductsByCategory()
+  const groupedDataQuery = useDrizzleQuery(["products"], () =>
+    getActiveProductsByCategory()
   );
   const outletsQuery = useDrizzleQuery(["outlets"], () => getAllOutlets());
   const role = currentUserRole();

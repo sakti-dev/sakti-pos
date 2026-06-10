@@ -1,10 +1,3 @@
-import {
-  categories,
-  orderItems,
-  orders,
-  products,
-  staff,
-} from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import {
   and,
@@ -29,7 +22,7 @@ import {
   currentOutletTimezone,
   currentRegisterId,
 } from "~/store/outlet";
-import { db } from "./index";
+import { db, TABLE } from "./index";
 import type { Product } from "./menu";
 
 export async function createOrder(data: {
@@ -62,7 +55,7 @@ export async function createOrder(data: {
   }));
 
   await getSyncClient().writeTransaction(db, async (tx) => {
-    await tx.insert(orders).values({
+    await tx.insert(TABLE.orders).values({
       id: orderId,
       orderNumber,
       staffId: data.staffId,
@@ -79,7 +72,7 @@ export async function createOrder(data: {
     });
 
     for (const { id, item } of orderItemsWithIds) {
-      await tx.insert(orderItems).values({
+      await tx.insert(TABLE.orderItems).values({
         id,
         orderId,
         outletId: outletId ?? "",
@@ -98,14 +91,14 @@ export async function createOrder(data: {
     await getSyncClient().enqueueChange(tx, {
       operation: "insert",
       rowId: orderId,
-      table: orders,
+      table: TABLE.orders,
     });
 
     for (const { id } of orderItemsWithIds) {
       await getSyncClient().enqueueChange(tx, {
         operation: "insert",
         rowId: id,
-        table: orderItems,
+        table: TABLE.orderItems,
       });
     }
   });
@@ -116,12 +109,18 @@ export async function createOrder(data: {
 async function getNextOrderNumber(date: string): Promise<string> {
   const prefix = `${date}-`;
   const rows = await db
-    .select({ orderNumber: orders.orderNumber })
-    .from(orders)
+    .select({ orderNumber: TABLE.orders.orderNumber })
+    .from(TABLE.orders)
     .where(
-      and(like(orders.orderNumber, `${prefix}%`), isNull(orders.deletedAt))
+      and(
+        like(TABLE.orders.orderNumber, `${prefix}%`),
+        isNull(TABLE.orders.deletedAt)
+      )
     )
-    .orderBy(sql`LENGTH(${orders.orderNumber})`, orders.orderNumber);
+    .orderBy(
+      sql`LENGTH(${TABLE.orders.orderNumber})`,
+      TABLE.orders.orderNumber
+    );
 
   const maxNum = rows.reduce((max, row) => {
     const suffix = row.orderNumber.slice(prefix.length);
@@ -139,36 +138,38 @@ export async function getActiveProductsByCategory(): Promise<
 > {
   const merchantId = currentMerchantId();
   const conditions = [
-    eq(products.isActive, true),
-    eq(categories.isActive, true),
-    isNull(products.deletedAt),
-    isNull(categories.deletedAt),
+    eq(TABLE.products.isActive, true),
+    eq(TABLE.categories.isActive, true),
+    isNull(TABLE.products.deletedAt),
+    isNull(TABLE.categories.deletedAt),
   ];
   if (merchantId) {
-    conditions.push(eq(products.merchantId, merchantId));
+    conditions.push(eq(TABLE.products.merchantId, merchantId));
   }
 
   const rows = await db
     .select({
-      categoryId: products.categoryId,
-      categoryName: categories.name,
-      createdAt: products.createdAt,
-      deletedAt: products.deletedAt,
-      id: products.id,
-      imageAssetId: products.imageAssetId,
-      imageUrl: products.imageUrl,
-      isActive: products.isActive,
-      isSynced: products.isSynced,
-      merchantId: products.merchantId,
-      name: products.name,
-      priceMinorUnits: products.priceMinorUnits,
-      sortOrder: products.sortOrder,
-      updatedAt: products.updatedAt,
+      categoryId: TABLE.products.categoryId,
+      categoryName: TABLE.categories.name,
+      createdAt: TABLE.products.createdAt,
+      deletedAt: TABLE.products.deletedAt,
+      id: TABLE.products.id,
+      imageAssetId: TABLE.products.imageAssetId,
+      isActive: TABLE.products.isActive,
+      isSynced: TABLE.products.isSynced,
+      merchantId: TABLE.products.merchantId,
+      name: TABLE.products.name,
+      priceMinorUnits: TABLE.products.priceMinorUnits,
+      sortOrder: TABLE.products.sortOrder,
+      updatedAt: TABLE.products.updatedAt,
     })
-    .from(products)
-    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .from(TABLE.products)
+    .innerJoin(
+      TABLE.categories,
+      eq(TABLE.products.categoryId, TABLE.categories.id)
+    )
     .where(and(...conditions))
-    .orderBy(categories.name, products.name, products.id);
+    .orderBy(TABLE.categories.name, TABLE.products.name, TABLE.products.id);
 
   const grouped = new Map<string, ProductWithCategory[]>();
   for (const row of rows) {
@@ -214,40 +215,40 @@ export async function getOrders(
   },
   timezone = currentOutletTimezone()
 ): Promise<OrderRow[]> {
-  const conditions: SQL[] = [isNull(orders.deletedAt)];
+  const conditions: SQL[] = [isNull(TABLE.orders.deletedAt)];
   const outletId = currentOutletId();
   if (outletId) {
-    conditions.push(eq(orders.outletId, outletId));
+    conditions.push(eq(TABLE.orders.outletId, outletId));
   }
   if (filter.status) {
-    conditions.push(eq(orders.status, filter.status));
+    conditions.push(eq(TABLE.orders.status, filter.status));
   }
   if (filter.dateFrom) {
     const range = toUtcRangeForBusinessDate(filter.dateFrom, timezone);
-    conditions.push(gte(orders.createdAt, range.startUtc));
+    conditions.push(gte(TABLE.orders.createdAt, range.startUtc));
   }
   if (filter.dateTo) {
     const range = toUtcRangeForBusinessDate(filter.dateTo, timezone);
-    conditions.push(lt(orders.createdAt, range.endExclusiveUtc));
+    conditions.push(lt(TABLE.orders.createdAt, range.endExclusiveUtc));
   }
 
   const rows = await db
     .select({
-      amountPaidMinorUnits: orders.amountPaidMinorUnits,
-      changeAmountMinorUnits: orders.changeAmountMinorUnits,
-      createdAt: orders.createdAt,
-      id: orders.id,
-      orderNumber: orders.orderNumber,
-      paymentMethod: orders.paymentMethod,
-      status: orders.status,
-      staffId: orders.staffId,
-      staffName: staff.name,
-      totalMinorUnits: orders.totalMinorUnits,
+      amountPaidMinorUnits: TABLE.orders.amountPaidMinorUnits,
+      changeAmountMinorUnits: TABLE.orders.changeAmountMinorUnits,
+      createdAt: TABLE.orders.createdAt,
+      id: TABLE.orders.id,
+      orderNumber: TABLE.orders.orderNumber,
+      paymentMethod: TABLE.orders.paymentMethod,
+      status: TABLE.orders.status,
+      staffId: TABLE.orders.staffId,
+      staffName: TABLE.staff.name,
+      totalMinorUnits: TABLE.orders.totalMinorUnits,
     })
-    .from(orders)
-    .innerJoin(staff, eq(orders.staffId, staff.id))
+    .from(TABLE.orders)
+    .innerJoin(TABLE.staff, eq(TABLE.orders.staffId, TABLE.staff.id))
     .where(and(...conditions))
-    .orderBy(desc(orders.createdAt));
+    .orderBy(desc(TABLE.orders.createdAt));
 
   return rows.map((r) => ({
     ...r,
@@ -259,14 +260,19 @@ export async function getOrders(
 export async function getOrderItems(orderId: string): Promise<OrderItemRow[]> {
   return await db
     .select({
-      id: orderItems.id,
-      productName: orderItems.productName,
-      quantity: orderItems.quantity,
-      subtotalMinorUnits: orderItems.subtotalMinorUnits,
-      unitPriceMinorUnits: orderItems.unitPriceMinorUnits,
+      id: TABLE.orderItems.id,
+      productName: TABLE.orderItems.productName,
+      quantity: TABLE.orderItems.quantity,
+      subtotalMinorUnits: TABLE.orderItems.subtotalMinorUnits,
+      unitPriceMinorUnits: TABLE.orderItems.unitPriceMinorUnits,
     })
-    .from(orderItems)
-    .where(and(eq(orderItems.orderId, orderId), isNull(orderItems.deletedAt)));
+    .from(TABLE.orderItems)
+    .where(
+      and(
+        eq(TABLE.orderItems.orderId, orderId),
+        isNull(TABLE.orderItems.deletedAt)
+      )
+    );
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {
@@ -274,16 +280,16 @@ export async function cancelOrder(orderId: string): Promise<void> {
     await getSyncClient().writeLocalChange(tx, {
       operation: "update",
       rowId: orderId,
-      table: orders,
+      table: TABLE.orders,
       write: (writeTx) =>
         writeTx
-          .update(orders)
+          .update(TABLE.orders)
           .set({
             status: "cancelled",
             updatedAt: dayjs().toISOString(),
             isSynced: false,
           })
-          .where(eq(orders.id, orderId)),
+          .where(eq(TABLE.orders.id, orderId)),
     });
   });
 }
@@ -303,23 +309,23 @@ export async function getDailySummary(
 
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, range.startUtc),
-    lt(orders.createdAt, range.endExclusiveUtc),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
+    gte(TABLE.orders.createdAt, range.startUtc),
+    lt(TABLE.orders.createdAt, range.endExclusiveUtc),
+    eq(TABLE.orders.status, "completed"),
+    isNull(TABLE.orders.deletedAt),
   ];
   if (outletId) {
-    conditions.push(eq(orders.outletId, outletId));
+    conditions.push(eq(TABLE.orders.outletId, outletId));
   }
 
   const rows = await db
     .select({
-      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
+      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${TABLE.orders.paymentMethod} = 'cash' THEN ${TABLE.orders.totalMinorUnits} ELSE 0 END), 0)`,
       orderCount: sql<number>`CAST(COUNT(*) AS INTEGER)`,
-      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
-      totalRevenue: sql<number>`COALESCE(SUM(${orders.totalMinorUnits}), 0)`,
+      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${TABLE.orders.paymentMethod} = 'qris' THEN ${TABLE.orders.totalMinorUnits} ELSE 0 END), 0)`,
+      totalRevenue: sql<number>`COALESCE(SUM(${TABLE.orders.totalMinorUnits}), 0)`,
     })
-    .from(orders)
+    .from(TABLE.orders)
     .where(and(...conditions));
 
   return (

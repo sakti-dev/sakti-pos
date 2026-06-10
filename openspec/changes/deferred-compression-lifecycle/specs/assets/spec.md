@@ -22,18 +22,18 @@ The system SHALL derive the `objectKey` from `{merchantId}/assets/{assets.id}`. 
 **THEN** the API SHALL return HTTP 409.
 
 ### Requirement: Asset lifecycle status progression
-The system SHALL support the following asset status progression: `pending` → `compressed` → `pending_upload` → `ready`. The system SHALL also support `failed` as a terminal state.
+The system SHALL support the following asset status progression: `pending` → `compressed` → `ready`. The system SHALL also support `failed` as a terminal state.
 
 **WHEN** compression completes successfully
 **THEN** the system SHALL update the asset row with `contentHash`, `byteSize`, `width`, `height`, and set `status = 'compressed'`.
 
-**WHEN** presign-upload succeeds
-**THEN** the system SHALL set `status = 'pending_upload'`.
-
-**WHEN** complete-upload succeeds
+**WHEN** upload (presign → S3 PUT → complete-upload) succeeds
 **THEN** the system SHALL set `status = 'ready'`.
 
-**WHEN** compression or upload fails
+**WHEN** upload fails
+**THEN** the system SHALL leave the asset as `status = 'compressed'` for retry on the next sync cycle.
+
+**WHEN** compression fails terminally
 **THEN** the system SHALL set `status = 'failed'`.
 
 ### Requirement: Startup recovery for pending assets

@@ -23,7 +23,7 @@ function createTestDb() {
     "CREATE TABLE products (" +
       "id TEXT PRIMARY KEY, merchant_id TEXT NOT NULL, category_id TEXT, " +
       "name TEXT NOT NULL, price_minor_units INTEGER NOT NULL, " +
-      "image_url TEXT, image_asset_id TEXT, " +
+      "image_asset_id TEXT, " +
       "is_active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER NOT NULL DEFAULT 0, " +
       "deleted_at TEXT, is_synced INTEGER NOT NULL DEFAULT 0, " +
       "created_at TEXT NOT NULL, updated_at TEXT NOT NULL" +

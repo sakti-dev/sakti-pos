@@ -3,7 +3,7 @@
 Purpose: canonical prefix inventory and logcat filters for current app behavior.
 Scope: app log prefixes only, not feature walkthroughs or design rationale.
 Related: `README.md`, `../adr/0001-use-tauri-plugin-log-with-structured-prefixes.md`
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 Logs are production support evidence for the offline Android POS. Keep this document focused on the prefixes to grep.
 
@@ -76,10 +76,12 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PHOTO:BACKGROUND_SYNC_TRIGGERED]` | product form |
 | `[JS] [PHOTO:DRAWER_OPENED]` | product form |
 | `[JS] [PHOTO:DRAWER_STATE_CHANGED]` | product form |
-| `[JS] [PHOTO:JOB_COMPLETED_APPLIED]` | `lib/assets/image-upload.ts` — active plugin job completion consumed by the app |
-| `[JS] [PHOTO:JOB_COMPLETED_BUFFERED]` | `lib/assets/image-upload.ts` — completion arrived before the current job ID was active |
-| `[JS] [PHOTO:JOB_FAILED_APPLIED]` | `lib/assets/image-upload.ts` — active plugin job failure consumed by the app |
-| `[JS] [PHOTO:JOB_FAILED_BUFFERED]` | `lib/assets/image-upload.ts` — failure arrived before the current job ID was active |
+| `[JS] [PHOTO:JOB_COMPLETED_APPLIED]` | ~~removed~~ — event listener lifecycle removed in deferred-compression |
+| `[JS] [PHOTO:JOB_COMPLETED_BUFFERED]` | ~~removed~~ — event listener lifecycle removed in deferred-compression |
+| `[JS] [PHOTO:JOB_FAILED_APPLIED]` | ~~removed~~ — event listener lifecycle removed in deferred-compression |
+| `[JS] [PHOTO:JOB_FAILED_BUFFERED]` | ~~removed~~ — event listener lifecycle removed in deferred-compression |
+| `[JS] [PHOTO:LISTENERS_STARTED]` | ~~removed~~ — event listener lifecycle removed in deferred-compression |
+| `[JS] [PHOTO:LISTENERS_STARTING]` | ~~removed~~ — event listener lifecycle removed in deferred-compression |
 | `[JS] [PHOTO:NATIVE_PICKER_FINISHED]` | product form |
 | `[JS] [PHOTO:NATIVE_PICKER_REQUESTED]` | product form |
 | `[JS] [PHOTO:NAVIGATE_TO_PRODUCT_LIST]` | product form |
@@ -88,6 +90,10 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PHOTO:PATH_PROCESSING_STARTED]` | product form |
 | `[JS] [PHOTO:PICK_IMAGE_COMMAND_INVOKED]` | `lib/assets/plugin-bridge.ts` — plugin `pick_image` command invoked |
 | `[JS] [PHOTO:PICK_IMAGE_COMMAND_RETURNED]` | `lib/assets/plugin-bridge.ts` — plugin `pick_image` command returned |
+| `[JS] [PHOTO:COMPRESS_ASSET_COMMAND_INVOKED]` | `lib/assets/plugin-bridge.ts` — plugin `compress_asset` command invoked |
+| `[JS] [PHOTO:COMPRESS_ASSET_COMMAND_RETURNED]` | `lib/assets/plugin-bridge.ts` — plugin `compress_asset` command returned |
+| `[JS] [PHOTO:DELETE_ASSET_COMMAND_INVOKED]` | `lib/assets/plugin-bridge.ts` — plugin `delete_asset` command invoked |
+| `[JS] [PHOTO:DELETE_ASSET_COMMAND_RETURNED]` | `lib/assets/plugin-bridge.ts` — plugin `delete_asset` command returned |
 | `[JS] [PHOTO:PENDING_PHOTO_JOB_ENQUEUED]` | product form |
 | `[JS] [PHOTO:PHOTO_JOB_ENQUEUE_FAILED]` | product form |
 | `[JS] [PHOTO:PREVIEW_IMAGE_FAILED_TO_LOAD]` | `components/image-upload.tsx` — `<img>` preview failed to load |
@@ -149,6 +155,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | Prefix | Current Message Families |
 | --- | --- |
 | `[RUST] [ASSET:JOB:RESET:FAIL]` | startup reset of incomplete asset jobs |
+| `[RUST] [ASSET:RECOVERY:PENDING:FAIL]` | startup recovery of pending assets failed |
+| `[RUST] [ASSET:RECOVERY:COMPRESSED:FAIL]` | startup recovery of compressed assets failed |
+| `[RUST] [ASSET:TEMP_CLEANUP:FAIL]` | startup temp file cleanup failed |
 | `[RUST] [DB:INIT:FAIL]` | database initialization failure |
 | `[RUST] [DB:SNAPSHOT_EXPORT_DONE]` | exported a dev DB snapshot |
 | `[RUST] [DB:SNAPSHOT_EXPORT_REQUESTED]` | started a dev DB snapshot export |
@@ -157,6 +166,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [IMAGE-PIPELINE:COMPRESS_DONE]` | image pipeline background compression succeeded |
 | `[RUST] [IMAGE-PIPELINE:COMPRESS_JOIN_FAILED]` | image pipeline background compression task failed to join |
 | `[RUST] [IMAGE-PIPELINE:COMPRESS_REQUEST]` | image pipeline background compression was queued |
+| `[RUST] [IMAGE-PIPELINE:COMPRESS_ASSET_REQUEST]` | `compress_asset` command started (deferred compression) |
+| `[RUST] [IMAGE-PIPELINE:DELETE_ASSET]` | `delete_asset` command executed |
+| `[RUST] [IMAGE-PIPELINE:GC]` | TTL-based GC for staging and preview files |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_OPENING]` | image pipeline native picker is about to open |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_PICKER_SELECTED]` | image pipeline native picker returned a file |
 | `[RUST] [IMAGE-PIPELINE:PICK_IMAGE_RESPONSE_READY]` | image pipeline immediate picker response is ready |
@@ -166,7 +178,10 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[RUST] [IMAGE-PIPELINE:PREVIEW_GENERATE_REQUEST]` | image pipeline preview generation started |
 | `[RUST] [IMAGE-PIPELINE:PICKER_STAGE_REQUEST]` | image pipeline picker source staging started |
 | `[RUST] [IMAGE-PIPELINE:PICKER_STAGE_DONE]` | image pipeline picker source staging completed |
-| `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `asset_processing_job`, `asset_processing_jobs`, `cache_asset_webp`, `enqueue_asset_processing`, `hydrate_asset`, `hydrate_product_images`, `pending_asset_preview`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `read_cached_asset_data`, `upload_asset`, `upload_pending_product_images` |
+| `[RUST] [PHOTO:TRACE]` | `asset_attachment_ready`, `asset_cache_ready`, `cache_asset_webp`, `prepare_local_image_asset`, `process_image_path`, `process_image_to_webp`, `product_image_link`, `get_cached_asset_path` |
+| `[RUST] [PHOTO:RECOVERY]` | startup recovery: `pending_asset_recovered`, `pending_asset_recovery_failed`, `pending_asset_marked_failed`, `asset_compressed`, `compressed_assets_pending_upload` |
+| `[RUST] [PHOTO:JOB_COMPLETED]` | live `image_pipeline://job_completed` handler: `no_pending_asset`, `asset_transitioned`, `parse_failed`, `handle_failed` |
+| `[RUST] [PHOTO:UPLOAD]` | upload queue: `asset_uploaded`, `asset_upload_failed`, `mark_failed` |
 | `[RUST] [PRINTER:TRACE]` | Android printer bridge failures, including list, test print, print receipt, and permission calls |
 | `[RUST] [SYNC:TRACE]` | local state, row upsert, push (including byte-aware `push_batch` chunking, `payload_too_large` split retries, `sync_push` rejection follow-up, `marked_rejected_outbox_synced`), pull (including `pull_batch`, `deleted_ids`, `soft_delete_row`), sync outbox push, row-state pull, `sync_now` diagnostics (including `rejected push rows detected`), garbage collection, and `server_newer` reconciliation |
 | `[RUST] [IMAGE-PIPELINE:EVENT_EMIT]` | Plugin event emission for `image_pipeline://job_completed` and `image_pipeline://job_failed` |

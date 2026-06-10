@@ -8,8 +8,7 @@ const mockNavigate = vi.fn();
 const mockCreateProduct = vi.fn();
 const mockUpdateProduct = vi.fn();
 const mockPluginPickImage = vi.fn();
-const mockListen = vi.fn();
-const mockUnlisten = vi.fn();
+const mockPluginCompressAsset = vi.fn();
 const mockResolveCachedProductImageUrl = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockSyncNow = vi.fn();
@@ -48,7 +47,6 @@ vi.mock("~/db/menu", () => ({
       priceMinorUnits: 15_000,
       categoryId: "category-1",
       imageAssetId: "asset-existing",
-      imageUrl: null,
       isActive: true,
       createdAt: "",
       updatedAt: "",
@@ -68,25 +66,17 @@ vi.mock("~/store/sync", () => ({
 
 vi.mock("~/lib/assets/plugin-bridge", () => ({
   pluginPickImage: (...args: unknown[]) => mockPluginPickImage(...args),
-}));
-
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: (...args: unknown[]) => mockListen(...args),
+  pluginCompressAsset: (...args: unknown[]) => mockPluginCompressAsset(...args),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `asset://${path}`,
+  invoke: vi.fn(),
 }));
 
-vi.mock("~/lib/assets/adapters/product-images", () => ({
-  productImageAdapter: {
-    resolveCachedImageUrl: (...args: unknown[]) =>
-      mockResolveCachedProductImageUrl(...args),
-    getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
-    startEventListeners: vi.fn(() => Promise.resolve()),
-    stopEventListeners: vi.fn(),
-    useImageUrl: vi.fn(() => () => null),
-  },
+vi.mock("~/lib/assets/cache", () => ({
+  resolveAssetUrl: (...args: unknown[]) =>
+    mockResolveCachedProductImageUrl(...args),
 }));
 
 vi.mock("~/components/ui/page-header", () => ({
@@ -226,7 +216,8 @@ describe("ProductForm (create mode)", () => {
     await user.type(screen.getByPlaceholderText("0"), "10000");
     await user.click(screen.getByTestId("save-btn"));
     expect(mockCreateProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ imageAssetId: null })
+      expect.objectContaining({ imageAssetId: null }),
+      undefined
     );
     await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });
@@ -236,12 +227,12 @@ describe("ProductForm (create mode)", () => {
     expect(screen.getAllByText("*")).toHaveLength(3);
   });
 
-  test("picking a photo calls plugin pick_image and persists the returned asset id", async () => {
+  test("picking a photo calls plugin pick_image and enables save immediately", async () => {
     mockPluginPickImage.mockResolvedValue({
       jobId: "job-photo-1",
+      stagedSourcePath: "/data/app_cache/sakti-image/picked/photo.jpg",
       previewPath: "/data/app_cache/sakti-image/previews/photo_preview.jpg",
       previewMimeType: "image/jpeg",
-      status: "pending",
     });
     mockCreateProduct.mockResolvedValue({
       id: "product-photo-1",
@@ -249,27 +240,9 @@ describe("ProductForm (create mode)", () => {
       name: "Es Teh",
       categoryId: "category-1",
       price: "10000",
-      imageAssetId: "sha256:photo-ready",
+      imageAssetId: null,
+      newImageAssetId: "new-asset-id",
     });
-    mockListen.mockImplementation(
-      (eventName: string, handler: (event: { payload: unknown }) => void) => {
-        if (eventName === "image_pipeline://job_completed") {
-          handler({
-            payload: {
-              jobId: "job-photo-1",
-              assetPath: "/data/app_cache/sakti-image/assets/photo.webp",
-              byteSize: 42_000,
-              contentHash: "sha256:photo-ready",
-              contentType: "image/webp",
-              height: 300,
-              originalFilename: "photo.jpg",
-              width: 400,
-            },
-          });
-        }
-        return mockUnlisten;
-      }
-    );
 
     render(() => <ProductForm />);
     await user.type(screen.getByPlaceholderText("Contoh: Kopi Susu"), "Es Teh");
@@ -284,17 +257,22 @@ describe("ProductForm (create mode)", () => {
       expect.objectContaining({ pickerMode: "image" })
     );
 
+    // Save should be enabled immediately after pick (no isReady gate)
     await waitFor(
       () => expect(screen.getByTestId("save-btn")).not.toBeDisabled(),
-      {
-        timeout: 3000,
-      }
+      { timeout: 3000 }
     );
 
     await user.click(screen.getByTestId("save-btn"));
 
     expect(mockCreateProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ imageAssetId: "sha256:photo-ready" })
+      expect.objectContaining({ imageAssetId: null }),
+      expect.objectContaining({ jobId: "job-photo-1" })
+    );
+
+    // compress_asset should be called after save
+    expect(mockPluginCompressAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ jobId: "job-photo-1" })
     );
   });
 
@@ -318,7 +296,8 @@ describe("ProductForm (create mode)", () => {
     await user.click(screen.getByTestId("save-btn"));
 
     expect(mockCreateProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ imageAssetId: null })
+      expect.objectContaining({ imageAssetId: null }),
+      undefined
     );
     await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });
@@ -362,21 +341,20 @@ describe("ProductForm (create mode)", () => {
     expect(callOrder[0]).toBe("navigate");
   });
 
-  test("removing a staged plugin photo clears state without deleting files", async () => {
+  test("removing a staged plugin photo clears state", async () => {
     mockPluginPickImage.mockResolvedValue({
       jobId: "job-remove-1",
+      stagedSourcePath: "/data/app_cache/sakti-image/picked/photo.jpg",
       previewPath: "/data/app_cache/sakti-image/previews/photo_preview.jpg",
       previewMimeType: "image/jpeg",
-      status: "pending",
     });
-    mockListen.mockResolvedValue(mockUnlisten);
 
     render(() => <ProductForm />);
     await user.click(screen.getAllByTestId("action-btn")[0]);
     await user.click(screen.getByText("Hapus"));
 
-    // Plugin owns temp files — app does not delete them
-    expect(mockUnlisten).toHaveBeenCalled();
+    // After clearing, pick button should show "Pilih Foto" again
+    expect(screen.getByText("Pilih Foto")).toBeInTheDocument();
   });
 });
 
@@ -426,11 +404,10 @@ describe("ProductForm (edit mode)", () => {
     vi.mocked(useParams).mockReturnValue({ id: "1" });
     mockPluginPickImage.mockResolvedValue({
       jobId: "job-edit-1",
+      stagedSourcePath: "/data/app_cache/sakti-image/picked/edit.jpg",
       previewPath: "/data/app_cache/sakti-image/previews/edit_preview.jpg",
       previewMimeType: "image/jpeg",
-      status: "pending",
     });
-    mockListen.mockResolvedValue(mockUnlisten);
 
     render(() => <ProductForm />);
     await screen.findByDisplayValue("Kopi Susu");
@@ -458,7 +435,8 @@ describe("ProductForm (edit mode)", () => {
 
     expect(mockUpdateProduct).toHaveBeenCalledWith(
       "1",
-      expect.objectContaining({ imageAssetId: "asset-existing" })
+      expect.objectContaining({ imageAssetId: "asset-existing" }),
+      undefined
     );
     await waitFor(() => expect(mockSyncNow).toHaveBeenCalledTimes(1));
   });

@@ -2,7 +2,6 @@ use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, S
 use std::str::FromStr;
 use std::time::Duration;
 use tauri::Manager;
-use tauri_plugin_image_pipeline::ImagePipelineExt;
 
 pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
@@ -91,33 +90,8 @@ pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
                 });
             }
 
-            tauri::async_runtime::spawn(async move {
-                if let Err(error) = handle.image_pipeline().reset_stuck_jobs().await {
-                    crate::pos_log!(
-                        error,
-                        "ASSET",
-                        "JOB:RESET:FAIL",
-                        "Failed to reset incomplete asset jobs",
-                        "error" => error
-                    );
-                }
-
-                if let Err(error) =
-                    crate::assets::temp_cleanup::cleanup_orphaned_product_photo_inputs(
-                        &handle,
-                        &pool_for_jobs,
-                    )
-                    .await
-                {
-                    crate::pos_log!(
-                        error,
-                        "ASSET",
-                        "TEMP_CLEANUP:FAIL",
-                        "Failed to sweep orphaned product photo inputs",
-                        "error" => error
-                    );
-                }
-            });
+            // Asset recovery and job_completed event handling now runs on the JS side
+            // (see apps/pos-app/src/lib/assets/lifecycle.ts and recovery.ts)
 
             Ok(())
         });

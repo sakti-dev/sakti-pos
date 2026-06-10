@@ -28,7 +28,6 @@ import {
   type Product,
   updateProduct,
 } from "~/db/menu";
-import { getDomainCatalogVersion } from "~/lib/assets/cache";
 import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { cn, formatIDR } from "~/lib/utils";
 
@@ -43,10 +42,7 @@ export default function ProductList(
     string | undefined
   >(undefined);
   const productsQuery = useDrizzleQuery(
-    () => ({
-      filter: filterCategoryId(),
-      version: getDomainCatalogVersion("product"),
-    }),
+    () => filterCategoryId(),
     () => getProducts(filterCategoryId())
   );
 

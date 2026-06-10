@@ -1,0 +1,6 @@
+[submodule "vendor/baresync"]
+	path = vendor/baresync
+	url = https://github.com/sakti-dev/baresync.git
+[submodule "vendor/tauri-plugin-image-pipeline"]
+	path = vendor/tauri-plugin-image-pipeline
+	url = https://github.com/sakti-dev/tauri-plugin-image-pipeline.git

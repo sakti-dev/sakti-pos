@@ -1,7 +1,6 @@
-import { staff } from "@sync-contract/local-synced-schema";
 import { eq } from "drizzle-orm";
 import { createSignal } from "solid-js";
-import { db } from "~/db";
+import { db, TABLE } from "~/db";
 import type { AuthUser } from "~/lib/auth/provider";
 import { changePin, verifyPin } from "~/lib/auth/provider";
 import { createLogger } from "~/lib/logger";
@@ -59,13 +58,13 @@ export const loginWithCloudStaff = async (
   authLogger.info("login_with_cloud_staff:request", { staffId });
   const rows = await db
     .select({
-      id: staff.id,
-      isActive: staff.isActive,
-      name: staff.name,
-      role: staff.role,
+      id: TABLE.staff.id,
+      isActive: TABLE.staff.isActive,
+      name: TABLE.staff.name,
+      role: TABLE.staff.role,
     })
-    .from(staff)
-    .where(eq(staff.id, staffId));
+    .from(TABLE.staff)
+    .where(eq(TABLE.staff.id, staffId));
 
   const row = rows[0];
   authLogger.info("login_with_cloud_staff:result", {
@@ -77,13 +76,13 @@ export const loginWithCloudStaff = async (
   if (!row) {
     const localStaff = await db
       .select({
-        id: staff.id,
-        isActive: staff.isActive,
-        merchantId: staff.merchantId,
-        name: staff.name,
-        role: staff.role,
+        id: TABLE.staff.id,
+        isActive: TABLE.staff.isActive,
+        merchantId: TABLE.staff.merchantId,
+        name: TABLE.staff.name,
+        role: TABLE.staff.role,
       })
-      .from(staff)
+      .from(TABLE.staff)
       .limit(10);
     authLogger.info("login_with_cloud_staff:local_sample", {
       count: localStaff.length,
@@ -121,8 +120,12 @@ export const changeCurrentUserPin = async (newPin: string) => {
 
 export const getActiveStaff = async (): Promise<AuthUser[]> => {
   const rows = await db
-    .select({ id: staff.id, name: staff.name, role: staff.role })
-    .from(staff)
-    .where(eq(staff.isActive, true));
+    .select({
+      id: TABLE.staff.id,
+      name: TABLE.staff.name,
+      role: TABLE.staff.role,
+    })
+    .from(TABLE.staff)
+    .where(eq(TABLE.staff.isActive, true));
   return rows.map((r) => ({ ...r, role: r.role as AuthUser["role"] }));
 };

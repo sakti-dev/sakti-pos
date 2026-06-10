@@ -1,6 +1,5 @@
-import { staff } from "@sync-contract/local-synced-schema";
 import { eq } from "drizzle-orm";
-import { db } from "~/db";
+import { db, TABLE } from "~/db";
 import { eden } from "~/lib/api/eden";
 import { AuthStorage } from "~/lib/auth/storage";
 
@@ -55,14 +54,14 @@ export async function verifyPin(
 ): Promise<AuthUser> {
   const rows = await db
     .select({
-      id: staff.id,
-      isActive: staff.isActive,
-      name: staff.name,
-      pin: staff.pin,
-      role: staff.role,
+      id: TABLE.staff.id,
+      isActive: TABLE.staff.isActive,
+      name: TABLE.staff.name,
+      pin: TABLE.staff.pin,
+      role: TABLE.staff.role,
     })
-    .from(staff)
-    .where(eq(staff.id, staffId));
+    .from(TABLE.staff)
+    .where(eq(TABLE.staff.id, staffId));
 
   const row = rows[0];
   if (!row) {

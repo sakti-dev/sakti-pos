@@ -52,7 +52,7 @@ vi.mock("~/store/outlet", () => ({
 }));
 
 vi.mock("~/store/sync", () => ({
-  syncNow: (...a: unknown[]) => mockSyncNow(...a),
+  syncNow: () => mockSyncNow(),
 }));
 
 vi.mock("~/store/auth", () => ({

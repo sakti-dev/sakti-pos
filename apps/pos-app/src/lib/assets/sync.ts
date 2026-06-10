@@ -1,27 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
+import { uploadPendingAssets } from "./upload";
 
-export async function hydrateMissingAssets(input: {
-  apiUrl: string;
-  limit?: number;
-  merchantId: string;
-  sessionToken: string;
-}): Promise<number> {
-  return await invoke<number>("hydrate_missing_assets", {
-    apiUrl: input.apiUrl,
-    limit: input.limit ?? 20,
-    merchantId: input.merchantId,
-    sessionToken: input.sessionToken,
-  });
-}
+export { uploadPendingAssets };
 
-export async function uploadPendingAssets(input: {
-  apiUrl: string;
-  merchantId: string;
-  sessionToken: string;
-}): Promise<number> {
-  return await invoke<number>("upload_pending_assets", {
-    apiUrl: input.apiUrl,
-    merchantId: input.merchantId,
-    sessionToken: input.sessionToken,
-  });
+// Stub: will be implemented post-baresync cutover
+export function hydrateMissingAssets(): Promise<number> {
+  return Promise.resolve(0);
 }

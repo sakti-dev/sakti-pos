@@ -1,14 +1,13 @@
-import { merchants } from "@sync-contract/local-synced-schema";
 import { eq } from "drizzle-orm";
-import { db } from "./index";
+import { db, TABLE } from "./index";
 
 export async function getMerchantById(
   merchantId: string
 ): Promise<{ id: string; name: string } | undefined> {
   const [row] = await db
-    .select({ id: merchants.id, name: merchants.name })
-    .from(merchants)
-    .where(eq(merchants.id, merchantId))
+    .select({ id: TABLE.merchants.id, name: TABLE.merchants.name })
+    .from(TABLE.merchants)
+    .where(eq(TABLE.merchants.id, merchantId))
     .limit(1);
 
   return row;
