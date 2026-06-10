@@ -20,7 +20,7 @@
 - [x] 3.2 Remove all queue-related DTOs: `EnqueueJobRequest`, `ProcessJobsResponse`, `CompletedJob`, `FailedJob`, `JobResult`, `JobRecord`, `JobStatus`, `QueueDocument`, `AttachmentLookup`, `PreviewPathResponse`, and any other DTOs only used by deleted commands
 - [x] 3.3 Remove `merchant_id`, `entity_type`, `entity_id`, `attachment_field`, `processing_kind` from all remaining DTOs
 - [x] 3.4 Add `assetId` field to `CompressAssetRequest`
-- [x] 3.5 `CachedPathResponse` contains `{ localPath }` only — matches JS `cache.ts` which reads only `result.localPath`
+- [x] 3.5 `CachedPathResponse` contains `{ localPath, contentType }` — matches JS `upload.ts` which reads `result.localPath` and declares `contentType` in the type
 
 ## 4. Simplify Cache Module
 
@@ -69,13 +69,12 @@
 
 - [x] 10.1 Update `tests/pick_image_contract.rs` — verify `pick_image` returns `{ jobId, stagedSourcePath, previewPath, previewMimeType }` with no merchant_id
 - [x] 10.2 Update `tests/dto_error.rs` — remove tests for deleted DTOs, add tests for simplified DTOs (flat cache paths, no merchant_id)
-- [ ] 10.3 Add test: `get_asset_path` returns compressed path when file exists
-- [ ] 10.4 Add test: `get_asset_path` falls back to preview when no compressed file
-- [ ] 10.5 Add test: `get_asset_path` returns null when neither file exists
-- [ ] 10.6 Add test: `compress_asset` emits `image_pipeline://job_completed` with correct payload
-- [ ] 10.7 Add test: `compress_asset` deletes staged source and preview after success
-- [ ] 10.8 Add test: `delete_asset` is idempotent (succeeds on missing file)
-- [x] 10.9 Update `tests/android_backend_selection.rs` if needed for simplified interface
+- [x] 10.3 Add test: `get_asset_path` returns compressed path when file exists
+- [x] 10.4 Add test: `get_asset_path` falls back to preview when no compressed file
+- [x] 10.5 Add test: `get_asset_path` returns null when neither file exists
+- [x] 10.6 Add test: `compress_asset` emits `image_pipeline://job_completed` with correct payload
+- [x] 10.7 Add test: `compress_asset` deletes staged source and preview after success
+- [x] 10.8 Add test: `delete_asset` is idempotent (succeeds on missing file)
 
 ## 10B. Update POS App Dialog Dependency
 
@@ -93,6 +92,6 @@
 
 ## 12. Commit and Push Submodule
 
-- [ ] 12.1 Commit all changes inside `vendor/tauri-plugin-image-pipeline/` to the submodule's own git repo
-- [ ] 12.2 Push the submodule commit to `sakti-dev/tauri-plugin-image-pipeline`
-- [ ] 12.3 Update sakti-pos to point to the new submodule commit
+- [x] 12.1 Commit all changes inside `vendor/tauri-plugin-image-pipeline/` to the submodule's own git repo
+- [x] 12.2 Push the submodule commit to `sakti-dev/tauri-plugin-image-pipeline`
+- [x] 12.3 Update sakti-pos to point to the new submodule commit

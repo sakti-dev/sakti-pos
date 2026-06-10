@@ -63,9 +63,9 @@ The plugin SHALL provide a `get_asset_path(assetId, jobId?)` command that resolv
 
 **WHEN** `get_asset_path` is called
 1. Check if a compressed file exists at `<cache_root>/assets/<assetId>.webp`
-2. If yes, return `{ localPath }`
+2. If yes, return `{ localPath, contentType }` where `contentType` is `"image/webp"`
 3. If no compressed file and `jobId` is provided, check if a preview exists at `<cache_root>/previews/<jobId_prefix>_preview.jpg`
-4. If yes, return `{ localPath }`
+4. If yes, return `{ localPath, contentType }` where `contentType` is `"image/jpeg"`
 5. If neither, return `null`
 
 #### Scenario: Asset is compressed
