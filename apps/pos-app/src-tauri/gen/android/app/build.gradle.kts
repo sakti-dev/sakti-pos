@@ -58,12 +58,12 @@ android {
     }
     sourceSets {
         getByName("main") {
-            java.srcDirs("../../../../../../tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/main/java")
-            java.srcDirs("../../../../../../tauri-plugin-image-pipeline/android/src/main/java")
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/main/java")
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/main/java")
         }
         getByName("test") {
-            java.srcDirs("../../../../../../tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/test/java")
-            java.srcDirs("../../../../../../tauri-plugin-image-pipeline/android/src/test/java")
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/test/java")
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/test/java")
         }
     }
 }
