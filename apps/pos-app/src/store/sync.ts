@@ -21,14 +21,14 @@ export { lastAssetQueueCount, setSyncStatus, syncStatus };
 
 interface SyncNowResult {
   mode: string;
-  pull: { rows_received: number; server_time: string };
+  pull: { rows_received: number; server_time: string } | null;
   purged: number;
   push: {
     rejected_tables?: string[];
     server_time: string;
     server_wins_count: number;
     tables_synced: string[];
-  };
+  } | null;
 }
 
 export function formatSyncSuccessMessage(result: SyncNowResult): string {
@@ -37,15 +37,17 @@ export function formatSyncSuccessMessage(result: SyncNowResult): string {
   }
 
   if (result.mode === "PullOnly") {
-    return `Sinkronisasi berhasil (${result.pull.rows_received} diterima)`;
+    const rows = result.pull?.rows_received ?? 0;
+    return `Sinkronisasi berhasil (${rows} diterima)`;
   }
 
-  const sentTables = result.push.tables_synced.length;
+  const sentTables = result.push?.tables_synced.length ?? 0;
   if (result.mode === "PushOnly") {
     return `Sinkronisasi berhasil (${sentTables} tabel dikirim)`;
   }
 
-  return `Sinkronisasi berhasil (${result.pull.rows_received} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
+  const rows = result.pull?.rows_received ?? 0;
+  return `Sinkronisasi berhasil (${rows} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
 }
 
 async function uploadPendingProductImages(
@@ -127,12 +129,12 @@ export async function syncNow(): Promise<SyncNowResult> {
 
     syncLogger.info("result", {
       mode: result.mode,
-      pullRows: result.pull.rows_received,
-      pullServerTime: result.pull.server_time,
+      pullRows: result.pull?.rows_received,
+      pullServerTime: result.pull?.server_time,
       purged: result.purged,
-      pushServerTime: result.push.server_time,
-      serverWins: result.push.server_wins_count,
-      tablesSynced: result.push.tables_synced,
+      pushServerTime: result.push?.server_time,
+      serverWins: result.push?.server_wins_count,
+      tablesSynced: result.push?.tables_synced,
     });
 
     // 2. Upload compressed assets to object storage

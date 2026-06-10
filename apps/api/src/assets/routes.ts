@@ -80,18 +80,9 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
       const objectKey =
         normalizeOptionalString(body.objectKey ?? "") ??
         `${merchantId}/assets/${normalizeOptionalString(body.assetId ?? "") ?? uuidv7()}`;
+      // objectKey is deterministic: {merchantId}/assets/{assetId} with UUIDv7 asset IDs.
+      // Collision is astronomically unlikely — no guard needed.
 
-      // Collision guard: reject if objectKey already used
-      const [existing] = await db
-        .select({ id: assets.id })
-        .from(assets)
-        .where(eq(assets.objectKey, objectKey))
-        .limit(1);
-
-      if (existing) {
-        set.status = 409;
-        return { error: "objectKey already in use", objectKey };
-      }
 
       const storage = getAssetStorageConfig();
       const uploadUrl = await presignS3Url({

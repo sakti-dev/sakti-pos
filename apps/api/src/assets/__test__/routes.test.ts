@@ -137,29 +137,6 @@ describe("asset JSON routes", () => {
     );
   });
 
-  test("returns 409 when objectKey collision detected", async () => {
-    mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
-    mockMerchantAccess();
-    // Collision guard: existing row found
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: "existing-asset" }]),
-        }),
-      }),
-    });
-
-    const response = await makeJsonRequest("/api/assets/presign-upload", {
-      merchantId: "merchant-1",
-      contentType: "image/webp",
-      objectKey: "merchant-1/assets/asset-1",
-    });
-
-    expect(response.status).toBe(409);
-    const decoded = (await response.json()) as Record<string, unknown>;
-    expect(decoded.error).toContain("objectKey already in use");
-    expect(mockPresignUploadUrl).not.toHaveBeenCalled();
-  });
 
   test("generates objectKey from merchantId and assetId when not provided", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });

@@ -95,7 +95,7 @@ describe("syncNow", () => {
 
     const result = await syncNow();
     expect(result.mode).toBe("PullOnly");
-    expect(result.pull.rows_received).toBe(3);
+    expect(result.pull!.rows_received).toBe(3);
   });
 
   test("sets error status on auth failure", async () => {

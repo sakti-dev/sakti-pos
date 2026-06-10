@@ -64,9 +64,9 @@ export function SyncStatusIndicator() {
       const result = await syncNow();
       syncStatusLogger.info("manual_sync_succeeded", {
         mode: result.mode,
-        pullRows: result.pull.rows_received,
-        serverWins: result.push.server_wins_count,
-        tablesSynced: result.push.tables_synced,
+        pullRows: result.pull?.rows_received,
+        serverWins: result.push?.server_wins_count,
+        tablesSynced: result.push?.tables_synced,
       });
       toast.success(formatSyncSuccessMessage(result));
     } catch (error) {
