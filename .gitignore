@@ -38,6 +38,9 @@ bun-debug.log*
 *.pem
 .direnv
 log.txt
+.codex/
+.omp/
+.db/
 
 # Vercel
 .vercel
