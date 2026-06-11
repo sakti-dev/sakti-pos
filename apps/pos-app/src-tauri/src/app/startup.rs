@@ -1,22 +1,28 @@
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
+use std::str::FromStr;
+use std::time::Duration;
 use tauri::Manager;
 
 pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
     let result: Result<(), Box<dyn std::error::Error>> =
         tauri::async_runtime::block_on(async move {
-            let pool = match crate::db::drizzle_proxy::init_db(&handle).await {
-                Ok(pool) => pool,
-                Err(error) => {
-                    crate::pos_log!(
-                        error,
-                        "DB",
-                        "INIT:FAIL",
-                        "Failed to initialize database",
-                        "error" => error
-                    );
-                    return Err(std::io::Error::other(error).into());
-                }
-            };
+            let db_path = crate::db::sqlite::get_app_db_path(&handle)?;
+
+            let options = SqliteConnectOptions::from_str(&format!("sqlite:{}", db_path.display()))
+                .map_err(|e| format!("Invalid DB URI: {}", e))?
+                .create_if_missing(true)
+                .journal_mode(SqliteJournalMode::Wal)
+                .synchronous(SqliteSynchronous::Normal)
+                .busy_timeout(Duration::from_secs(5))
+                .pragma("foreign_keys", "ON");
+
+            let pool = SqlitePoolOptions::new()
+                .max_connections(1)
+                .acquire_timeout(Duration::from_secs(3))
+                .connect_with(options)
+                .await
+                .map_err(|e| format!("Failed to connect to DB: {}", e))?;
 
             let pool_for_jobs = pool.clone();
             handle.manage(crate::app::state::AppState { db_pool: pool });
@@ -84,36 +90,8 @@ pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
                 });
             }
 
-            tauri::async_runtime::spawn(async move {
-                if let Err(error) =
-                    crate::assets::reset_incomplete_pending_asset_processing_jobs(&pool_for_jobs)
-                        .await
-                {
-                    crate::pos_log!(
-                        error,
-                        "ASSET",
-                        "JOB:RESET:FAIL",
-                        "Failed to reset incomplete asset jobs",
-                        "error" => error
-                    );
-                }
-
-                if let Err(error) =
-                    crate::assets::temp_cleanup::cleanup_orphaned_product_photo_inputs(
-                        &handle,
-                        &pool_for_jobs,
-                    )
-                    .await
-                {
-                    crate::pos_log!(
-                        error,
-                        "ASSET",
-                        "TEMP_CLEANUP:FAIL",
-                        "Failed to sweep orphaned product photo inputs",
-                        "error" => error
-                    );
-                }
-            });
+            // Asset recovery and job_completed event handling now runs on the JS side
+            // (see apps/pos-app/src/lib/assets/lifecycle.ts and recovery.ts)
 
             Ok(())
         });

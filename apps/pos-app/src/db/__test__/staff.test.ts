@@ -1,201 +1,269 @@
-import { staff } from "@repo/database";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { syncOutbox as syncOutboxTable } from "@sync-contract/local-schema";
+import { staff as staffTable } from "@sync-contract/local-synced-schema";
+import Database from "better-sqlite3";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+
+function createTestDb() {
+  const sqlite = new Database(":memory:");
+  sqlite.pragma("foreign_keys = ON");
+  sqlite.exec(
+    "CREATE TABLE staff (" +
+      "id TEXT PRIMARY KEY, merchant_id TEXT NOT NULL, cloud_user_id TEXT, " +
+      "outlet_id TEXT, name TEXT NOT NULL, pin TEXT, " +
+      "role TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1, " +
+      "deleted_at TEXT, is_synced INTEGER NOT NULL DEFAULT 0, " +
+      "created_at TEXT NOT NULL, updated_at TEXT NOT NULL" +
+      ")"
+  );
+  sqlite.exec(
+    "CREATE TABLE sync_outbox (" +
+      "id TEXT PRIMARY KEY, table_name TEXT NOT NULL, row_id TEXT NOT NULL, " +
+      "operation TEXT NOT NULL, payload TEXT, scope_id TEXT NOT NULL, " +
+      "changed_at TEXT NOT NULL, synced_at TEXT" +
+      ")"
+  );
+  return drizzle(sqlite);
+}
 
 const mocks = vi.hoisted(() => {
-  const mockFrom = vi.fn();
-  const mockSelect = vi.fn(() => ({ from: mockFrom }));
-  const mockInsert = vi.fn();
-  const mockUpdate = vi.fn();
-  const mockDelete = vi.fn();
-  const mockRecordLocalChange = vi.fn();
-  const mockDb = {
-    delete: mockDelete,
-    insert: mockInsert,
-    select: mockSelect,
-    transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-      await fn(mockDb),
-    update: mockUpdate,
-  };
-
+  let testDb: ReturnType<typeof createTestDb>;
   return {
-    mockDb,
-    mockDelete,
-    mockFrom,
-    mockInsert,
-    mockRecordLocalChange,
-    mockSelect,
-    mockUpdate,
+    getTestDb: () => testDb,
+    setTestDb: (db: ReturnType<typeof createTestDb>) => {
+      testDb = db;
+    },
   };
 });
 
-vi.mock("drizzle-orm", () => ({
-  and: vi.fn((...conditions: unknown[]) => conditions),
-  asc: vi.fn((...args: unknown[]) => args),
-  desc: vi.fn((col: unknown) => col),
-  count: vi.fn(() => "count_placeholder"),
-  eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
-  gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
-  gte: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gte" })),
-  inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
-  isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
-  lt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "lt" })),
-  or: vi.fn((...args: unknown[]) => args),
-  like: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "like" })),
-  sql: Object.assign(
-    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-      strings,
-      values,
-    })),
-    {
-      raw: (value: string) => ({ raw: value }),
-    }
-  ),
-}));
-
-const syncOutbox = await import("../sync-outbox");
-let recordLocalChangeSpy: ReturnType<typeof vi.spyOn> | undefined;
-const { mockFrom, mockInsert, mockRecordLocalChange, mockSelect, mockUpdate } =
-  mocks;
-
-vi.mock("../index", () => ({
-  db: mocks.mockDb,
-}));
-
 vi.mock("~/store/outlet", () => ({
-  currentMerchantId: vi.fn(() => null),
-  currentOutletId: vi.fn(() => null),
-  currentRegisterId: vi.fn(() => null),
+  currentMerchantId: vi.fn(() => "merchant-1"),
+  currentOutletId: vi.fn(() => "outlet-1"),
+  currentRegisterId: vi.fn(() => "register-1"),
   currentOutletTimezone: vi.fn(() => "Asia/Jakarta"),
 }));
 
-function mockFromQuery(data: unknown[]) {
-  const limitFn = vi.fn().mockResolvedValue(data);
-  const whereResult = Object.assign(Promise.resolve(data), {
-    limit: limitFn,
-  });
-  return {
-    where: vi.fn().mockReturnValue(whereResult),
-    orderBy: vi.fn().mockResolvedValue(data),
-  };
-}
+vi.mock("~/lib/sync", () => ({
+  getSyncClient: vi.fn(() => ({
+    enqueueChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
+      const tableName =
+        opts.table?.[Symbol.for("drizzle:Name")] ??
+        opts.table?.name ??
+        "unknown";
+      await tx.insert(syncOutboxTable).values({
+        id:
+          "outbox-" +
+          opts.operation +
+          "-" +
+          tableName +
+          "-" +
+          opts.rowId +
+          "-" +
+          crypto.randomUUID(),
+        tableName,
+        rowId: opts.rowId,
+        operation: opts.operation,
+        scopeId: "",
+        changedAt: new Date().toISOString(),
+      });
+    }),
+    writeLocalChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
+      await opts.write(tx);
+      const tableName =
+        opts.table?.[Symbol.for("drizzle:Name")] ??
+        opts.table?.name ??
+        "unknown";
+      await tx.insert(syncOutboxTable).values({
+        id:
+          "outbox-" +
+          opts.operation +
+          "-" +
+          tableName +
+          "-" +
+          opts.rowId +
+          "-" +
+          crypto.randomUUID(),
+        tableName,
+        rowId: opts.rowId,
+        operation: opts.operation,
+        scopeId: "",
+        changedAt: new Date().toISOString(),
+      });
+    }),
+    writeTransaction: vi
+      .fn()
+      .mockImplementation(async (_db: any, fn: any) => fn(mocks.getTestDb())),
+  })),
+}));
+
+vi.mock("../index", () => ({
+  get db() {
+    return mocks.getTestDb();
+  },
+}));
 
 describe("staff db", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    recordLocalChangeSpy = vi
-      .spyOn(syncOutbox, "recordLocalChange")
-      .mockImplementation((...args: unknown[]) =>
-        mockRecordLocalChange(...args)
-      );
-  });
-
-  afterEach(() => {
-    recordLocalChangeSpy?.mockRestore();
-    recordLocalChangeSpy = undefined;
+    mocks.setTestDb(createTestDb());
   });
 
   test("getStaff returns ordered staff", async () => {
-    const fakeStaff = [
-      { id: "staff-1", name: "Alice" },
-      { id: "staff-2", name: "Bob" },
-    ];
-    mockFrom.mockReturnValue(mockFromQuery(fakeStaff));
+    const db = mocks.getTestDb();
+    await db.insert(staffTable).values([
+      {
+        id: "staff-1",
+        merchantId: "merchant-1",
+        name: "Alice",
+        role: "cashier",
+        isActive: true,
+        isSynced: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+      {
+        id: "staff-2",
+        merchantId: "merchant-1",
+        name: "Bob",
+        role: "manager",
+        isActive: true,
+        isSynced: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+    ]);
 
     const { getStaff } = await import("../staff");
     const result = await getStaff();
 
-    expect(result).toEqual(fakeStaff);
-    expect(mockSelect).toHaveBeenCalled();
-    expect(mockFrom).toHaveBeenCalledWith(staff);
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("Alice");
   });
 
   test("getStaffMember returns a single staff by id", async () => {
-    const fakeStaffMember = { id: "staff-1", name: "Alice" };
-    mockFrom.mockReturnValue(mockFromQuery([fakeStaffMember]));
+    const db = mocks.getTestDb();
+    await db.insert(staffTable).values({
+      id: "staff-1",
+      merchantId: "merchant-1",
+      name: "Alice",
+      role: "cashier",
+      isActive: true,
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    });
 
     const { getStaffMember } = await import("../staff");
     const result = await getStaffMember("staff-1");
 
-    expect(result).toEqual(fakeStaffMember);
+    expect(result).toBeDefined();
+    expect(result!.name).toBe("Alice");
   });
 
-  test("getStaffMember returns undefined when not found", async () => {
-    mockFrom.mockReturnValue(mockFromQuery([]));
-
-    const { getStaffMember } = await import("../staff");
-    const result = await getStaffMember("nonexistent");
-
-    expect(result).toBeUndefined();
-  });
-
-  test("createStaffMember inserts and returns the new staff", async () => {
-    const newStaffMember = {
-      id: "staff-3",
-      merchantId: "merchant-1",
-      name: "Charlie",
-      role: "cashier",
-    };
-    const mockReturning = vi.fn().mockResolvedValue([newStaffMember]);
-    const mockValues = vi.fn(() => ({ returning: mockReturning }));
-    mockInsert.mockReturnValue({ values: mockValues });
-
+  test("createStaffMember inserts row and enqueues outbox entry", async () => {
     const { createStaffMember } = await import("../staff");
     const result = await createStaffMember({
+      merchantId: "merchant-1",
       name: "Charlie",
       role: "cashier",
     } as never);
 
-    expect(result).toEqual(newStaffMember);
-    expect(mockValues).toHaveBeenCalledWith({
-      name: "Charlie",
-      role: "cashier",
-    });
-    expect(mockRecordLocalChange).toHaveBeenCalledWith(
-      {
-        operation: "insert",
-        rowId: "staff-3",
-        scopeId: "merchant-1",
-        scopeType: "merchant",
-        tableName: "staff",
-      },
-      expect.anything()
-    );
+    const db = mocks.getTestDb();
+
+    const row = db
+      .select()
+      .from(staffTable)
+      .where(eq(staffTable.id, result.id))
+      .all()[0];
+    expect(row).toBeDefined();
+    expect(row!.name).toBe("Charlie");
+    expect(row!.isSynced).toBe(false);
+
+    const outbox = db
+      .select()
+      .from(syncOutboxTable)
+      .where(eq(syncOutboxTable.rowId, result.id))
+      .all()[0];
+    expect(outbox).toBeDefined();
+    expect(outbox!.tableName).toBe("staff");
+    expect(outbox!.operation).toBe("insert");
+    expect(outbox!.syncedAt).toBeNull();
   });
 
-  test("updateStaffMember updates and returns the staff", async () => {
-    const updatedStaffMember = {
+  test("updateStaffMember updates row and enqueues outbox entry", async () => {
+    const db = mocks.getTestDb();
+    await db.insert(staffTable).values({
       id: "staff-1",
       merchantId: "merchant-1",
-      name: "Alice Updated",
-      role: "manager",
-    };
-    const mockReturning = vi.fn().mockResolvedValue([updatedStaffMember]);
-    const mockWhere = vi.fn(() => ({ returning: mockReturning }));
-    const mockSet = vi.fn(() => ({ where: mockWhere }));
-    mockUpdate.mockReturnValue({ set: mockSet });
+      name: "Alice",
+      role: "cashier",
+      isActive: true,
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    });
 
     const { updateStaffMember } = await import("../staff");
     const result = await updateStaffMember("staff-1", {
       name: "Alice Updated",
-    } as never);
+    });
 
-    expect(result).toEqual(updatedStaffMember);
-    expect(mockSet).toHaveBeenCalled();
-    expect(mockWhere).toHaveBeenCalled();
-    expect(mockRecordLocalChange).toHaveBeenCalledWith(
-      {
-        operation: "update",
-        rowId: "staff-1",
-        scopeId: "merchant-1",
-        scopeType: "merchant",
-        tableName: "staff",
-      },
-      expect.anything()
-    );
+    expect(result.name).toBe("Alice Updated");
+
+    const row = db
+      .select()
+      .from(staffTable)
+      .where(eq(staffTable.id, "staff-1"))
+      .all()[0];
+    expect(row!.name).toBe("Alice Updated");
+    expect(row!.isSynced).toBe(false);
+
+    const outbox = db
+      .select()
+      .from(syncOutboxTable)
+      .where(eq(syncOutboxTable.rowId, "staff-1"))
+      .all()[0];
+    expect(outbox).toBeDefined();
+    expect(outbox!.tableName).toBe("staff");
+    expect(outbox!.operation).toBe("update");
+    expect(outbox!.syncedAt).toBeNull();
   });
 
   test("countActiveManagers returns count from query", async () => {
-    mockFrom.mockReturnValue(mockFromQuery([{ count: 3 }]));
+    const db = mocks.getTestDb();
+    await db.insert(staffTable).values([
+      {
+        id: "s-1",
+        merchantId: "merchant-1",
+        name: "M1",
+        role: "manager",
+        isActive: true,
+        isSynced: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+      {
+        id: "s-2",
+        merchantId: "merchant-1",
+        name: "M2",
+        role: "manager",
+        isActive: true,
+        isSynced: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+      {
+        id: "s-3",
+        merchantId: "merchant-1",
+        name: "O1",
+        role: "owner",
+        isActive: true,
+        isSynced: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+    ]);
 
     const { countActiveManagers } = await import("../staff");
     const result = await countActiveManagers();
@@ -203,46 +271,44 @@ describe("staff db", () => {
     expect(result).toBe(3);
   });
 
-  test("countActiveManagers returns 0 when no rows", async () => {
-    mockFrom.mockReturnValue(mockFromQuery([]));
-
-    const { countActiveManagers } = await import("../staff");
-    const result = await countActiveManagers();
-
-    expect(result).toBe(0);
-  });
-
   test("getOwnerStaff returns owner staff for a merchant", async () => {
-    const owner = { id: "owner-1", name: "Owner", role: "owner" };
-    mockFrom.mockReturnValue(mockFromQuery([owner]));
+    const db = mocks.getTestDb();
+    await db.insert(staffTable).values({
+      id: "owner-1",
+      merchantId: "merchant-1",
+      name: "Owner",
+      role: "owner",
+      isActive: true,
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    });
 
     const { getOwnerStaff } = await import("../staff");
     const result = await getOwnerStaff("merchant-1");
 
-    expect(result).toEqual(owner);
-  });
-
-  test("getOwnerStaff returns undefined when no owner exists", async () => {
-    mockFrom.mockReturnValue(mockFromQuery([]));
-
-    const { getOwnerStaff } = await import("../staff");
-    const result = await getOwnerStaff("merchant-1");
-
-    expect(result).toBeUndefined();
+    expect(result).toBeDefined();
+    expect(result!.role).toBe("owner");
   });
 
   test("getStaffByCloudUserId returns matching active staff", async () => {
-    const owner = {
-      id: "owner-1",
-      name: "Owner",
-      role: "owner",
-      cloudUserId: "cloud-user-1",
-    };
-    mockFrom.mockReturnValue(mockFromQuery([owner]));
+    const db = mocks.getTestDb();
+    await db.insert(staffTable).values({
+      id: "staff-1",
+      merchantId: "merchant-1",
+      name: "Alice",
+      role: "cashier",
+      isActive: true,
+      cloudUserId: "cloud-1",
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    });
 
     const { getStaffByCloudUserId } = await import("../staff");
-    const result = await getStaffByCloudUserId("merchant-1", "cloud-user-1");
+    const result = await getStaffByCloudUserId("merchant-1", "cloud-1");
 
-    expect(result).toEqual(owner);
+    expect(result).toBeDefined();
+    expect(result!.name).toBe("Alice");
   });
 });

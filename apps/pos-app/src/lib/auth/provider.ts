@@ -1,7 +1,6 @@
-import { staff } from "@repo/database";
-import { invoke } from "@tauri-apps/api/core";
 import { eq } from "drizzle-orm";
-import { db } from "~/db";
+import { db, TABLE } from "~/db";
+import { eden } from "~/lib/api/eden";
 import { AuthStorage } from "~/lib/auth/storage";
 
 export type StaffRole = "cashier" | "manager" | "owner";
@@ -55,14 +54,14 @@ export async function verifyPin(
 ): Promise<AuthUser> {
   const rows = await db
     .select({
-      id: staff.id,
-      isActive: staff.isActive,
-      name: staff.name,
-      pin: staff.pin,
-      role: staff.role,
+      id: TABLE.staff.id,
+      isActive: TABLE.staff.isActive,
+      name: TABLE.staff.name,
+      pin: TABLE.staff.pin,
+      role: TABLE.staff.role,
     })
-    .from(staff)
-    .where(eq(staff.id, staffId));
+    .from(TABLE.staff)
+    .where(eq(TABLE.staff.id, staffId));
 
   const row = rows[0];
   if (!row) {
@@ -88,34 +87,17 @@ export async function changePin(
   staffId: string,
   newPin: string
 ): Promise<void> {
-  const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
   const sessionToken = await AuthStorage.getToken();
   if (!sessionToken) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${apiUrl}/api/staff/${staffId}/pin`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${sessionToken}`,
-    },
-    body: JSON.stringify({ pin: newPin }),
+  const result = await eden.api.staff["update-pin"].post({
+    id: staffId,
+    pin: newPin,
   });
 
-  if (!response.ok) {
+  if (result.error) {
     throw new Error("Failed to change PIN");
-  }
-
-  const result = await response.json();
-
-  if (import.meta.env.TAURI) {
-    await invoke("run_sql", {
-      query: {
-        sql: "UPDATE staff SET pin = ?1, updated_at = ?2, is_synced = 0 WHERE id = ?3",
-        params: [result.pin, new Date().toISOString(), staffId],
-        method: "run",
-      },
-    });
   }
 }

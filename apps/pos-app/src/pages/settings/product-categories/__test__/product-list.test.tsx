@@ -1,21 +1,11 @@
-import { render, screen, waitFor } from "@solidjs/testing-library";
+import { render, screen } from "@solidjs/testing-library";
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { Category, Product } from "~/db/menu";
-import {
-  notifyAssetAttachmentReady,
-  resetDomainCatalogVersionsForTest,
-} from "~/lib/assets/cache";
 
-vi.mock("~/lib/assets/adapters/product-images", () => ({
-  productImageAdapter: {
-    resolveCachedImageUrl: vi.fn(() => Promise.resolve(null)),
-    getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
-    startEventListeners: vi.fn(() => Promise.resolve()),
-    stopEventListeners: vi.fn(),
-    useImageUrl: vi.fn(() => () => null),
-  },
+vi.mock("~/lib/assets/cache", () => ({
+  resolveAssetUrl: vi.fn(() => Promise.resolve(null)),
 }));
 
 const mockCategories: Category[] = [
@@ -50,7 +40,6 @@ const mockProducts: Product[] = [
     priceMinorUnits: 15_000,
     categoryId: "category-1",
     merchantId: "merchant-1",
-    imageUrl: null,
     isActive: true,
     createdAt: "",
     updatedAt: "",
@@ -64,7 +53,6 @@ const mockProducts: Product[] = [
     priceMinorUnits: 8000,
     categoryId: "category-1",
     merchantId: "merchant-1",
-    imageUrl: null,
     isActive: true,
     createdAt: "",
     updatedAt: "",
@@ -78,7 +66,6 @@ const mockProducts: Product[] = [
     priceMinorUnits: 20_000,
     categoryId: "category-2",
     merchantId: "merchant-1",
-    imageUrl: null,
     isActive: false,
     createdAt: "",
     updatedAt: "",
@@ -185,7 +172,6 @@ import ProductList from "../product-list";
 describe("ProductList", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    resetDomainCatalogVersionsForTest();
   });
 
   test("renders products grouped by category", async () => {
@@ -221,23 +207,6 @@ describe("ProductList", () => {
     await screen.findByText("Produk");
     expect(screen.getByTestId("category-filter")).toBeInTheDocument();
     expect(screen.getByText("+ Tambah")).toBeInTheDocument();
-  });
-
-  test("refetches products when product asset attachment is ready", async () => {
-    const { getProducts } = await import("~/db/menu");
-
-    render(() => <ProductList />);
-    await screen.findByText("Kopi Susu");
-    expect(getProducts).toHaveBeenCalledTimes(1);
-
-    notifyAssetAttachmentReady({
-      assetId: "asset-1",
-      entityId: "product-1",
-      entityType: "product",
-      field: "image_asset_id",
-    });
-
-    await waitFor(() => expect(getProducts).toHaveBeenCalledTimes(2));
   });
 
   test("shows product count grouped correctly", async () => {

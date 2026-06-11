@@ -1,7 +1,12 @@
 /* @refresh reload */
+import { QueryClientProvider } from "@tanstack/solid-query";
 import { createSignal, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { startAppEventListeners } from "./lib/app/listeners";
+import {
+  queryClient,
+  SyncClientProvider,
+} from "./providers/sync-client-provider";
 import { loadOutletContext } from "./store/outlet";
 import { runStartupSync } from "./store/sync";
 import "./index.css";
@@ -28,14 +33,18 @@ async function bootstrap() {
 
 function Root() {
   return (
-    <Show fallback={<BootSplash />} when={booted() || bootError()}>
-      <Show
-        fallback={<BootstrapError error={bootError()!} />}
-        when={!bootError()}
-      >
-        <App />
-      </Show>
-    </Show>
+    <QueryClientProvider client={queryClient}>
+      <SyncClientProvider>
+        <Show fallback={<BootSplash />} when={booted() || bootError()}>
+          <Show
+            fallback={<BootstrapError error={bootError()!} />}
+            when={!bootError()}
+          >
+            <App />
+          </Show>
+        </Show>
+      </SyncClientProvider>
+    </QueryClientProvider>
   );
 }
 

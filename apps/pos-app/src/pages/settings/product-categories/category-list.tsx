@@ -4,15 +4,7 @@ import {
   TbOutlinePencil,
   TbOutlineTrash,
 } from "solid-icons/tb";
-import {
-  createResource,
-  createSignal,
-  For,
-  Match,
-  Show,
-  Suspense,
-  Switch,
-} from "solid-js";
+import { createSignal, For, Match, Show, Suspense, Switch } from "solid-js";
 import { toast } from "solid-sonner";
 import { ConfirmDrawer } from "~/components/confirm-drawer";
 import { Button } from "~/components/ui/button";
@@ -26,13 +18,14 @@ import {
   getProductCountByCategory,
   updateCategory,
 } from "~/db/menu";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { cn } from "~/lib/utils";
 
 export default function CategoryList(
   props: Partial<RouteSectionProps> & { hideHeader?: boolean } = {}
 ) {
   const navigate = useNavigate();
-  const [categories, { refetch }] = createResource(getCategories);
+  const categoriesQuery = useDrizzleQuery(["categories"], getCategories);
   const [deleteTarget, setDeleteTarget] = createSignal<Category | undefined>();
   const [deleteMessage, setDeleteMessage] = createSignal("");
   const [error, setError] = createSignal("");
@@ -54,7 +47,7 @@ export default function CategoryList(
     }
     try {
       await deleteCategory(target.id);
-      await refetch();
+      categoriesQuery.refetch();
       toast.success("Kategori dihapus");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus kategori");
@@ -64,7 +57,7 @@ export default function CategoryList(
   const toggleActive = async (cat: Category) => {
     try {
       await updateCategory(cat.id, { isActive: !cat.isActive });
-      await refetch();
+      categoriesQuery.refetch();
       toast.success(
         cat.isActive ? "Kategori dinonaktifkan" : "Kategori diaktifkan"
       );
@@ -97,7 +90,7 @@ export default function CategoryList(
         <div class="mb-4 flex items-center justify-between">
           <Suspense fallback={<Skeleton class="h-4 w-20" />}>
             <p class="text-muted-foreground text-sm">
-              {categories()?.length ?? 0} kategori
+              {categoriesQuery.data()?.length ?? 0} kategori
             </p>
           </Suspense>
           <A href="/settings/products-categories/categories/add">
@@ -136,9 +129,9 @@ export default function CategoryList(
               </div>
             }
           >
-            <Match when={categories()?.length}>
+            <Match when={categoriesQuery.data()?.length}>
               <div class="space-y-2">
-                <For each={categories()!}>
+                <For each={categoriesQuery.data()!}>
                   {(cat) => (
                     <Card class="flex items-center gap-2" size="sm">
                       <div class="min-w-0 flex-1">

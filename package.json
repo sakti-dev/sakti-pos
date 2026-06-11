@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "build:packages": "cd vendor/baresync/packages/baresync && bun run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -10,16 +11,20 @@
     "api:dev": "bash apps/api/scripts/dev",
     "app:dev": "bash apps/pos-app/scripts/dev",
     "app:log": "bash logs/capture-adb-logcat.sh",
+    "app:log:crash": "APP_LOG_MODE=crash bash logs/capture-adb-logcat.sh",
     "app:db:studio": "bash apps/pos-app/scripts/local-db-studio",
     "app:build-apk": "bash apps/pos-app/scripts/build-apk",
     "app:resize": "bash apps/pos-app/scripts/resize",
     "app:restart": "bash apps/pos-app/scripts/restart",
     "test": "turbo run test",
-    "sync-proto:check": "cd packages/sync-proto-generator && bun x vitest run src/__test__/drift.test.ts",
-    "sync-proto:verify": "cd packages/protobuf && bun ../sync-proto-generator/src/cli.ts generate && cd ../.. && bun run sync-proto:check && cd packages/sync-proto-generator && bun x vitest run"
+    "generate:sync": "cd packages/sync-contract && bunx baresync generate",
+    "generate:sync:check": "cd packages/sync-contract && bunx baresync generate --check",
+    "generate:sync:doctor": "cd packages/sync-contract && bunx baresync doctor"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.10.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "turbo": "^2.9.8",

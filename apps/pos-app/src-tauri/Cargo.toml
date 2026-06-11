@@ -15,29 +15,25 @@ name = "sakti_pos_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-prost-build = "0.13"
-protoc-bin-vendored = "3"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
-tauri-plugin-android-fs = "28.1.0"
 tauri-plugin-deep-link = "2.0.0"
+tauri-plugin-image-pipeline = { path = "../../../vendor/tauri-plugin-image-pipeline" }
+tauri-plugin-dialog = { path = "../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio"] }
 base64 = "0.22.1"
-kamadak-exif = "0.6"
-image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
-reqwest = { version = "0.12", features = ["rustls-tls", "json"], default-features = false }
-sha2 = "0.10.9"
 tokio = { version = "1", features = ["fs"] }
-prost = "0.13"
-zenwebp = "0.4.4"
 time = { version = "0.3", features = ["formatting"] }
 log = "0.4.29"
+env_logger = "0.11"
+tauri-plugin-baresync = { path = "../../../vendor/baresync/crates/tauri-plugin-baresync" }
 tauri-plugin-log = "2.8.0"
+tauri-plugin-http = "2"
 uuid = { version = "1.23.1", features = ["v4"] }
 
 [profile.release]

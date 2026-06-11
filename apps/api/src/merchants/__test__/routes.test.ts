@@ -1,10 +1,4 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
-import { Empty } from "@repo/protobuf/common";
-import {
-  MerchantCreateRequest,
-  MerchantCreateResponse,
-  MerchantListResponse,
-} from "@repo/protobuf/merchants";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
@@ -56,20 +50,20 @@ vi.mock("cloudflare:workers", () => ({
 
 const { merchantsRoutes } = await import("../routes");
 
-function makeProtoRequest(
+function makeJsonRequest(
   path: string,
-  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
+  options: { body?: unknown; cookie?: string; method?: string } = {}
 ) {
   const headers: Record<string, string> = {
-    "Content-Type": "application/x-protobuf",
-    Accept: "application/x-protobuf",
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
 
   const request = new Request(`http://localhost${path}`, {
-    body: options.body ?? Empty.encode({}).finish(),
+    body: options.body ? JSON.stringify(options.body) : undefined,
     headers,
     method: options.method ?? "POST",
   });
@@ -83,8 +77,8 @@ describe("POST /api/merchants/create", () => {
   });
 
   test("returns 401 when no session", async () => {
-    const response = await makeProtoRequest("/api/merchants/create", {
-      body: MerchantCreateRequest.encode({ name: "Test Merchant" }).finish(),
+    const response = await makeJsonRequest("/api/merchants/create", {
+      body: { name: "Test Merchant" },
       method: "POST",
     });
 
@@ -106,17 +100,17 @@ describe("POST /api/merchants/create", () => {
       })),
     }));
 
-    const response = await makeProtoRequest("/api/merchants/create", {
-      body: MerchantCreateRequest.encode({ name: "Test Merchant" }).finish(),
+    const response = await makeJsonRequest("/api/merchants/create", {
+      body: { name: "Test Merchant" },
       cookie: "narvik_session=valid-token",
       method: "POST",
     });
 
     expect(response.status).toBe(200);
-    const decoded = MerchantCreateResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.merchant as Record<string, unknown>)?.name).toBe(
+      "Test Merchant"
     );
-    expect(decoded.merchant?.name).toBe("Test Merchant");
     expect(mockInsert).toHaveBeenCalledTimes(2);
   });
 
@@ -140,8 +134,8 @@ describe("POST /api/merchants/create", () => {
       }),
     }));
 
-    const response = await makeProtoRequest("/api/merchants/create", {
-      body: MerchantCreateRequest.encode({ name: "Test Merchant" }).finish(),
+    const response = await makeJsonRequest("/api/merchants/create", {
+      body: { name: "Test Merchant" },
       cookie: "narvik_session=valid-token",
       method: "POST",
     });
@@ -163,7 +157,7 @@ describe("POST /api/merchants/list", () => {
   });
 
   test("returns 401 when no session", async () => {
-    const response = await makeProtoRequest("/api/merchants/list", {
+    const response = await makeJsonRequest("/api/merchants/list", {
       method: "POST",
     });
 
@@ -191,16 +185,16 @@ describe("POST /api/merchants/list", () => {
       }),
     }));
 
-    const response = await makeProtoRequest("/api/merchants/list", {
+    const response = await makeJsonRequest("/api/merchants/list", {
       cookie: "narvik_session=valid-token",
       method: "POST",
     });
 
     expect(response.status).toBe(200);
-    const decoded = MerchantListResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
+    const decoded = (await response.json()) as Record<string, unknown>;
     expect(decoded.merchants).toHaveLength(1);
-    expect(decoded.merchants[0]?.name).toBe("Merchant 1");
+    expect((decoded.merchants as Record<string, unknown>[])[0]?.name).toBe(
+      "Merchant 1"
+    );
   });
 });

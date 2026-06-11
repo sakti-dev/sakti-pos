@@ -1,4 +1,4 @@
-import { userSessions } from "@repo/database/api-schema";
+import { userSessions } from "@sync-contract/api-schema";
 import { eq, lt } from "drizzle-orm";
 import type { Session } from "narvik";
 import { Narvik } from "narvik";

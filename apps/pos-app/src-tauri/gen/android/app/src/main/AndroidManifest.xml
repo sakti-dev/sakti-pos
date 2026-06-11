@@ -18,6 +18,17 @@
             <action android:name="android.intent.action.OPEN_DOCUMENT" />
             <data android:mimeType="image/*" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="image/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.PICK" />
+            <data android:mimeType="image/*" />
+        </intent>
+        <intent>
+            <action android:name="androidx.activity.result.contract.action.PICK_IMAGES" />
+        </intent>
     </queries>
 
     <!-- AndroidTV support -->

@@ -52,10 +52,13 @@ docs/external/
 .worktrees/
 
 .turso
-.opencode
+.db
+.codex/
+.omp/
+.commandcode/
 graphify-out
 .graphifyignore
 .logs
 .security-key
-*log*
+*.log
 *.sqlite

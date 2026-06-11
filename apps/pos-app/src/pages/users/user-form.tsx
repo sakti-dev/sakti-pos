@@ -1,12 +1,6 @@
 import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
-import {
-  createEffect,
-  createMemo,
-  createResource,
-  createSignal,
-  Show,
-} from "solid-js";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 
 import { ConfirmDrawer } from "~/components/confirm-drawer";
@@ -22,6 +16,7 @@ import {
   EditUserSchema,
   type EditUserValues,
 } from "~/lib/schema/user-form";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { cn } from "~/lib/utils";
 import { currentUser } from "~/store/auth";
 import { currentMerchantId } from "~/store/outlet";
@@ -38,9 +33,9 @@ export default function UserForm() {
   const isEdit = () => !!params.id;
   const title = () => (isEdit() ? "Edit Pengguna" : "Tambah Pengguna");
 
-  const [user] = createResource(
-    () => (isEdit() ? params.id : undefined),
-    (id) => (id === undefined ? undefined : getStaffMember(id))
+  const userQuery = useDrizzleQuery(
+    () => (isEdit() ? ["user", params.id] : []),
+    () => (isEdit() ? getStaffMember(params.id!) : Promise.resolve(undefined))
   );
 
   const [isActive, setIsActive] = createSignal(true);
@@ -58,7 +53,7 @@ export default function UserForm() {
   });
 
   createEffect(() => {
-    const data = user();
+    const data = userQuery.data();
     if (!data) {
       return;
     }
@@ -180,7 +175,7 @@ export default function UserForm() {
               Memuat...
             </div>
           }
-          when={!isEdit() || user()}
+          when={!isEdit() || userQuery.data()}
         >
           <Show
             fallback={

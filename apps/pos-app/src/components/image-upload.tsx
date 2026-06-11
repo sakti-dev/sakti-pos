@@ -1,7 +1,6 @@
 import {
   type Accessor,
   createContext,
-  createSignal,
   type JSX,
   onCleanup,
   Show,
@@ -9,14 +8,6 @@ import {
 } from "solid-js";
 
 import { Button } from "~/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay,
-  DrawerPortal,
-  DrawerTitle,
-} from "~/components/ui/drawer";
 import type { ImageUploadState } from "~/lib/assets/image-upload";
 import { createLogger } from "~/lib/logger";
 
@@ -51,12 +42,8 @@ interface ImageUploadContextValue {
   hasImage: Accessor<boolean>;
   isBusy: Accessor<boolean>;
   label: Accessor<string>;
-  openPhotoSourceDrawer: () => void;
-  pickCamera: () => void;
-  pickGallery: () => void;
+  pickImage: () => void;
   previewUrl: Accessor<string | null>;
-  setDrawerOpen: (open: boolean) => void;
-  showDrawer: Accessor<boolean>;
 }
 
 const photoLogger = createLogger({
@@ -77,8 +64,6 @@ function useImageUploadContext(): ImageUploadContextValue {
 }
 
 function ImageUploadRoot(props: ImageUploadProps) {
-  const [showDrawer, setShowDrawer] = createSignal(false);
-
   const context: ImageUploadContextValue = {
     clear: props.state.clear,
     error: props.state.error,
@@ -86,28 +71,12 @@ function ImageUploadRoot(props: ImageUploadProps) {
     hasImage: props.state.hasImage,
     isBusy: props.state.isBusy,
     label: () => props.label,
-    openPhotoSourceDrawer: () => {
-      photoLogger.info("drawer_opened");
-      setShowDrawer(true);
-    },
-    pickCamera: () => {
-      props.state.pickImage("camera").catch((pickError: unknown) => {
-        photoLogger.error("processing_failed", pickError, { source: "camera" });
-      });
-    },
-    pickGallery: () => {
-      props.state.pickImage("gallery").catch((pickError: unknown) => {
-        photoLogger.error("processing_failed", pickError, {
-          source: "gallery",
-        });
+    pickImage: () => {
+      props.state.pickImage().catch((pickError: unknown) => {
+        photoLogger.error("processing_failed", pickError);
       });
     },
     previewUrl: props.state.previewUrl,
-    setDrawerOpen: (open: boolean) => {
-      photoLogger.info("drawer_state_changed", { open });
-      setShowDrawer(open);
-    },
-    showDrawer,
   };
 
   return (
@@ -118,50 +87,6 @@ function ImageUploadRoot(props: ImageUploadProps) {
           {props.children}
         </div>
       </div>
-      <Show when={showDrawer()}>
-        <Drawer
-          closeOnEscapeKeyDown={false}
-          closeOnOutsideFocus={false}
-          modal={false}
-          onOpenChange={context.setDrawerOpen}
-          open={showDrawer()}
-          trapFocus={false}
-        >
-          <DrawerPortal>
-            <DrawerOverlay />
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle>Pilih Foto</DrawerTitle>
-              </DrawerHeader>
-              <p class="mb-4 text-muted-foreground text-sm">
-                Ambil foto baru atau pilih dari galeri.
-              </p>
-              <div class="flex flex-col gap-2">
-                <Button
-                  class="justify-start"
-                  onClick={() => {
-                    context.setDrawerOpen(false);
-                    context.pickCamera();
-                  }}
-                  variant="outline"
-                >
-                  Ambil Foto
-                </Button>
-                <Button
-                  class="justify-start"
-                  onClick={() => {
-                    context.setDrawerOpen(false);
-                    context.pickGallery();
-                  }}
-                  variant="outline"
-                >
-                  Pilih dari Galeri
-                </Button>
-              </div>
-            </DrawerContent>
-          </DrawerPortal>
-        </Drawer>
-      </Show>
     </ImageUploadContext.Provider>
   );
 }
@@ -189,8 +114,19 @@ function ImageUploadPreview(props: ImageUploadPreviewProps) {
       });
     };
 
+    const handleImageLoad = (): void => {
+      photoLogger.info("preview_image_loaded", {
+        alt: props.alt,
+        currentSrc: element.currentSrc || element.src,
+        fileName: context.fileName() || null,
+        hasPendingImage: context.hasImage(),
+      });
+    };
+
+    element.addEventListener("load", handleImageLoad);
     element.addEventListener("error", handleImageError);
     cleanupPreviewImageListener = () => {
+      element.removeEventListener("load", handleImageLoad);
       element.removeEventListener("error", handleImageError);
     };
   };
@@ -240,18 +176,9 @@ function ImageUploadDescription(props: ImageUploadDescriptionProps) {
 function ImageUploadStateText() {
   const context = useImageUploadContext();
   return (
-    <>
-      <Show when={context.hasImage() && context.fileName()}>
-        <p class="text-muted-foreground text-xs">
-          Foto akan diproses saat disimpan.
-        </p>
-      </Show>
-      <Show when={context.hasImage() && !context.fileName()}>
-        <p class="text-muted-foreground text-xs">
-          Foto akan diupload saat online.
-        </p>
-      </Show>
-    </>
+    <Show when={context.hasImage()}>
+      <p class="text-muted-foreground text-xs">Foto siap disimpan.</p>
+    </Show>
   );
 }
 
@@ -282,7 +209,7 @@ function ImageUploadTrigger() {
   return (
     <Button
       disabled={context.isBusy()}
-      onClick={context.openPhotoSourceDrawer}
+      onClick={context.pickImage}
       size="sm"
       type="button"
     >

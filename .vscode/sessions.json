@@ -1,0 +1,43 @@
+{
+  "$schema": "https://cdn.statically.io/gh/nguyenngoclongdev/cdn/main/schema/v11/terminal-keeper.json",
+  "theme": "tribe",
+  "active": "default",
+  "activateOnStartup": true,
+  "keepExistingTerminals": false,
+  "sessions": {
+    "default": [
+      {
+        "name": "codex",
+        "icon": "robot",
+        "color": "terminal.ansiBlue",
+        "commands": ["codex --yolo"]
+      },
+      {
+        "name": "omp",
+        "icon": "robot",
+        "color": "terminal.ansiGreen",
+        "commands": ["omp --yolo"]
+      },
+      {
+        "name": "api",
+        "icon": "server",
+        "color": "terminal.ansiMagenta",
+        "commands": ["bun api:dev"]
+      },
+      [
+        {
+          "name": "app",
+          "icon": "browser",
+          "color": "terminal.ansiCyan",
+          "commands": ["bun app:dev"]
+        },
+        {
+          "name": "logs",
+          "icon": "output",
+          "color": "terminal.ansiYellow",
+          "commands": ["bun app:log"]
+        }
+      ]
+    ]
+  }
+}

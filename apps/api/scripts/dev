@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$REPO_ROOT/apps/api"
 cd "$PROJECT_ROOT"
 
 TURSO_PORT=8080
-DB_FILE=".turso/local.db"
-LOG_DIR=".logs"
+DB_FILE="$REPO_ROOT/.db/api/local.db"
+LOG_DIR="$REPO_ROOT/logs"
 LOG_FILE="$LOG_DIR/api.log"
 
 cleanup() {
@@ -18,11 +19,11 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-mkdir -p .turso
+mkdir -p "$(dirname "$DB_FILE")"
 mkdir -p "$LOG_DIR"
 : > "$LOG_FILE"
 
-turso dev --port "$TURSO_PORT" --db-file "./$DB_FILE" &
+turso dev --port "$TURSO_PORT" --db-file "$DB_FILE" &
 TURSO_PID=$!
 
 for i in $(seq 1 30); do

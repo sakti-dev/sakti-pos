@@ -7,7 +7,7 @@ import {
   requirePin,
 } from "../validation";
 
-describe("protobuf route validation", () => {
+describe("route validation", () => {
   test("rejects empty required strings", () => {
     expect(() => requireNonEmptyString("", "name")).toThrow(BadRequestError);
   });

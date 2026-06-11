@@ -1,4 +1,4 @@
-import { type Accessor, createMemo, createResource } from "solid-js";
+import { type Accessor, createMemo } from "solid-js";
 import {
   type CategoryRevenueRow,
   type DailyRow,
@@ -21,6 +21,7 @@ import {
   getChartGranularity,
   getPreviousRange,
 } from "~/lib/dashboard/period";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { currentOutletTimezone } from "~/store/outlet";
 
 export type RevenueType = "hourly" | "daily" | "weekly" | "monthly";
@@ -68,7 +69,7 @@ export function useDashboardData(range: Accessor<DateRange>): DashboardData {
   );
   const granularity = createMemo(() => getChartGranularity(range()));
 
-  const [summary] = createResource(rangeKey, async () => {
+  const summaryQuery = useDrizzleQuery(rangeKey, async () => {
     try {
       return await getDashboardSummary(range().dateFrom, range().dateTo);
     } catch {
@@ -76,7 +77,7 @@ export function useDashboardData(range: Accessor<DateRange>): DashboardData {
     }
   });
 
-  const [prevSummary] = createResource(prevKey, async () => {
+  const prevSummaryQuery = useDrizzleQuery(prevKey, async () => {
     try {
       return await getDashboardSummary(
         prevRange().dateFrom,
@@ -87,7 +88,7 @@ export function useDashboardData(range: Accessor<DateRange>): DashboardData {
     }
   });
 
-  const [payment] = createResource(rangeKey, async () => {
+  const paymentQuery = useDrizzleQuery(rangeKey, async () => {
     try {
       return await getPaymentBreakdown(range().dateFrom, range().dateTo);
     } catch {
@@ -95,7 +96,7 @@ export function useDashboardData(range: Accessor<DateRange>): DashboardData {
     }
   });
 
-  const [topProducts] = createResource(rangeKey, async () => {
+  const topProductsQuery = useDrizzleQuery(rangeKey, async () => {
     try {
       return await getTopProducts(range().dateFrom, range().dateTo);
     } catch {
@@ -103,7 +104,7 @@ export function useDashboardData(range: Accessor<DateRange>): DashboardData {
     }
   });
 
-  const [categorySales] = createResource(rangeKey, async () => {
+  const categorySalesQuery = useDrizzleQuery(rangeKey, async () => {
     try {
       return await getSalesByCategory(range().dateFrom, range().dateTo);
     } catch {
@@ -111,7 +112,7 @@ export function useDashboardData(range: Accessor<DateRange>): DashboardData {
     }
   });
 
-  const [revenueData] = createResource(rangeKey, async () => {
+  const revenueDataQuery = useDrizzleQuery(rangeKey, async () => {
     const type = granularity();
     const { dateFrom, dateTo } = range();
 
@@ -145,21 +146,22 @@ export function useDashboardData(range: Accessor<DateRange>): DashboardData {
 
   const loading = createMemo(
     () =>
-      summary.loading ||
-      prevSummary.loading ||
-      payment.loading ||
-      topProducts.loading ||
-      categorySales.loading ||
-      revenueData.loading
+      summaryQuery.loading() ||
+      prevSummaryQuery.loading() ||
+      paymentQuery.loading() ||
+      topProductsQuery.loading() ||
+      categorySalesQuery.loading() ||
+      revenueDataQuery.loading()
   );
 
   return {
-    categorySales: () => categorySales() ?? [],
+    categorySales: () => categorySalesQuery.data() ?? [],
     loading,
-    payment: () => payment() ?? EMPTY_PAYMENT,
-    prevSummary: () => prevSummary() ?? EMPTY_SUMMARY,
-    revenueData: () => revenueData() ?? getFallbackRevenue(granularity()),
-    summary: () => summary() ?? EMPTY_SUMMARY,
-    topProducts: () => topProducts() ?? [],
+    payment: () => paymentQuery.data() ?? EMPTY_PAYMENT,
+    prevSummary: () => prevSummaryQuery.data() ?? EMPTY_SUMMARY,
+    revenueData: () =>
+      revenueDataQuery.data() ?? getFallbackRevenue(granularity()),
+    summary: () => summaryQuery.data() ?? EMPTY_SUMMARY,
+    topProducts: () => topProductsQuery.data() ?? [],
   };
 }

@@ -10,7 +10,7 @@ import { registersRoutes } from "./registers/routes";
 import { staffRoutes } from "./staff/routes";
 import { syncRoutes } from "./sync/routes";
 
-export default new Elysia({ adapter: CloudflareAdapter })
+const app = new Elysia({ adapter: CloudflareAdapter })
   .use(
     cors({
       origin: true,
@@ -36,5 +36,8 @@ export default new Elysia({ adapter: CloudflareAdapter })
   .use(registersRoutes)
   .use(staffRoutes)
   .use(syncRoutes)
-  .get("/", () => "Sakti POS API v1")
-  .compile();
+  .get("/", () => "Sakti POS API v1");
+
+export type App = typeof app;
+
+export default app.compile();

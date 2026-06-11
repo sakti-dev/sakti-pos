@@ -1,10 +1,11 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createResource, For, Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { AppShell } from "~/components/layout";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { getStaff } from "~/db/staff";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { cn } from "~/lib/utils";
 
 const ROLE_STYLES: Record<string, string> = {
@@ -19,14 +20,14 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default function UserList() {
   const navigate = useNavigate();
-  const [users] = createResource(getStaff);
+  const usersQuery = useDrizzleQuery(["staff"], getStaff);
 
   return (
     <AppShell title="Pengguna">
       <div class="p-4">
         <div class="mb-4 flex items-center justify-between">
           <p class="text-muted-foreground text-sm">
-            {users()?.length ?? 0} pengguna
+            {usersQuery.data()?.length ?? 0} pengguna
           </p>
           <A href="/users/add">
             <Button size="sm">+ Tambah</Button>
@@ -51,7 +52,7 @@ export default function UserList() {
                   </For>
                 </div>
               }
-              when={users() !== undefined}
+              when={usersQuery.data() !== undefined}
             >
               <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <p>Belum ada pengguna</p>
@@ -61,10 +62,10 @@ export default function UserList() {
               </div>
             </Show>
           }
-          when={users() && users()!.length > 0}
+          when={usersQuery.data() && usersQuery.data()!.length > 0}
         >
           <div class="space-y-2">
-            <For each={users()}>
+            <For each={usersQuery.data()}>
               {(user) => (
                 <Card class="flex items-center gap-3" size="sm">
                   <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-lg text-primary-foreground">

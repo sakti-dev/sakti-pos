@@ -1,14 +1,4 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
-import { DeleteResponse } from "@repo/protobuf/common";
-import {
-  RegisterCreateRequest,
-  RegisterCreateResponse,
-  RegisterDeleteRequest,
-  RegisterListRequest,
-  RegisterListResponse,
-  RegisterPairRequest,
-  RegisterPairResponse,
-} from "@repo/protobuf/registers";
 
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
@@ -61,20 +51,20 @@ vi.mock("cloudflare:workers", () => ({
 
 const { registersRoutes } = await import("../routes");
 
-function makeProtoRequest(
+function makeJsonRequest(
   path: string,
-  options: { body?: Uint8Array; cookie?: string; method?: string } = {}
+  options: { body?: unknown; cookie?: string; method?: string } = {}
 ) {
   const headers: Record<string, string> = {
-    Accept: "application/x-protobuf",
-    "Content-Type": "application/x-protobuf",
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
   if (options.cookie) {
     headers.cookie = options.cookie;
   }
 
   const request = new Request(`http://localhost${path}`, {
-    body: options.body ?? new Uint8Array(),
+    body: options.body ? JSON.stringify(options.body) : undefined,
     headers,
     method: options.method ?? "POST",
   });
@@ -82,7 +72,7 @@ function makeProtoRequest(
   return registersRoutes.compile().handle(request);
 }
 
-describe("registers protobuf routes", () => {
+describe("registers JSON routes", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -96,8 +86,8 @@ describe("registers protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtoRequest("/api/registers/pair", {
-      body: RegisterPairRequest.encode({ pairingCode: "AB12CD34" }).finish(),
+    const response = await makeJsonRequest("/api/registers/pair", {
+      body: { pairingCode: "AB12CD34" },
     });
 
     expect(response.status).toBe(400);
@@ -169,16 +159,14 @@ describe("registers protobuf routes", () => {
       values: vi.fn().mockResolvedValue(undefined),
     });
 
-    const response = await makeProtoRequest("/api/registers/pair", {
-      body: RegisterPairRequest.encode({ pairingCode: "AB12CD34" }).finish(),
+    const response = await makeJsonRequest("/api/registers/pair", {
+      body: { pairingCode: "AB12CD34" },
     });
 
     expect(response.status).toBe(200);
-    const decoded = RegisterPairResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
-    expect(decoded.outlet?.id).toBe("outlet-1");
-    expect(decoded.register?.id).toBe("reg-1");
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.outlet as Record<string, unknown>)?.id).toBe("outlet-1");
+    expect((decoded.register as Record<string, unknown>)?.id).toBe("reg-1");
   });
 
   test("POST /api/registers/create creates register", async () => {
@@ -212,19 +200,16 @@ describe("registers protobuf routes", () => {
       }),
     }));
 
-    const response = await makeProtoRequest("/api/registers/create", {
-      body: RegisterCreateRequest.encode({
-        name: "Register 1",
-        outletId: "outlet-1",
-      }).finish(),
+    const response = await makeJsonRequest("/api/registers/create", {
+      body: { name: "Register 1", outletId: "outlet-1" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = RegisterCreateResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
+    const decoded = (await response.json()) as Record<string, unknown>;
+    expect((decoded.register as Record<string, unknown>)?.name).toBe(
+      "Register 1"
     );
-    expect(decoded.register?.name).toBe("Register 1");
   });
 
   test("POST /api/registers/list returns outlet registers", async () => {
@@ -265,17 +250,17 @@ describe("registers protobuf routes", () => {
         }),
       }));
 
-    const response = await makeProtoRequest("/api/registers/list", {
-      body: RegisterListRequest.encode({ outletId: "outlet-1" }).finish(),
+    const response = await makeJsonRequest("/api/registers/list", {
+      body: { outletId: "outlet-1" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    const decoded = RegisterListResponse.decode(
-      new Uint8Array(await response.arrayBuffer())
-    );
+    const decoded = (await response.json()) as Record<string, unknown>;
     expect(decoded.registers).toHaveLength(1);
-    expect(decoded.registers[0]?.id).toBe("reg-1");
+    expect((decoded.registers as Record<string, unknown>[])[0]?.id).toBe(
+      "reg-1"
+    );
   });
 
   test("POST /api/registers/delete deactivates register", async () => {
@@ -313,15 +298,14 @@ describe("registers protobuf routes", () => {
       }),
     });
 
-    const response = await makeProtoRequest("/api/registers/delete", {
-      body: RegisterDeleteRequest.encode({ id: "reg-1" }).finish(),
+    const response = await makeJsonRequest("/api/registers/delete", {
+      body: { id: "reg-1" },
       cookie: "narvik_session=valid-token",
     });
 
     expect(response.status).toBe(200);
-    expect(
-      DeleteResponse.decode(new Uint8Array(await response.arrayBuffer()))
-        .success
-    ).toBe(true);
+    expect(((await response.json()) as Record<string, unknown>).success).toBe(
+      true
+    );
   });
 });

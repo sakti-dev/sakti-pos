@@ -60,7 +60,6 @@ const PRODUCT_A: Product = {
   createdAt: "2026-01-01",
   updatedAt: "2026-01-01",
   sortOrder: 0,
-  imageUrl: null,
   deletedAt: null,
   isSynced: false,
 };
@@ -74,7 +73,6 @@ const PRODUCT_B: Product = {
   createdAt: "2026-01-01",
   updatedAt: "2026-01-01",
   sortOrder: 1,
-  imageUrl: null,
   deletedAt: null,
   isSynced: false,
 };

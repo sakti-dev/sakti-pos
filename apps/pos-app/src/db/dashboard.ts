@@ -1,4 +1,3 @@
-import { categories, orderItems, orders, products } from "@repo/database";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import {
   formatInBusinessTimezone,
@@ -6,7 +5,7 @@ import {
   toUtcRangeForBusinessDate,
 } from "~/lib/date-time";
 import { currentOutletId, currentOutletTimezone } from "~/store/outlet";
-import { db } from "./index";
+import { db, TABLE } from "./index";
 
 export interface DashboardSummary {
   avgOrderValue: number;
@@ -54,7 +53,7 @@ export interface CategoryRevenueRow {
 
 function addOutletCondition(conditions: unknown[], outletId: string | null) {
   if (outletId) {
-    conditions.push(eq(orders.outletId, outletId));
+    conditions.push(eq(TABLE.orders.outletId, outletId));
   }
 }
 
@@ -74,22 +73,22 @@ async function getCompletedOrders(
 
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, fromRange.startUtc),
-    lt(orders.createdAt, toRange.endExclusiveUtc),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
+    gte(TABLE.orders.createdAt, fromRange.startUtc),
+    lt(TABLE.orders.createdAt, toRange.endExclusiveUtc),
+    eq(TABLE.orders.status, "completed"),
+    isNull(TABLE.orders.deletedAt),
   ];
   addOutletCondition(conditions, outletId);
 
   return await db
     .select({
-      createdAt: orders.createdAt,
-      paymentMethod: orders.paymentMethod,
-      totalMinorUnits: orders.totalMinorUnits,
+      createdAt: TABLE.orders.createdAt,
+      paymentMethod: TABLE.orders.paymentMethod,
+      totalMinorUnits: TABLE.orders.totalMinorUnits,
     })
-    .from(orders)
+    .from(TABLE.orders)
     .where(and(...conditions))
-    .orderBy(orders.createdAt);
+    .orderBy(TABLE.orders.createdAt);
 }
 
 export async function getDashboardSummary(
@@ -102,19 +101,19 @@ export async function getDashboardSummary(
 
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, fromRange.startUtc),
-    lt(orders.createdAt, toRange.endExclusiveUtc),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
+    gte(TABLE.orders.createdAt, fromRange.startUtc),
+    lt(TABLE.orders.createdAt, toRange.endExclusiveUtc),
+    eq(TABLE.orders.status, "completed"),
+    isNull(TABLE.orders.deletedAt),
   ];
   addOutletCondition(conditions, outletId);
 
   const rows = await db
     .select({
       orderCount: sql<number>`CAST(COUNT(*) AS INTEGER)`,
-      totalRevenue: sql<number>`COALESCE(SUM(${orders.totalMinorUnits}), 0)`,
+      totalRevenue: sql<number>`COALESCE(SUM(${TABLE.orders.totalMinorUnits}), 0)`,
     })
-    .from(orders)
+    .from(TABLE.orders)
     .where(and(...conditions));
 
   const row = rows[0];
@@ -138,21 +137,21 @@ export async function getPaymentBreakdown(
 
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, fromRange.startUtc),
-    lt(orders.createdAt, toRange.endExclusiveUtc),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
+    gte(TABLE.orders.createdAt, fromRange.startUtc),
+    lt(TABLE.orders.createdAt, toRange.endExclusiveUtc),
+    eq(TABLE.orders.status, "completed"),
+    isNull(TABLE.orders.deletedAt),
   ];
   addOutletCondition(conditions, outletId);
 
   const rows = await db
     .select({
-      cashCount: sql<number>`CAST(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN 1 ELSE 0 END) AS INTEGER)`,
-      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'cash' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
-      qrisCount: sql<number>`CAST(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN 1 ELSE 0 END) AS INTEGER)`,
-      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentMethod} = 'qris' THEN ${orders.totalMinorUnits} ELSE 0 END), 0)`,
+      cashCount: sql<number>`CAST(SUM(CASE WHEN ${TABLE.orders.paymentMethod} = 'cash' THEN 1 ELSE 0 END) AS INTEGER)`,
+      cashTotal: sql<number>`COALESCE(SUM(CASE WHEN ${TABLE.orders.paymentMethod} = 'cash' THEN ${TABLE.orders.totalMinorUnits} ELSE 0 END), 0)`,
+      qrisCount: sql<number>`CAST(SUM(CASE WHEN ${TABLE.orders.paymentMethod} = 'qris' THEN 1 ELSE 0 END) AS INTEGER)`,
+      qrisTotal: sql<number>`COALESCE(SUM(CASE WHEN ${TABLE.orders.paymentMethod} = 'qris' THEN ${TABLE.orders.totalMinorUnits} ELSE 0 END), 0)`,
     })
-    .from(orders)
+    .from(TABLE.orders)
     .where(and(...conditions));
 
   const row = rows[0];
@@ -259,27 +258,27 @@ export async function getTopProducts(
   const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, fromRange.startUtc),
-    lt(orders.createdAt, toRange.endExclusiveUtc),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
-    isNull(orderItems.deletedAt),
+    gte(TABLE.orders.createdAt, fromRange.startUtc),
+    lt(TABLE.orders.createdAt, toRange.endExclusiveUtc),
+    eq(TABLE.orders.status, "completed"),
+    isNull(TABLE.orders.deletedAt),
+    isNull(TABLE.orderItems.deletedAt),
   ];
   if (outletId) {
-    conditions.push(eq(orderItems.outletId, outletId));
+    conditions.push(eq(TABLE.orderItems.outletId, outletId));
   }
 
   const rows = await db
     .select({
-      productName: orderItems.productName,
-      quantity: sql<number>`CAST(SUM(${orderItems.quantity}) AS INTEGER)`,
-      revenue: sql<number>`COALESCE(SUM(${orderItems.subtotalMinorUnits}), 0)`,
+      productName: TABLE.orderItems.productName,
+      quantity: sql<number>`CAST(SUM(${TABLE.orderItems.quantity}) AS INTEGER)`,
+      revenue: sql<number>`COALESCE(SUM(${TABLE.orderItems.subtotalMinorUnits}), 0)`,
     })
-    .from(orderItems)
-    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .from(TABLE.orderItems)
+    .innerJoin(TABLE.orders, eq(TABLE.orderItems.orderId, TABLE.orders.id))
     .where(and(...conditions))
-    .groupBy(orderItems.productName)
-    .orderBy(sql`SUM(${orderItems.subtotalMinorUnits}) DESC`)
+    .groupBy(TABLE.orderItems.productName)
+    .orderBy(sql`SUM(${TABLE.orderItems.subtotalMinorUnits}) DESC`)
     .limit(limit);
 
   return rows;
@@ -294,30 +293,36 @@ export async function getSalesByCategory(
   const toRange = toUtcRangeForBusinessDate(dateTo, timezone);
   const outletId = currentOutletId();
   const conditions = [
-    gte(orders.createdAt, fromRange.startUtc),
-    lt(orders.createdAt, toRange.endExclusiveUtc),
-    eq(orders.status, "completed"),
-    isNull(orders.deletedAt),
-    isNull(orderItems.deletedAt),
-    isNull(products.deletedAt),
-    isNull(categories.deletedAt),
+    gte(TABLE.orders.createdAt, fromRange.startUtc),
+    lt(TABLE.orders.createdAt, toRange.endExclusiveUtc),
+    eq(TABLE.orders.status, "completed"),
+    isNull(TABLE.orders.deletedAt),
+    isNull(TABLE.orderItems.deletedAt),
+    isNull(TABLE.products.deletedAt),
+    isNull(TABLE.categories.deletedAt),
   ];
   if (outletId) {
-    conditions.push(eq(orderItems.outletId, outletId));
+    conditions.push(eq(TABLE.orderItems.outletId, outletId));
   }
 
   const rows = await db
     .select({
-      categoryName: categories.name,
-      revenue: sql<number>`COALESCE(SUM(${orderItems.subtotalMinorUnits}), 0)`,
+      categoryName: TABLE.categories.name,
+      revenue: sql<number>`COALESCE(SUM(${TABLE.orderItems.subtotalMinorUnits}), 0)`,
     })
-    .from(orderItems)
-    .innerJoin(orders, eq(orderItems.orderId, orders.id))
-    .innerJoin(products, eq(orderItems.productId, products.id))
-    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .from(TABLE.orderItems)
+    .innerJoin(TABLE.orders, eq(TABLE.orderItems.orderId, TABLE.orders.id))
+    .innerJoin(
+      TABLE.products,
+      eq(TABLE.orderItems.productId, TABLE.products.id)
+    )
+    .innerJoin(
+      TABLE.categories,
+      eq(TABLE.products.categoryId, TABLE.categories.id)
+    )
     .where(and(...conditions))
-    .groupBy(categories.name)
-    .orderBy(sql`SUM(${orderItems.subtotalMinorUnits}) DESC`);
+    .groupBy(TABLE.categories.name)
+    .orderBy(sql`SUM(${TABLE.orderItems.subtotalMinorUnits}) DESC`);
 
   return rows;
 }

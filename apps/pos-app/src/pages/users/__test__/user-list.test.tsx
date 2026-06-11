@@ -88,10 +88,9 @@ describe("UserList", () => {
 
   test("renders user list with role badges", async () => {
     render(() => <UserList />);
-    await screen.findByText("Pengguna");
-    expect(screen.getByText("Admin")).toBeInTheDocument();
-    expect(screen.getByText("Kasir 1")).toBeInTheDocument();
-    expect(screen.getByText("Kasir 2")).toBeInTheDocument();
+    expect(await screen.findByText("Admin")).toBeInTheDocument();
+    expect(await screen.findByText("Kasir 1")).toBeInTheDocument();
+    expect(await screen.findByText("Kasir 2")).toBeInTheDocument();
     expect(screen.getByText("Manajer")).toBeInTheDocument();
     expect(screen.getAllByText("Kasir").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Nonaktif")).toBeInTheDocument();
@@ -99,16 +98,14 @@ describe("UserList", () => {
 
   test("shows user count", async () => {
     render(() => <UserList />);
-    await screen.findByText("Pengguna");
-    expect(screen.getByText("3 pengguna")).toBeInTheDocument();
+    expect(await screen.findByText("3 pengguna")).toBeInTheDocument();
   });
 
   test("shows empty state when no users", async () => {
     const { getStaff } = await import("~/db/staff");
     vi.mocked(getStaff).mockResolvedValueOnce([]);
     render(() => <UserList />);
-    await screen.findByText("Pengguna");
-    expect(screen.getByText("Belum ada pengguna")).toBeInTheDocument();
+    expect(await screen.findByText("Belum ada pengguna")).toBeInTheDocument();
   });
 
   test("shows '+ Tambah' link", async () => {

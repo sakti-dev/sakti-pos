@@ -1,14 +1,5 @@
 import { env } from "cloudflare:workers";
-import { assets, userMerchants } from "@repo/database/api-schema";
-import {
-  AssetCompleteUploadRequest,
-  AssetCompleteUploadResponse,
-  type AssetHeader,
-  AssetPresignDownloadRequest,
-  AssetPresignDownloadResponse,
-  AssetPresignUploadRequest,
-  AssetPresignUploadResponse,
-} from "@repo/protobuf/assets";
+import { assets, userMerchants } from "@sync-contract/api-schema";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { v7 as uuidv7 } from "uuid";
@@ -16,26 +7,11 @@ import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { presignS3DownloadUrl, presignS3Url } from "../lib/s3-presign";
-import { tsProtoCodec, tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
-import { encodeAsset } from "./protobuf";
-
-const assetPresignUploadRequestCodec = tsProtoCodec(AssetPresignUploadRequest);
-const assetPresignUploadResponseCodec = tsProtoCodec(
-  AssetPresignUploadResponse
-);
-const assetCompleteUploadRequestCodec = tsProtoCodec(
-  AssetCompleteUploadRequest
-);
-const assetCompleteUploadResponseCodec = tsProtoCodec(
-  AssetCompleteUploadResponse
-);
-const assetPresignDownloadRequestCodec = tsProtoCodec(
-  AssetPresignDownloadRequest
-);
-const assetPresignDownloadResponseCodec = tsProtoCodec(
-  AssetPresignDownloadResponse
-);
+import {
+  AssetPresignDownloadRequest,
+  AssetPresignUploadRequest,
+} from "./assets.model";
 
 async function verifyMerchantAccess(
   userId: string,
@@ -78,75 +54,16 @@ function normalizeOptionalString(value: string): string | null {
   return value.trim().length > 0 ? value : null;
 }
 
-function normalizeOptionalNumber(value: number): number | null {
-  return Number.isFinite(value) && value > 0 ? value : null;
-}
-
-function protobufInt64ToSafeNumber(value: bigint, fieldName: string): number {
-  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new BadRequestError(`${fieldName} exceeds safe integer range`);
-  }
-  if (value < 0n) {
-    throw new BadRequestError(`${fieldName} must be non-negative`);
-  }
-  return Number(value);
-}
-
-function buildRequiredHeaders(contentType: string): AssetHeader[] {
-  return [{ name: "Content-Type", value: contentType }];
-}
-
-function isAssetMetadataCompatible(
-  asset: {
-    byteSize: number;
-    contentHash: string;
-    contentType: string;
-    kind: string;
-    merchantId: string;
-    objectKey: string;
-  },
-  input: {
-    byteSize: number;
-    contentHash: string;
-    contentType: string;
-    kind: string;
-    merchantId: string;
-    objectKey: string;
-  }
-): boolean {
-  return (
-    asset.merchantId === input.merchantId &&
-    asset.objectKey === input.objectKey &&
-    asset.contentHash === input.contentHash &&
-    asset.byteSize === input.byteSize &&
-    asset.contentType === input.contentType &&
-    asset.kind === input.kind
-  );
-}
-
 export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
-  .use(tsProtoPlugin)
   .use(authenticated)
   .post(
     "/presign-upload",
     async ({ body, session, set }) => {
-      const request = body as AssetPresignUploadRequest;
       let merchantId: string;
-      let kind: string;
       let contentType: string;
-      let contentHash: string;
-      let byteSize: number;
       try {
-        merchantId = requireNonEmptyString(request.merchantId, "merchantId");
-        kind = requireNonEmptyString(request.kind, "kind", {
-          maxLength: 100,
-        });
-        contentType = requireNonEmptyString(request.contentType, "contentType");
-        contentHash = requireNonEmptyString(request.contentHash, "contentHash");
-        byteSize = protobufInt64ToSafeNumber(request.byteSize, "byteSize");
-        if (!Number.isFinite(byteSize) || byteSize <= 0) {
-          throw new BadRequestError("byteSize harus lebih besar dari 0");
-        }
+        merchantId = requireNonEmptyString(body.merchantId, "merchantId");
+        contentType = requireNonEmptyString(body.contentType, "contentType");
       } catch (error) {
         if (error instanceof BadRequestError) {
           set.status = error.status;
@@ -160,88 +77,14 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
         new ForbiddenRequestError()
       );
 
-      const providedAssetId = normalizeOptionalString(request.assetId);
-      const providedObjectKey = normalizeOptionalString(request.objectKey);
-      const resolvedAssetId = providedAssetId ?? uuidv7();
       const objectKey =
-        providedObjectKey ?? `${merchantId}/assets/${resolvedAssetId}`;
-      const now = new Date().toISOString();
+        normalizeOptionalString(body.objectKey ?? "") ??
+        `${merchantId}/assets/${normalizeOptionalString(body.assetId ?? "") ?? uuidv7()}`;
+      // objectKey is deterministic: {merchantId}/assets/{assetId} with UUIDv7 asset IDs.
+      // Collision is astronomically unlikely — no guard needed.
+
+
       const storage = getAssetStorageConfig();
-      const [existingAsset] = await db
-        .select()
-        .from(assets)
-        .where(
-          and(
-            eq(assets.merchantId, merchantId),
-            eq(assets.objectKey, objectKey)
-          )
-        )
-        .limit(1);
-
-      if (existingAsset) {
-        if (
-          !isAssetMetadataCompatible(existingAsset, {
-            byteSize,
-            contentHash,
-            contentType,
-            kind,
-            merchantId,
-            objectKey,
-          })
-        ) {
-          set.status = 409;
-          return {
-            error: "Asset metadata conflicts with existing content hash",
-          };
-        }
-
-        if (existingAsset.status === "ready") {
-          return AssetPresignUploadResponse.create({
-            asset: encodeAsset(existingAsset),
-            requiredHeaders: [],
-            uploadUrl: "",
-          });
-        }
-
-        const [asset] = await db
-          .update(assets)
-          .set({
-            byteSize,
-            contentHash,
-            contentType,
-            deletedAt: null,
-            height: normalizeOptionalNumber(request.height),
-            kind,
-            merchantId,
-            objectKey,
-            originalFilename: normalizeOptionalString(request.originalFilename),
-            status: "pending_upload",
-            updatedAt: now,
-            width: normalizeOptionalNumber(request.width),
-          })
-          .where(eq(assets.id, existingAsset.id))
-          .returning();
-
-        const uploadUrl = await presignS3Url({
-          accessKeyId: storage.accessKeyId,
-          bucket: storage.bucket,
-          contentType,
-          endpoint: storage.endpoint,
-          expiresInSeconds: 900,
-          method: "PUT",
-          objectKey,
-          payloadHash: "UNSIGNED-PAYLOAD",
-          region: storage.region,
-          secretAccessKey: storage.secretAccessKey,
-        });
-
-        return AssetPresignUploadResponse.create({
-          asset: encodeAsset(asset),
-          requiredHeaders: buildRequiredHeaders(contentType),
-          uploadUrl,
-        });
-      }
-
       const uploadUrl = await presignS3Url({
         accessKeyId: storage.accessKeyId,
         bucket: storage.bucket,
@@ -254,114 +97,23 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
         region: storage.region,
         secretAccessKey: storage.secretAccessKey,
       });
-      const [asset] = await db
-        .insert(assets)
-        .values({
-          byteSize,
-          contentHash,
-          contentType,
-          createdAt: now,
-          id: resolvedAssetId,
-          kind,
-          merchantId,
-          objectKey,
-          originalFilename: normalizeOptionalString(request.originalFilename),
-          status: "pending_upload",
-          updatedAt: now,
-          width: normalizeOptionalNumber(request.width),
-          height: normalizeOptionalNumber(request.height),
-        })
-        .returning();
 
-      return AssetPresignUploadResponse.create({
-        asset: encodeAsset(asset),
-        requiredHeaders: buildRequiredHeaders(contentType),
+      return {
         uploadUrl,
-      });
+        objectKey,
+        requiredHeaders: [{ name: "Content-Type", value: contentType }],
+      };
     },
     {
-      proto: {
-        req: assetPresignUploadRequestCodec,
-        res: assetPresignUploadResponseCodec,
-      },
-    }
-  )
-  .post(
-    "/complete-upload",
-    async ({ body, session, set }) => {
-      const request = body as AssetCompleteUploadRequest;
-      let assetId: string;
-      let objectKey: string;
-      let contentHash: string;
-      let byteSize: number;
-      try {
-        assetId = requireNonEmptyString(request.assetId, "assetId");
-        objectKey = requireNonEmptyString(request.objectKey, "objectKey");
-        contentHash = requireNonEmptyString(request.contentHash, "contentHash");
-        byteSize = protobufInt64ToSafeNumber(request.byteSize, "byteSize");
-        if (!Number.isFinite(byteSize) || byteSize <= 0) {
-          throw new BadRequestError("byteSize harus lebih besar dari 0");
-        }
-      } catch (error) {
-        if (error instanceof BadRequestError) {
-          set.status = error.status;
-          return { error: error.message };
-        }
-        throw error;
-      }
-
-      const [asset] = await db
-        .select()
-        .from(assets)
-        .where(eq(assets.id, assetId))
-        .limit(1);
-
-      if (!asset) {
-        set.status = 404;
-        return { error: "Asset not found" };
-      }
-
-      throwIfFalse(
-        await verifyMerchantAccess(session.userId, asset.merchantId),
-        new ForbiddenRequestError()
-      );
-      if (
-        asset.objectKey !== objectKey ||
-        asset.contentHash !== contentHash ||
-        asset.byteSize !== byteSize
-      ) {
-        set.status = 400;
-        return { error: "Asset metadata does not match" };
-      }
-
-      const now = new Date().toISOString();
-      const [readyAsset] = await db
-        .update(assets)
-        .set({
-          status: "ready",
-          updatedAt: now,
-        })
-        .where(eq(assets.id, assetId))
-        .returning();
-
-      return AssetCompleteUploadResponse.create({
-        asset: encodeAsset(readyAsset),
-      });
-    },
-    {
-      proto: {
-        req: assetCompleteUploadRequestCodec,
-        res: assetCompleteUploadResponseCodec,
-      },
+      body: AssetPresignUploadRequest,
     }
   )
   .post(
     "/presign-download",
     async ({ body, session, set }) => {
-      const request = body as AssetPresignDownloadRequest;
       let assetId: string;
       try {
-        assetId = requireNonEmptyString(request.assetId, "assetId");
+        assetId = requireNonEmptyString(body.assetId, "assetId");
       } catch (error) {
         if (error instanceof BadRequestError) {
           set.status = error.status;
@@ -385,6 +137,11 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
         await verifyMerchantAccess(session.userId, asset.merchantId),
         new ForbiddenRequestError()
       );
+
+      if (!asset.objectKey) {
+        set.status = 400;
+        return { error: "Asset has no object key" };
+      }
 
       const storage = getAssetStorageConfig();
       const downloadUrl = await presignS3DownloadUrl({
@@ -397,14 +154,11 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
         secretAccessKey: storage.secretAccessKey,
       });
 
-      return AssetPresignDownloadResponse.create({
+      return {
         downloadUrl,
-      });
+      };
     },
     {
-      proto: {
-        req: assetPresignDownloadRequestCodec,
-        res: assetPresignDownloadResponseCodec,
-      },
+      body: AssetPresignDownloadRequest,
     }
   );

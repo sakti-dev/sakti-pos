@@ -6,7 +6,6 @@ import {
 } from "solid-icons/tb";
 import {
   createMemo,
-  createResource,
   createSignal,
   For,
   Match,
@@ -29,23 +28,22 @@ import {
   type Product,
   updateProduct,
 } from "~/db/menu";
-import { getDomainCatalogVersion } from "~/lib/assets/cache";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { cn, formatIDR } from "~/lib/utils";
 
 export default function ProductList(
   props: Partial<RouteSectionProps> & { hideHeader?: boolean } = {}
 ) {
   const navigate = useNavigate();
-  const [categories] = createResource(getCategories);
+  const categoriesQuery = useDrizzleQuery(["categories"], () =>
+    getCategories()
+  );
   const [filterCategoryId, setFilterCategoryId] = createSignal<
     string | undefined
   >(undefined);
-  const [products, { refetch }] = createResource(
-    () => ({
-      filter: filterCategoryId(),
-      version: getDomainCatalogVersion("product"),
-    }),
-    ({ filter }) => getProducts(filter)
+  const productsQuery = useDrizzleQuery(
+    () => filterCategoryId(),
+    () => getProducts(filterCategoryId())
   );
 
   const [deleteTarget, setDeleteTarget] = createSignal<Product | undefined>();
@@ -53,14 +51,16 @@ export default function ProductList(
 
   const categoryOptions = createMemo<SelectOption[]>(() => [
     { value: "", label: "Semua Kategori" },
-    ...(categories()?.map((cat) => ({ value: cat.id, label: cat.name })) ?? []),
+    ...(categoriesQuery
+      .data()
+      ?.map((cat) => ({ value: cat.id, label: cat.name })) ?? []),
   ]);
 
   const isGrouped = () => filterCategoryId() === undefined;
 
   const groupedProducts = createMemo(() => {
-    const cats = categories();
-    const prods = products();
+    const cats = categoriesQuery.data();
+    const prods = productsQuery.data();
     if (!(cats && prods)) {
       return [];
     }
@@ -79,7 +79,7 @@ export default function ProductList(
     }
     try {
       await deleteProduct(target.id);
-      await refetch();
+      await productsQuery.refetch();
       toast.success("Produk dihapus");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus produk");
@@ -89,7 +89,7 @@ export default function ProductList(
   const toggleActive = async (product: Product) => {
     try {
       await updateProduct(product.id, { isActive: !product.isActive });
-      await refetch();
+      await productsQuery.refetch();
       toast.success(
         product.isActive ? "Produk dinonaktifkan" : "Produk diaktifkan"
       );
@@ -212,11 +212,11 @@ export default function ProductList(
               </div>
             }
           >
-            <Match when={products()?.length}>
+            <Match when={productsQuery.data()?.length}>
               <Show
                 fallback={
                   <div class="space-y-2">
-                    <For each={products()!}>
+                    <For each={productsQuery.data()!}>
                       {(product) => productCard(product)}
                     </For>
                   </div>

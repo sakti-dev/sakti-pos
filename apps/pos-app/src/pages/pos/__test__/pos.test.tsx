@@ -1,13 +1,9 @@
-import { render, screen, waitFor } from "@solidjs/testing-library";
+import { render, screen } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
 import { For, Show } from "solid-js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { ProductWithCategory } from "~/db/orders";
-import {
-  notifyAssetAttachmentReady,
-  resetDomainCatalogVersionsForTest,
-} from "~/lib/assets/cache";
 
 const mockGroupedData: {
   categoryName: string;
@@ -21,7 +17,6 @@ const mockGroupedData: {
         categoryName: "Minuman",
         createdAt: "2026-01-01T00:00:00.000Z",
         id: "product-1",
-        imageUrl: null,
         isActive: true,
         merchantId: "merchant-1",
         name: "Kopi Susu",
@@ -36,7 +31,6 @@ const mockGroupedData: {
         categoryName: "Minuman",
         createdAt: "2026-01-01T00:00:00.000Z",
         id: "product-2",
-        imageUrl: null,
         isActive: true,
         merchantId: "merchant-1",
         name: "Teh Manis",
@@ -56,7 +50,6 @@ const mockGroupedData: {
         categoryName: "Makanan",
         createdAt: "2026-01-01T00:00:00.000Z",
         id: "product-3",
-        imageUrl: null,
         isActive: true,
         merchantId: "merchant-1",
         name: "Nasi Goreng",
@@ -266,7 +259,6 @@ describe("POS page", () => {
   afterEach(() => {
     vi.clearAllMocks();
     mockCurrentOutletId.mockReturnValue(null);
-    resetDomainCatalogVersionsForTest();
   });
 
   test("renders title 'Kasir'", async () => {
@@ -284,28 +276,9 @@ describe("POS page", () => {
   test("renders all products from all categories", async () => {
     render(() => <POS />);
     await screen.findByText("Kasir");
-    expect(screen.getByText("Kopi Susu")).toBeInTheDocument();
-    expect(screen.getByText("Teh Manis")).toBeInTheDocument();
-    expect(screen.getByText("Nasi Goreng")).toBeInTheDocument();
-  });
-
-  test("refetches active products when product asset attachment is ready", async () => {
-    const { getActiveProductsByCategory } = await import("~/db/orders");
-
-    render(() => <POS />);
-    await screen.findByText("Kasir");
-    expect(getActiveProductsByCategory).toHaveBeenCalledTimes(1);
-
-    notifyAssetAttachmentReady({
-      assetId: "asset-1",
-      entityId: "product-1",
-      entityType: "product",
-      field: "image_asset_id",
-    });
-
-    await waitFor(() =>
-      expect(getActiveProductsByCategory).toHaveBeenCalledTimes(2)
-    );
+    expect(await screen.findByText("Kopi Susu")).toBeInTheDocument();
+    expect(await screen.findByText("Teh Manis")).toBeInTheDocument();
+    expect(await screen.findByText("Nasi Goreng")).toBeInTheDocument();
   });
 
   test("filters products by category", async () => {
@@ -362,7 +335,6 @@ describe("POS page", () => {
           categoryId: "cat-1",
           createdAt: "2026-01-01T00:00:00.000Z",
           id: "product-1",
-          imageUrl: null,
           isActive: true,
           merchantId: "merchant-1",
           name: "Kopi Susu",
@@ -422,7 +394,6 @@ describe("POS page", () => {
           categoryId: "cat-1",
           createdAt: "2026-01-01T00:00:00.000Z",
           id: "product-1",
-          imageUrl: null,
           isActive: true,
           merchantId: "merchant-1",
           name: "Kopi Susu",

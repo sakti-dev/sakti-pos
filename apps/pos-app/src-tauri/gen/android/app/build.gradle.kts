@@ -53,6 +53,19 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/main/java")
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/main/java")
+        }
+        getByName("test") {
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/test/java")
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/test/java")
+        }
+    }
 }
 
 rust {
@@ -66,6 +79,7 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")

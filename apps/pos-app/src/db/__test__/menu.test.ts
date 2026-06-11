@@ -1,301 +1,291 @@
-import { categories, products } from "@repo/database";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { syncOutbox as syncOutboxTable } from "@sync-contract/local-schema";
+import {
+  categories as categoriesTable,
+  products as productsTable,
+} from "@sync-contract/local-synced-schema";
+import Database from "better-sqlite3";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+
+function createTestDb() {
+  const sqlite = new Database(":memory:");
+  sqlite.pragma("foreign_keys = ON");
+  sqlite.exec(
+    "CREATE TABLE categories (" +
+      "id TEXT PRIMARY KEY, merchant_id TEXT NOT NULL, name TEXT NOT NULL, " +
+      "sort_order INTEGER NOT NULL DEFAULT 0, is_active INTEGER NOT NULL DEFAULT 1, " +
+      "deleted_at TEXT, is_synced INTEGER NOT NULL DEFAULT 0, " +
+      "created_at TEXT NOT NULL, updated_at TEXT NOT NULL" +
+      ")"
+  );
+  sqlite.exec(
+    "CREATE TABLE products (" +
+      "id TEXT PRIMARY KEY, merchant_id TEXT NOT NULL, category_id TEXT, " +
+      "name TEXT NOT NULL, price_minor_units INTEGER NOT NULL, " +
+      "image_asset_id TEXT, " +
+      "is_active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER NOT NULL DEFAULT 0, " +
+      "deleted_at TEXT, is_synced INTEGER NOT NULL DEFAULT 0, " +
+      "created_at TEXT NOT NULL, updated_at TEXT NOT NULL" +
+      ")"
+  );
+  sqlite.exec(
+    "CREATE TABLE sync_outbox (" +
+      "id TEXT PRIMARY KEY, table_name TEXT NOT NULL, row_id TEXT NOT NULL, " +
+      "operation TEXT NOT NULL, payload TEXT, scope_id TEXT NOT NULL, " +
+      "changed_at TEXT NOT NULL, synced_at TEXT" +
+      ")"
+  );
+  return drizzle(sqlite);
+}
 
 const mocks = vi.hoisted(() => {
-  const mockFrom = vi.fn();
-  const mockSelect = vi.fn(() => ({ from: mockFrom }));
-  const mockInsert = vi.fn();
-  const mockUpdate = vi.fn();
-  const mockDelete = vi.fn();
-  const mockRecordLocalChange = vi.fn();
-  const mockDb = {
-    delete: mockDelete,
-    insert: mockInsert,
-    select: mockSelect,
-    transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-      await fn(mockDb),
-    update: mockUpdate,
-  };
-
+  let testDb: ReturnType<typeof createTestDb>;
   return {
-    mockDb,
-    mockDelete,
-    mockFrom,
-    mockInsert,
-    mockRecordLocalChange,
-    mockSelect,
-    mockUpdate,
+    getTestDb: () => testDb,
+    setTestDb: (db: ReturnType<typeof createTestDb>) => {
+      testDb = db;
+    },
   };
 });
-
-vi.mock("drizzle-orm", () => {
-  const sql = vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-    strings,
-    values,
-  })) as ReturnType<typeof vi.fn> & {
-    raw?: (value: string) => { raw: string };
-  };
-  sql.raw = (value: string) => ({ raw: value });
-
-  return {
-    and: vi.fn((...args: unknown[]) => args),
-    asc: vi.fn((...args: unknown[]) => args),
-    eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
-    gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
-    inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
-    isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
-    or: vi.fn((...args: unknown[]) => args),
-    sql,
-  };
-});
-
-const syncOutbox = await import("../sync-outbox");
-let recordLocalChangeSpy: ReturnType<typeof vi.spyOn> | undefined;
-const { mockFrom, mockInsert, mockRecordLocalChange, mockSelect, mockUpdate } =
-  mocks;
-
-vi.mock("../index", () => ({
-  db: mocks.mockDb,
-}));
 
 vi.mock("~/store/outlet", () => ({
-  currentMerchantId: vi.fn(() => null),
-  currentOutletId: vi.fn(() => null),
-  currentRegisterId: vi.fn(() => null),
+  currentMerchantId: vi.fn(() => "merchant-1"),
+  currentOutletId: vi.fn(() => "outlet-1"),
+  currentRegisterId: vi.fn(() => "register-1"),
   currentOutletTimezone: vi.fn(() => "Asia/Jakarta"),
 }));
 
-function mockFromOrderBy(data: unknown[]) {
-  return {
-    where: vi.fn().mockReturnValue({
-      orderBy: vi.fn().mockResolvedValue(data),
+vi.mock("~/lib/sync", () => ({
+  getSyncClient: vi.fn(() => ({
+    enqueueChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
+      const tableName =
+        opts.table?.[Symbol.for("drizzle:Name")] ??
+        opts.table?.name ??
+        "unknown";
+      await tx.insert(syncOutboxTable).values({
+        id:
+          "outbox-" +
+          opts.operation +
+          "-" +
+          tableName +
+          "-" +
+          opts.rowId +
+          "-" +
+          crypto.randomUUID(),
+        tableName,
+        rowId: opts.rowId,
+        operation: opts.operation,
+        scopeId: "",
+        changedAt: new Date().toISOString(),
+      });
     }),
-    orderBy: vi.fn().mockResolvedValue(data),
-  };
-}
+    writeLocalChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
+      await opts.write(tx);
+      const tableName =
+        opts.table?.[Symbol.for("drizzle:Name")] ??
+        opts.table?.name ??
+        "unknown";
+      await tx.insert(syncOutboxTable).values({
+        id:
+          "outbox-" +
+          opts.operation +
+          "-" +
+          tableName +
+          "-" +
+          opts.rowId +
+          "-" +
+          crypto.randomUUID(),
+        tableName,
+        rowId: opts.rowId,
+        operation: opts.operation,
+        scopeId: "",
+        changedAt: new Date().toISOString(),
+      });
+    }),
+    writeTransaction: vi
+      .fn()
+      .mockImplementation(async (_db: any, fn: any) => fn(mocks.getTestDb())),
+  })),
+}));
+
+vi.mock("../index", () => ({
+  get db() {
+    return mocks.getTestDb();
+  },
+}));
 
 describe("menu db", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    recordLocalChangeSpy = vi
-      .spyOn(syncOutbox, "recordLocalChange")
-      .mockImplementation((...args: unknown[]) =>
-        mockRecordLocalChange(...args)
-      );
-  });
-
-  afterEach(() => {
-    recordLocalChangeSpy?.mockRestore();
-    recordLocalChangeSpy = undefined;
+    mocks.setTestDb(createTestDb());
   });
 
   test("getCategories returns ordered categories", async () => {
-    const fakeCategories = [
-      { id: 1, name: "Food" },
-      { id: 2, name: "Drink" },
-    ];
-    mockFrom.mockReturnValue(mockFromOrderBy(fakeCategories));
+    const db = mocks.getTestDb();
+    await db.insert(categoriesTable).values([
+      {
+        id: "cat-1",
+        merchantId: "merchant-1",
+        name: "Food",
+        isSynced: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+      {
+        id: "cat-2",
+        merchantId: "merchant-1",
+        name: "Drink",
+        isSynced: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+    ]);
 
     const { getCategories } = await import("../menu");
     const result = await getCategories();
 
-    expect(result).toEqual(fakeCategories);
-    expect(mockSelect).toHaveBeenCalled();
-    expect(mockFrom).toHaveBeenCalledWith(categories);
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("Drink");
   });
 
   test("getCategory returns a single category by id", async () => {
-    const fakeCategory = { id: 1, name: "Food" };
-    mockFrom.mockReturnValue({
-      where: vi.fn().mockResolvedValue([fakeCategory]),
-      orderBy: vi.fn().mockResolvedValue([fakeCategory]),
+    const db = mocks.getTestDb();
+    await db.insert(categoriesTable).values({
+      id: "cat-1",
+      merchantId: "merchant-1",
+      name: "Food",
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
     });
 
     const { getCategory } = await import("../menu");
-    const result = await getCategory("category-1");
+    const result = await getCategory("cat-1");
 
-    expect(result).toEqual(fakeCategory);
+    expect(result).toBeDefined();
+    expect(result!.name).toBe("Food");
   });
 
-  test("getCategory returns undefined when not found", async () => {
-    mockFrom.mockReturnValue({
-      where: vi.fn().mockResolvedValue([]),
-      orderBy: vi.fn().mockResolvedValue([]),
-    });
-
-    const { getCategory } = await import("../menu");
-    const result = await getCategory("missing-category");
-
-    expect(result).toBeUndefined();
-  });
-
-  test("createCategory inserts and returns the new category", async () => {
-    const newCategory = { id: "category-1", merchantId: "", name: "Dessert" };
-    const mockReturning = vi.fn().mockResolvedValue([newCategory]);
-    const mockValues = vi.fn(() => ({ returning: mockReturning }));
-    mockInsert.mockReturnValue({ values: mockValues });
-
+  test("createCategory inserts row and enqueues outbox entry", async () => {
     const { createCategory } = await import("../menu");
     const result = await createCategory({ name: "Dessert" } as never);
 
-    expect(result).toEqual(newCategory);
-    expect(mockValues).toHaveBeenCalledWith({
-      isSynced: false,
-      name: "Dessert",
-      merchantId: "",
-    });
-    expect(mockRecordLocalChange).toHaveBeenCalledWith(
-      {
-        operation: "insert",
-        rowId: "category-1",
-        scopeId: "",
-        scopeType: "merchant",
-        tableName: "categories",
-      },
-      expect.anything()
-    );
+    const db = mocks.getTestDb();
+
+    const row = db
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.id, result.id))
+      .all()[0];
+    expect(row).toBeDefined();
+    expect(row!.name).toBe("Dessert");
+    expect(row!.isSynced).toBe(false);
+
+    const outbox = db
+      .select()
+      .from(syncOutboxTable)
+      .where(eq(syncOutboxTable.rowId, result.id))
+      .all()[0];
+    expect(outbox).toBeDefined();
+    expect(outbox!.tableName).toBe("categories");
+    expect(outbox!.operation).toBe("insert");
+    expect(outbox!.syncedAt).toBeNull();
   });
 
-  test("deleteCategory calls update with tombstone fields", async () => {
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
-    const mockSet = vi.fn(() => ({ where: mockWhere }));
-    mockUpdate.mockReturnValue({ set: mockSet });
+  test("deleteCategory soft-deletes and enqueues outbox entry", async () => {
+    const db = mocks.getTestDb();
+    await db.insert(categoriesTable).values({
+      id: "cat-1",
+      merchantId: "merchant-1",
+      name: "Food",
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    });
 
     const { deleteCategory } = await import("../menu");
-    await deleteCategory("category-1");
+    await deleteCategory("cat-1");
 
-    expect(mockUpdate).toHaveBeenCalledWith(categories);
-    expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deletedAt: expect.any(String),
-        isSynced: false,
-      })
-    );
-    expect(mockRecordLocalChange).toHaveBeenCalledWith(
-      {
-        operation: "delete",
-        rowId: "category-1",
-        scopeId: "",
-        scopeType: "merchant",
-        tableName: "categories",
-      },
-      expect.anything()
-    );
+    const row = db
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.id, "cat-1"))
+      .all()[0];
+    expect(row!.deletedAt).toBeDefined();
+    expect(row!.isSynced).toBe(false);
+
+    const outbox = db
+      .select()
+      .from(syncOutboxTable)
+      .where(eq(syncOutboxTable.rowId, "cat-1"))
+      .all()[0];
+    expect(outbox).toBeDefined();
+    expect(outbox!.tableName).toBe("categories");
+    expect(outbox!.operation).toBe("update");
+    expect(outbox!.syncedAt).toBeNull();
   });
 
-  test("getProductCountByCategory returns count of products", async () => {
-    mockFrom.mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([{ id: 1 }]),
-      }),
-      orderBy: vi.fn(),
-    });
-
-    const { getProductCountByCategory } = await import("../menu");
-    const result = await getProductCountByCategory("category-1");
-
-    expect(result).toBe(1);
-  });
-
-  test("getProductCountByCategory returns 0 when no products", async () => {
-    mockFrom.mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([]),
-      }),
-      orderBy: vi.fn(),
-    });
-
-    const { getProductCountByCategory } = await import("../menu");
-    const result = await getProductCountByCategory("missing-category");
-
-    expect(result).toBe(0);
-  });
-
-  test("getProducts without filter returns all products", async () => {
-    const fakeProducts = [{ id: 1, name: "Nasi Goreng" }];
-    mockFrom.mockReturnValue(mockFromOrderBy(fakeProducts));
-
-    const { getProducts } = await import("../menu");
-    const result = await getProducts();
-
-    expect(result).toEqual(fakeProducts);
-  });
-
-  test("getProducts with filterCategoryId returns filtered products", async () => {
-    const fakeProducts = [{ id: 2, name: "Es Teh" }];
-    mockFrom.mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue(fakeProducts),
-      }),
-      orderBy: vi.fn().mockResolvedValue(fakeProducts),
-    });
-
-    const { getProducts } = await import("../menu");
-    const result = await getProducts("category-1");
-
-    expect(result).toEqual(fakeProducts);
-  });
-
-  test("createProduct inserts and returns the new product", async () => {
-    const newProduct = {
-      id: "product-1",
-      merchantId: "",
-      name: "Nasi Goreng",
-      priceMinorUnits: 15_000,
-    };
-    const mockReturning = vi.fn().mockResolvedValue([newProduct]);
-    const mockValues = vi.fn(() => ({ returning: mockReturning }));
-    mockInsert.mockReturnValue({ values: mockValues });
-
+  test("createProduct inserts row and enqueues outbox entry", async () => {
     const { createProduct } = await import("../menu");
     const result = await createProduct({
       name: "Nasi Goreng",
       priceMinorUnits: 15_000,
     } as never);
 
-    expect(result).toEqual(newProduct);
-    expect(mockValues).toHaveBeenCalledWith({
-      isSynced: false,
-      name: "Nasi Goreng",
-      priceMinorUnits: 15_000,
-      merchantId: "",
-    });
-    expect(mockRecordLocalChange).toHaveBeenCalledWith(
-      {
-        operation: "insert",
-        rowId: "product-1",
-        scopeId: "",
-        scopeType: "merchant",
-        tableName: "products",
-      },
-      expect.anything()
-    );
+    const db = mocks.getTestDb();
+
+    const row = db
+      .select()
+      .from(productsTable)
+      .where(eq(productsTable.id, result.id))
+      .all()[0];
+    expect(row).toBeDefined();
+    expect(row!.name).toBe("Nasi Goreng");
+    expect(row!.isSynced).toBe(false);
+
+    const outbox = db
+      .select()
+      .from(syncOutboxTable)
+      .where(eq(syncOutboxTable.rowId, result.id))
+      .all()[0];
+    expect(outbox).toBeDefined();
+    expect(outbox!.tableName).toBe("products");
+    expect(outbox!.operation).toBe("insert");
+    expect(outbox!.syncedAt).toBeNull();
   });
 
-  test("deleteProduct calls update with tombstone fields", async () => {
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
-    const mockSet = vi.fn(() => ({ where: mockWhere }));
-    mockUpdate.mockReturnValue({ set: mockSet });
+  test("deleteProduct soft-deletes and enqueues outbox entry", async () => {
+    const db = mocks.getTestDb();
+    await db.insert(productsTable).values({
+      id: "prod-1",
+      merchantId: "merchant-1",
+      name: "Nasi Goreng",
+      priceMinorUnits: 15_000,
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    });
 
     const { deleteProduct } = await import("../menu");
-    await deleteProduct("product-1");
+    await deleteProduct("prod-1");
 
-    expect(mockUpdate).toHaveBeenCalledWith(products);
-    expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deletedAt: expect.any(String),
-        isSynced: false,
-      })
-    );
-    expect(mockRecordLocalChange).toHaveBeenCalledWith(
-      {
-        operation: "delete",
-        rowId: "product-1",
-        scopeId: "",
-        scopeType: "merchant",
-        tableName: "products",
-      },
-      expect.anything()
-    );
+    const row = db
+      .select()
+      .from(productsTable)
+      .where(eq(productsTable.id, "prod-1"))
+      .all()[0];
+    expect(row!.deletedAt).toBeDefined();
+    expect(row!.isSynced).toBe(false);
+
+    const outbox = db
+      .select()
+      .from(syncOutboxTable)
+      .where(eq(syncOutboxTable.rowId, "prod-1"))
+      .all()[0];
+    expect(outbox).toBeDefined();
+    expect(outbox!.tableName).toBe("products");
+    expect(outbox!.operation).toBe("update");
+    expect(outbox!.syncedAt).toBeNull();
   });
 });

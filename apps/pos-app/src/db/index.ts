@@ -1,71 +1,25 @@
-import {
-  assets,
-  categories,
-  localAssetCache,
-  merchants,
-  orderItems,
-  orders,
-  outletProducts,
-  outlets,
-  pendingAssetProcessingJobs,
-  pendingProductPhotoJobs,
-  products,
-  registers,
-  staff,
-  syncCursors,
-  syncMeta,
-  syncOutbox,
-} from "@repo/database";
+/** biome-ignore-all lint/performance/noNamespaceImport: re-exports namespace for TABLE registry */
+import * as localSchema from "@sync-contract/local-schema";
+import * as localSyncedSchema from "@sync-contract/local-synced-schema";
 import { invoke } from "@tauri-apps/api/core";
-import { drizzle } from "drizzle-orm/sqlite-proxy";
+import { createTauriDrizzleDatabase } from "baresync/db";
 import { createLogger } from "~/lib/logger";
 
-const schema = {
-  assets,
-  categories,
-  localAssetCache,
-  pendingAssetProcessingJobs,
-  pendingProductPhotoJobs,
-  merchants,
-  orderItems,
-  orders,
-  outletProducts,
-  outlets,
-  products,
-  registers,
-  staff,
-  syncCursors,
-  syncMeta,
-  syncOutbox,
+export const TABLE = {
+  ...localSchema,
+  ...localSyncedSchema,
 };
 
 const dbLogger = createLogger({ domain: "DB", module: "db" });
 
-interface SqlRow {
-  columns: string[];
-  values: unknown[];
-}
-
-export const db = drizzle(
-  async (sql, params, method) => {
-    try {
-      const rows = await invoke<SqlRow[]>("run_sql", {
-        query: { sql, params, method },
-      });
-
-      if (rows.length === 0 && method === "get") {
-        return {} as { rows: unknown[] };
-      }
-
-      return method === "get"
-        ? { rows: rows[0]?.values ?? [] }
-        : { rows: rows.map((r) => r.values) };
-    } catch (err) {
-      dbLogger.error("query_failed", err, { method, params, sql });
-      throw err;
-    }
+export const db = createTauriDrizzleDatabase({
+  invoke,
+  schema: TABLE,
+  onQueryError: (error, query) => {
+    dbLogger.error("query_failed", error, {
+      method: query.method,
+      params: query.params,
+      sql: query.sql,
+    });
   },
-  { schema }
-);
-
-export type DatabaseType = typeof db;
+});

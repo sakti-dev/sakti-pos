@@ -1,21 +1,23 @@
-import { staff } from "@repo/database";
 import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
+import { getSyncClient } from "~/lib/sync";
 import { currentMerchantId } from "~/store/outlet";
-import { db } from "./index";
-import { recordLocalChange } from "./sync-outbox";
+import { db, TABLE } from "./index";
 
-export type StaffMember = typeof staff.$inferSelect;
-export type NewStaffMember = typeof staff.$inferInsert;
+type StaffMember = typeof TABLE.staff.$inferSelect;
+type NewStaffMember = typeof TABLE.staff.$inferInsert;
 
 export async function getStaff(): Promise<StaffMember[]> {
   const merchantId = currentMerchantId();
   const conditions: ReturnType<typeof eq>[] = [];
   if (merchantId) {
-    conditions.push(eq(staff.merchantId, merchantId));
+    conditions.push(eq(TABLE.staff.merchantId, merchantId));
   }
 
-  const query = db.select().from(staff).orderBy(staff.name, staff.id);
+  const query = db
+    .select()
+    .from(TABLE.staff)
+    .orderBy(TABLE.staff.name, TABLE.staff.id);
   if (conditions.length > 0) {
     query.where(and(...conditions));
   }
@@ -25,7 +27,10 @@ export async function getStaff(): Promise<StaffMember[]> {
 export async function getStaffMember(
   id: string
 ): Promise<StaffMember | undefined> {
-  const [row] = await db.select().from(staff).where(eq(staff.id, id));
+  const [row] = await db
+    .select()
+    .from(TABLE.staff)
+    .where(eq(TABLE.staff.id, id));
   return row;
 }
 
@@ -35,12 +40,12 @@ export async function getStaffByCloudUserId(
 ): Promise<StaffMember | undefined> {
   const [row] = await db
     .select()
-    .from(staff)
+    .from(TABLE.staff)
     .where(
       and(
-        eq(staff.merchantId, merchantId),
-        eq(staff.cloudUserId, cloudUserId),
-        eq(staff.isActive, true)
+        eq(TABLE.staff.merchantId, merchantId),
+        eq(TABLE.staff.cloudUserId, cloudUserId),
+        eq(TABLE.staff.isActive, true)
       )
     )
     .limit(1);
@@ -50,18 +55,17 @@ export async function getStaffByCloudUserId(
 export async function createStaffMember(
   data: NewStaffMember
 ): Promise<StaffMember> {
-  return await db.transaction(async (tx) => {
-    const [row] = await tx.insert(staff).values(data).returning();
-    await recordLocalChange(
-      {
-        operation: "insert",
-        rowId: row.id,
-        scopeId: row.merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
-      },
-      tx
-    );
+  const now = dayjs().toISOString();
+  return await getSyncClient().writeTransaction(db, async (tx) => {
+    const [row] = await tx
+      .insert(TABLE.staff)
+      .values({ ...data, createdAt: now, updatedAt: now })
+      .returning();
+    await getSyncClient().enqueueChange(tx, {
+      operation: "insert",
+      rowId: row.id,
+      table: TABLE.staff,
+    });
     return row;
   });
 }
@@ -70,22 +74,17 @@ export async function updateStaffMember(
   id: string,
   data: Partial<Omit<NewStaffMember, "id">>
 ): Promise<StaffMember> {
-  return await db.transaction(async (tx) => {
+  return await getSyncClient().writeTransaction(db, async (tx) => {
     const [row] = await tx
-      .update(staff)
+      .update(TABLE.staff)
       .set({ ...data, updatedAt: dayjs().toISOString(), isSynced: false })
-      .where(eq(staff.id, id))
+      .where(eq(TABLE.staff.id, id))
       .returning();
-    await recordLocalChange(
-      {
-        operation: "update",
-        rowId: row.id,
-        scopeId: row.merchantId,
-        scopeType: "merchant",
-        tableName: "staff",
-      },
-      tx
-    );
+    await getSyncClient().enqueueChange(tx, {
+      operation: "update",
+      rowId: row.id,
+      table: TABLE.staff,
+    });
     return row;
   });
 }
@@ -93,16 +92,16 @@ export async function updateStaffMember(
 export async function countActiveManagers(): Promise<number> {
   const merchantId = currentMerchantId();
   const conditions = [
-    inArray(staff.role, ["manager", "owner"]),
-    eq(staff.isActive, true),
+    inArray(TABLE.staff.role, ["manager", "owner"]),
+    eq(TABLE.staff.isActive, true),
   ];
   if (merchantId) {
-    conditions.push(eq(staff.merchantId, merchantId));
+    conditions.push(eq(TABLE.staff.merchantId, merchantId));
   }
 
   const [row] = await db
     .select({ count: count() })
-    .from(staff)
+    .from(TABLE.staff)
     .where(and(...conditions));
   return row?.count ?? 0;
 }
@@ -112,8 +111,10 @@ export async function getOwnerStaff(
 ): Promise<StaffMember | undefined> {
   const [row] = await db
     .select()
-    .from(staff)
-    .where(and(eq(staff.merchantId, merchantId), eq(staff.role, "owner")))
+    .from(TABLE.staff)
+    .where(
+      and(eq(TABLE.staff.merchantId, merchantId), eq(TABLE.staff.role, "owner"))
+    )
     .limit(1);
   return row;
 }

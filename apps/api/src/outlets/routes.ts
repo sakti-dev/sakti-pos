@@ -3,23 +3,18 @@ import {
   outlets,
   registers,
   userMerchants,
-} from "@repo/database/api-schema";
-import {
-  OutletCreateRequest,
-  OutletCreateResponse,
-  OutletListRequest,
-  OutletListResponse,
-  OutletUpdateRequest,
-  OutletUpdateResponse,
-} from "@repo/protobuf/outlets";
+} from "@sync-contract/api-schema";
 import { and, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { authenticated } from "../lib/authenticated";
 import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
-import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
-import { encodeOutlet, encodeRegister } from "../protobuf/domain";
+import {
+  OutletCreateRequest,
+  OutletListRequest,
+  OutletUpdateRequest,
+} from "../outlets/outlets.model";
 
 function generateShortId(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -42,18 +37,66 @@ async function verifyMerchantAccess(
   return !!row;
 }
 
+function encodeOutlet(row: {
+  address: string | null;
+  createdAt?: string;
+  id: string;
+  isActive: boolean;
+  merchantId: string;
+  name: string;
+  receiptAddress: string | null;
+  receiptName: string | null;
+  timezone?: string | null;
+  updatedAt?: string;
+}) {
+  return {
+    id: row.id,
+    merchantId: row.merchantId,
+    name: row.name,
+    address: row.address,
+    timezone: row.timezone ?? "Asia/Jakarta",
+    isActive: row.isActive,
+    createdAt: row.createdAt ?? "",
+    updatedAt: row.updatedAt ?? "",
+    receiptName: row.receiptName,
+    receiptAddress: row.receiptAddress,
+  };
+}
+
+function encodeRegister(row: {
+  createdAt?: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  outletId: string;
+  pairingCode: string | null;
+  pairingExpiresAt: string | null;
+  shortId: string;
+  updatedAt?: string;
+}) {
+  return {
+    id: row.id,
+    outletId: row.outletId,
+    name: row.name,
+    shortId: row.shortId,
+    pairingCode: row.pairingCode,
+    pairingExpiresAt: row.pairingExpiresAt,
+    isActive: row.isActive,
+    createdAt: row.createdAt ?? "",
+    updatedAt: row.updatedAt ?? "",
+  };
+}
+
 export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
-  .use(tsProtoPlugin)
   .use(authenticated)
   .post(
     "/create",
     async ({ body, session, set }) => {
-      const payload = body as OutletCreateRequest;
       let merchantId: string;
       let name: string;
       try {
-        merchantId = requireNonEmptyString(payload.merchantId, "merchantId");
-        name = requireNonEmptyString(payload.name, "name", {
+        merchantId = requireNonEmptyString(body.merchantId, "merchantId");
+        name = requireNonEmptyString(body.name, "name", {
           minLength: 1,
           maxLength: 100,
         });
@@ -83,10 +126,11 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
           .values({
             merchantId,
             name,
-            address: payload.hasAddress ? payload.address : null,
-            receiptAddress: payload.hasAddress ? payload.address : null,
+            address: body.address ?? null,
+            receiptAddress: body.address ?? null,
             receiptName: merchant?.name ?? name,
-            timezone: payload.timezone || "Asia/Jakarta",
+            timezone: body.timezone || "Asia/Jakarta",
+            syncUpdatedAt: Date.now(),
             createdAt: now,
             updatedAt: now,
           })
@@ -98,6 +142,7 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
             outletId: createdOutlet.id,
             name: "Register 1",
             shortId: generateShortId(),
+            syncUpdatedAt: Date.now(),
             createdAt: now,
             updatedAt: now,
           })
@@ -113,45 +158,37 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
       };
     },
     {
-      proto: {
-        req: OutletCreateRequest,
-        res: OutletCreateResponse,
-      },
+      body: OutletCreateRequest,
     }
   )
   .post(
     "/list",
     async ({ body, session }) => {
-      const payload = body as OutletListRequest;
       throwIfFalse(
-        await verifyMerchantAccess(session.userId, payload.merchantId),
+        await verifyMerchantAccess(session.userId, body.merchantId),
         new ForbiddenRequestError()
       );
 
       const results = await db
         .select()
         .from(outlets)
-        .where(eq(outlets.merchantId, payload.merchantId));
+        .where(eq(outlets.merchantId, body.merchantId));
 
       return {
         outlets: results.map(encodeOutlet),
       };
     },
     {
-      proto: {
-        req: OutletListRequest,
-        res: OutletListResponse,
-      },
+      body: OutletListRequest,
     }
   )
   .post(
     "/update",
     async ({ body, session, set }) => {
-      const payload = body as OutletUpdateRequest;
       const [outlet] = await db
         .select()
         .from(outlets)
-        .where(eq(outlets.id, payload.id))
+        .where(eq(outlets.id, body.id))
         .limit(1);
 
       if (!outlet) {
@@ -169,19 +206,23 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
         const [result] = await tx
           .update(outlets)
           .set({
-            address: payload.hasAddress ? payload.address : outlet.address,
-            isActive: payload.hasIsActive ? payload.isActive : outlet.isActive,
-            name: payload.hasName ? payload.name : outlet.name,
-            receiptAddress: payload.hasReceiptAddress
-              ? payload.receiptAddress
-              : outlet.receiptAddress,
-            receiptName: payload.hasReceiptName
-              ? payload.receiptName
-              : outlet.receiptName,
-            timezone: payload.hasTimezone ? payload.timezone : outlet.timezone,
+            address: body.address === undefined ? outlet.address : body.address,
+            isActive:
+              body.isActive === undefined ? outlet.isActive : body.isActive,
+            name: body.name === undefined ? outlet.name : body.name,
+            receiptAddress:
+              body.receiptAddress === undefined
+                ? outlet.receiptAddress
+                : body.receiptAddress,
+            receiptName:
+              body.receiptName === undefined
+                ? outlet.receiptName
+                : body.receiptName,
+            timezone:
+              body.timezone === undefined ? outlet.timezone : body.timezone,
             updatedAt: now,
           })
-          .where(eq(outlets.id, payload.id))
+          .where(eq(outlets.id, body.id))
           .returning();
 
         if (!result) {
@@ -201,9 +242,6 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
       };
     },
     {
-      proto: {
-        req: OutletUpdateRequest,
-        res: OutletUpdateResponse,
-      },
+      body: OutletUpdateRequest,
     }
   );

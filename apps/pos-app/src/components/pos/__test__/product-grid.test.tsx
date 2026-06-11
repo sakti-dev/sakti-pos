@@ -9,14 +9,8 @@ vi.mock("~/store/cart", () => ({
   addToCart: vi.fn(),
 }));
 
-vi.mock("~/lib/assets/adapters/product-images", () => ({
-  productImageAdapter: {
-    resolveCachedImageUrl: vi.fn(() => Promise.resolve(null)),
-    getPendingPreviewUrl: vi.fn(() => Promise.resolve(null)),
-    startEventListeners: vi.fn(() => Promise.resolve()),
-    stopEventListeners: vi.fn(),
-    useImageUrl: vi.fn(() => () => null),
-  },
+vi.mock("~/lib/assets/cache", () => ({
+  resolveAssetUrl: vi.fn(() => Promise.resolve(null)),
 }));
 
 const user = userEvent.setup();
@@ -28,7 +22,6 @@ const mockProducts: ProductWithCategory[] = [
     priceMinorUnits: 15_000,
     categoryId: "category-1",
     categoryName: "Makanan",
-    imageUrl: null,
     isActive: true,
     merchantId: "merchant-1",
     sortOrder: 1,
@@ -43,7 +36,6 @@ const mockProducts: ProductWithCategory[] = [
     priceMinorUnits: 5000,
     categoryId: "category-2",
     categoryName: "Minuman",
-    imageUrl: null,
     isActive: true,
     merchantId: "merchant-1",
     sortOrder: 1,

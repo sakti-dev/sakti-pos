@@ -1,12 +1,4 @@
-import { merchants, userMerchants, users } from "@repo/database/api-schema";
-import {
-  AuthLoginRequest,
-  AuthRegisterRequest,
-  AuthResponse,
-  AuthSessionResponse,
-  LogoutResponse,
-} from "@repo/protobuf/auth";
-import { Empty } from "@repo/protobuf/common";
+import { merchants, userMerchants, users } from "@sync-contract/api-schema";
 import type { OAuth2Tokens } from "arctic";
 import { eq } from "drizzle-orm";
 import { Elysia } from "elysia";
@@ -21,13 +13,12 @@ import {
   getCookie,
   getSessionFromRequest,
 } from "../lib/session";
-import { tsProtoPlugin } from "../lib/ts-proto-plugin";
 import {
   BadRequestError,
   requireEmail,
   requireNonEmptyString,
 } from "../lib/validation";
-import { encodeApiUser, encodeSessionMerchant } from "../protobuf/domain";
+import { AuthLoginRequest, AuthRegisterRequest } from "./auth.model";
 
 const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_HASH_LENGTH = 256;
@@ -37,7 +28,7 @@ const DUMMY_HASH =
   "0000000000000000000000000000000000000000000000000000000000000000000";
 
 const GOOGLE_STATE_COOKIE = "google_oauth_state";
-const GOOGLE_CODE_VERIFIER_COOKIE = "google_code_verifier";
+const GOOGLE_CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
 
 async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -113,20 +104,18 @@ function setCookies(
 }
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
-  .use(tsProtoPlugin)
   .post(
     "/register",
     async ({ body, set }) => {
-      const request = body as AuthRegisterRequest;
       let email: string;
       let password: string;
       let name: string;
       try {
-        email = requireEmail(request.email);
-        password = requireNonEmptyString(request.password, "password", {
+        email = requireEmail(body.email);
+        password = requireNonEmptyString(body.password, "password", {
           minLength: 8,
         });
-        name = requireNonEmptyString(request.name, "name", {
+        name = requireNonEmptyString(body.name, "name", {
           minLength: 1,
           maxLength: 100,
         });
@@ -167,25 +156,21 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
       return {
         sessionToken: token,
-        user: encodeApiUser(user),
+        user: { id: user.id, email: user.email, name: user.name },
       };
     },
     {
-      proto: {
-        req: AuthRegisterRequest,
-        res: AuthResponse,
-      },
+      body: AuthRegisterRequest,
     }
   )
   .post(
     "/login",
     async ({ body, set }) => {
-      const request = body as AuthLoginRequest;
       let email: string;
       let password: string;
       try {
-        email = requireEmail(request.email);
-        password = requireNonEmptyString(request.password, "password");
+        email = requireEmail(body.email);
+        password = requireNonEmptyString(body.password, "password");
       } catch (error) {
         if (error instanceof BadRequestError) {
           set.status = error.status;
@@ -217,14 +202,11 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
       return {
         sessionToken: token,
-        user: encodeApiUser(user),
+        user: { id: user.id, email: user.email, name: user.name },
       };
     },
     {
-      proto: {
-        req: AuthLoginRequest,
-        res: AuthResponse,
-      },
+      body: AuthLoginRequest,
     }
   )
   .post(
@@ -237,19 +219,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       setCookies(set, [createBlankCookie()]);
       return { success: true };
     },
-    {
-      proto: {
-        req: Empty,
-        res: LogoutResponse,
-      },
-    }
+    {}
   )
   .post(
     "/session",
     async ({ request }) => {
       const session = await getSessionFromRequest(request);
       if (!session) {
-        return { hasUser: false, merchants: [] };
+        return { hasUser: false, merchants: [], user: undefined };
       }
 
       const [user] = await db
@@ -274,16 +251,17 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
       return {
         hasUser: user != null,
-        merchants: merchantRows.map(encodeSessionMerchant),
-        user: user ? encodeApiUser(user) : undefined,
+        merchants: merchantRows.map((row) => ({
+          merchantId: row.merchantId,
+          name: row.name,
+          role: row.role,
+        })),
+        user: user
+          ? { id: user.id, email: user.email, name: user.name }
+          : undefined,
       };
     },
-    {
-      proto: {
-        req: Empty,
-        res: AuthSessionResponse,
-      },
-    }
+    {}
   )
   .get("/google", ({ set }) => {
     const state = generateState();

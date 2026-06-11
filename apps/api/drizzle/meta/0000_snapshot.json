@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "21d811f6-3e88-4f29-8d28-7089a1981064",
+  "id": "9ba1e9df-b8fa-4799-b05a-2d10b8bd801f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "assets": {
@@ -21,11 +21,18 @@
           "notNull": true,
           "autoincrement": false
         },
+        "job_id": {
+          "name": "job_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "object_key": {
           "name": "object_key",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "original_filename": {
@@ -46,14 +53,14 @@
           "name": "byte_size",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "content_hash": {
           "name": "content_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "kind": {
@@ -98,6 +105,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -111,23 +125,16 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
       "indexes": {
-        "assets_object_key_unique": {
-          "name": "assets_object_key_unique",
+        "assets_scope_sync_idx": {
+          "name": "assets_scope_sync_idx",
           "columns": [
-            "object_key"
+            "merchant_id",
+            "sync_updated_at"
           ],
-          "isUnique": true
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -137,19 +144,6 @@
           "tableTo": "merchants",
           "columnsFrom": [
             "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "assets_created_by_user_id_users_id_fk": {
-          "name": "assets_created_by_user_id_users_id_fk",
-          "tableFrom": "assets",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
           ],
           "columnsTo": [
             "id"
@@ -202,6 +196,20 @@
           "autoincrement": false,
           "default": true
         },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -215,24 +223,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "categories_scope_sync_idx": {
+          "name": "categories_scope_sync_idx",
+          "columns": [
+            "merchant_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "categories_merchant_id_merchants_id_fk": {
           "name": "categories_merchant_id_merchants_id_fk",
@@ -276,6 +278,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -289,17 +298,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "merchants_scope_sync_idx": {
+          "name": "merchants_scope_sync_idx",
+          "columns": [
+            "id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -371,6 +381,20 @@
           "notNull": true,
           "autoincrement": false
         },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -384,24 +408,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "order_items_scope_sync_idx": {
+          "name": "order_items_scope_sync_idx",
+          "columns": [
+            "outlet_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "order_items_order_id_orders_id_fk": {
           "name": "order_items_order_id_orders_id_fk",
@@ -507,6 +525,20 @@
           "notNull": true,
           "autoincrement": false
         },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -520,21 +552,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
       "indexes": {
@@ -544,6 +561,14 @@
             "order_number"
           ],
           "isUnique": true
+        },
+        "orders_scope_sync_idx": {
+          "name": "orders_scope_sync_idx",
+          "columns": [
+            "outlet_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -644,6 +669,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -657,17 +689,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "outlet_products_scope_sync_idx": {
+          "name": "outlet_products_scope_sync_idx",
+          "columns": [
+            "outlet_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "outlet_products_outlet_id_outlets_id_fk": {
           "name": "outlet_products_outlet_id_outlets_id_fk",
@@ -768,6 +801,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -781,17 +821,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "outlets_scope_sync_idx": {
+          "name": "outlets_scope_sync_idx",
+          "columns": [
+            "merchant_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "outlets_merchant_id_merchants_id_fk": {
           "name": "outlets_merchant_id_merchants_id_fk",
@@ -849,13 +890,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "image_url": {
-          "name": "image_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "image_asset_id": {
           "name": "image_asset_id",
           "type": "text",
@@ -879,6 +913,20 @@
           "autoincrement": false,
           "default": 0
         },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -892,24 +940,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "products_scope_sync_idx": {
+          "name": "products_scope_sync_idx",
+          "columns": [
+            "merchant_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "products_merchant_id_merchants_id_fk": {
           "name": "products_merchant_id_merchants_id_fk",
@@ -1022,6 +1064,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -1035,14 +1084,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
       "indexes": {
@@ -1059,6 +1100,14 @@
             "pairing_code"
           ],
           "isUnique": true
+        },
+        "registers_scope_sync_idx": {
+          "name": "registers_scope_sync_idx",
+          "columns": [
+            "outlet_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -1147,6 +1196,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "sync_updated_at": {
+          "name": "sync_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -1160,17 +1216,18 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "sync_updated_at": {
-          "name": "sync_updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "staff_scope_sync_idx": {
+          "name": "staff_scope_sync_idx",
+          "columns": [
+            "merchant_id",
+            "sync_updated_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "staff_merchant_id_merchants_id_fk": {
           "name": "staff_merchant_id_merchants_id_fk",
@@ -1178,19 +1235,6 @@
           "tableTo": "merchants",
           "columnsFrom": [
             "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "staff_cloud_user_id_users_id_fk": {
-          "name": "staff_cloud_user_id_users_id_fk",
-          "tableFrom": "staff",
-          "tableTo": "users",
-          "columnsFrom": [
-            "cloud_user_id"
           ],
           "columnsTo": [
             "id"
@@ -1247,38 +1291,38 @@
           "notNull": true,
           "autoincrement": false
         },
-        "response_json": {
-          "name": "response_json",
+        "status": {
+          "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "server_time": {
-          "name": "server_time",
+        "response_body": {
+          "name": "response_body",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
+        "completed_at": {
+          "name": "completed_at",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {
-        "sync_batch_requests_client_id_idempotency_key_unique": {
-          "name": "sync_batch_requests_client_id_idempotency_key_unique",
+        "sync_batch_requests_client_idemp_idx": {
+          "name": "sync_batch_requests_client_idemp_idx",
           "columns": [
             "client_id",
             "idempotency_key"

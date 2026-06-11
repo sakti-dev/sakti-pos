@@ -1,6 +1,6 @@
 import type { Accessor, JSX } from "solid-js";
-import { Show, splitProps } from "solid-js";
-import { productImageAdapter } from "~/lib/assets/adapters/product-images";
+import { createSignal, onMount, Show, splitProps } from "solid-js";
+import { resolveAssetUrl } from "~/lib/assets/cache";
 
 interface ImageBaseProps extends JSX.ImgHTMLAttributes<HTMLImageElement> {
   fallback?: JSX.Element;
@@ -43,10 +43,14 @@ interface ProductImageProps extends JSX.ImgHTMLAttributes<HTMLImageElement> {
 
 export function ProductImage(props: ProductImageProps) {
   const [local, imgProps] = splitProps(props, ["entityId", "imageAssetId"]);
+  const [url, setUrl] = createSignal<string | null>(null);
 
-  const imageUrl = productImageAdapter.useImageUrl(
-    () => local.imageAssetId,
-    () => local.entityId
-  );
-  return <ImageBase {...imgProps} imageUrl={imageUrl} />;
+  onMount(() => {
+    const assetId = local.imageAssetId;
+    if (assetId) {
+      resolveAssetUrl(assetId).then(setUrl);
+    }
+  });
+
+  return <ImageBase {...imgProps} imageUrl={url} />;
 }

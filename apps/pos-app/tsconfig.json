@@ -1,9 +1,25 @@
 {
   "extends": "@repo/typescript-config/solid.json",
   "compilerOptions": {
+    "skipLibCheck": true,
     "paths": {
       "~/*": ["./src/*"],
-      "@repo/database": ["../../packages/database/src/schema.ts"]
+      "@sync-contract/local-synced-schema": [
+        "../../packages/sync-contract/src/local-synced-schema.ts"
+      ],
+      "@sync-contract/api-schema": [
+        "../../packages/sync-contract/src/api-schema.ts"
+      ],
+      "@sync-contract/local-schema": [
+        "../../packages/sync-contract/src/local-schema.ts"
+      ],
+      "@sync-contract/api-synced-schema": [
+        "../../packages/sync-contract/src/api-synced-schema.ts"
+      ],
+      "@sync-contract/generated/*": [
+        "../../packages/sync-contract/generated/*"
+      ],
+      "@repo/api": ["../../apps/api/src/app.ts"]
     },
     "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
   },

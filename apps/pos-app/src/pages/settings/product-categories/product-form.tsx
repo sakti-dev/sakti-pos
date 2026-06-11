@@ -1,13 +1,6 @@
 import { createForm, Field, Form, getInput, reset } from "@formisch/solid";
 import { useNavigate, useParams } from "@solidjs/router";
-import {
-  createEffect,
-  createMemo,
-  createResource,
-  createSignal,
-  Show,
-} from "solid-js";
-import { toast } from "solid-sonner";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { FormTextField } from "~/components/form/form-text-field";
 import { ImageUpload } from "~/components/image-upload";
 import { Button } from "~/components/ui/button";
@@ -19,14 +12,18 @@ import {
   getProduct,
   updateProduct,
 } from "~/db/menu";
-import { productImageAdapter } from "~/lib/assets/adapters/product-images";
+import { resolveAssetUrl } from "~/lib/assets/cache";
 import { createImageUpload } from "~/lib/assets/image-upload";
-import { createAssetProcessingTarget } from "~/lib/assets/targets";
+import {
+  pluginCompressAsset,
+  pluginDeleteAsset,
+} from "~/lib/assets/plugin-bridge";
 import { createLogger } from "~/lib/logger";
 import {
   type ProductFormValues,
   ProductSchema,
 } from "~/lib/schema/product-form";
+import { useDrizzleQuery } from "~/lib/use-drizzle-query";
 import { currentMerchantId } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
@@ -36,10 +33,10 @@ export default function ProductForm() {
   const isEdit = () => !!params.id;
   const title = () => (isEdit() ? "Edit Produk" : "Tambah Produk");
 
-  const [categories] = createResource(getCategories);
-  const [product] = createResource(
-    () => (isEdit() ? params.id : undefined),
-    (id) => (id === undefined ? undefined : getProduct(id))
+  const categoriesQuery = useDrizzleQuery(["categories"], getCategories);
+  const productQuery = useDrizzleQuery(
+    () => (isEdit() ? ["product", params.id] : []),
+    () => (isEdit() ? getProduct(params.id!) : Promise.resolve(undefined))
   );
 
   const form = createForm({
@@ -55,19 +52,20 @@ export default function ProductForm() {
   const [initializedProductId, setInitializedProductId] = createSignal<
     string | null
   >(null);
-  const [savedImagePreviewUrl] = createResource(
-    () => imageAssetId(),
-    (assetId) => productImageAdapter.resolveCachedImageUrl(assetId)
+  const savedImagePreviewUrlQuery = useDrizzleQuery(
+    () => ["product-image-preview", imageAssetId()],
+    () =>
+      imageAssetId() ? resolveAssetUrl(imageAssetId()!) : Promise.resolve(null)
   );
-  const upload = createImageUpload({
-    existingAssetId: imageAssetId,
-    existingImageUrl: () => savedImagePreviewUrl() ?? null,
-    onClearExisting: () => setImageAssetId(null),
-    processingKind: "image:webp-thumbnail",
-  });
   const photoLogger = createLogger({
     domain: "PHOTO",
     module: "product-photo",
+  });
+
+  const upload = createImageUpload({
+    existingAssetId: imageAssetId,
+    existingImageUrl: () => savedImagePreviewUrlQuery.data() ?? null,
+    onClearExisting: () => setImageAssetId(null),
   });
 
   const canSubmit = createMemo(() => {
@@ -82,8 +80,8 @@ export default function ProductForm() {
   });
 
   createEffect(() => {
-    const data = product();
-    if (!(data && categories())) {
+    const data = productQuery.data();
+    if (!(data && categoriesQuery.data())) {
       return;
     }
     if (initializedProductId() === data.id) {
@@ -102,6 +100,93 @@ export default function ProductForm() {
     setInitializedProductId(data.id);
   });
 
+  async function handleEdit(
+    values: ProductFormValues,
+    merchantId: string
+  ): Promise<string | null> {
+    const hasNewImage = upload.hasStagedImage();
+    const oldImageAssetId = imageAssetId();
+    const updatedProduct = await updateProduct(
+      params.id ?? "",
+      {
+        name: values.name,
+        categoryId: values.categoryId,
+        priceMinorUnits: Number(values.price),
+        imageAssetId: imageAssetId(),
+      },
+      hasNewImage && upload.jobId() && upload.stagedSourcePath()
+        ? { jobId: upload.jobId()!, merchantId }
+        : undefined
+    );
+
+    const nextAssetId = updatedProduct.newImageAssetId ?? imageAssetId();
+    if (updatedProduct.newImageAssetId) {
+      setImageAssetId(nextAssetId);
+      if (oldImageAssetId && oldImageAssetId !== nextAssetId) {
+        try {
+          await pluginDeleteAsset({ assetPath: oldImageAssetId });
+        } catch (cleanupError) {
+          photoLogger.error("old_asset_delete_failed", cleanupError, {
+            oldImageAssetId,
+          });
+        }
+      }
+    }
+    photoLogger.info("product_updated", {
+      imageAssetId: nextAssetId,
+      productId: updatedProduct.id,
+    });
+    return nextAssetId;
+  }
+
+  async function handleCreate(
+    values: ProductFormValues,
+    merchantId: string
+  ): Promise<string | null> {
+    const hasNewImage = upload.hasStagedImage();
+    const createdProduct = await createProduct(
+      {
+        name: values.name,
+        categoryId: values.categoryId,
+        priceMinorUnits: Number(values.price),
+        imageAssetId: imageAssetId(),
+        merchantId,
+      },
+      hasNewImage && upload.jobId() && upload.stagedSourcePath()
+        ? { jobId: upload.jobId()!, merchantId }
+        : undefined
+    );
+
+    const nextAssetId = createdProduct.newImageAssetId ?? imageAssetId();
+    if (createdProduct.newImageAssetId) {
+      setImageAssetId(nextAssetId);
+    }
+    photoLogger.info("product_created", {
+      imageAssetId: nextAssetId,
+      productId: createdProduct.id,
+    });
+    return nextAssetId;
+  }
+
+  function triggerCompression(nextAssetId: string | null) {
+    const jobId = upload.jobId();
+    const stagedSourcePath = upload.stagedSourcePath();
+    if (
+      !(upload.hasStagedImage() && jobId && stagedSourcePath && nextAssetId)
+    ) {
+      return;
+    }
+    pluginCompressAsset({
+      assetId: nextAssetId,
+      jobId,
+      stagedSourcePath,
+      maxLongEdge: 400,
+      quality: 75,
+    }).catch((err: unknown) =>
+      photoLogger.error("compress_asset_failed", err, { jobId })
+    );
+  }
+
   const handleSave = async (values: ProductFormValues) => {
     try {
       const merchantId = currentMerchantId();
@@ -109,73 +194,23 @@ export default function ProductForm() {
         throw new Error("Merchant belum dipilih");
       }
 
-      const nextImageAssetId = imageAssetId();
-      const hasStagedImage = upload.hasStagedImage();
-      const data = {
-        name: values.name,
-        categoryId: values.categoryId,
-        priceMinorUnits: Number(values.price),
-        imageAssetId: nextImageAssetId,
-      };
       photoLogger.info("submit_started", {
-        hasExistingAsset: !!nextImageAssetId,
-        hasStagedPhoto: hasStagedImage,
+        hasNewImage: upload.hasStagedImage(),
         isEdit: isEdit(),
         merchantId,
         productId: params.id ?? null,
       });
 
-      let savedProductId: string;
-      if (isEdit()) {
-        const updatedProduct = await updateProduct(params.id ?? "", data);
-        savedProductId = updatedProduct.id;
-        photoLogger.info("product_updated", {
-          imageAssetId: data.imageAssetId,
-          productId: savedProductId,
-        });
-      } else {
-        const createdProduct = await createProduct({
-          ...data,
-          merchantId,
-        });
-        savedProductId = createdProduct.id;
-        photoLogger.info("product_created", {
-          imageAssetId: data.imageAssetId,
-          productId: savedProductId,
-        });
-      }
+      const nextAssetId = isEdit()
+        ? await handleEdit(values, merchantId)
+        : await handleCreate(values, merchantId);
 
-      if (hasStagedImage) {
-        try {
-          const enqueueResult = await upload.enqueueFor(
-            createAssetProcessingTarget("productImage", savedProductId)
-          );
-
-          if (!enqueueResult) {
-            throw new Error("Tidak ada foto staged untuk diproses");
-          }
-
-          photoLogger.info("pending_photo_job_enqueued", {
-            jobId: enqueueResult.jobId,
-            productId: savedProductId,
-          });
-          toast.success("Foto akan diproses di background");
-        } catch (enqueueError) {
-          photoLogger.error("photo_job_enqueue_failed", enqueueError, {
-            productId: savedProductId,
-          });
-          toast.error("Foto tersimpan, tapi job background gagal dijadwalkan");
-        }
-      }
-      photoLogger.info("navigate_to_product_list", {
-        productId: savedProductId,
-      });
+      triggerCompression(nextAssetId);
+      photoLogger.info("navigate_to_product_list");
       navigate("/settings/products-categories", { replace: true });
       syncNow().catch(() => {});
     } catch (e) {
-      photoLogger.error("submit_failed", e, {
-        productId: params.id ?? null,
-      });
+      photoLogger.error("submit_failed", e, { productId: params.id ?? null });
       setError(e instanceof Error ? e.message : "Gagal menyimpan produk");
     }
   };
@@ -201,7 +236,7 @@ export default function ProductForm() {
               Memuat...
             </div>
           }
-          when={!isEdit() || (product() && categories())}
+          when={!isEdit() || (productQuery.data() && categoriesQuery.data())}
         >
           <Form
             class="flex flex-1 flex-col gap-4"
@@ -236,7 +271,7 @@ export default function ProductForm() {
                     name={field.props.name}
                     onChange={(v) => field.onInput(v == null ? "" : String(v))}
                     options={
-                      categories()?.map((cat) => ({
+                      categoriesQuery.data()?.map((cat) => ({
                         value: cat.id,
                         label: cat.name,
                       })) ?? []

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import userEvent from "@testing-library/user-event";
 import type { JSX } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -344,8 +344,12 @@ describe("PrinterSettings", () => {
     );
     const receiptAddressInput = await screen.findByLabelText("Alamat di struk");
 
-    expect(receiptNameInput).toHaveValue("Warung Satu");
-    expect(receiptAddressInput).toHaveValue("Jl. Merdeka 1");
+    await waitFor(() => {
+      expect(receiptNameInput).toHaveValue("Warung Satu");
+    });
+    await waitFor(() => {
+      expect(receiptAddressInput).toHaveValue("Jl. Merdeka 1");
+    });
 
     await user.click(screen.getByText("Simpan Header Struk"));
 

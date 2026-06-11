@@ -1,11 +1,4 @@
-import { AuthLoginRequest, AuthRegisterRequest } from "@repo/protobuf/auth";
-import { HTTPError } from "ky";
-import { authApi } from "~/lib/api/auth";
-import { merchantsApi } from "~/lib/api/merchants";
-import { outletsApi } from "~/lib/api/outlets";
-import { registersApi } from "~/lib/api/registers";
-import { staffApi } from "~/lib/api/staff";
-import { API_URL, getApiErrorMessage } from "~/lib/http";
+import { API_URL, eden } from "~/lib/api/eden";
 import { createLogger } from "~/lib/logger";
 import { AuthStorage } from "./storage";
 
@@ -63,7 +56,6 @@ interface CurrentCloudStaff {
   claimed: boolean;
   reason?: "no-staff" | "ambiguous-owner" | "not-allowed";
   staff: {
-    hasPin: boolean;
     id: string;
     isActive: boolean;
     merchantId: string;
@@ -92,24 +84,14 @@ async function logRequest(method: string, path: string): Promise<void> {
   });
 }
 
-async function withError<T>(
-  promise: Promise<T>,
-  method: string,
-  path: string
-): Promise<T> {
-  try {
-    const result = await promise;
-    cloudAuthLogger.info("response", { method, ok: true, path });
-    return result;
-  } catch (error) {
-    cloudAuthLogger.error("network-error", error, { method, path });
-    const message = await getApiErrorMessage(error);
-    if (error instanceof HTTPError) {
-      const response = error.response;
-      throw new ApiError(message, response.status);
-    }
-    throw new ApiError(message, 500);
+function throwIfError<T>(result: { data: T | null; error: unknown }): T {
+  if (result.error) {
+    throw result.error;
   }
+  if (result.data == null) {
+    throw new Error("Unexpected null response from API");
+  }
+  return result.data;
 }
 
 export async function register(
@@ -118,15 +100,15 @@ export async function register(
   name: string
 ): Promise<{ user: ApiUser }> {
   await logRequest("POST", "api/auth/register");
-  const result = await withError(
-    authApi.register(AuthRegisterRequest.create({ email, name, password })),
-    "POST",
-    "api/auth/register"
+  const result = throwIfError(
+    await eden.api.auth.register.post({ email, name, password })
   );
   if (!result.user) {
     throw new Error("Register response returned no user");
   }
-  await AuthStorage.saveToken(result.sessionToken);
+  if (result.sessionToken) {
+    await AuthStorage.saveToken(result.sessionToken);
+  }
   return { user: result.user };
 }
 
@@ -135,15 +117,15 @@ export async function login(
   password: string
 ): Promise<{ user: ApiUser }> {
   await logRequest("POST", "api/auth/login");
-  const result = await withError(
-    authApi.login(AuthLoginRequest.create({ email, password })),
-    "POST",
-    "api/auth/login"
+  const result = throwIfError(
+    await eden.api.auth.login.post({ email, password })
   );
   if (!result.user) {
     throw new Error("Login response returned no user");
   }
-  await AuthStorage.saveToken(result.sessionToken);
+  if (result.sessionToken) {
+    await AuthStorage.saveToken(result.sessionToken);
+  }
   return { user: result.user };
 }
 
@@ -151,7 +133,7 @@ export async function getSession(): Promise<{
   merchants: SessionMerchant[];
   user: ApiUser | null;
 }> {
-  const result = await authApi.session();
+  const result = throwIfError(await eden.api.auth.session.post());
   return {
     merchants: result.merchants,
     user: result.hasUser && result.user ? result.user : null,
@@ -159,7 +141,7 @@ export async function getSession(): Promise<{
 }
 
 export async function logout(): Promise<void> {
-  await authApi.logout();
+  throwIfError(await eden.api.auth.logout.post());
   await AuthStorage.clearToken();
 }
 
@@ -167,188 +149,150 @@ export function getGoogleOAuthUrl(): string {
   return `${API_URL}/api/auth/google`;
 }
 
-export function getMerchants(): Promise<SessionMerchant[]> {
-  return merchantsApi.list().then((result) => result.merchants);
+export async function getMerchants(): Promise<SessionMerchant[]> {
+  const result = throwIfError(await eden.api.merchants.list.post());
+  return result.merchants;
 }
 
 export async function createMerchant(name: string): Promise<Merchant> {
-  const result = await merchantsApi.create({ name });
+  const result = throwIfError(await eden.api.merchants.create.post({ name }));
   if (!result.merchant) {
     throw new Error("Merchant creation returned no merchant");
   }
   return result.merchant;
 }
 
-export function getOutlets(merchantId: string): Promise<Outlet[]> {
-  return withError(
-    outletsApi.list({ merchantId }),
-    "POST",
-    "api/outlets/list"
-  ).then((result) =>
-    result.outlets.map((outlet) => ({
-      address: outlet.hasAddress ? outlet.address : null,
-      id: outlet.id,
-      isActive: outlet.isActive,
-      merchantId: outlet.merchantId,
-      name: outlet.name,
-      receiptAddress: outlet.hasReceiptAddress ? outlet.receiptAddress : null,
-      receiptName: outlet.hasReceiptName ? outlet.receiptName : null,
-      timezone: outlet.timezone,
-    }))
-  );
+export async function getOutlets(merchantId: string): Promise<Outlet[]> {
+  const result = throwIfError(await eden.api.outlets.list.post({ merchantId }));
+  return result.outlets;
 }
 
-export function createOutlet(
+export async function createOutlet(
   merchantId: string,
   name: string,
   address?: string,
   timezone = "Asia/Jakarta"
 ): Promise<Outlet & { register?: Register }> {
-  return withError(
-    outletsApi.create({
+  const result = throwIfError(
+    await eden.api.outlets.create.post({
       address: address ?? "",
-      hasAddress: address !== undefined,
       merchantId,
       name,
       timezone,
-    }),
-    "POST",
-    "api/outlets/create"
-  ).then((result) => {
-    if (!result.outlet) {
-      throw new Error("Outlet creation returned no outlet");
-    }
+    })
+  );
+  if (!result.outlet) {
+    throw new Error("Outlet creation returned no outlet");
+  }
 
-    return {
-      address: result.outlet.hasAddress ? result.outlet.address : null,
-      id: result.outlet.id,
-      isActive: result.outlet.isActive,
-      merchantId: result.outlet.merchantId,
-      name: result.outlet.name,
-      receiptAddress: result.outlet.hasReceiptAddress
-        ? result.outlet.receiptAddress
-        : null,
-      receiptName: result.outlet.hasReceiptName
-        ? result.outlet.receiptName
-        : null,
-      timezone: result.outlet.timezone,
-      register:
-        result.hasRegister && result.register
-          ? {
-              id: result.register.id,
-              isActive: result.register.isActive,
-              name: result.register.name,
-              outletId: result.register.outletId,
-              pairingCode: result.register.hasPairingCode
-                ? result.register.pairingCode
-                : null,
-              shortId: result.register.shortId,
-            }
-          : undefined,
-    };
-  });
+  return {
+    address: result.outlet.address,
+    id: result.outlet.id,
+    isActive: result.outlet.isActive,
+    merchantId: result.outlet.merchantId,
+    name: result.outlet.name,
+    receiptAddress: result.outlet.receiptAddress,
+    receiptName: result.outlet.receiptName,
+    timezone: result.outlet.timezone,
+    register: result.register
+      ? {
+          id: result.register.id,
+          isActive: result.register.isActive,
+          name: result.register.name,
+          outletId: result.register.outletId,
+          pairingCode: result.register.pairingCode,
+          shortId: result.register.shortId,
+        }
+      : undefined,
+  };
 }
 
-export function createStaff(params: {
+export async function createStaff(params: {
   merchantId: string;
   outletId?: string;
   name: string;
   pin: string;
   role?: "cashier" | "manager" | "owner";
 }): Promise<Record<string, unknown>> {
-  return withError(
-    staffApi.create({
-      hasOutletId: params.outletId !== undefined,
+  const result = throwIfError(
+    await eden.api.staff.create.post({
       merchantId: params.merchantId,
       name: params.name,
       outletId: params.outletId ?? "",
       pin: params.pin,
       role: params.role ?? "cashier",
-    }),
-    "POST",
-    "api/staff/create"
-  ).then((result) => ({
+    })
+  );
+  return {
     staff: result.staff
       ? {
           createdAt: result.staff.createdAt,
-          hasPin: result.staff.hasPin,
           id: result.staff.id,
           isActive: result.staff.isActive,
           merchantId: result.staff.merchantId,
           name: result.staff.name,
-          outletId: result.staff.hasOutletId ? result.staff.outletId : null,
+          outletId: result.staff.outletId,
           role: result.staff.role,
           updatedAt: result.staff.updatedAt,
         }
       : null,
-  }));
+  };
 }
 
-export function getCurrentCloudStaff(
+export async function getCurrentCloudStaff(
   merchantId: string
 ): Promise<CurrentCloudStaff> {
-  return withError(
-    staffApi.current({ merchantId }),
-    "POST",
-    "api/staff/current"
-  ).then((result) => ({
+  const result = throwIfError(
+    await eden.api.staff.current.post({ merchantId })
+  );
+  return {
     claimed: result.claimed,
     reason:
       result.reason === ""
         ? undefined
         : (result.reason as CurrentCloudStaff["reason"]),
-    staff:
-      result.hasStaff && result.staff
-        ? {
-            hasPin: result.staff.hasPin,
-            id: result.staff.id,
-            isActive: result.staff.isActive,
-            merchantId: result.staff.merchantId,
-            name: result.staff.name,
-            outletId: result.staff.hasOutletId ? result.staff.outletId : null,
-            role: result.staff.role as "cashier" | "manager" | "owner",
-          }
-        : null,
-  }));
+    staff: result.staff
+      ? {
+          id: result.staff.id,
+          isActive: result.staff.isActive,
+          merchantId: result.staff.merchantId,
+          name: result.staff.name,
+          outletId: result.staff.outletId,
+          role: result.staff.role as "cashier" | "manager" | "owner",
+        }
+      : null,
+  };
 }
 
-export function pairRegister(pairingCode: string): Promise<PairResult> {
-  return withError(
-    registersApi.pair({ pairingCode }),
-    "POST",
-    "api/registers/pair"
-  ).then((result) => {
-    if (!(result.outlet && result.register)) {
-      throw new Error("Register pairing returned incomplete data");
-    }
+export async function pairRegister(pairingCode: string): Promise<PairResult> {
+  const result = throwIfError(
+    await eden.api.registers.pair.post({ pairingCode })
+  );
+  const data = result as { outlet?: Outlet; register?: Register };
+  if (!(data.outlet && data.register)) {
+    throw new Error("Register pairing returned incomplete data");
+  }
 
-    return {
-      outlet: {
-        address: result.outlet.hasAddress ? result.outlet.address : null,
-        id: result.outlet.id,
-        isActive: result.outlet.isActive,
-        merchantId: result.outlet.merchantId,
-        name: result.outlet.name,
-        receiptAddress: result.outlet.hasReceiptAddress
-          ? result.outlet.receiptAddress
-          : null,
-        receiptName: result.outlet.hasReceiptName
-          ? result.outlet.receiptName
-          : null,
-        timezone: result.outlet.timezone,
-      },
-      register: {
-        id: result.register.id,
-        isActive: result.register.isActive,
-        name: result.register.name,
-        outletId: result.register.outletId,
-        pairingCode: result.register.hasPairingCode
-          ? result.register.pairingCode
-          : null,
-        shortId: result.register.shortId,
-      },
-    };
-  });
+  return {
+    outlet: {
+      address: data.outlet.address,
+      id: data.outlet.id,
+      isActive: data.outlet.isActive,
+      merchantId: data.outlet.merchantId,
+      name: data.outlet.name,
+      receiptAddress: data.outlet.receiptAddress,
+      receiptName: data.outlet.receiptName,
+      timezone: data.outlet.timezone,
+    },
+    register: {
+      id: data.register.id,
+      isActive: data.register.isActive,
+      name: data.register.name,
+      outletId: data.register.outletId,
+      pairingCode: data.register.pairingCode,
+      shortId: data.register.shortId,
+    },
+  };
 }
 
 export async function isCloudAuthenticated(): Promise<boolean> {

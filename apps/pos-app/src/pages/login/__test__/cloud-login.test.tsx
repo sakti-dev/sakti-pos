@@ -8,6 +8,7 @@ const mockGetMerchants = vi.fn();
 const mockGetOutlets = vi.fn();
 const mockGetCurrentCloudStaff = vi.fn();
 const mockSetOutletContext = vi.fn();
+const mockSetScope = vi.fn();
 const mockSyncNow = vi.fn(() =>
   Promise.resolve({
     pull: { rows_received: 1, server_time: "2026-01-01T00:00:00Z" },
@@ -57,6 +58,7 @@ vi.mock("~/store/sync", () => ({
 vi.mock("~/store/auth", () => ({
   getActiveStaff: () => mockGetActiveStaff(),
   loginWithCloudStaff: (...a: unknown[]) => mockLoginWithCloudStaff(...a),
+  setScope: (...a: unknown[]) => mockSetScope(...a),
 }));
 
 import CloudLogin from "../cloud-login";
@@ -420,5 +422,78 @@ describe("CloudLogin - onboarding guard", () => {
         replace: true,
       });
     });
+  });
+});
+
+describe("CloudLogin - sync initialization order (regression)", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const selectOutlet = async () => {
+    mockGetMerchants.mockResolvedValueOnce([
+      { merchantId: "m1", name: "My Store", role: "owner" },
+    ]);
+    mockGetOutlets.mockResolvedValueOnce([
+      {
+        id: "o1",
+        merchantId: "m1",
+        name: "Main Outlet",
+        address: "Jl. Test 1",
+        isActive: true,
+        timezone: "Asia/Jakarta",
+      },
+    ]);
+    mockGetCurrentCloudStaff.mockResolvedValueOnce({
+      claimed: false,
+      staff: {
+        hasPin: true,
+        id: "s1",
+        isActive: true,
+        merchantId: "m1",
+        name: "Owner",
+        outletId: "o1",
+        role: "owner",
+      },
+    });
+    mockLoginWithCloudStaff.mockResolvedValueOnce({
+      id: "s1",
+      name: "Owner",
+      role: "owner",
+    });
+    render(() => <CloudLogin />);
+    await user.type(
+      screen.getByPlaceholderText("email@contoh.com"),
+      "user@test.com"
+    );
+    await user.type(screen.getByPlaceholderText("Kata sandi"), "password1234");
+    await user.click(screen.getByText("Masuk"));
+    await screen.findByText("My Store");
+    await user.click(screen.getByText("My Store"));
+    await screen.findByText("Main Outlet");
+    await user.click(screen.getByText("Main Outlet"));
+  };
+
+  test("setScope is called before syncNow during outlet selection", async () => {
+    await selectOutlet();
+    await vi.waitFor(() => {
+      expect(mockSetScope).toHaveBeenCalledWith("m1");
+      expect(mockSyncNow).toHaveBeenCalled();
+    });
+    const scopeOrder = mockSetScope.mock.invocationCallOrder[0];
+    const syncOrder = mockSyncNow.mock.invocationCallOrder[0];
+    expect(scopeOrder).toBeLessThan(syncOrder);
+  });
+
+  test("sync failure shows error and does not navigate", async () => {
+    mockSyncNow.mockRejectedValueOnce(new Error("Sync client not initialized"));
+    await selectOutlet();
+    expect(
+      await screen.findByText(
+        "Gagal menyinkronkan data: Error: Sync client not initialized"
+      )
+    ).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalledWith("/", { replace: true });
+    expect(mockNavigate).not.toHaveBeenCalledWith("/pos", { replace: true });
   });
 });

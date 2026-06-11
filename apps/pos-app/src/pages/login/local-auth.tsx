@@ -9,6 +9,7 @@ import {
   getActiveStaff,
   getLastUserId,
   login,
+  setScope,
 } from "~/store/auth";
 import { currentMerchantId, currentOutletId } from "~/store/outlet";
 import { useIsLandscape } from "~/store/responsive";
@@ -73,6 +74,10 @@ export default function LocalAuth() {
     setLoading(true);
     try {
       const authUser = await login(user.id, pin);
+      const outletId = currentOutletId();
+      if (outletId) {
+        setScope(outletId);
+      }
       const target = authUser.role === "cashier" ? "/pos" : "/";
       navigate(target, { replace: true });
     } catch (err) {

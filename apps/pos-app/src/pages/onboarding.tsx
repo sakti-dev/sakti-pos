@@ -12,11 +12,14 @@ import {
   getSession,
   type Merchant,
 } from "~/lib/auth/cloud";
-import { login } from "~/store/auth";
+import { createLogger } from "~/lib/logger";
+import { login, setScope } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
 type Step = "merchant" | "outlet" | "setup-pin";
+
+const onboardingLogger = createLogger({ domain: "AUTH", module: "onboarding" });
 
 export function resolveInitialStep(
   merchantIdFromQuery: string | null,
@@ -73,6 +76,9 @@ export default function Onboarding() {
       setCreatedMerchant(merchant);
       setStep("outlet");
     } catch (err) {
+      onboardingLogger.error("create_merchant_failed", err, {
+        merchantName: merchantName().trim(),
+      });
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
@@ -114,6 +120,10 @@ export default function Onboarding() {
         setStep("setup-pin");
       }
     } catch (err) {
+      onboardingLogger.error("create_outlet_failed", err, {
+        merchantId: merchant.id,
+        outletName: outletName().trim(),
+      });
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
@@ -160,6 +170,7 @@ export default function Onboarding() {
         setPin("");
         return;
       }
+      setScope(merchant.id);
       await syncNow();
       const activeStaff = await getOwnerStaff(merchant.id);
       if (activeStaff) {
@@ -169,6 +180,9 @@ export default function Onboarding() {
         setError("Gagal memuat staff setelah sync");
       }
     } catch (err) {
+      onboardingLogger.error("create_pin_failed", err, {
+        merchantId: merchant.id,
+      });
       if (err instanceof ApiError) {
         setError(err.message);
       } else {

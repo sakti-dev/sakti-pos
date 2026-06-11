@@ -1,12 +1,11 @@
-import { outlets } from "@repo/database";
 import dayjs from "dayjs";
 import { eq } from "drizzle-orm";
+import { getSyncClient } from "~/lib/sync";
 import { currentMerchantId } from "~/store/outlet";
-import { db } from "./index";
+import { db, TABLE } from "./index";
 import { getMerchantById } from "./merchants";
-import { recordLocalChange } from "./sync-outbox";
 
-export interface OutletRecord {
+interface OutletRecord {
   address: string | null;
   id: string;
   merchantId: string;
@@ -24,9 +23,13 @@ export async function getAllOutlets(): Promise<
     return [];
   }
   const rows = await db
-    .select({ id: outlets.id, name: outlets.name, timezone: outlets.timezone })
-    .from(outlets)
-    .where(eq(outlets.merchantId, merchantId));
+    .select({
+      id: TABLE.outlets.id,
+      name: TABLE.outlets.name,
+      timezone: TABLE.outlets.timezone,
+    })
+    .from(TABLE.outlets)
+    .where(eq(TABLE.outlets.merchantId, merchantId));
   return rows;
 }
 
@@ -35,16 +38,16 @@ export async function getOutletById(
 ): Promise<OutletRecord | undefined> {
   const [row] = await db
     .select({
-      address: outlets.address,
-      id: outlets.id,
-      merchantId: outlets.merchantId,
-      name: outlets.name,
-      receiptAddress: outlets.receiptAddress,
-      receiptName: outlets.receiptName,
-      timezone: outlets.timezone,
+      address: TABLE.outlets.address,
+      id: TABLE.outlets.id,
+      merchantId: TABLE.outlets.merchantId,
+      name: TABLE.outlets.name,
+      receiptAddress: TABLE.outlets.receiptAddress,
+      receiptName: TABLE.outlets.receiptName,
+      timezone: TABLE.outlets.timezone,
     })
-    .from(outlets)
-    .where(eq(outlets.id, outletId))
+    .from(TABLE.outlets)
+    .where(eq(TABLE.outlets.id, outletId))
     .limit(1);
   return row;
 }
@@ -92,33 +95,27 @@ export async function updateOutletTimezone(
   outletId: string,
   timezone: string
 ): Promise<{ id: string; name: string; timezone: string } | undefined> {
-  const now = dayjs().toISOString();
-  const row = await db.transaction(async (tx) => {
+  const row = await getSyncClient().writeTransaction(db, async (tx) => {
     const [result] = await tx
-      .update(outlets)
-      .set({ timezone, updatedAt: now, isSynced: false })
-      .where(eq(outlets.id, outletId))
+      .update(TABLE.outlets)
+      .set({ timezone, updatedAt: dayjs().toISOString(), isSynced: false })
+      .where(eq(TABLE.outlets.id, outletId))
       .returning({
-        id: outlets.id,
-        merchantId: outlets.merchantId,
-        name: outlets.name,
-        timezone: outlets.timezone,
+        id: TABLE.outlets.id,
+        merchantId: TABLE.outlets.merchantId,
+        name: TABLE.outlets.name,
+        timezone: TABLE.outlets.timezone,
       });
 
     if (!result) {
       return;
     }
 
-    await recordLocalChange(
-      {
-        operation: "update",
-        rowId: result.id,
-        scopeId: result.merchantId,
-        scopeType: "merchant",
-        tableName: "outlets",
-      },
-      tx
-    );
+    await getSyncClient().enqueueChange(tx, {
+      operation: "update",
+      rowId: result.id,
+      table: TABLE.outlets,
+    });
 
     return result;
   });
@@ -150,41 +147,35 @@ export async function saveOutletReceiptHeader(
     }
   | undefined
 > {
-  const now = dayjs().toISOString();
-  const row = await db.transaction(async (tx) => {
+  const row = await getSyncClient().writeTransaction(db, async (tx) => {
     const [result] = await tx
-      .update(outlets)
+      .update(TABLE.outlets)
       .set({
         receiptAddress: effectiveAddress,
         receiptName: effectiveName,
-        updatedAt: now,
+        updatedAt: dayjs().toISOString(),
         isSynced: false,
       })
-      .where(eq(outlets.id, outletId))
+      .where(eq(TABLE.outlets.id, outletId))
       .returning({
-        address: outlets.address,
-        id: outlets.id,
-        merchantId: outlets.merchantId,
-        name: outlets.name,
-        receiptAddress: outlets.receiptAddress,
-        receiptName: outlets.receiptName,
-        timezone: outlets.timezone,
+        address: TABLE.outlets.address,
+        id: TABLE.outlets.id,
+        merchantId: TABLE.outlets.merchantId,
+        name: TABLE.outlets.name,
+        receiptAddress: TABLE.outlets.receiptAddress,
+        receiptName: TABLE.outlets.receiptName,
+        timezone: TABLE.outlets.timezone,
       });
 
     if (!result) {
       return;
     }
 
-    await recordLocalChange(
-      {
-        operation: "update",
-        rowId: result.id,
-        scopeId: result.merchantId,
-        scopeType: "merchant",
-        tableName: "outlets",
-      },
-      tx
-    );
+    await getSyncClient().enqueueChange(tx, {
+      operation: "update",
+      rowId: result.id,
+      table: TABLE.outlets,
+    });
 
     return result;
   });

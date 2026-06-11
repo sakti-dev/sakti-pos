@@ -11,7 +11,7 @@ import {
   userMerchants,
   userSessions,
   users,
-} from "@repo/database/api-schema";
+} from "@sync-contract/api-schema";
 import { drizzle } from "drizzle-orm/libsql";
 
 const schema = {

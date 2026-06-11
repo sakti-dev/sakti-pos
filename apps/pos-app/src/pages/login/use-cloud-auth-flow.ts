@@ -11,7 +11,7 @@ import {
 } from "~/lib/auth/cloud";
 import { createLogger } from "~/lib/logger";
 import { describeError } from "~/lib/utils";
-import { getActiveStaff, loginWithCloudStaff } from "~/store/auth";
+import { getActiveStaff, loginWithCloudStaff, setScope } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";
 
@@ -100,6 +100,7 @@ export function useCloudAuthFlow() {
         merchantId: outlet.merchantId,
         outletId: outlet.id,
       });
+      setScope(outlet.merchantId);
       await syncNow();
       cloudLoginLogger.info("sync:result", {
         merchantId: outlet.merchantId,

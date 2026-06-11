@@ -14,8 +14,11 @@ if [[ "$CHOICE" == "2" ]]; then
     adb uninstall "$PACKAGE" 2>/dev/null || true
 fi
 
+export RUST_LOG="${RUST_LOG:-debug}"
+
 echo "🧹 Cleaning up existing dev servers..."
 fuser -k 1420/tcp 1421/tcp 2>/dev/null
 echo "Starting tauri android development..."
+echo "Using RUST_LOG=$RUST_LOG"
 cd "$PROJECT_ROOT"
 bun tauri android dev --no-watch

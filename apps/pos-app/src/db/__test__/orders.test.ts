@@ -1,50 +1,56 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { syncOutbox as syncOutboxTable } from "@sync-contract/local-schema";
+import {
+  orderItems as orderItemsTable,
+  orders as ordersTable,
+} from "@sync-contract/local-synced-schema";
+import Database from "better-sqlite3";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
-}));
+function createTestDb() {
+  const sqlite = new Database(":memory:");
+  sqlite.pragma("foreign_keys = ON");
+  sqlite.exec(
+    "CREATE TABLE orders (" +
+      "id TEXT PRIMARY KEY, outlet_id TEXT NOT NULL, register_id TEXT, " +
+      "staff_id TEXT, order_number TEXT NOT NULL UNIQUE, " +
+      "total_minor_units INTEGER NOT NULL, payment_method TEXT NOT NULL, " +
+      "amount_paid_minor_units INTEGER, change_amount_minor_units INTEGER, " +
+      "status TEXT NOT NULL, " +
+      "deleted_at TEXT, is_synced INTEGER NOT NULL DEFAULT 0, " +
+      "created_at TEXT NOT NULL, updated_at TEXT NOT NULL" +
+      ")"
+  );
+  sqlite.exec(
+    "CREATE TABLE order_items (" +
+      "id TEXT PRIMARY KEY, order_id TEXT NOT NULL, outlet_id TEXT NOT NULL, " +
+      "product_id TEXT, product_name TEXT NOT NULL, " +
+      "quantity INTEGER NOT NULL, unit_price_minor_units INTEGER NOT NULL, " +
+      "original_price_minor_units INTEGER, subtotal_minor_units INTEGER NOT NULL, " +
+      "deleted_at TEXT, is_synced INTEGER NOT NULL DEFAULT 0, " +
+      "created_at TEXT NOT NULL, updated_at TEXT NOT NULL" +
+      ")"
+  );
+  sqlite.exec(
+    "CREATE TABLE sync_outbox (" +
+      "id TEXT PRIMARY KEY, table_name TEXT NOT NULL, row_id TEXT NOT NULL, " +
+      "operation TEXT NOT NULL, payload TEXT, scope_id TEXT NOT NULL, " +
+      "changed_at TEXT NOT NULL, synced_at TEXT" +
+      ")"
+  );
+  return drizzle(sqlite);
+}
 
-vi.mock("drizzle-orm", () => ({
-  and: vi.fn((...args: unknown[]) => args),
-  asc: vi.fn((...args: unknown[]) => args),
-  desc: vi.fn((col: unknown) => col),
-  eq: vi.fn((a: unknown, b: unknown) => ({ a, b })),
-  gt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gt" })),
-  gte: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "gte" })),
-  inArray: vi.fn((col: unknown, values: unknown[]) => ({ col, values })),
-  isNull: vi.fn((col: unknown) => ({ col, op: "isNull" })),
-  like: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "like" })),
-  lt: vi.fn((a: unknown, b: unknown) => ({ a, b, op: "lt" })),
-  or: vi.fn((...args: unknown[]) => args),
-  sql: Object.assign(
-    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-      strings,
-      values,
-    })),
-    {
-      raw: (value: string) => ({ raw: value }),
-    }
-  ),
-}));
-
-vi.mock("drizzle-orm/sqlite-proxy", () => ({
-  drizzle: vi.fn(),
-}));
-
-const mockDbSelect = vi.fn();
-const mockRecordLocalChange = vi.fn();
-const syncOutbox = await import("../sync-outbox");
-let recordLocalChangeSpy: ReturnType<typeof vi.spyOn> | undefined;
-vi.mock("../index", () => ({
-  db: {
-    select: mockDbSelect,
-    update: vi.fn(() => ({
-      set: vi.fn(() => ({
-        where: vi.fn(),
-      })),
-    })),
-  },
-}));
+const mocks = vi.hoisted(() => {
+  let testDb: ReturnType<typeof createTestDb>;
+  return {
+    getTestDb: () => testDb,
+    setTestDb: (db: ReturnType<typeof createTestDb>) => {
+      testDb = db;
+    },
+  };
+});
 
 vi.mock("~/store/outlet", () => ({
   currentMerchantId: vi.fn(() => "merchant-1"),
@@ -53,45 +59,74 @@ vi.mock("~/store/outlet", () => ({
   currentOutletTimezone: vi.fn(() => "Asia/Jakarta"),
 }));
 
-const ORDER_NUMBER_PATTERN = /^\d{4}-\d{2}-\d{2}-001$/;
-const UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+vi.mock("~/lib/sync", () => ({
+  getSyncClient: vi.fn(() => ({
+    enqueueChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
+      const tableName =
+        opts.table?.[Symbol.for("drizzle:Name")] ??
+        opts.table?.name ??
+        "unknown";
+      await tx.insert(syncOutboxTable).values({
+        id:
+          "outbox-" +
+          opts.operation +
+          "-" +
+          tableName +
+          "-" +
+          opts.rowId +
+          "-" +
+          crypto.randomUUID(),
+        tableName,
+        rowId: opts.rowId,
+        operation: opts.operation,
+        scopeId: "",
+        changedAt: new Date().toISOString(),
+      });
+    }),
+    writeLocalChange: vi.fn().mockImplementation(async (tx: any, opts: any) => {
+      await opts.write(tx);
+      const tableName =
+        opts.table?.[Symbol.for("drizzle:Name")] ??
+        opts.table?.name ??
+        "unknown";
+      await tx.insert(syncOutboxTable).values({
+        id:
+          "outbox-" +
+          opts.operation +
+          "-" +
+          tableName +
+          "-" +
+          opts.rowId +
+          "-" +
+          crypto.randomUUID(),
+        tableName,
+        rowId: opts.rowId,
+        operation: opts.operation,
+        scopeId: "",
+        changedAt: new Date().toISOString(),
+      });
+    }),
+    writeTransaction: vi
+      .fn()
+      .mockImplementation(async (_db: any, fn: any) => fn(mocks.getTestDb())),
+  })),
+}));
 
-interface MockedInvoke {
-  mock: {
-    calls: [string, { statements: { params: unknown[] }[] }][];
-  };
-  mockResolvedValue(value: unknown): void;
-}
+vi.mock("../index", () => ({
+  get db() {
+    return mocks.getTestDb();
+  },
+}));
+
+const ORDER_NUMBER_PATTERN = /^\d{4}-\d{2}-\d{2}-001$/;
 
 describe("createOrder", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    recordLocalChangeSpy = vi
-      .spyOn(syncOutbox, "recordLocalChange")
-      .mockImplementation((...args: unknown[]) =>
-        mockRecordLocalChange(...args)
-      );
+    mocks.setTestDb(createTestDb());
   });
 
-  afterEach(() => {
-    recordLocalChangeSpy?.mockRestore();
-    recordLocalChangeSpy = undefined;
-  });
-
-  test("calls invoke with correct SQL statements and returns order number", async () => {
-    const { invoke } = await import("@tauri-apps/api/core");
-    const mockedInvoke = invoke as unknown as MockedInvoke;
-
-    mockDbSelect.mockReturnValue({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          orderBy: vi.fn(() => []),
-        })),
-      })),
-    } as never);
-
-    mockedInvoke.mockResolvedValue({ last_insert_id: 1, rows_affected: 1 });
-
+  test("inserts order and items, enqueues outbox entries, returns order number", async () => {
     const { createOrder } = await import("../orders");
     const orderNumber = await createOrder({
       amountPaidMinorUnits: 20_000,
@@ -110,23 +145,73 @@ describe("createOrder", () => {
     });
 
     expect(orderNumber).toMatch(ORDER_NUMBER_PATTERN);
-    expect(mockedInvoke).toHaveBeenCalledWith("run_sql_batch", {
-      statements: expect.arrayContaining([
-        expect.objectContaining({
-          sql: expect.stringContaining("INSERT INTO orders"),
-        }),
-        expect.objectContaining({
-          sql: expect.stringContaining("INSERT INTO order_items"),
-        }),
-        expect.objectContaining({
-          sql: expect.stringContaining("INSERT INTO sync_outbox"),
-        }),
-      ]),
+
+    const db = mocks.getTestDb();
+
+    const order = db.select().from(ordersTable).all()[0];
+    expect(order).toBeDefined();
+    expect(order!.orderNumber).toBe(orderNumber);
+    expect(order!.status).toBe("completed");
+    expect(order!.isSynced).toBe(false);
+
+    const items = db.select().from(orderItemsTable).all();
+    expect(items).toHaveLength(1);
+    expect(items[0].productName).toBe("Nasi Goreng");
+    expect(items[0].isSynced).toBe(false);
+
+    const outboxEntries = db.select().from(syncOutboxTable).all();
+    const orderOutbox = outboxEntries.find((o) => o.tableName === "orders");
+    const itemOutbox = outboxEntries.find((o) => o.tableName === "order_items");
+
+    expect(orderOutbox).toBeDefined();
+    expect(orderOutbox!.operation).toBe("insert");
+    expect(orderOutbox!.syncedAt).toBeNull();
+
+    expect(itemOutbox).toBeDefined();
+    expect(itemOutbox!.operation).toBe("insert");
+    expect(itemOutbox!.syncedAt).toBeNull();
+  });
+});
+
+describe("cancelOrder", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.setTestDb(createTestDb());
+  });
+
+  test("cancels order and enqueues outbox entry", async () => {
+    const db = mocks.getTestDb();
+    await db.insert(ordersTable).values({
+      id: "order-1",
+      outletId: "outlet-1",
+      orderNumber: "2026-01-01-001",
+      totalMinorUnits: 20_000,
+      paymentMethod: "cash",
+      status: "completed",
+      isSynced: true,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
     });
 
-    const statements = mockedInvoke.mock.calls[0]?.[1];
-    const orderParams = statements?.statements?.[0]?.params;
-    expect(orderParams?.[9]).toMatch(UTC_TIMESTAMP_PATTERN);
-    expect(orderParams?.[10]).toBe(orderParams?.[9]);
+    const { cancelOrder } = await import("../orders");
+    await cancelOrder("order-1");
+
+    const row = db
+      .select()
+      .from(ordersTable)
+      .where(eq(ordersTable.id, "order-1"))
+      .all()[0];
+    expect(row!.status).toBe("cancelled");
+    expect(row!.isSynced).toBe(false);
+
+    const outbox = db
+      .select()
+      .from(syncOutboxTable)
+      .where(eq(syncOutboxTable.rowId, "order-1"))
+      .all()[0];
+    expect(outbox).toBeDefined();
+    expect(outbox!.tableName).toBe("orders");
+    expect(outbox!.operation).toBe("update");
+    expect(outbox!.syncedAt).toBeNull();
   });
 });
