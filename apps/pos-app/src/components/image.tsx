@@ -24,7 +24,6 @@ function ImageBase(props: ImageBaseProps) {
       when={local.imageUrl()}
     >
       {(src) => (
-        // biome-ignore lint/correctness/useImageSize: dimensions come from imgProps spread
         <img
           alt={local.alt ?? ""}
           {...imgProps}

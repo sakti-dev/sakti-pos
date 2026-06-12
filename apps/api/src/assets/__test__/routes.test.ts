@@ -137,7 +137,6 @@ describe("asset JSON routes", () => {
     );
   });
 
-
   test("generates objectKey from merchantId and assetId when not provided", async () => {
     mockGetSessionFromRequest.mockResolvedValue({ userId: "user-1" });
     mockMerchantAccess();

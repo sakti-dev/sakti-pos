@@ -83,7 +83,6 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
       // objectKey is deterministic: {merchantId}/assets/{assetId} with UUIDv7 asset IDs.
       // Collision is astronomically unlikely — no guard needed.
 
-
       const storage = getAssetStorageConfig();
       const uploadUrl = await presignS3Url({
         accessKeyId: storage.accessKeyId,
