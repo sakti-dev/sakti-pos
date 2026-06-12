@@ -14,10 +14,10 @@ export const badgeVariants = cva(
         secondary: "bg-secondary text-secondary-foreground",
         destructive: "bg-destructive text-destructive-foreground",
         outline: "border border-border text-foreground",
-        success: "bg-[rgba(46,125,50,0.10)] text-success",
+        success: "bg-[rgba(34,197,94,0.10)] text-success",
         warning: "bg-[rgba(230,168,23,0.12)] text-warning",
         danger: "bg-[rgba(192,57,43,0.08)] text-danger",
-        accent: "bg-[rgba(168,229,229,0.20)] text-[#0a6b6b]",
+        accent: "bg-primary-light text-primary",
         processing: "bg-[rgba(255,233,92,0.25)] text-[#7a5f00]",
       },
       size: {

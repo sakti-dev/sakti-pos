@@ -2,9 +2,9 @@ import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 
 export const VenueCard = () => {
   return (
-    <div class="flex items-center gap-3.5 rounded-[14px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.06)] p-[14px_18px] dark:border-[rgba(255,255,255,0.04)] dark:bg-[rgba(255,255,255,0.04)]">
+    <div class="flex items-center gap-3.5 rounded-[18px] border border-[rgba(60,208,112,0.10)] bg-[rgba(255,255,255,0.06)] p-[14px_18px] dark:border-[rgba(255,255,255,0.04)] dark:bg-[rgba(255,255,255,0.04)]">
       <Avatar class="h-11 w-11 shrink-0">
-        <AvatarFallback class="rounded-full bg-accent font-bold text-[15px] text-primary dark:bg-[rgba(168,229,229,0.20)] dark:text-accent">
+        <AvatarFallback class="rounded-full bg-accent-2 font-bold text-[15px] text-primary dark:bg-[rgba(60,208,112,0.15)] dark:text-accent">
           YB
         </AvatarFallback>
       </Avatar>
@@ -15,7 +15,7 @@ export const VenueCard = () => {
           <span class="font-medium text-[13px] text-[rgba(255,255,255,0.85)] dark:text-[rgba(255,255,255,0.85)]">
             Yos Bb
           </span>
-          <span class="rounded-pill bg-accent-3 px-2 py-[2px] font-medium text-[11px] text-primary dark:bg-[rgba(255,233,92,0.25)] dark:text-accent-3">
+          <span class="rounded-pill bg-accent-2 px-2 py-[2px] font-medium text-[11px] text-primary dark:bg-[rgba(60,208,112,0.15)] dark:text-accent">
             Manager
           </span>
           <span class="font-semibold text-[15px] text-white">Tantri Cafe</span>

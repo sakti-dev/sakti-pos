@@ -11,7 +11,7 @@ interface QuantityStepperProps {
 export const QuantityStepper = (props: QuantityStepperProps) => (
   <div
     class={cn(
-      "flex shrink-0 items-center overflow-hidden rounded-[8px] border border-border dark:border-[rgba(255,255,255,0.10)]",
+      "flex shrink-0 items-center overflow-hidden rounded-[6px] border border-border dark:border-[rgba(255,255,255,0.10)]",
       props.class
     )}
   >

@@ -1,6 +1,6 @@
 import { CreditCardIcon, FileIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
-import { fmtRupiah } from "./product-grid";
+import { formatRupiah } from "~/lib/utils";
 
 interface CartTotalsProps {
   readonly disabled: boolean;
@@ -22,7 +22,7 @@ export const CartTotals = (props: CartTotalsProps) => {
             Subtotal
           </span>
           <span class="font-semibold text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
-            {fmtRupiah(props.subtotal)}
+            {formatRupiah(props.subtotal)}
           </span>
         </div>
         <div class="flex items-center justify-between">
@@ -30,7 +30,7 @@ export const CartTotals = (props: CartTotalsProps) => {
             Pajak ({((props.taxRate ?? 0.11) * 100).toFixed(0)}%)
           </span>
           <span class="font-semibold text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
-            {fmtRupiah(tax())}
+            {formatRupiah(tax())}
           </span>
         </div>
         <div class="my-1 h-px bg-border dark:bg-[rgba(255,255,255,0.06)]" />
@@ -39,7 +39,7 @@ export const CartTotals = (props: CartTotalsProps) => {
             Total
           </span>
           <span class="font-bold text-[18px] text-primary tabular-nums tracking-[-0.01em] dark:text-accent">
-            {fmtRupiah(total())}
+            {formatRupiah(total())}
           </span>
         </div>
       </div>
@@ -47,7 +47,7 @@ export const CartTotals = (props: CartTotalsProps) => {
       <div class="flex flex-col gap-2">
         <Button
           aria-label="Bayar"
-          class="rounded-[14px] shadow-[0_4px_16px_rgba(26,51,0,0.25)] hover:shadow-[0_6px_24px_rgba(26,51,0,0.35)] active:scale-[0.98] active:shadow-[0_2px_8px_rgba(26,51,0,0.25)] disabled:opacity-40 disabled:shadow-none dark:bg-[#2d5a00] dark:shadow-[0_4px_16px_rgba(0,0,0,0.50)] dark:hover:bg-[#387000] dark:hover:shadow-[0_6px_24px_rgba(0,0,0,0.60)]"
+          class="rounded-[14px] shadow-[0_4px_16px_rgba(9,73,51,0.20)] hover:shadow-[0_6px_24px_rgba(9,73,51,0.30)] active:scale-[0.98] active:shadow-[0_2px_8px_rgba(9,73,51,0.20)] disabled:opacity-40 disabled:shadow-none dark:shadow-[0_4px_16px_rgba(0,0,0,0.50)] dark:disabled:bg-[#2a2a2a] dark:disabled:text-[#555] dark:hover:shadow-[0_6px_24px_rgba(0,0,0,0.60)]"
           disabled={props.disabled}
           onClick={props.onPay}
           size="lg"
@@ -66,7 +66,7 @@ export const CartTotals = (props: CartTotalsProps) => {
           variant="outline-primary"
         >
           <FileIcon class="h-4 w-4" />
-          Simpan &amp; Proses
+          Simpan Pesanan
         </Button>
       </div>
     </div>

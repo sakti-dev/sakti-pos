@@ -4,39 +4,42 @@
 @custom-variant dark (&:where(.dark, [data-kb-theme="dark"], .dark *, [data-kb-theme="dark"] *));
 
 @theme {
-  /* ── Brand tokens ── */
-  --color-primary: #1a3300;
-  --color-primary-light: oklch(0.38 0.08 140 / 0.06);
-  --color-primary-10: oklch(0.38 0.08 140 / 0.1);
-  --color-primary-hover: #224400;
-  --color-primary-active: #122800;
+  /* ── Brand tokens (Donezo design system) ── */
+  --color-primary: #094933;
+  --color-primary-light: rgba(9, 73, 51, 0.06);
+  --color-primary-10: rgba(9, 73, 51, 0.08);
+  --color-primary-hover: #0b5239;
+  --color-primary-active: #063a28;
 
-  --color-accent: #a8e5e5;
-  --color-accent-2: #d5f5c2;
-  --color-accent-3: #ffe95c;
+  --color-accent: #3cd070;
+  --color-accent-2: #eefbf3;
+  --color-accent-3: #3cd070;
   --color-accent-4: #f6d0ff;
   --color-terracotta: #cb5521;
 
   --color-surface: #ffffff;
-  --color-surface-gray: #f5f5f5;
-  --color-cream: #fcfaf5;
+  --color-surface-gray: #f9fafb;
+  --color-cream: #f4f6f5;
   --color-error: #c62828;
 
-  --color-text: #1c1b1a;
-  --color-text-secondary: #6b6964;
-  --color-text-muted: #9e9e9e;
+  --color-text: #191d1b;
+  --color-text-secondary: #414643;
+  --color-text-muted: #737c77;
 
-  --color-border: #e5e5e5;
-  --color-border-light: #f0f0f0;
+  --color-border: #e8ebe9;
+  --color-border-light: rgba(232, 235, 233, 0.5);
 
-  --radius-xs: 8px;
+  --radius-xs: 6px;
   --radius-sm: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --radius-pill: 9999px;
 
   --font-sans:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    sans-serif;
+  --font-display:
+    "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, system-ui,
     sans-serif;
 
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
@@ -47,6 +50,12 @@
   --animate-ghost-2: ghost-float-2 6s ease-in-out infinite;
   --animate-ghost-3: ghost-float-3 8s ease-in-out infinite;
   --animate-ghost-4: ghost-float-4 7.5s ease-in-out infinite;
+  --animate-shake: shake 0.5s ease;
+  --animate-success-pop: success-pop 0.5s
+    cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --animate-avatar-pulse: avatar-pulse 2.5s ease-in-out 1s 2;
+  --animate-fade-in: fade-in 0.3s ease;
+  --animate-stagger-in: fadeUp 0.35s ease both;
 
   /* ── Solid-UI bridge ── */
   --color-background: var(--color-surface);
@@ -76,7 +85,7 @@
 
   --color-info: #0284c7;
   --color-info-foreground: #ffffff;
-  --color-success: #2e7d32;
+  --color-success: #22c55e;
   --color-success-foreground: #ffffff;
   --color-warning: #e6a817;
   --color-warning-foreground: #ffffff;
@@ -189,24 +198,24 @@
 @keyframes fab-pulse {
   0%,
   100% {
-    box-shadow: 0 6px 24px rgba(26, 51, 0, 0.35);
+    box-shadow: 0 1px 3px rgba(9, 73, 51, 0.1);
   }
   50% {
     box-shadow:
-      0 6px 24px rgba(26, 51, 0, 0.35),
-      0 0 0 10px rgba(26, 51, 0, 0.06);
+      0 1px 3px rgba(9, 73, 51, 0.1),
+      0 0 0 6px rgba(9, 73, 51, 0.04);
   }
 }
 
 @keyframes fab-pulse-dark {
   0%,
   100% {
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   }
   50% {
     box-shadow:
-      0 6px 24px rgba(0, 0, 0, 0.5),
-      0 0 0 10px rgba(168, 229, 229, 0.06);
+      0 4px 16px rgba(0, 0, 0, 0.35),
+      0 0 0 6px rgba(60, 208, 112, 0.06);
   }
 }
 
@@ -232,24 +241,85 @@
   }
 }
 
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-10px);
+  }
+  30% {
+    transform: translateX(10px);
+  }
+  45% {
+    transform: translateX(-8px);
+  }
+  60% {
+    transform: translateX(8px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
+  90% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes success-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes avatar-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(60, 208, 112, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(60, 208, 112, 0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* ── Dark mode overrides (wrapped in @layer theme for cascade) ── */
 @layer theme {
   .dark,
   [data-kb-theme="dark"] {
-    --color-primary-light: oklch(0.76 0.08 190 / 0.08);
-    --color-primary-10: oklch(0.76 0.08 190 / 0.1);
+    --color-primary: #094933;
+    --color-primary-light: rgba(9, 73, 51, 0.15);
+    --color-primary-10: rgba(9, 73, 51, 0.12);
+    --color-primary-hover: #0b5239;
+    --color-primary-active: #063a28;
     --color-surface: #1a1a1a;
     --color-surface-gray: #111111;
-    --color-cream: #141414;
-    --color-text: #f0f0f0;
-    --color-text-secondary: #a0a0a0;
-    --color-text-muted: #666666;
-    --color-border: oklch(1 0 0 / 0.1);
-    --color-border-light: oklch(1 0 0 / 0.06);
+    --color-cream: #0a0a0a;
+    --color-text: #ededed;
+    --color-text-secondary: #93939f;
+    --color-text-muted: #93939f;
+    --color-border: rgba(255, 255, 255, 0.06);
+    --color-border-light: rgba(255, 255, 255, 0.04);
     --color-error: #ef5350;
 
     --color-primary-foreground: #ffffff;
-    --color-accent-foreground: #ffffff;
+    --color-accent-foreground: #3cd070;
   }
 }
 
@@ -274,7 +344,8 @@
   }
   .dark [data-sonner-toast],
   [data-kb-theme="dark"] [data-sonner-toast] {
-    background-color: #224400;
+    color: #ededed;
+    background-color: #2a2a2a;
   }
 }
 

@@ -1,15 +1,20 @@
-import { useNavigate } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { createSignal, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
-import { CartShoppingIcon, XCloseIcon } from "~/assets";
-import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
-import { Button } from "~/components/ui/button";
+import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
+import {
+  Sheet,
+  SheetBody,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "~/components/ui/sheet";
+import { formatRupiah } from "~/lib/utils";
 import { CartItemRow } from "./components/cart-item-row";
 import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
 import { type CategoryKey, CategoryTabs } from "./components/category-tabs";
-import { PosLayout } from "./components/pos-layout";
-import { fmtRupiah, ProductGrid } from "./components/product-grid";
+import { ProductGrid } from "./components/product-grid";
 import { SearchBar } from "./components/search-bar";
 import type { CartEntry, Product } from "./components/types";
 
@@ -64,14 +69,14 @@ const products: readonly Product[] = [
 
 export default function TransactionNew() {
   const navigate = useNavigate();
-  const [activeCat, setActiveCat] = createSignal<CategoryKey>("all");
+  const [activeCat, setActiveCat] = createSignal<CategoryKey>("minuman");
   const [search, setSearch] = createSignal("");
   const [cart, setCart] = createSignal<CartEntry[]>([]);
   const [sheetOpen, setSheetOpen] = createSignal(false);
 
   const filtered = () =>
     products.filter((p) => {
-      const catOk = activeCat() === "all" || p.cat === activeCat();
+      const catOk = p.cat === activeCat();
       const searchOk =
         !search() || p.name.toLowerCase().includes(search().toLowerCase());
       return catOk && searchOk;
@@ -110,96 +115,73 @@ export default function TransactionNew() {
   const cartItemCount = () => cart().reduce((s, c) => s + c.qty, 0);
 
   return (
-    <SubPageShell backHref="/" title="Transaksi Baru">
-      <PosLayout
-        cart={
-          <CartPanel
-            cart={cart()}
-            onDecrement={decrement}
-            onIncrement={increment}
-            onPay={() => navigate("/payment")}
-            onProcess={() => {
-              toast.success("Transaksi disimpan & diproses");
-              setCart([]);
-            }}
-            products={products}
-          />
-        }
-        catalog={
-          <>
-            <CategoryTabs active={activeCat()} onSelect={setActiveCat} />
-            <SearchBar onInput={setSearch} value={search()} />
-            <ProductGrid onAdd={addToCart} products={filtered()} />
-          </>
-        }
-      />
-
-      {/* Mobile cart FAB */}
-      <button
-        aria-label="Buka keranjang"
-        class="fixed right-4 bottom-5 left-4 z-[90] hidden h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-[14px] text-cream tracking-[0.02em] shadow-[0_6px_24px_rgba(26,51,0,0.35)] transition-[transform,box-shadow] duration-150 max-[900px]:flex dark:bg-[#2d5a00] dark:shadow-[0_6px_24px_rgba(0,0,0,0.60)]"
-        onClick={() => setSheetOpen(true)}
-        type="button"
-      >
-        <div class="flex items-center gap-2.5">
-          <CartShoppingIcon class="h-5 w-5" />
-          <span class="grid min-w-[20px] place-items-center rounded-full bg-accent-3 px-1.5 py-0 font-bold text-[11px] text-primary tabular-nums">
-            {cartItemCount()}
-          </span>
-          <span>Keranjang</span>
-        </div>
-        <span class="font-bold text-[15px] tabular-nums">
-          {fmtRupiah(cartTotal())}
-        </span>
-      </button>
-
-      {/* Mobile bottom sheet overlay */}
-      <Show when={true}>
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay dismiss backdrop */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay dismiss backdrop */}
-        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: overlay dismiss backdrop */}
-        <div
-          class="fixed inset-0 z-[200] hidden transition-[background] duration-300 max-[900px]:block"
-          classList={{
-            "pointer-events-auto": sheetOpen(),
-            "pointer-events-none": !sheetOpen(),
-            "bg-[rgba(0,0,0,0.40)]": sheetOpen(),
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setSheetOpen(false);
-            }
-          }}
-        >
-          <div
-            class="absolute right-0 bottom-0 left-0 flex max-h-[85vh] flex-col rounded-t-lg bg-surface shadow-[0_-8px_40px_rgba(0,0,0,0.15)] transition-transform duration-350 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] dark:bg-[#1a1a1a] dark:shadow-[0_-8px_40px_rgba(0,0,0,0.40)]"
-            classList={{
-              "translate-y-0": sheetOpen(),
-              "translate-y-full": !sheetOpen(),
-            }}
+    <div class="flex h-screen bg-surface-gray font-sans text-text antialiased dark:bg-[#111] dark:text-[#f0f0f0]">
+      {/* Left column — catalog */}
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-cream dark:bg-[#0a0a0a]">
+        <header class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-surface px-5 max-[900px]:px-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
+          <A
+            aria-label="Kembali"
+            class="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-border bg-surface text-text transition-[background,border-color] duration-150 hover:border-[rgba(26,51,0,0.20)] hover:bg-primary-light dark:border-[rgba(255,255,255,0.08)] dark:bg-[#1a1a1a] dark:text-[#f0f0f0] dark:hover:border-[rgba(168,229,229,0.20)] dark:hover:bg-[rgba(168,229,229,0.08)]"
+            href="/"
           >
-            {/* Handle */}
-            <div class="mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-border dark:bg-[rgba(255,255,255,0.12)]" />
+            <ArrowLeftIcon class="h-[18px] w-[18px]" />
+          </A>
+          <span class="font-bold text-[17px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
+            Transaksi Baru
+          </span>
+        </header>
 
-            {/* Header */}
-            <div class="flex shrink-0 items-center justify-between border-border border-b px-5 py-3.5 dark:border-[rgba(255,255,255,0.06)]">
-              <span class="font-bold text-[16px] text-text dark:text-[#f0f0f0]">
-                Keranjang
+        <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5 max-[900px]:gap-3 max-[900px]:p-3.5 max-[900px]:pb-20">
+          <CategoryTabs active={activeCat()} onSelect={setActiveCat} />
+          <SearchBar onInput={setSearch} value={search()} />
+          <ProductGrid onAdd={addToCart} products={filtered()} />
+        </div>
+      </div>
+
+      {/* Right column — cart sidebar (desktop only) */}
+      <div class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-surface max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px] dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
+        <CartPanel
+          cart={cart()}
+          onDecrement={decrement}
+          onIncrement={increment}
+          onPay={() => navigate("/payment")}
+          onProcess={() => {
+            toast.success("Transaksi disimpan & diproses");
+            setCart([]);
+          }}
+          products={products}
+        />
+      </div>
+
+      {/* Mobile cart drawer */}
+      <Sheet
+        onOpenChange={setSheetOpen}
+        open={sheetOpen()}
+        trigger={
+          <SheetTrigger
+            aria-label="Buka keranjang"
+            class="fixed right-4 bottom-5 left-4 z-[90] hidden h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-[14px] text-primary-foreground tracking-[0.02em] shadow-[0_6px_24px_rgba(9,73,51,0.30)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(9,73,51,0.40)] active:scale-[0.98] max-[900px]:flex dark:shadow-[0_6px_24px_rgba(0,0,0,0.60)] dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.70)]"
+          >
+            <div class="flex items-center gap-2.5">
+              <CartShoppingIcon class="h-5 w-5" />
+              <span class="grid min-w-[20px] place-items-center rounded-full bg-accent px-1.5 py-0 font-bold text-[11px] text-primary tabular-nums">
+                {cartItemCount()}
               </span>
-              <Button
-                aria-label="Tutup keranjang"
-                class="rounded-full bg-surface-gray text-text-secondary hover:bg-border dark:bg-[#252525] dark:text-[#a0a0a0] dark:hover:bg-[rgba(255,255,255,0.08)]"
-                onClick={() => setSheetOpen(false)}
-                size="icon-xs"
-                type="button"
-                variant="ghost"
-              >
-                <XCloseIcon class="h-4 w-4" />
-              </Button>
+              <span>Keranjang</span>
             </div>
+            <span class="font-bold text-[15px] tabular-nums">
+              {formatRupiah(cartTotal())}
+            </span>
+          </SheetTrigger>
+        }
+      >
+        {({ close }) => (
+          <>
+            <SheetHeader>
+              <SheetTitle>Keranjang</SheetTitle>
+            </SheetHeader>
 
-            {/* Items */}
-            <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-3">
+            <SheetBody>
               <Show
                 fallback={
                   <div class="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-text-muted">
@@ -227,25 +209,24 @@ export default function TransactionNew() {
                   }}
                 </For>
               </Show>
-            </div>
+            </SheetBody>
 
-            {/* Footer */}
             <CartTotals
               disabled={cart().length === 0}
               onPay={() => {
-                setSheetOpen(false);
+                close();
                 navigate("/payment");
               }}
               onProcess={() => {
-                setSheetOpen(false);
+                close();
                 toast.success("Transaksi disimpan & diproses");
                 setCart([]);
               }}
               subtotal={cartTotal()}
             />
-          </div>
-        </div>
-      </Show>
-    </SubPageShell>
+          </>
+        )}
+      </Sheet>
+    </div>
   );
 }

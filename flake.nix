@@ -71,7 +71,6 @@
                 gcc
                 gnumake
                 jdk21
-                nodejs_22
                 pkg-config
                 protobuf
                 psmisc

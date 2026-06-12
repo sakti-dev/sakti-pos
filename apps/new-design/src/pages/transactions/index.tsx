@@ -9,6 +9,7 @@ import {
   XCircleIcon,
 } from "~/assets";
 import { AppShell } from "~/components/layout/app-shell";
+import { Tab } from "~/components/ui/tab";
 
 /* ── types ────────────────────────────────────────────────────── */
 
@@ -32,56 +33,56 @@ const STATUS_META: Record<
 > = {
   new: {
     Icon: FileIcon,
-    bg: "bg-[rgba(168,229,229,0.20)] dark:bg-[rgba(168,229,229,0.15)]",
-    color: "text-[#0a6b6b] dark:text-accent",
+    bg: "bg-[rgba(60,208,112,0.12)] dark:bg-[rgba(60,208,112,0.15)]",
+    color: "text-[#094933] dark:text-[#3cd070]",
     label: "Baru",
   },
   processing: {
     Icon: LoaderIcon,
-    bg: "bg-[rgba(255,233,92,0.25)] dark:bg-[rgba(255,233,92,0.15)]",
-    color: "text-[#7a5f00] dark:text-accent-3",
+    bg: "bg-[rgba(255,233,92,0.25)] dark:bg-[rgba(250,204,21,0.12)]",
+    color: "text-[#7a5f00] dark:text-[#fde68a]",
     label: "Diproses",
   },
   waiting: {
     Icon: ClockIcon,
-    bg: "bg-[rgba(230,168,23,0.12)] dark:bg-[rgba(230,168,23,0.10)]",
-    color: "text-[#b8860b] dark:text-warning",
+    bg: "bg-[rgba(230,168,23,0.12)] dark:bg-[rgba(251,146,60,0.12)]",
+    color: "text-[#b8860b] dark:text-[#fed7aa]",
     label: "Menunggu",
   },
   done: {
     Icon: CheckCircleIcon,
-    bg: "bg-[rgba(46,125,50,0.10)] dark:bg-[rgba(102,187,106,0.10)]",
-    color: "text-[#2e7d32] dark:text-success",
+    bg: "bg-[rgba(46,125,50,0.10)] dark:bg-[rgba(74,222,128,0.12)]",
+    color: "text-[#2e7d32] dark:text-[#86efac]",
     label: "Selesai",
   },
   cancelled: {
     Icon: XCircleIcon,
-    bg: "bg-[rgba(192,57,43,0.08)] dark:bg-[rgba(192,57,43,0.10)]",
-    color: "text-[#c0392b] dark:text-danger",
+    bg: "bg-[rgba(192,57,43,0.08)] dark:bg-[rgba(248,113,113,0.12)]",
+    color: "text-[#c0392b] dark:text-[#fca5a5]",
     label: "Batal",
   },
 };
 
 const STATUS_PILL: Record<TxStatus, { bg: string; color: string }> = {
   new: {
-    bg: "bg-[rgba(168,229,229,0.20)] dark:bg-[rgba(168,229,229,0.15)]",
-    color: "text-[#0a6b6b] dark:text-accent",
+    bg: "bg-[rgba(60,208,112,0.12)] dark:bg-[rgba(60,208,112,0.15)]",
+    color: "text-[#094933] dark:text-[#3cd070]",
   },
   processing: {
-    bg: "bg-[rgba(255,233,92,0.25)] dark:bg-[rgba(255,233,92,0.15)]",
-    color: "text-[#7a5f00] dark:text-accent-3",
+    bg: "bg-[rgba(255,233,92,0.25)] dark:bg-[rgba(250,204,21,0.12)]",
+    color: "text-[#7a5f00] dark:text-[#fde68a]",
   },
   waiting: {
-    bg: "bg-[rgba(230,168,23,0.12)] dark:bg-[rgba(230,168,23,0.10)]",
-    color: "text-[#b8860b] dark:text-warning",
+    bg: "bg-[rgba(230,168,23,0.12)] dark:bg-[rgba(251,146,60,0.12)]",
+    color: "text-[#b8860b] dark:text-[#fed7aa]",
   },
   done: {
-    bg: "bg-[rgba(46,125,50,0.10)] dark:bg-[rgba(102,187,106,0.10)]",
-    color: "text-[#2e7d32] dark:text-success",
+    bg: "bg-[rgba(46,125,50,0.10)] dark:bg-[rgba(74,222,128,0.12)]",
+    color: "text-[#2e7d32] dark:text-[#86efac]",
   },
   cancelled: {
-    bg: "bg-[rgba(192,57,43,0.08)] dark:bg-[rgba(192,57,43,0.10)]",
-    color: "text-[#c0392b] dark:text-danger",
+    bg: "bg-[rgba(192,57,43,0.08)] dark:bg-[rgba(248,113,113,0.12)]",
+    color: "text-[#c0392b] dark:text-[#fca5a5]",
   },
 };
 
@@ -193,11 +194,11 @@ const sampleTxs: readonly TxEntry[] = [
     status: "processing",
     time: "06:35",
   },
-] as const;
+];
 
 /* ── helpers ──────────────────────────────────────────────────── */
 
-const fmt = (n: number): string => `Rp ${n.toLocaleString("id-ID")}`;
+import { formatItems, formatRupiah } from "~/lib/utils";
 
 const todayDate = () => {
   const d = new Date();
@@ -225,13 +226,6 @@ const todayDate = () => {
     "Desember",
   ] as const;
   return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-};
-
-const formatItems = (items: readonly string[]): string => {
-  if (items.length > 2) {
-    return `${items.slice(0, 2).join(", ")} +${items.length - 2} lagi`;
-  }
-  return items.join(", ");
 };
 
 /* ── component ────────────────────────────────────────────────── */
@@ -274,12 +268,10 @@ export default function Transactions() {
         {/* Header */}
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 class="font-bold text-[22px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
+            <h1 class="font-bold text-[22px] text-text tracking-[-0.01em] dark:text-[#ededed]">
               Transaksi
             </h1>
-            <p class="mt-0.5 text-[13px] text-text-muted tracking-[0.02em]">
-              Riwayat dan aktivitas transaksi hari ini
-            </p>
+            <p class="mt-0.5 text-[13px] text-text-muted tracking-[0.02em] dark:text-[#707070]" />
           </div>
           <div class="flex items-center gap-1.5 font-medium text-[13px] text-text-secondary">
             <CalendarIcon class="h-3.5 w-3.5 text-text-muted" />
@@ -290,7 +282,7 @@ export default function Transactions() {
         {/* Controls */}
         <div class="flex flex-wrap items-center gap-2.5 max-[600px]:flex-col max-[600px]:items-stretch">
           {/* Search */}
-          <div class="flex min-w-[200px] flex-1 items-center gap-2 rounded-[10px] border border-border bg-surface px-3.5 py-2 transition-[border-color,box-shadow] duration-200 focus-within:border-[rgba(26,51,0,0.25)] focus-within:shadow-[0_0_0_3px_rgba(26,51,0,0.06)] max-[340px]:max-w-full dark:border-[rgba(255,255,255,0.08)] dark:bg-[#1a1a1a] dark:focus-within:border-[rgba(168,229,229,0.30)] dark:focus-within:shadow-[0_0_0_3px_rgba(168,229,229,0.08)]">
+          <div class="flex min-w-[200px] flex-1 items-center gap-2 rounded-[10px] border border-border bg-surface px-3.5 py-2 transition-[border-color,box-shadow] duration-200 focus-within:border-[rgba(9,73,51,0.25)] focus-within:shadow-[0_0_0_3px_rgba(9,73,51,0.06)] max-[340px]:max-w-full dark:border-[rgba(255,255,255,0.08)] dark:bg-[#1a1a1a] dark:focus-within:border-[rgba(60,208,112,0.30)] dark:focus-within:shadow-[0_0_0_3px_rgba(60,208,112,0.08)]">
             <SearchIcon class="h-4 w-4 shrink-0 text-text-muted" />
             <input
               aria-label="Cari transaksi"
@@ -307,29 +299,24 @@ export default function Transactions() {
               {(tab) => {
                 const isActive = () => activeFilter() === tab.key;
                 return (
-                  <button
-                    class="flex shrink-0 items-center rounded-pill border px-4 py-[7px] font-medium text-[13px] tracking-[0.01em] transition-[background,border-color,color] duration-150"
-                    classList={{
-                      "border-primary bg-primary text-cream dark:border-primary dark:bg-primary dark:text-accent-2":
-                        isActive(),
-                      "border-border bg-surface text-text-secondary hover:border-[rgba(26,51,0,0.20)] hover:text-text dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1e1e1e] dark:text-[#a0a0a0] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:text-[#f0f0f0]":
-                        !isActive(),
-                    }}
+                  <Tab
+                    active={isActive()}
+                    class="tracking-[0.01em]"
                     onClick={() => setActiveFilter(tab.key)}
-                    type="button"
+                    shape="pill"
                   >
                     {tab.label}
                     <span
                       class="ml-1.5 grid min-w-[18px] place-items-center rounded-full px-[5px] py-0 font-semibold text-[11px] tracking-[0.02em]"
                       classList={{
                         "bg-[rgba(255,255,255,0.20)]": isActive(),
-                        "bg-surface-gray text-text-muted dark:bg-[#2a2a2a] dark:text-[#666]":
+                        "bg-surface-gray text-text-muted dark:bg-[rgba(255,255,255,0.20)] dark:text-[#ededed]":
                           !isActive(),
                       }}
                     >
                       {badgeCounts()[tab.key]}
                     </span>
-                  </button>
+                  </Tab>
                 );
               }}
             </For>
@@ -360,7 +347,7 @@ export default function Transactions() {
                 const Icon = meta.Icon;
                 return (
                   <button
-                    class="flex w-full items-center gap-4 rounded-[14px] border border-border bg-surface px-5 py-4 text-left transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-[rgba(26,51,0,0.15)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)] active:translate-y-0 max-[600px]:flex-wrap max-[800px]:gap-3 max-[800px]:px-4 max-[800px]:py-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1e1e1e] dark:hover:border-[rgba(255,255,255,0.12)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.30)]"
+                    class="flex w-full items-center gap-4 rounded-[14px] border border-border bg-surface px-5 py-4 text-left transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-[rgba(9,73,51,0.15)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)] active:translate-y-0 max-[600px]:flex-wrap max-[800px]:gap-3 max-[800px]:px-4 max-[800px]:py-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1e1e1e] dark:hover:border-[rgba(255,255,255,0.12)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.30)]"
                     type="button"
                   >
                     {/* Status icon */}
@@ -373,25 +360,25 @@ export default function Transactions() {
                     {/* Body */}
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-2">
-                        <span class="font-semibold text-[14px] text-text tabular-nums tracking-[-0.01em] dark:text-[#f0f0f0]">
+                        <span class="font-semibold text-[14px] text-text tabular-nums tracking-[-0.01em] dark:text-[#ededed]">
                           {tx.id}
                         </span>
                         <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
                           {tx.customer}
                         </span>
                       </div>
-                      <div class="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-text-muted tracking-[0.02em] dark:text-[#666]">
+                      <div class="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-text-muted tracking-[0.02em] dark:text-[#707070]">
                         {formatItems(tx.items)}
                       </div>
                     </div>
 
                     {/* Meta */}
                     <div class="flex shrink-0 flex-col items-end gap-1 max-[600px]:w-full max-[600px]:flex-row max-[600px]:items-center max-[600px]:justify-between">
-                      <span class="font-bold text-[15px] text-text tabular-nums tracking-[-0.01em] dark:text-[#f0f0f0]">
-                        {fmt(tx.total)}
+                      <span class="font-bold text-[15px] text-text tabular-nums tracking-[-0.01em] dark:text-[#ededed]">
+                        {formatRupiah(tx.total)}
                       </span>
                       <div class="flex items-center gap-2">
-                        <span class="text-[12px] text-text-muted tabular-nums tracking-[0.02em] dark:text-[#666]">
+                        <span class="text-[12px] text-text-muted tabular-nums tracking-[0.02em] dark:text-[#707070]">
                           {tx.time}
                         </span>
                         <span

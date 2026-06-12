@@ -100,23 +100,23 @@ export const RegisterRightPanel = () => {
         {(gc) => (
           <div
             class={cn(
-              "pointer-events-none absolute z-0 flex flex-col items-center rounded-[10px] border-2 border-[rgba(26,51,0,0.12)] bg-[rgba(26,51,0,0.04)] backdrop-blur-[2px] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(255,255,255,0.03)]",
+              "pointer-events-none absolute z-0 flex flex-col items-center rounded-[10px] border-[1.5px] border-[rgba(9,73,51,0.12)] bg-[rgba(9,73,51,0.04)] backdrop-blur-[2px] dark:border-[rgba(60,208,112,0.10)] dark:bg-[rgba(60,208,112,0.03)]",
               gc.class,
               gc.anim
             )}
           >
             <div class="flex items-center justify-center p-3 pb-1">
-              <gc.Icon class="h-6 w-6 text-[rgba(26,51,0,0.45)] dark:text-[rgba(168,229,229,0.55)]" />
+              <gc.Icon class="h-6 w-6 text-[rgba(9,73,51,0.45)] dark:text-[rgba(60,208,112,0.45)]" />
             </div>
             <For each={gc.lineWidths}>
               {(w) => (
                 <div
-                  class="mx-2 my-1 h-1.5 rounded-[3px] bg-[rgba(26,51,0,0.08)] dark:bg-[rgba(255,255,255,0.06)]"
+                  class="mx-2 my-1 h-1.5 rounded-[3px] bg-[rgba(9,73,51,0.08)] dark:bg-[rgba(60,208,112,0.08)]"
                   style={{ width: w }}
                 />
               )}
             </For>
-            <div class="px-2 pb-2 text-center font-semibold text-[9px] text-[rgba(26,51,0,0.50)] uppercase tracking-[0.04em] dark:text-[rgba(168,229,229,0.55)]">
+            <div class="px-2 pb-2 text-center font-semibold text-[9px] text-[rgba(9,73,51,0.50)] uppercase tracking-[0.04em] dark:text-[rgba(60,208,112,0.55)]">
               {gc.label}
             </div>
           </div>

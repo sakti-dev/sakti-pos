@@ -12,10 +12,7 @@ import {
   WalletIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
-
-/* ── helpers ─────────────────────────────────────────────────── */
-
-const fmt = (n: number): string => `Rp ${n.toLocaleString("id-ID")}`;
+import { formatRupiah } from "~/lib/utils";
 
 const BARCODE_PATTERN = [
   2, 1, 3, 1, 2, 3, 1, 1, 2, 1, 3, 2, 1, 1, 3, 2, 1, 2, 1, 3, 1, 2, 1, 1, 3, 2,
@@ -107,14 +104,14 @@ export default function Receipt() {
 
   const meta = METHOD_META[method] ?? METHOD_META.cash;
   return (
-    <div class="flex min-h-screen flex-col bg-surface-gray font-sans text-text antialiased dark:bg-[#0f0f0f]">
+    <div class="flex min-h-screen flex-col bg-surface-gray font-sans text-text antialiased dark:bg-[#111]">
       {/* Scrollable receipt content */}
       <div class="scrollbar-none flex flex-1 flex-col items-center overflow-y-auto overflow-x-hidden px-5 pt-8 pb-44 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-48">
         {/* Success banner */}
         <div class="mb-7 flex animate-[fadeDown_0.5s_cubic-bezier(0.34,1.56,0.64,1)] flex-col items-center gap-3">
-          <div class="relative grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-2 text-primary dark:bg-[rgba(213,245,194,0.15)] dark:text-accent-2">
+          <div class="relative grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-2 text-primary dark:bg-[rgba(60,208,112,0.12)] dark:text-[#3cd070]">
             <CheckCircleIcon class="h-9 w-9" />
-            <div class="absolute inset-[-6px] rounded-full border-2 border-[rgba(26,51,0,0.08)] dark:border-[rgba(213,245,194,0.08)]" />
+            <div class="absolute inset-[-6px] rounded-full border-2 border-[rgba(9,73,51,0.08)]" />
           </div>
           <div class="font-extrabold text-[22px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
             Pembayaran Berhasil!
@@ -125,14 +122,14 @@ export default function Receipt() {
         </div>
 
         {/* Receipt card */}
-        <div class="relative w-full max-w-[480px] animate-[fadeUp_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.15s_both] rounded-[16px] border border-border-light bg-surface dark:border-[#222] dark:bg-[#1a1a1a] dark:shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+        <div class="relative w-full max-w-[480px] animate-[fadeUp_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.15s_both] rounded-[18px] border border-border-light bg-surface dark:border-[#222] dark:bg-[#1a1a1a] dark:shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
           {/* Glow */}
-          <div class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-accent-2 opacity-25 blur-[50px] dark:bg-accent-2 dark:opacity-[0.08]" />
+          <div class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-accent-2 opacity-25 blur-[50px] dark:bg-[rgba(60,208,112,0.08)]" />
 
           {/* Header */}
           <div class="flex items-center justify-between border-border border-b border-dashed px-6 pt-6 pb-5 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-4">
             <div class="flex items-center gap-3">
-              <div class="grid h-10 w-10 place-items-center overflow-hidden rounded-[10px] bg-accent-3 dark:bg-[#2a2a2a]">
+              <div class="grid h-10 w-10 place-items-center overflow-hidden rounded-[10px] bg-[rgba(9,73,51,0.06)] dark:bg-[#2a2a2a]">
                 <img
                   alt="Nata POS"
                   class="h-full w-full object-contain"
@@ -145,7 +142,7 @@ export default function Receipt() {
                 <div class="font-bold text-[18px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
                   Nata POS
                 </div>
-                <div class="mt-0.5 text-[12px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+                <div class="mt-0.5 text-[12px] text-text-secondary tracking-[0.02em] dark:text-[#b0b0b0]">
                   Tantri Cafe
                 </div>
               </div>
@@ -197,16 +194,16 @@ export default function Receipt() {
                     <div class="font-semibold text-[14px] text-text tracking-[0.01em] dark:text-[#f0f0f0]">
                       {item.name}
                     </div>
-                    <div class="mt-0.5 text-[12px] text-text-muted tracking-[0.02em] dark:text-[#666]">
+                    <div class="mt-0.5 text-[12px] text-text-muted tracking-[0.02em] dark:text-[#737c77]">
                       {item.desc}
                     </div>
                   </div>
                   <div class="ml-4 shrink-0 text-right">
                     <div class="font-semibold text-[14px] text-text tabular-nums tracking-[-0.01em] dark:text-[#f0f0f0]">
-                      {fmt(item.price * item.qty)}
+                      {formatRupiah(item.price * item.qty)}
                     </div>
-                    <div class="mt-px text-[11px] text-text-muted tracking-[0.02em] dark:text-[#666]">
-                      {item.qty} × {fmt(item.price)}
+                    <div class="mt-px text-[11px] text-text-muted tracking-[0.02em] dark:text-[#737c77]">
+                      {item.qty} × {formatRupiah(item.price)}
                     </div>
                   </div>
                 </div>
@@ -221,7 +218,7 @@ export default function Receipt() {
                 Subtotal
               </span>
               <span class="font-medium text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
-                {fmt(subtotal)}
+                {formatRupiah(subtotal)}
               </span>
             </div>
             <div class="flex justify-between py-1">
@@ -229,7 +226,7 @@ export default function Receipt() {
                 Pajak (11%)
               </span>
               <span class="font-medium text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
-                {fmt(tax)}
+                {formatRupiah(tax)}
               </span>
             </div>
             <div class="my-2.5 h-px bg-border dark:bg-[#2a2a2a]" />
@@ -237,8 +234,8 @@ export default function Receipt() {
               <span class="font-bold text-[16px] text-text dark:text-[#f0f0f0]">
                 Total
               </span>
-              <span class="font-extrabold text-[24px] text-primary tabular-nums tracking-[-0.02em] dark:text-accent-2">
-                {fmt(total)}
+              <span class="font-extrabold text-[24px] text-primary tabular-nums tracking-[-0.02em] dark:text-primary">
+                {formatRupiah(total)}
               </span>
             </div>
           </div>
@@ -248,7 +245,7 @@ export default function Receipt() {
             <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
               Metode
             </span>
-            <span class="inline-flex items-center gap-1.5 rounded-pill bg-accent-2 px-3 py-1 font-semibold text-[12px] text-primary tracking-[0.02em] dark:bg-[rgba(213,245,194,0.10)] dark:text-accent-2">
+            <span class="inline-flex items-center gap-1.5 rounded-pill bg-accent-2 px-3 py-1 font-semibold text-[12px] text-primary tracking-[0.02em] dark:bg-[rgba(60,208,112,0.10)] dark:text-[#3cd070]">
               <meta.Icon class="h-3.5 w-3.5" />
               {meta.label}
             </span>
@@ -264,7 +261,7 @@ export default function Receipt() {
                       Dibayar
                     </span>
                     <span class="font-semibold text-[14px] text-text tabular-nums dark:text-[#f0f0f0]">
-                      {fmt(total)}
+                      {formatRupiah(total)}
                     </span>
                   </div>
                 }
@@ -275,7 +272,7 @@ export default function Receipt() {
                     Dibayar
                   </span>
                   <span class="font-semibold text-[14px] text-text tabular-nums dark:text-[#f0f0f0]">
-                    {fmt(paid)}
+                    {formatRupiah(paid)}
                   </span>
                 </div>
                 <div class="flex w-full justify-between py-1">
@@ -283,7 +280,7 @@ export default function Receipt() {
                     Kembalian
                   </span>
                   <span class="font-semibold text-[14px] text-success tabular-nums dark:text-[#66bb6a]">
-                    {fmt(Math.max(0, change))}
+                    {formatRupiah(Math.max(0, change))}
                   </span>
                 </div>
               </Show>
@@ -292,7 +289,7 @@ export default function Receipt() {
 
           {/* Footer */}
           <div class="border-border border-t border-dashed px-6 pt-4 pb-5 text-center max-[600px]:px-4">
-            <div class="text-[12px] text-text-muted leading-relaxed tracking-[0.02em] dark:text-[#666]">
+            <div class="text-[12px] text-text-muted leading-relaxed tracking-[0.02em] dark:text-[#737c77]">
               Terima kasih atas kunjungan Anda!
               <br />
               Jl. Banda No.30, Citarum, Bandung
@@ -302,7 +299,7 @@ export default function Receipt() {
               <For each={[...BARCODE_PATTERN]}>
                 {(w) => (
                   <div
-                    class="h-8 rounded-[1px] bg-text dark:bg-[#f0f0f0] dark:opacity-50"
+                    class="h-8 rounded-[1px] bg-text dark:bg-text dark:opacity-50"
                     classList={{ "w-[2px]": w > 1, "w-px": w === 1 }}
                   />
                 )}
@@ -316,7 +313,7 @@ export default function Receipt() {
       <div class="fixed inset-x-0 bottom-0 z-[100] mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] gap-2.5 border-border border-t bg-surface-gray p-3 max-[600px]:flex-col max-[600px]:gap-2.5 max-[600px]:p-4 dark:border-[#2a2a2a] dark:bg-[#141414]">
         <div class="flex gap-2.5 max-[600px]:grid max-[600px]:grid-cols-2">
           <Button
-            class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#f0f0f0]"
+            class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] hover:border-[rgba(9,73,51,0.20)] hover:bg-[rgba(9,73,51,0.06)] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:hover:border-[#444] dark:hover:bg-[#222]"
             onClick={() => toast.info("Mencetak struk\u2026")}
             type="button"
             variant="outline"
@@ -325,7 +322,7 @@ export default function Receipt() {
             Cetak
           </Button>
           <Button
-            class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#f0f0f0]"
+            class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] hover:border-[rgba(9,73,51,0.20)] hover:bg-[rgba(9,73,51,0.06)] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:hover:border-[#444] dark:hover:bg-[#222]"
             onClick={() => toast.info("Membagikan struk\u2026")}
             type="button"
             variant="outline"
@@ -335,7 +332,7 @@ export default function Receipt() {
           </Button>
         </div>
         <Button
-          class="h-[52px] flex-1 rounded-[14px] font-bold text-[15px] tracking-[0.02em] shadow-[0_4px_16px_rgba(26,51,0,0.25),0_1px_3px_rgba(26,51,0,0.12)] max-[600px]:w-full dark:bg-accent-2 dark:text-primary dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)]"
+          class="h-[52px] flex-1 rounded-[14px] font-bold text-[15px] tracking-[0.02em] shadow-[0_4px_16px_rgba(9,73,51,0.25),0_1px_3px_rgba(9,73,51,0.12)] max-[600px]:w-full dark:bg-[#e0e0e0] dark:text-[#1a1a1a] dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)] dark:hover:bg-[#cccccc]"
           onClick={() => navigate("/")}
           type="button"
         >

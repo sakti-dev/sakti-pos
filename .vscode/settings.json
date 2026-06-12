@@ -8,8 +8,28 @@
     "source.organizeImports.biome": "explicit"
   },
   "files.exclude": {
-    "apps/api/worker-configuration.d.ts": true
+    "apps/api/worker-configuration.d.ts": true,
+    "**/node_modules": true,
+    "apps/pos-app/src-tauri/target": true,
+    "apps/pos-app/src-tauri/gen": true,
+    "vendor/baresync/node_modules": true,
+    "bun.lock": true
   },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/gen": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "**/.turbo": true,
+    "bun.lock": true,
+    "vendor": true,
+    "apps/pos-app/src-tauri": true,
+    "apps/api/worker-configuration.d.ts": true,
+    "*.sqlite": true,
+    "*.log": true
+  },
+  "search.maintainFileSearchCache": true,
   "[css]": {
     "editor.defaultFormatter": "biomejs.biome"
   },

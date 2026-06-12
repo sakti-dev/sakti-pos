@@ -1,15 +1,17 @@
-import type { Component } from "solid-js";
+import type { Component, JSX } from "solid-js";
 import { For } from "solid-js";
 import { CheckCircleIcon, ClockIcon, CreditCardIcon, FileIcon } from "~/assets";
 
 interface KpiTheme {
+  readonly badgeBg: string;
   readonly btnText: string;
   readonly cardBg: string;
+  readonly darkCardBg: string;
+  readonly darkTextValue: string;
   readonly glowColor: string;
   readonly textAccent: string;
   readonly textValue: string;
 }
-
 interface KpiCardData {
   readonly ActionIcon: Component<{ class?: string }>;
   readonly count: number;
@@ -18,35 +20,46 @@ interface KpiCardData {
   readonly theme: KpiTheme;
   readonly value: number;
 }
-
 const themes: Record<string, KpiTheme> = {
   teal: {
-    cardBg: "#0d3820",
-    glowColor: "#a8e5e5",
-    textAccent: "#a8e5e5",
-    textValue: "#f0fdf4",
-    btnText: "#0d3820",
+    badgeBg: "rgba(60,208,112,0.12)",
+    btnText: "#094933",
+    cardBg: "#094933",
+    darkCardBg: "#0a2e1e",
+    darkTextValue: "#ededed",
+    glowColor: "#3cd070",
+    textAccent: "#3cd070",
+    textValue: "#ffffff",
   },
   yellow: {
-    cardBg: "#332b00",
+    badgeBg: "rgba(250,204,21,0.12)",
+    btnText: "#3d3200",
+    cardBg: "#3d3200",
+    darkCardBg: "#2a2300",
+    darkTextValue: "#ededed",
     glowColor: "#facc15",
     textAccent: "#fde68a",
-    textValue: "#fffbeb",
-    btnText: "#332b00",
+    textValue: "#ffffff",
   },
   terracotta: {
-    cardBg: "#3d1508",
-    glowColor: "#e8622c",
-    textAccent: "#fed7aa",
-    textValue: "#fff7ed",
+    badgeBg: "rgba(251,146,60,0.12)",
     btnText: "#3d1508",
+    cardBg: "#3d1508",
+    darkCardBg: "#2a1008",
+    darkTextValue: "#ededed",
+    glowColor: "#fb923c",
+    textAccent: "#fed7aa",
+    textValue: "#ffffff",
   },
   green: {
-    cardBg: "#1a2e08",
-    glowColor: "#84cc16",
-    textAccent: "#d9f99d",
-    textValue: "#f7fee7",
-    btnText: "#1a2e08",
+    badgeBg: "rgba(74,222,128,0.12)",
+    btnText: "#052e16",
+    cardBg: "#052e16",
+    darkCardBg: "#041f0e",
+    darkTextValue: "#ededed",
+    glowColor: "#4ade80",
+    textAccent: "#86efac",
+    textValue: "#ffffff",
   },
 };
 
@@ -89,23 +102,25 @@ export const KpiCards = () => {
   return (
     <section>
       <div class="mb-3.5">
-        <h3 class="font-bold text-[17px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
+        <h3 class="font-bold font-display text-[18px] text-text dark:text-text">
           Transaksi
         </h3>
-        <p class="mt-[3px] text-[13px] text-text-muted tracking-[0.01em] dark:text-[#666]">
+        <p class="mt-[3px] text-[13px] text-text-muted tracking-[0.01em]">
           Aktivitas transaksi yang perlu dituntaskan
         </p>
       </div>
 
-      <div class="grid grid-cols-[repeat(4,1fr)] gap-3 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-2">
+      <div class="grid grid-cols-[repeat(4,1fr)] gap-4 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-2">
         <For each={cards}>
           {(card) => (
             <div
-              class="relative cursor-default overflow-hidden rounded-[20px] p-6 transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.25)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.40)]"
-              style={{
-                "background-color": card.theme.cardBg,
-                "box-shadow": "0 8px 24px rgba(0,0,0,0.15)",
-              }}
+              class="relative cursor-default overflow-hidden rounded-[18px] border border-border p-6 transition-[transform] duration-300 ease-out hover:-translate-y-[3px] dark:border-[rgba(255,255,255,0.04)] dark:[background-color:var(--kpi-dark-bg)]"
+              style={
+                {
+                  "background-color": card.theme.cardBg,
+                  "--kpi-dark-bg": card.theme.darkCardBg,
+                } as JSX.CSSProperties
+              }
             >
               {/* Glow */}
               <div
@@ -115,7 +130,7 @@ export const KpiCards = () => {
 
               {/* Header */}
               <div class="relative z-[1] mb-4 flex items-center justify-between">
-                <span class="font-medium text-[14px] text-[rgba(255,255,255,0.85)] tracking-[-0.3px] dark:text-[rgba(255,255,255,0.80)]">
+                <span class="font-medium text-[14px] text-[rgba(255,255,255,0.80)] tracking-[-0.3px] dark:text-[rgba(255,255,255,0.70)]">
                   {card.name}
                 </span>
                 <button
@@ -130,13 +145,19 @@ export const KpiCards = () => {
 
               {/* Value */}
               <div
-                class="relative z-[1] mb-4 font-medium tabular-nums leading-none"
-                classList={{ "opacity-35": card.value === 0 }}
-                style={{
-                  color: card.theme.textValue,
-                  "font-size": card.value === 0 ? "42px" : "48px",
-                  "letter-spacing": card.value === 0 ? undefined : "-1.5px",
+                class="relative z-[1] mb-4 font-bold font-display tabular-nums leading-none dark:[color:var(--kpi-dark-text)]"
+                classList={{
+                  "opacity-35": card.value === 0,
+                  "dark:opacity-25": card.value === 0,
                 }}
+                style={
+                  {
+                    color: card.theme.textValue,
+                    "--kpi-dark-text": card.theme.darkTextValue,
+                    "font-size": card.value === 0 ? "42px" : "48px",
+                    "letter-spacing": card.value === 0 ? undefined : "-1.5px",
+                  } as JSX.CSSProperties
+                }
               >
                 {card.value}
               </div>
@@ -146,7 +167,10 @@ export const KpiCards = () => {
                 class="relative z-[1] flex items-center gap-2.5 font-medium text-[13px]"
                 style={{ color: card.theme.textAccent }}
               >
-                <span class="inline-flex items-center gap-1 rounded-[12px] border border-current bg-[rgba(255,255,255,0.05)] px-2.5 py-[2px] font-semibold text-[12px]">
+                <span
+                  class="inline-flex items-center gap-1 rounded-[6px] border border-transparent px-2.5 py-[2px] font-semibold text-[12px]"
+                  style={{ "background-color": card.theme.badgeBg }}
+                >
                   {card.count}
                   <span class="text-[0.65rem]">▲</span>
                 </span>

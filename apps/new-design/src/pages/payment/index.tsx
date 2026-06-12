@@ -118,7 +118,7 @@ export default function Payment() {
             {/* Desktop: inline button */}
             <div class="shrink-0 pt-1 max-[900px]:hidden">
               <Button
-                class="h-14 w-full rounded-[14px] font-bold text-[16px] disabled:opacity-40"
+                class="h-14 w-full rounded-[10px] border-2 border-transparent font-bold text-[16px] shadow-[0_1px_3px_rgba(9,73,51,0.10)] disabled:opacity-40 dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)] dark:disabled:border-[#444] dark:disabled:bg-[#3a3a3a] dark:disabled:text-[#777] dark:disabled:shadow-none"
                 disabled={!canConfirm()}
                 onClick={() =>
                   navigate("/receipt", {
@@ -144,9 +144,9 @@ export default function Payment() {
       </div>
 
       {/* Mobile: fixed bottom button */}
-      <div class="fixed inset-x-0 bottom-0 z-[100] hidden border-border border-t bg-surface-gray p-4 pb-4 max-[900px]:block max-[600px]:p-3 max-[600px]:pb-3 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#111]">
+      <div class="fixed inset-x-0 bottom-0 z-[100] hidden border-border border-t bg-surface p-4 pb-4 max-[900px]:block max-[600px]:p-3 max-[600px]:pb-3 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
         <Button
-          class="h-14 w-full rounded-[14px] font-bold text-[16px] disabled:opacity-40"
+          class="h-14 w-full rounded-[10px] border-2 border-transparent font-bold text-[16px] shadow-[0_1px_3px_rgba(9,73,51,0.10)] disabled:opacity-40 dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)] dark:disabled:border-[#444] dark:disabled:bg-[#3a3a3a] dark:disabled:text-[#777] dark:disabled:shadow-none"
           disabled={!canConfirm()}
           onClick={() =>
             navigate("/receipt", {

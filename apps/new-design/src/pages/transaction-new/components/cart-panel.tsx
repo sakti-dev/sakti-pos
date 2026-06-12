@@ -32,7 +32,7 @@ export const CartPanel = (props: CartPanelProps) => {
         </span>
       </div>
 
-      <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-3">
+      <div class="scrollbar-none flex flex-1 flex-col overflow-y-auto px-5 py-3">
         <Show
           fallback={
             <div class="flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-text-muted">

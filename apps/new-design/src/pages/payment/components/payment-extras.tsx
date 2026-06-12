@@ -16,7 +16,7 @@ export const PaymentExtras = (props: PaymentExtrasProps) => (
           Nama Pelanggan
         </label>
         <input
-          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-surface-gray px-3.5 font-sans text-[14px] text-text transition-[border-color,box-shadow] duration-150 placeholder:text-text-muted focus:border-primary focus:bg-surface focus:shadow-[0_0_0_3px_rgba(26,51,0,0.08)] focus:outline-none dark:border-[rgba(255,255,255,0.10)] dark:bg-[#222] dark:text-[#f0f0f0] dark:focus:border-accent dark:focus:bg-[#1a1a1a] dark:placeholder:text-[#555]"
+          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-surface-gray px-3.5 font-sans text-[14px] text-text transition-[border-color,box-shadow] duration-150 placeholder:text-text-muted focus:border-primary focus:bg-surface focus:shadow-[0_0_0_3px_rgba(9,73,51,0.08)] focus:outline-none dark:border-[rgba(255,255,255,0.10)] dark:bg-[#222] dark:text-[#f0f0f0] dark:focus:border-primary dark:focus:bg-[#1a1a1a] dark:placeholder:text-[#555]"
           id="customer"
           onInput={(e) => props.onCustomerChange(e.currentTarget.value)}
           placeholder="Opsional"
@@ -32,7 +32,7 @@ export const PaymentExtras = (props: PaymentExtrasProps) => (
           Catatan
         </label>
         <input
-          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-surface-gray px-3.5 font-sans text-[14px] text-text transition-[border-color,box-shadow] duration-150 placeholder:text-text-muted focus:border-primary focus:bg-surface focus:shadow-[0_0_0_3px_rgba(26,51,0,0.08)] focus:outline-none dark:border-[rgba(255,255,255,0.10)] dark:bg-[#222] dark:text-[#f0f0f0] dark:focus:border-accent dark:focus:bg-[#1a1a1a] dark:placeholder:text-[#555]"
+          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-surface-gray px-3.5 font-sans text-[14px] text-text transition-[border-color,box-shadow] duration-150 placeholder:text-text-muted focus:border-primary focus:bg-surface focus:shadow-[0_0_0_3px_rgba(9,73,51,0.08)] focus:outline-none dark:border-[rgba(255,255,255,0.10)] dark:bg-[#222] dark:text-[#f0f0f0] dark:focus:border-primary dark:focus:bg-[#1a1a1a] dark:placeholder:text-[#555]"
           id="notes"
           onInput={(e) => props.onNotesChange(e.currentTarget.value)}
           placeholder="Opsional"

@@ -10,17 +10,17 @@ const decoCards = [
 ] as const;
 
 const decoBgs = [
-  "bg-[rgba(168,229,229,0.12)]",
-  "bg-[rgba(255,233,92,0.10)]",
-  "bg-[rgba(213,245,194,0.12)]",
-  "bg-[rgba(246,208,255,0.10)]",
+  "bg-[rgba(60,208,112,0.12)]",
+  "bg-[rgba(60,208,112,0.10)]",
+  "bg-[rgba(60,208,112,0.12)]",
+  "bg-[rgba(60,208,112,0.10)]",
 ];
 
 export function LoginBannerLeftSide() {
   return (
-    <div class="relative hidden flex-1 flex-col items-center justify-center overflow-hidden bg-primary p-12 lg:flex dark:bg-[#0d1f00]">
-      <div class="pointer-events-none absolute -top-[120px] -right-[120px] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(168,229,229,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(168,229,229,0.08)_0%,transparent_70%)]" />
-      <div class="pointer-events-none absolute -bottom-[100px] -left-[80px] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(213,245,194,0.10)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(213,245,194,0.06)_0%,transparent_70%)]" />
+    <div class="relative hidden flex-1 flex-col items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#0b5239,#063a28)] p-12 lg:flex dark:bg-[linear-gradient(135deg,#0d2e1f,#091e14)]">
+      <div class="pointer-events-none absolute -top-[120px] -right-[120px] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(60,208,112,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(60,208,112,0.08)_0%,transparent_70%)]" />
+      <div class="pointer-events-none absolute -bottom-[100px] -left-[80px] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(60,208,112,0.10)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(60,208,112,0.06)_0%,transparent_70%)]" />
 
       <div class="relative z-[1] text-center">
         <div class="mx-auto mb-6 h-20 w-20 overflow-hidden rounded-md">
