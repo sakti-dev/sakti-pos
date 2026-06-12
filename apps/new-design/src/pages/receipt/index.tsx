@@ -12,7 +12,7 @@ import {
   WalletIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
-import { formatRupiah } from "~/lib/utils";
+import { cn, formatRupiah } from "~/lib/utils";
 
 const BARCODE_PATTERN = [
   2, 1, 3, 1, 2, 3, 1, 1, 2, 1, 3, 2, 1, 1, 3, 2, 1, 2, 1, 3, 1, 2, 1, 1, 3, 2,
@@ -188,10 +188,10 @@ export default function Receipt() {
             <For each={[...items]}>
               {(item, i) => (
                 <div
-                  class="flex justify-between py-2"
-                  classList={{
-                    "border-b border-border-light": i() < items.length - 1,
-                  }}
+                  class={cn(
+                    "flex justify-between py-2",
+                    i() < items.length - 1 && "border-border-light border-b"
+                  )}
                 >
                   <div class="min-w-0 flex-1">
                     <div class="font-semibold text-[14px] text-text tracking-[0.01em] dark:text-[#f0f0f0]">
@@ -302,8 +302,10 @@ export default function Receipt() {
               <For each={[...BARCODE_PATTERN]}>
                 {(w) => (
                   <div
-                    class="h-8 rounded-[1px] bg-text dark:bg-text dark:opacity-50"
-                    classList={{ "w-[2px]": w > 1, "w-px": w === 1 }}
+                    class={cn(
+                      "h-8 rounded-[1px] bg-text dark:bg-text dark:opacity-50",
+                      w > 1 ? "w-[2px]" : "w-px"
+                    )}
                   />
                 )}
               </For>
@@ -317,18 +319,20 @@ export default function Receipt() {
         <div class="flex gap-2.5 max-[600px]:grid max-[600px]:grid-cols-2">
           <Button
             class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] hover:border-[rgba(9,73,51,0.20)] hover:bg-[rgba(9,73,51,0.06)] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:hover:border-[#444] dark:hover:bg-[#222]"
+            look="outline"
             onClick={() => toast.info("Mencetak struk\u2026")}
+            tone="neutral"
             type="button"
-            variant="outline"
           >
             <PrinterIcon class="h-[18px] w-[18px]" />
             Cetak
           </Button>
           <Button
             class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] hover:border-[rgba(9,73,51,0.20)] hover:bg-[rgba(9,73,51,0.06)] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:hover:border-[#444] dark:hover:bg-[#222]"
+            look="outline"
             onClick={() => toast.info("Membagikan struk\u2026")}
+            tone="neutral"
             type="button"
-            variant="outline"
           >
             <ShareIcon class="h-[18px] w-[18px]" />
             Bagikan

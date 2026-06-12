@@ -60,10 +60,11 @@ export const CartTotals = (props: CartTotalsProps) => {
           aria-label="Proses"
           class="rounded-[14px] disabled:opacity-40"
           disabled={props.disabled}
+          look="outline"
           onClick={props.onProcess}
           size="lg"
+          tone="primary"
           type="button"
-          variant="outline-primary"
         >
           <FileIcon class="h-4 w-4" />
           Simpan Pesanan

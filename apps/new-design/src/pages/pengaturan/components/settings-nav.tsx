@@ -9,6 +9,8 @@ import {
   StoreIcon,
   UsersIcon,
 } from "~/assets";
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
 
 export type SectionKey =
   | "bisnis"
@@ -44,27 +46,30 @@ export function SettingsNav(props: SettingsNavProps) {
   return (
     <nav class="flex w-[220px] shrink-0 flex-col gap-0.5 max-[900px]:w-full max-[900px]:flex-row max-[900px]:gap-1">
       <For each={NAV_ITEMS}>
-        {(item) => (
-          <button
-            aria-label={item.label}
-            class={
-              props.active === item.key
-                ? "flex items-center gap-2.5 rounded-[10px] border-none bg-accent-2 px-3.5 py-2.5 text-left font-semibold text-[13px] text-primary tracking-[0.01em] max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-[12px] dark:bg-[rgba(60,208,112,0.15)] dark:text-accent"
-                : "flex items-center gap-2.5 rounded-[10px] border-none bg-transparent px-3.5 py-2.5 text-left font-medium text-[13px] text-text-secondary tracking-[0.01em] transition-[background,color] duration-150 hover:bg-[rgba(9,73,51,0.04)] hover:text-text max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-[12px] dark:text-[#a0a0a0] dark:hover:bg-[rgba(255,255,255,0.05)] dark:hover:text-[#ededed]"
-            }
-            onClick={() => props.onSelect(item.key)}
-            type="button"
-          >
-            <item.Icon
-              class={
-                props.active === item.key
-                  ? "h-[18px] w-[18px] shrink-0 text-primary dark:text-accent"
-                  : "h-[18px] w-[18px] shrink-0 opacity-55 transition-[opacity] duration-150 hover:opacity-80 dark:opacity-40"
-              }
-            />
-            {item.label}
-          </button>
-        )}
+        {(item) => {
+          const isActive = () => props.active === item.key;
+          return (
+            <Button
+              aria-label={item.label}
+              class="flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-left font-semibold text-[13px] tracking-[0.01em] max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-[12px]"
+              look={isActive() ? "soft" : "ghost"}
+              onClick={() => props.onSelect(item.key)}
+              size="none"
+              tone="primary"
+              type="button"
+            >
+              <item.Icon
+                class={cn(
+                  "h-[18px] w-[18px] shrink-0",
+                  isActive()
+                    ? "text-primary dark:text-accent"
+                    : "opacity-55 transition-[opacity] duration-150 hover:opacity-80 dark:opacity-40"
+                )}
+              />
+              {item.label}
+            </Button>
+          );
+        }}
       </For>
     </nav>
   );

@@ -191,14 +191,14 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
     props.onSelectedQuickChange(amt);
   };
 
-  const amountVariant = (amt: number) => {
+  const amountLook = (amt: number) => {
     if (props.selectedQuick === amt) {
-      return "pill-selected" as const;
+      return "solid" as const;
     }
     if (amt === props.total) {
-      return "pill-highlight" as const;
+      return "soft" as const;
     }
-    return "pill" as const;
+    return "outline" as const;
   };
 
   return (
@@ -214,9 +214,10 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
             <Button
               aria-label={m.label}
               class="flex-col gap-2.5 rounded-[10px] py-[18px] pb-3.5 [&>span]:text-current [&>svg]:size-7 [&>svg]:text-current"
+              look={props.method === m.key ? "soft" : "outline"}
               onClick={() => props.onMethodChange(m.key)}
               size="none"
-              variant={props.method === m.key ? "card-active" : "card"}
+              tone="primary"
             >
               <m.Icon class="transition-colors duration-200" />
               <span class="font-medium text-[13px] transition-colors duration-200">
@@ -236,9 +237,10 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                 <Button
                   aria-label={`Jumlah ${formatRupiah(amt)}`}
                   class="rounded-[10px] py-2.5 font-semibold text-[12px]"
+                  look={amountLook(amt)}
                   onClick={() => selectQuick(amt)}
                   onPointerDown={(e) => e.preventDefault()}
-                  variant={amountVariant(amt)}
+                  tone="primary"
                 >
                   {formatRupiah(amt)}
                 </Button>
@@ -369,12 +371,9 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                 <Button
                   aria-label={name}
                   class="rounded-[10px] py-3.5 font-semibold text-[14px]"
+                  look={props.ewallet === name ? "soft" : "outline"}
                   onClick={() => props.onEwalletChange(name)}
-                  variant={
-                    props.ewallet === name
-                      ? "card-accent-active"
-                      : "card-accent"
-                  }
+                  tone="primary"
                 >
                   {name}
                 </Button>

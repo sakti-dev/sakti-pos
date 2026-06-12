@@ -127,8 +127,9 @@ export const RegisterRightPanel = () => {
       <Button
         aria-label="Toggle tema"
         class="absolute top-5 right-6 z-[2] grid size-9 place-items-center rounded-xs border border-input bg-background text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-offset-2"
+        look="ghost"
         onClick={() => setColorMode(colorMode() === "dark" ? "light" : "dark")}
-        variant="ghost"
+        tone="neutral"
       >
         <Show
           fallback={<MoonIcon class="h-[18px] w-[18px]" />}
@@ -235,10 +236,11 @@ export const RegisterRightPanel = () => {
                 showPassword() ? "Sembunyikan password" : "Tampilkan password"
               }
               class="absolute top-1/2 right-3 -translate-y-1/2 place-items-center rounded-xs bg-transparent text-muted-foreground hover:bg-primary-light hover:text-muted-foreground focus-visible:outline-offset-2"
+              look="ghost"
               onClick={() => setShowPassword((s) => !s)}
               size="icon-xs"
+              tone="neutral"
               type="button"
-              variant="ghost"
             >
               <Show
                 fallback={<EyeClosedIcon class="h-[18px] w-[18px]" />}
@@ -280,10 +282,11 @@ export const RegisterRightPanel = () => {
                 showConfirm() ? "Sembunyikan password" : "Tampilkan password"
               }
               class="absolute top-1/2 right-3 -translate-y-1/2 place-items-center rounded-xs bg-transparent text-muted-foreground hover:bg-primary-light hover:text-muted-foreground focus-visible:outline-offset-2"
+              look="ghost"
               onClick={() => setShowConfirm((s) => !s)}
               size="icon-xs"
+              tone="neutral"
               type="button"
-              variant="ghost"
             >
               <Show
                 fallback={<EyeClosedIcon class="h-[18px] w-[18px]" />}
@@ -330,9 +333,10 @@ export const RegisterRightPanel = () => {
       {/* Google login */}
       <Button
         class="relative z-[1] w-full"
+        look="outline"
         onClick={() => toast.success("Menghubungkan ke Google...")}
         size="lg"
-        variant="outline"
+        tone="neutral"
       >
         <GoogleIcon class="h-5 w-5 shrink-0" />
         Daftar dengan Google

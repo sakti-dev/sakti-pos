@@ -11,7 +11,9 @@ import {
   LogoutIcon,
   SettingsIcon,
 } from "~/assets";
+import { Button } from "~/components/ui/button";
 import { rootConfig } from "~/lib/ssgoi-config";
+import { cn } from "~/lib/utils";
 import { Fab } from "./app-shell/fab";
 import { MagicNav } from "./app-shell/magic-nav";
 
@@ -100,34 +102,44 @@ export const RootShell = (props: RouteSectionProps) => {
         {/* Nav items */}
         <div class="flex flex-1 flex-col items-center justify-center gap-7">
           <For each={navItems}>
-            {(item) => (
-              <A
-                activeClass="!bg-accent-2 !text-primary [&>svg]:!text-primary [&>span]:font-bold [&>span]:tracking-[0.07em] hover:!bg-accent-2 hover:!text-primary dark:!bg-[rgba(60,208,112,0.15)] dark:!text-[#3cd070] dark:hover:!bg-[rgba(60,208,112,0.15)] dark:hover:!text-[#3cd070]"
-                aria-label={item.label}
-                class="flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 text-text-muted transition-[background,color,box-shadow] duration-150 hover:bg-[rgba(9,73,51,0.04)] hover:text-text dark:text-[rgba(60,208,112,0.55)] dark:hover:bg-[rgba(60,208,112,0.10)] dark:hover:text-[rgba(60,208,112,0.85)] [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108"
-                end={item.key === "home"}
-                href={item.href}
-              >
-                <item.Icon class="h-[22px] w-[22px] shrink-0" />
-                <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
-                  {item.label}
-                </span>
-              </A>
-            )}
+            {(item) => {
+              const isActive = () => activeNav() === item.key;
+              return (
+                <Button
+                  activeClass="!bg-accent-2 !text-primary [&>svg]:!text-primary [&>span]:font-bold [&>span]:tracking-[0.07em] hover:!bg-accent-2 hover:!text-primary dark:!bg-[rgba(60,208,112,0.15)] dark:!text-[#3cd070] dark:hover:!bg-[rgba(60,208,112,0.15)] dark:hover:!text-[#3cd070]"
+                  aria-label={item.label}
+                  as={A}
+                  class="flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108"
+                  end={item.key === "home"}
+                  href={item.href}
+                  look={isActive() ? "soft" : "ghost"}
+                  size="none"
+                  tone="primary"
+                >
+                  <item.Icon class="h-[22px] w-[22px] shrink-0" />
+                  <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
+                    {item.label}
+                  </span>
+                </Button>
+              );
+            }}
           </For>
         </div>
 
         {/* Logout */}
-        <button
+        <Button
           aria-label="Keluar"
-          class="mb-1 flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 text-[#b05050] transition-[background,color] duration-150 hover:bg-[rgba(176,80,80,0.08)] hover:text-[#8b3030] dark:text-[#d47070] dark:hover:bg-[rgba(212,112,112,0.10)] dark:hover:text-[#e08080] [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5"
+          class="mb-1 flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5"
+          look="ghost"
+          size="none"
+          tone="destructive"
           type="button"
         >
           <LogoutIcon class="h-[22px] w-[22px] shrink-0" />
           <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
             Keluar
           </span>
-        </button>
+        </Button>
       </motion.nav>
 
       {/* ── TopBar ── */}
@@ -147,12 +159,12 @@ export const RootShell = (props: RouteSectionProps) => {
 
       {/* ── Main content area ── margins snap, SSGOI masks the change */}
       <main
-        class="relative flex flex-1 flex-col overflow-hidden dark:bg-surface"
-        classList={{
-          "ml-[var(--sidebar-w,80px)] mt-[54px] h-[calc(100vh-54px)] max-[900px]:ml-0":
-            isShell(),
-          "h-screen": !isShell(),
-        }}
+        class={cn(
+          "relative flex flex-1 flex-col overflow-hidden dark:bg-surface",
+          isShell() &&
+            "mt-[54px] ml-[var(--sidebar-w,80px)] h-[calc(100vh-54px)] max-[900px]:ml-0",
+          !isShell() && "h-screen"
+        )}
       >
         <Ssgoi config={rootConfig}>{props.children}</Ssgoi>
       </main>

@@ -1,6 +1,7 @@
 import type { Component, JSX } from "solid-js";
 import { For } from "solid-js";
 import { CheckCircleIcon, ClockIcon, CreditCardIcon, FileIcon } from "~/assets";
+import { cn } from "~/lib/utils";
 
 interface KpiTheme {
   readonly badgeBg: string;
@@ -145,11 +146,10 @@ export const KpiCards = () => {
 
               {/* Value */}
               <div
-                class="relative z-[1] mb-4 font-bold font-display tabular-nums leading-none dark:[color:var(--kpi-dark-text)]"
-                classList={{
-                  "opacity-35": card.value === 0,
-                  "dark:opacity-25": card.value === 0,
-                }}
+                class={cn(
+                  "relative z-[1] mb-4 font-bold font-display tabular-nums leading-none dark:[color:var(--kpi-dark-text)]",
+                  card.value === 0 && "opacity-35 dark:opacity-25"
+                )}
                 style={
                   {
                     color: card.theme.textValue,

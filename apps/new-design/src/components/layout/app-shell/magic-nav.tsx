@@ -39,8 +39,10 @@ export const MagicNav = (props: MagicNavProps) => {
               const isActive = () => props.active === tab.key;
               return (
                 <li
-                  class="relative z-[1] h-[75px] flex-1"
-                  classList={{ active: isActive() }}
+                  class={cn(
+                    "relative z-[1] h-[75px] flex-1",
+                    isActive() && "active"
+                  )}
                 >
                   <A
                     class="relative flex h-full w-full cursor-pointer flex-col items-center justify-center no-underline"

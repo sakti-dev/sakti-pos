@@ -2,6 +2,7 @@ import { useNavigate } from "@solidjs/router";
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { CheckCircleIcon, DeleteIcon, UsersIcon } from "~/assets";
+import { cn } from "~/lib/utils";
 
 const DIGIT_RE = /^\d$/;
 
@@ -225,11 +226,11 @@ export function PinRightPanel() {
 
           {/* Error message */}
           <div
-            class="min-h-[18px] text-center font-medium text-[13px] text-[var(--color-error)] tracking-[0.01em] transition-[opacity,transform] duration-200"
-            classList={{
-              "opacity-0 -translate-y-1": !error(),
-              "opacity-100 translate-y-0": !!error(),
-            }}
+            class={cn(
+              "min-h-[18px] text-center font-medium text-[13px] text-[var(--color-error)] tracking-[0.01em] transition-[opacity,transform] duration-200",
+              !error() && "-translate-y-1 opacity-0",
+              !!error() && "translate-y-0 opacity-100"
+            )}
             role="alert"
           >
             {error() || "PIN salah, coba lagi"}
@@ -304,10 +305,7 @@ export function PinRightPanel() {
                 {(user, i) => (
                   <button
                     aria-label={`${user.name}, ${user.role}`}
-                    class="flex flex-col items-center gap-2.5 rounded-xl border-[1.5px] border-border bg-surface px-3 py-6 shadow-[0_1px_4px_rgba(0,0,0,0.03)] transition-[border-color,background,transform,box-shadow] duration-200 hover:border-accent hover:bg-accent-2 hover:shadow-[0_4px_16px_rgba(60,208,112,0.08)] active:scale-[0.97] dark:border-[#2a2a2a] dark:bg-[#1a1a1a] dark:hover:border-[rgba(60,208,112,0.3)] dark:hover:bg-[rgba(60,208,112,0.06)]"
-                    classList={{
-                      "animate-stagger-in": true,
-                    }}
+                    class="flex animate-stagger-in flex-col items-center gap-2.5 rounded-xl border-[1.5px] border-border bg-surface px-3 py-6 shadow-[0_1px_4px_rgba(0,0,0,0.03)] transition-[border-color,background,transform,box-shadow] duration-200 hover:border-accent hover:bg-accent-2 hover:shadow-[0_4px_16px_rgba(60,208,112,0.08)] active:scale-[0.97] dark:border-[#2a2a2a] dark:bg-[#1a1a1a] dark:hover:border-[rgba(60,208,112,0.3)] dark:hover:bg-[rgba(60,208,112,0.06)]"
                     onClick={[selectUser, user]}
                     style={{ "animation-delay": `${i() * 0.08}s` }}
                     type="button"

@@ -209,7 +209,7 @@ function SectionBisnis() {
         </FormGroup>
       </FormGrid>
       <BtnRow>
-        <Button type="button" variant="outline">
+        <Button look="outline" tone="neutral" type="button">
           Batal
         </Button>
         <Button type="button">Simpan Perubahan</Button>
@@ -308,7 +308,7 @@ function SectionUmum() {
       </div>
 
       <BtnRow>
-        <Button type="button" variant="outline">
+        <Button look="outline" tone="neutral" type="button">
           Batal
         </Button>
         <Button type="button">Simpan Perubahan</Button>
@@ -366,7 +366,7 @@ function SectionPajak() {
         title="PPN Termasuk Harga"
       />
       <BtnRow>
-        <Button type="button" variant="outline">
+        <Button look="outline" tone="neutral" type="button">
           Batal
         </Button>
         <Button type="button">Simpan Perubahan</Button>
@@ -423,7 +423,7 @@ function SectionPembayaran() {
         )}
       </For>
       <BtnRow>
-        <Button type="button" variant="outline">
+        <Button look="outline" tone="neutral" type="button">
           Batal
         </Button>
         <Button type="button">Simpan Perubahan</Button>
@@ -475,7 +475,7 @@ function SectionStruk() {
         title="Tampilkan Pajak"
       />
       <BtnRow>
-        <Button type="button" variant="outline">
+        <Button look="outline" tone="neutral" type="button">
           Batal
         </Button>
         <Button type="button">Simpan Perubahan</Button>
@@ -580,7 +580,7 @@ function SectionPerangkat() {
             Kelola printer, scanner, dan perangkat keras lainnya.
           </CardDesc>
         </div>
-        <Button type="button" variant="outline">
+        <Button look="outline" tone="neutral" type="button">
           <svg
             aria-hidden="true"
             class="h-4 w-4"
