@@ -62,3 +62,4 @@ graphify-out
 .security-key
 *.log
 *.sqlite
+references
