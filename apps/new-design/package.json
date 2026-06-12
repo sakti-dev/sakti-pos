@@ -15,6 +15,7 @@
     "@ssgoi/solid": "^6.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "motion-solidjs": "^0.5.0",
     "solid-js": "^1.9.12",
     "solid-sonner": "^0.3.1",
     "tailwind-merge": "^3.6.0",

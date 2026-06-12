@@ -1,13 +1,16 @@
 import type { SsgoiConfig, SsgoiPathTransition } from "@ssgoi/solid";
 import { axis, drill, fade } from "@ssgoi/solid/view-transitions";
 
-/* ── ordered path transitions ──────────────────────────────────── */
+/* ── Path groups ─────────────────────────────────────────────────── */
 
 const SHELL_PATHS = ["/", "/transactions", "/pengaturan"] as const;
+const FLOW_PATHS = ["/transaction-new", "/payment", "/receipt"] as const;
+const AUTH_PATHS = ["/login", "/register", "/pin"] as const;
 
-function createSlideTransitions(): SsgoiPathTransition[] {
+/* ── Shell ↔ Shell: axis slide ───────────────────────────────────── */
+
+function createShellSlides(): SsgoiPathTransition[] {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 900;
-
   return axis({
     paths: [...SHELL_PATHS],
     type: isMobile ? "x" : "y",
@@ -15,34 +18,23 @@ function createSlideTransitions(): SsgoiPathTransition[] {
   });
 }
 
-/* ── shell config ──────────────────────────────────────────────── */
+/* ── Root config ─────────────────────────────────────────────────── */
 
-/**
- * Shell page transition config — used inside AppShell's <main>.
- * Uses SSGOI's built-in axis transition: Y (desktop sidebar) / X (mobile bottom nav).
- */
-export const shellConfig: SsgoiConfig = {
-  transitions: createSlideTransitions(),
-};
-
-/* ── flow config (transaction-new → payment → receipt) ────────── */
-
-/**
- * Transaction flow transition config.
- * drill(parallax): iOS-style hierarchical navigation.
- */
-export const flowConfig: SsgoiConfig = {
+export const rootConfig: SsgoiConfig = {
   transitions: [
+    // Shell ↔ Shell
+    ...createShellSlides(),
+
+    // Flow → Flow: drill parallax
     drill({ enter: "/payment", exit: "/transaction-new", type: "parallax" }),
     drill({ enter: "/receipt", exit: "/payment", type: "parallax" }),
+
+    // Auth ↔ Auth: fade
+    fade({ paths: [...AUTH_PATHS] }),
+
+    // Shell → Flow: drill in (any shell page → transaction-new)
+    drill({ enter: "/transaction-new", exit: "/", type: "parallax" }),
+    drill({ enter: "/transaction-new", exit: "/transactions", type: "parallax" }),
+    drill({ enter: "/transaction-new", exit: "/pengaturan", type: "parallax" }),
   ],
-};
-
-/* ── auth config (login ↔ register ↔ pin) ─────────────────────── */
-
-/**
- * Auth page transition config — calm cross-fade between auth pages.
- */
-export const authConfig: SsgoiConfig = {
-  transitions: [fade({ paths: ["/login", "/register", "/pin"] })],
 };

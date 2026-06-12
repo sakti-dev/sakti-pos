@@ -1,7 +1,5 @@
 import type { RouteSectionProps } from "@solidjs/router";
-import { Ssgoi } from "@ssgoi/solid";
 import { Show } from "solid-js";
-import { shellConfig } from "~/lib/ssgoi-config";
 import { Fab } from "./fab";
 import { MagicNav } from "./magic-nav";
 import type { NavKey } from "./sidebar";
@@ -22,10 +20,6 @@ const navFromPath = (pathname: string): NavKey => {
   return "home";
 };
 
-/**
- * Shell layout route — persists across /, /transactions, /pengaturan.
- * Sidebar, TopBar, Fab, MagicNav stay mounted; only <main> content transitions.
- */
 export const AppShell = (props: RouteSectionProps) => {
   const pathname = () => props.location.pathname;
   const activeNav = () => navFromPath(pathname());
@@ -35,9 +29,8 @@ export const AppShell = (props: RouteSectionProps) => {
       <Sidebar />
       <TopBar />
 
-      {/* Main content area — only this animates between shell pages */}
       <main class="relative mt-[54px] ml-[var(--sidebar-w,80px)] flex h-[calc(100vh-54px)] flex-1 flex-col overflow-hidden max-[900px]:ml-0 dark:bg-surface">
-        <Ssgoi config={shellConfig}>{props.children}</Ssgoi>
+        {props.children}
       </main>
 
       <Show when={activeNav() === "home" || activeNav() === "transactions"}>

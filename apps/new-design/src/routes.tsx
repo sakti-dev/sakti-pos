@@ -4,9 +4,7 @@ import {
   createLocalStorageManager,
 } from "@kobalte/core";
 import { Route, Router } from "@solidjs/router";
-import { AppShell } from "./components/layout/app-shell";
-import { AuthLayout } from "./components/layout/auth-layout";
-import { FlowLayout } from "./components/layout/flow-layout";
+import { RootShell } from "./components/layout/root-shell";
 import { Toaster } from "./components/ui/toaster";
 import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
@@ -27,32 +25,21 @@ export default function AppRoutes() {
         <>
           <ColorModeScript storageType={storageManager.type} />
           <ColorModeProvider storageManager={storageManager}>
-            {props.children}
+            <RootShell {...props} />
             <Toaster />
           </ColorModeProvider>
         </>
       )}
     >
-      {/* Shell routes — AppShell persists, only <main> content animates */}
-      <Route component={AppShell}>
-        <Route component={Dashboard} path="/" />
-        <Route component={Transactions} path="/transactions" />
-        <Route component={Pengaturan} path="/pengaturan" />
-      </Route>
-
-      {/* Auth routes — fade between login / register / pin */}
-      <Route component={AuthLayout}>
-        <Route component={Login} path="/login" />
-        <Route component={Register} path="/register" />
-        <Route component={Pin} path="/pin" />
-      </Route>
-
-      {/* Transaction flow — drill in from new → payment → receipt */}
-      <Route component={FlowLayout}>
-        <Route component={TransactionNew} path="/transaction-new" />
-        <Route component={Payment} path="/payment" />
-        <Route component={Receipt} path="/receipt" />
-      </Route>
+      <Route component={Dashboard} path="/" />
+      <Route component={Transactions} path="/transactions" />
+      <Route component={Pengaturan} path="/pengaturan" />
+      <Route component={TransactionNew} path="/transaction-new" />
+      <Route component={Payment} path="/payment" />
+      <Route component={Receipt} path="/receipt" />
+      <Route component={Login} path="/login" />
+      <Route component={Register} path="/register" />
+      <Route component={Pin} path="/pin" />
     </Router>
   );
 }
