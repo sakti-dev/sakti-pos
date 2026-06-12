@@ -79,7 +79,11 @@ export default function Payment() {
     });
 
   return (
-    <SubPageShell backHref="/transaction-new" title="Pembayaran">
+    <SubPageShell
+      backHref="/transaction-new"
+      data-ssgoi-transition="/payment"
+      title="Pembayaran"
+    >
       <div class="flex flex-1 overflow-hidden">
         <div class="flex flex-1 gap-5 overflow-y-auto p-5 max-[900px]:flex-col max-[600px]:gap-3 max-[900px]:gap-4 max-[600px]:p-3 max-[900px]:p-4 max-[600px]:pb-24 max-[900px]:pb-24">
           <OrderSummary

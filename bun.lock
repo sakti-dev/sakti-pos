@@ -50,6 +50,7 @@
         "@corvu/drawer": "^0.2.4",
         "@kobalte/core": "^0.13.11",
         "@solidjs/router": "^0.16.1",
+        "@ssgoi/solid": "^6.4.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "solid-js": "^1.9.12",
@@ -600,6 +601,10 @@
     "@solidjs/testing-library": ["@solidjs/testing-library@0.8.10", "", { "dependencies": { "@testing-library/dom": "^10.4.0" }, "peerDependencies": { "@solidjs/router": ">=0.9.0", "solid-js": ">=1.0.0" }, "optionalPeers": ["@solidjs/router"] }, "sha512-qdeuIerwyq7oQTIrrKvV0aL9aFeuwTd86VYD3afdq5HYEwoox1OBTJy4y8A3TFZr8oAR0nujYgCzY/8wgHGfeQ=="],
 
     "@speed-highlight/core": ["@speed-highlight/core@1.2.15", "", {}, "sha512-BMq1K3DsElxDWawkX6eLg9+CKJrTVGCBAWVuHXVUV2u0s2711qiChLSId6ikYPfxhdYocLNt3wWwSvDiTvFabw=="],
+
+    "@ssgoi/core": ["@ssgoi/core@6.4.0", "", {}, "sha512-R0vwkdpJtywKJfRK5yx9aug7uSIw9JI2Ufpyyblo5vrT9PfN8xvZtfBpfFzKQQA050VH+pwBZLEwtjw/kBRO7w=="],
+
+    "@ssgoi/solid": ["@ssgoi/solid@6.4.0", "", { "dependencies": { "@ssgoi/core": "^6.4.0" }, "peerDependencies": { "solid-js": "^1.0.0" } }, "sha512-/j7xfLt8dF7pQdkyws8lil4CIYNbRdBykWeiE67NeVivzFFEuBtqY6L26me5eKYu/u0GLWEb09rUfjwjigI0lw=="],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 

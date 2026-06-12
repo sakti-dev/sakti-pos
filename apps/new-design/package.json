@@ -12,6 +12,7 @@
     "@corvu/drawer": "^0.2.4",
     "@kobalte/core": "^0.13.11",
     "@solidjs/router": "^0.16.1",
+    "@ssgoi/solid": "^6.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "solid-js": "^1.9.12",

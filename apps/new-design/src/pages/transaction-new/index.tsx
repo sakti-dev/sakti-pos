@@ -115,7 +115,10 @@ export default function TransactionNew() {
   const cartItemCount = () => cart().reduce((s, c) => s + c.qty, 0);
 
   return (
-    <div class="flex h-screen bg-surface-gray font-sans text-text antialiased dark:bg-[#111] dark:text-[#f0f0f0]">
+    <div
+      class="flex h-screen bg-surface-gray font-sans text-text antialiased dark:bg-[#111] dark:text-[#f0f0f0]"
+      data-ssgoi-transition="/transaction-new"
+    >
       {/* Left column — catalog */}
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-cream dark:bg-[#0a0a0a]">
         <header class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-surface px-5 max-[900px]:px-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">

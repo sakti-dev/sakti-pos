@@ -104,7 +104,10 @@ export default function Receipt() {
 
   const meta = METHOD_META[method] ?? METHOD_META.cash;
   return (
-    <div class="flex min-h-screen flex-col bg-surface-gray font-sans text-text antialiased dark:bg-[#111]">
+    <div
+      class="flex min-h-screen flex-col bg-surface-gray font-sans text-text antialiased dark:bg-[#111]"
+      data-ssgoi-transition="/receipt"
+    >
       {/* Scrollable receipt content */}
       <div class="scrollbar-none flex flex-1 flex-col items-center overflow-y-auto overflow-x-hidden px-5 pt-8 pb-44 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-48">
         {/* Success banner */}
