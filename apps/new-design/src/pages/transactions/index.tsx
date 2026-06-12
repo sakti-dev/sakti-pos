@@ -1,3 +1,4 @@
+import { motion } from "motion-solidjs";
 import { createSignal, For, Show } from "solid-js";
 import {
   CheckCircleIcon,
@@ -254,14 +255,24 @@ export default function Transactions() {
       data-ssgoi-transition="/transactions"
     >
       {/* Header bar */}
-      <div class="flex shrink-0 items-center gap-3 px-6 pt-5 pb-3 max-[800px]:px-[18px]">
+      <motion.div
+        animate={{ opacity: 1, y: 0 }}
+        class="flex shrink-0 items-center gap-3 px-6 pt-5 pb-3 max-[800px]:px-[18px]"
+        initial={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      >
         <h1 class="font-bold font-display text-[22px] text-text tracking-[-0.01em] dark:text-[#ededed]">
           Transaksi
         </h1>
-      </div>
+      </motion.div>
 
       {/* Search + filter row */}
-      <div class="flex shrink-0 flex-col gap-3 px-6 pb-3 max-[800px]:px-[18px]">
+      <motion.div
+        animate={{ opacity: 1, y: 0 }}
+        class="flex shrink-0 flex-col gap-3 px-6 pb-3 max-[800px]:px-[18px]"
+        initial={{ opacity: 0, y: 8 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+      >
         {/* Search field */}
         <label class="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1a1a1a]">
           <SearchIcon class="h-4 w-4 shrink-0 text-text-muted" />
@@ -287,7 +298,7 @@ export default function Transactions() {
             )}
           </For>
         </div>
-      </div>
+      </motion.div>
 
       {/* Transaction list */}
       <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-6 pb-24 max-[800px]:px-[18px] max-[900px]:pb-28">
@@ -300,11 +311,20 @@ export default function Transactions() {
           when={filtered().length > 0}
         >
           <For each={filtered()}>
-            {(tx) => {
+            {(tx, i) => {
               const meta = STATUS_META[tx.status];
               const pill = STATUS_PILL[tx.status];
               return (
-                <div class="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1a1a1a]">
+                <motion.div
+                  animate={{ opacity: 1, y: 0 }}
+                  class="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1a1a1a]"
+                  initial={{ opacity: 0, y: 12 }}
+                  transition={{
+                    duration: 0.35,
+                    ease: [0.22, 1, 0.36, 1],
+                    delay: 0.1 + i() * 0.03,
+                  }}
+                >
                   {/* Icon */}
                   <div
                     class={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${meta.bg}`}
@@ -333,7 +353,7 @@ export default function Transactions() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             }}
           </For>

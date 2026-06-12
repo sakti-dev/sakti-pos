@@ -1,19 +1,17 @@
 import type { RouteSectionProps } from "@solidjs/router";
-import { useColorMode } from "@kobalte/core";
 import { A } from "@solidjs/router";
-import { motion } from "motion-solidjs";
 import { Ssgoi } from "@ssgoi/solid";
-import { rootConfig } from "~/lib/ssgoi-config";
+import { motion } from "motion-solidjs";
 import { For, Show } from "solid-js";
 import {
+  BellIcon,
+  CloudIcon,
   FileIcon,
   HomeIcon,
   LogoutIcon,
-  MoonIcon,
   SettingsIcon,
-  SunIcon,
 } from "~/assets";
-import { BellIcon, CloudIcon } from "~/assets";
+import { rootConfig } from "~/lib/ssgoi-config";
 import { Fab } from "./app-shell/fab";
 import { MagicNav } from "./app-shell/magic-nav";
 
@@ -36,9 +34,15 @@ const ZONE_MAP: Record<string, Zone> = {
 export type NavKey = "home" | "transactions" | "settings";
 
 const navFromPath = (pathname: string): NavKey => {
-  if (pathname === "/") return "home";
-  if (pathname === "/transactions") return "transactions";
-  if (pathname === "/pengaturan") return "settings";
+  if (pathname === "/") {
+    return "home";
+  }
+  if (pathname === "/transactions") {
+    return "transactions";
+  }
+  if (pathname === "/pengaturan") {
+    return "settings";
+  }
   return "home";
 };
 
@@ -49,14 +53,19 @@ const navItems: readonly {
   href: string;
 }[] = [
   { key: "home", Icon: HomeIcon, label: "Home", href: "/" },
-  { key: "transactions", Icon: FileIcon, label: "Transaksi", href: "/transactions" },
-  { key: "settings", Icon: SettingsIcon, label: "Pengaturan", href: "/pengaturan" },
+  {
+    key: "transactions",
+    Icon: FileIcon,
+    label: "Transaksi",
+    href: "/transactions",
+  },
+  {
+    key: "settings",
+    Icon: SettingsIcon,
+    label: "Pengaturan",
+    href: "/pengaturan",
+  },
 ] as const;
-
-/* ── Shared transition config ────────────────────────────────────── */
-
-const EASE = [0.25, 0.1, 0.25, 1] as [number, number, number, number];
-const DURATION = 0.3;
 
 /* ── RootShell ───────────────────────────────────────────────────── */
 
@@ -65,19 +74,19 @@ export const RootShell = (props: RouteSectionProps) => {
   const zone = (): Zone => ZONE_MAP[pathname()] ?? "shell";
   const isShell = () => zone() === "shell";
   const activeNav = () => navFromPath(pathname());
-  const { colorMode, setColorMode } = useColorMode();
 
   return (
     <div class="bg-cream dark:bg-surface">
       {/* ── Sidebar ── */}
       <motion.nav
-        class="fixed top-0 left-0 z-[100] flex h-screen w-[var(--sidebar-w,80px)] min-w-[var(--sidebar-w,80px)] flex-col items-center border-border border-r bg-surface py-5 pb-4 max-[900px]:hidden dark:border-[rgba(255,255,255,0.06)] dark:bg-[#141414]"
         animate={{
           x: isShell() ? 0 : -80,
           opacity: isShell() ? 1 : 0,
           pointerEvents: isShell() ? "auto" : "none",
         }}
-        transition={{ duration: DURATION, ease: EASE }}
+        class="fixed top-0 left-0 z-[100] flex h-screen w-[var(--sidebar-w,80px)] min-w-[var(--sidebar-w,80px)] flex-col items-center border-border border-r bg-surface py-5 pb-4 max-[900px]:hidden dark:border-[rgba(255,255,255,0.06)] dark:bg-[#141414]"
+        initial={{ x: -80, opacity: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
       >
         {/* Brand */}
         <div class="mb-7 grid h-12 w-12 place-items-center rounded-[14px]">
@@ -108,26 +117,6 @@ export const RootShell = (props: RouteSectionProps) => {
           </For>
         </div>
 
-        {/* Theme toggle */}
-        <button
-          aria-label="Ganti tema"
-          class="mb-1 flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 text-text-muted transition-[background,color] duration-150 hover:bg-[rgba(60,208,112,0.06)] hover:text-text dark:text-[#3cd070] dark:hover:bg-[rgba(60,208,112,0.10)] [&>svg]:transition-transform [&>svg]:duration-300 [&>svg]:hover:rotate-20"
-          onClick={() =>
-            setColorMode(colorMode() === "dark" ? "light" : "dark")
-          }
-          type="button"
-        >
-          <Show
-            fallback={<MoonIcon class="h-[22px] w-[22px] shrink-0" />}
-            when={colorMode() !== "dark"}
-          >
-            <SunIcon class="h-[22px] w-[22px] shrink-0" />
-          </Show>
-          <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
-            {colorMode() === "dark" ? "Terang" : "Gelap"}
-          </span>
-        </button>
-
         {/* Logout */}
         <button
           aria-label="Keluar"
@@ -143,13 +132,15 @@ export const RootShell = (props: RouteSectionProps) => {
 
       {/* ── TopBar ── */}
       <motion.header
-        class="fixed top-0 right-0 left-[var(--sidebar-w,80px)] z-[99] flex h-[54px] shrink-0 items-center justify-between border-border border-b bg-surface px-7 max-[900px]:left-0 max-[900px]:px-[18px] dark:border-[rgba(255,255,255,0.06)] dark:bg-[#141414]"
         animate={{
           x: isShell() ? 0 : -80,
+          y: isShell() ? 0 : -20,
           opacity: isShell() ? 1 : 0,
           pointerEvents: isShell() ? "auto" : "none",
         }}
-        transition={{ duration: DURATION, ease: EASE }}
+        class="fixed top-0 right-0 left-[var(--sidebar-w,80px)] z-[99] flex h-[54px] shrink-0 items-center justify-between border-border border-b bg-surface px-7 max-[900px]:left-0 max-[900px]:px-[18px] dark:border-[rgba(255,255,255,0.06)] dark:bg-[#141414]"
+        initial={{ y: -20, opacity: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
       >
         <TopBar />
       </motion.header>
@@ -158,7 +149,8 @@ export const RootShell = (props: RouteSectionProps) => {
       <main
         class="relative flex flex-1 flex-col overflow-hidden dark:bg-surface"
         classList={{
-          "ml-[var(--sidebar-w,80px)] mt-[54px] h-[calc(100vh-54px)] max-[900px]:ml-0": isShell(),
+          "ml-[var(--sidebar-w,80px)] mt-[54px] h-[calc(100vh-54px)] max-[900px]:ml-0":
+            isShell(),
           "h-screen": !isShell(),
         }}
       >
@@ -192,7 +184,9 @@ const TopBar = () => {
   onCleanup(() => clearInterval(timer));
 
   const handleSync = () => {
-    if (syncing()) return;
+    if (syncing()) {
+      return;
+    }
     setSyncing(true);
     setTimeout(() => setSyncing(false), 1800);
   };
@@ -215,7 +209,9 @@ const TopBar = () => {
 
         <span class="font-medium text-[14px] text-text-secondary tabular-nums">
           {clock()}
-          <span class="ml-1 text-[11px] text-text-muted tracking-[0.02em]">WIB</span>
+          <span class="ml-1 text-[11px] text-text-muted tracking-[0.02em]">
+            WIB
+          </span>
         </span>
       </div>
 

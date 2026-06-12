@@ -1,4 +1,5 @@
 import { A, useNavigate } from "@solidjs/router";
+import { motion } from "motion-solidjs";
 import { createSignal, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
@@ -121,7 +122,12 @@ export default function TransactionNew() {
     >
       {/* Left column — catalog */}
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-cream dark:bg-[#0a0a0a]">
-        <header class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-surface px-5 max-[900px]:px-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
+        <motion.header
+          animate={{ opacity: 1, x: 0 }}
+          class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-surface px-5 max-[900px]:px-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]"
+          initial={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
           <A
             aria-label="Kembali"
             class="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-border bg-surface text-text transition-[background,border-color] duration-150 hover:border-[rgba(26,51,0,0.20)] hover:bg-primary-light dark:border-[rgba(255,255,255,0.08)] dark:bg-[#1a1a1a] dark:text-[#f0f0f0] dark:hover:border-[rgba(168,229,229,0.20)] dark:hover:bg-[rgba(168,229,229,0.08)]"
@@ -132,17 +138,27 @@ export default function TransactionNew() {
           <span class="font-bold text-[17px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
             Transaksi Baru
           </span>
-        </header>
+        </motion.header>
 
-        <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5 max-[900px]:gap-3 max-[900px]:p-3.5 max-[900px]:pb-20">
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5 max-[900px]:gap-3 max-[900px]:p-3.5 max-[900px]:pb-20"
+          initial={{ opacity: 0, y: 16 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+        >
           <CategoryTabs active={activeCat()} onSelect={setActiveCat} />
           <SearchBar onInput={setSearch} value={search()} />
           <ProductGrid onAdd={addToCart} products={filtered()} />
-        </div>
+        </motion.div>
       </div>
 
       {/* Right column — cart sidebar (desktop only) */}
-      <div class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-surface max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px] dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
+      <motion.div
+        animate={{ opacity: 1, x: 0 }}
+        class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-surface max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px] dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]"
+        initial={{ opacity: 0, x: 40 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+      >
         <CartPanel
           cart={cart()}
           onDecrement={decrement}
@@ -154,7 +170,7 @@ export default function TransactionNew() {
           }}
           products={products}
         />
-      </div>
+      </motion.div>
 
       {/* Mobile cart drawer */}
       <Sheet

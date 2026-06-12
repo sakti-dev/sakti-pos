@@ -4,7 +4,7 @@ import { axis, drill, fade } from "@ssgoi/solid/view-transitions";
 /* ── Path groups ─────────────────────────────────────────────────── */
 
 const SHELL_PATHS = ["/", "/transactions", "/pengaturan"] as const;
-const FLOW_PATHS = ["/transaction-new", "/payment", "/receipt"] as const;
+const _FLOW_PATHS = ["/transaction-new", "/payment", "/receipt"] as const;
 const AUTH_PATHS = ["/login", "/register", "/pin"] as const;
 
 /* ── Shell ↔ Shell: axis slide ───────────────────────────────────── */
@@ -34,7 +34,11 @@ export const rootConfig: SsgoiConfig = {
 
     // Shell → Flow: drill in (any shell page → transaction-new)
     drill({ enter: "/transaction-new", exit: "/", type: "parallax" }),
-    drill({ enter: "/transaction-new", exit: "/transactions", type: "parallax" }),
+    drill({
+      enter: "/transaction-new",
+      exit: "/transactions",
+      type: "parallax",
+    }),
     drill({ enter: "/transaction-new", exit: "/pengaturan", type: "parallax" }),
   ],
 };
