@@ -32,7 +32,7 @@ export const MagicNav = (props: MagicNavProps) => {
       aria-label="Mobile navigation"
       class="fixed right-0 bottom-0 left-0 z-[100] hidden h-[75px] max-[900px]:block"
     >
-      <div class="relative h-[75px] w-full bg-surface shadow-[0_-4px_20px_rgba(9,73,51,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.30)]">
+      <div class="relative h-[75px] w-full bg-card shadow-card">
         <ul class="m-0 flex h-[75px] w-full list-none p-0">
           <For each={tabs}>
             {(tab) => {
@@ -50,7 +50,7 @@ export const MagicNav = (props: MagicNavProps) => {
                   >
                     <span
                       class={cn(
-                        "relative flex items-center justify-center text-text-muted leading-none transition-[transform,color] duration-500 [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)]",
+                        "relative flex items-center justify-center text-faint-foreground leading-none transition-[transform,color] duration-500 [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)]",
                         isActive() &&
                           "translate-y-[-32px] text-primary dark:text-accent"
                       )}
@@ -59,7 +59,7 @@ export const MagicNav = (props: MagicNavProps) => {
                     </span>
                     <span
                       class={cn(
-                        "absolute bottom-2 translate-y-[10px] whitespace-nowrap font-semibold text-[10px] text-text tracking-[0.04em] opacity-0 transition-[transform,opacity] duration-500 [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)] dark:text-text",
+                        "absolute bottom-2 translate-y-[10px] whitespace-nowrap font-semibold text-[10px] text-foreground tracking-[0.04em] opacity-0 transition-[transform,opacity] duration-500 [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)] dark:text-foreground",
                         isActive() && "translate-y-0 opacity-100"
                       )}
                     >
@@ -73,14 +73,14 @@ export const MagicNav = (props: MagicNavProps) => {
 
           {/* Indicator bubble */}
           <div
-            class="absolute top-[-28px] z-[3] flex h-[62px] w-[62px] items-center justify-center rounded-full border-[6px] border-cream bg-primary shadow-[0_6px_20px_rgba(9,73,51,0.30)] transition-[left] duration-500 [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)] dark:border-[#141414] dark:bg-primary dark:shadow-[0_6px_20px_rgba(0,0,0,0.50)]"
+            class="absolute top-[-28px] z-[3] flex h-[62px] w-[62px] items-center justify-center rounded-full border-[6px] border-background bg-primary shadow-card transition-[left] duration-500 [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)]"
             style={{
               left: `calc(100% / 3 * ${activeIndex()} + (100% / 3 - 62px) / 2)`,
             }}
           >
             {/* Curved cutout pseudo-elements via box-shadow trick */}
-            <span class="pointer-events-none absolute top-[48px] left-[-22px] h-5 w-5 rounded-tr-[20px] bg-transparent shadow-[1px_-10px_0_0_var(--color-surface)]" />
-            <span class="pointer-events-none absolute top-[48px] right-[-22px] h-5 w-5 rounded-tl-[20px] bg-transparent shadow-[-1px_-10px_0_0_var(--color-surface)]" />
+            <span class="pointer-events-none absolute top-[48px] left-[-22px] h-5 w-5 rounded-tr-[20px] bg-transparent shadow-[1px_-10px_0_0_var(--color-card)]" />
+            <span class="pointer-events-none absolute top-[48px] right-[-22px] h-5 w-5 rounded-tl-[20px] bg-transparent shadow-[-1px_-10px_0_0_var(--color-card)]" />
             <PlusIcon class="h-6 w-6 text-primary-foreground" />
           </div>
         </ul>

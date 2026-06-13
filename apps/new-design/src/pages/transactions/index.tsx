@@ -32,56 +32,56 @@ const STATUS_META: Record<
 > = {
   new: {
     Icon: FileIcon,
-    bg: "bg-[rgba(60,208,112,0.12)] dark:bg-[rgba(60,208,112,0.15)]",
-    color: "text-[#094933] dark:text-[#3cd070]",
+    bg: "bg-accent/10",
+    color: "text-primary",
     label: "Baru",
   },
   processing: {
     Icon: LoaderIcon,
-    bg: "bg-[rgba(255,233,92,0.25)] dark:bg-[rgba(250,204,21,0.12)]",
-    color: "text-[#7a5f00] dark:text-[#fde68a]",
+    bg: "bg-[rgba(255,233,92,0.25)]",
+    color: "text-[#7a5f00]",
     label: "Diproses",
   },
   waiting: {
     Icon: ClockIcon,
-    bg: "bg-[rgba(230,168,23,0.12)] dark:bg-[rgba(251,146,60,0.12)]",
-    color: "text-[#b8860b] dark:text-[#fed7aa]",
+    bg: "bg-warning/15",
+    color: "text-warning",
     label: "Menunggu",
   },
   done: {
     Icon: CheckCircleIcon,
-    bg: "bg-[rgba(46,125,50,0.10)] dark:bg-[rgba(74,222,128,0.12)]",
-    color: "text-[#2e7d32] dark:text-[#86efac]",
+    bg: "bg-success/10",
+    color: "text-success",
     label: "Selesai",
   },
   cancelled: {
     Icon: XCircleIcon,
-    bg: "bg-[rgba(192,57,43,0.08)] dark:bg-[rgba(248,113,113,0.12)]",
-    color: "text-[#c0392b] dark:text-[#fca5a5]",
+    bg: "bg-danger/10",
+    color: "text-danger",
     label: "Batal",
   },
 };
 
 const STATUS_PILL: Record<TxStatus, { bg: string; color: string }> = {
   new: {
-    bg: "bg-[rgba(60,208,112,0.12)] dark:bg-[rgba(60,208,112,0.15)]",
-    color: "text-[#094933] dark:text-[#3cd070]",
+    bg: "bg-accent/10",
+    color: "text-primary",
   },
   processing: {
-    bg: "bg-[rgba(255,233,92,0.25)] dark:bg-[rgba(250,204,21,0.12)]",
-    color: "text-[#7a5f00] dark:text-[#fde68a]",
+    bg: "bg-[rgba(255,233,92,0.25)]",
+    color: "text-[#7a5f00]",
   },
   waiting: {
-    bg: "bg-[rgba(230,168,23,0.12)] dark:bg-[rgba(251,146,60,0.12)]",
-    color: "text-[#b8860b] dark:text-[#fed7aa]",
+    bg: "bg-warning/15",
+    color: "text-warning",
   },
   done: {
-    bg: "bg-[rgba(46,125,50,0.10)] dark:bg-[rgba(74,222,128,0.12)]",
-    color: "text-[#2e7d32] dark:text-[#86efac]",
+    bg: "bg-success/10",
+    color: "text-success",
   },
   cancelled: {
-    bg: "bg-[rgba(192,57,43,0.08)] dark:bg-[rgba(248,113,113,0.12)]",
-    color: "text-[#c0392b] dark:text-[#fca5a5]",
+    bg: "bg-danger/10",
+    color: "text-danger",
   },
 };
 
@@ -199,34 +199,6 @@ const sampleTxs: readonly TxEntry[] = [
 
 import { formatItems, formatRupiah } from "~/lib/utils";
 
-const _todayDate = () => {
-  const d = new Date();
-  const days = [
-    "Minggu",
-    "Senin",
-    "Selasa",
-    "Rabu",
-    "Kamis",
-    "Jumat",
-    "Sabtu",
-  ] as const;
-  const months = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ] as const;
-  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-};
-
 /* ── component ────────────────────────────────────────────────── */
 
 export default function Transactions() {
@@ -261,7 +233,7 @@ export default function Transactions() {
         initial={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h1 class="font-bold font-display text-[22px] text-text tracking-[-0.01em] dark:text-[#ededed]">
+        <h1 class="font-bold font-display text-[22px] text-foreground tracking-[-0.01em]">
           Transaksi
         </h1>
       </motion.div>
@@ -274,10 +246,10 @@ export default function Transactions() {
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
       >
         {/* Search field */}
-        <label class="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1a1a1a]">
-          <SearchIcon class="h-4 w-4 shrink-0 text-text-muted" />
+        <label class="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-card">
+          <SearchIcon class="h-4 w-4 shrink-0 text-faint-foreground" />
           <input
-            class="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted dark:text-[#ededed]"
+            class="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-faint-foreground"
             onInput={(e) => setSearch(e.currentTarget.value)}
             placeholder="Cari transaksi..."
             type="text"
@@ -304,7 +276,7 @@ export default function Transactions() {
       <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-6 pb-24 max-[800px]:px-[18px] max-[900px]:pb-28">
         <Show
           fallback={
-            <div class="flex flex-1 items-center justify-center py-20 text-sm text-text-muted">
+            <div class="flex flex-1 items-center justify-center py-20 text-sm text-faint-foreground">
               Tidak ada transaksi ditemukan
             </div>
           }
@@ -317,7 +289,7 @@ export default function Transactions() {
               return (
                 <motion.div
                   animate={{ opacity: 1, y: 0 }}
-                  class="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1a1a1a]"
+                  class="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-card"
                   initial={{ opacity: 0, y: 12 }}
                   transition={{
                     duration: 0.35,
@@ -335,15 +307,15 @@ export default function Transactions() {
                   {/* Body */}
                   <div class="flex min-w-0 flex-1 flex-col gap-1">
                     <div class="flex items-center justify-between gap-2">
-                      <span class="truncate font-semibold text-sm text-text dark:text-[#ededed]">
+                      <span class="truncate font-semibold text-sm text-foreground">
                         {tx.customer}
                       </span>
-                      <span class="shrink-0 font-semibold text-sm text-text dark:text-[#ededed]">
+                      <span class="shrink-0 font-semibold text-sm text-foreground">
                         {formatRupiah(tx.total)}
                       </span>
                     </div>
                     <div class="flex items-center justify-between gap-2">
-                      <span class="text-text-muted text-xs">
+                      <span class="text-faint-foreground text-xs">
                         {formatItems(tx.items)} · {tx.time}
                       </span>
                       <span

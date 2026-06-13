@@ -28,9 +28,9 @@ export const Numpad = (props: NumpadProps) => (
         <button
           aria-label={k.key === "back" ? "Hapus digit" : k.label}
           class={cn(
-            "flex min-h-[48px] select-none items-center justify-center rounded-[6px] border-[1.5px] border-border bg-surface font-sans font-semibold text-[20px] text-text transition-[background,border-color,transform] duration-100 hover:border-[rgba(9,73,51,0.12)] hover:bg-surface-gray active:scale-[0.96] active:border-[rgba(9,73,51,0.20)] active:bg-primary-light dark:border-[rgba(255,255,255,0.06)] dark:bg-[#222] dark:text-[#e0e0e0] dark:active:border-primary dark:active:bg-[rgba(9,73,51,0.20)] dark:hover:border-[rgba(255,255,255,0.10)] dark:hover:bg-[#2a2a2a]",
+            "flex min-h-[48px] select-none items-center justify-center rounded-[6px] border-[1.5px] border-border bg-card font-sans font-semibold text-[20px] text-foreground transition-[background,border-color,transform] duration-100 hover:border-primary/10 hover:bg-muted active:scale-[0.96] active:border-primary/20 active:bg-primary/5 dark:active:border-primary",
             k.key === "back" &&
-              "bg-surface-gray text-text-secondary active:bg-[rgba(198,40,40,0.08)] active:text-[#c62828] dark:bg-[#1a1a1a] dark:text-[#888] dark:active:bg-[rgba(198,40,40,0.12)] dark:active:text-[#ef5350]",
+              "bg-muted text-muted-foreground active:bg-destructive/10 active:text-destructive",
             k.key === "000" && "text-[16px] tracking-[0.02em]",
             k.key === "0" && "text-[22px]"
           )}

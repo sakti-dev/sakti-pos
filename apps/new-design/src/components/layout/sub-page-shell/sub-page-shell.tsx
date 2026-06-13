@@ -14,7 +14,7 @@ export const SubPageShell = (props: SubPageShellProps) => {
   return (
     <div
       {...rest}
-      class="flex h-screen flex-col bg-surface-gray font-sans text-text antialiased dark:bg-[#111] dark:text-[#f0f0f0]"
+      class="flex h-screen flex-col bg-muted font-sans text-foreground antialiased"
     >
       <ScreenHeader backHref={backHref} backLabel={backLabel} title={title} />
       {children}

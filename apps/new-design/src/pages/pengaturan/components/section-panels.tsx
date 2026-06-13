@@ -19,7 +19,7 @@ function SectionCard(props: {
 }) {
   return (
     <div
-      class={`flex flex-col gap-5 rounded-[14px] border border-border bg-surface px-6 py-6 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1e1e1e] ${props.class ?? ""}`}
+      class={`flex flex-col gap-5 rounded-[14px] border border-border bg-card px-6 py-6 ${props.class ?? ""}`}
     >
       {props.children}
     </div>
@@ -28,7 +28,7 @@ function SectionCard(props: {
 
 function CardTitle(props: { readonly children: JSX.Element }) {
   return (
-    <h3 class="font-bold font-display text-[16px] text-text tracking-[-0.01em] dark:text-[#ededed]">
+    <h3 class="font-bold font-display text-[16px] text-foreground tracking-[-0.01em]">
       {props.children}
     </h3>
   );
@@ -36,7 +36,7 @@ function CardTitle(props: { readonly children: JSX.Element }) {
 
 function CardDesc(props: { readonly children: JSX.Element }) {
   return (
-    <p class="mt-0.5 text-[13px] text-text-muted leading-relaxed tracking-[0.01em]">
+    <p class="mt-0.5 text-[13px] text-faint-foreground leading-relaxed tracking-[0.01em]">
       {props.children}
     </p>
   );
@@ -65,7 +65,7 @@ function FormGroup(props: {
 
 function FormLabel(props: { readonly children: JSX.Element }) {
   return (
-    <span class="font-semibold text-[12px] text-text-secondary uppercase tracking-[0.04em] dark:text-[#a0a0a0]">
+    <span class="font-semibold text-[12px] text-muted-foreground uppercase tracking-[0.04em]">
       {props.children}
     </span>
   );
@@ -81,7 +81,7 @@ function FormInput(props: {
 }) {
   return (
     <input
-      class="h-[42px] rounded-[10px] border border-border bg-surface px-3.5 font-[inherit] text-[14px] text-text outline-none transition-[border-color,box-shadow] duration-200 focus:border-[rgba(9,73,51,0.30)] focus:shadow-[0_0_0_3px_rgba(9,73,51,0.08)] dark:border-[rgba(255,255,255,0.10)] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:focus:border-[rgba(60,208,112,0.30)] dark:focus:shadow-[0_0_0_3px_rgba(60,208,112,0.08)]"
+      class="h-[42px] rounded-[10px] border border-border bg-card px-3.5 font-[inherit] text-[14px] text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       max={props.max}
       min={props.min}
       placeholder={props.placeholder}
@@ -99,7 +99,7 @@ function FormTextarea(props: {
 }) {
   return (
     <textarea
-      class="min-h-[80px] resize-y rounded-[10px] border border-border bg-surface px-3.5 py-2.5 font-[inherit] text-[14px] text-text leading-relaxed outline-none transition-[border-color,box-shadow] duration-200 focus:border-[rgba(9,73,51,0.30)] focus:shadow-[0_0_0_3px_rgba(9,73,51,0.08)] dark:border-[rgba(255,255,255,0.10)] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:focus:border-[rgba(60,208,112,0.30)] dark:focus:shadow-[0_0_0_3px_rgba(60,208,112,0.08)]"
+      class="min-h-[80px] resize-y rounded-[10px] border border-border bg-card px-3.5 py-2.5 font-[inherit] text-[14px] text-foreground leading-relaxed outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       placeholder={props.placeholder}
       rows={props.rows ?? 3}
       value={props.value}
@@ -113,7 +113,7 @@ function FormSelect(props: {
 }) {
   return (
     <select
-      class="h-[42px] cursor-pointer appearance-none rounded-[10px] border border-border bg-[length:12px_8px] bg-[position:right_14px_center] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2712%27%20height%3D%278%27%20viewBox%3D%270%200%2012%208%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M1%201.5L6%206.5L11%201.5%27%20stroke%3D%27%23737c77%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E')] bg-surface bg-no-repeat px-3.5 pr-9 font-[inherit] text-[14px] text-text outline-none transition-[border-color,box-shadow] duration-200 focus:border-[rgba(9,73,51,0.30)] focus:shadow-[0_0_0_3px_rgba(9,73,51,0.08)] dark:border-[rgba(255,255,255,0.10)] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:focus:border-[rgba(60,208,112,0.30)] dark:focus:shadow-[0_0_0_3px_rgba(60,208,112,0.08)]"
+      class="h-[42px] cursor-pointer appearance-none rounded-[10px] border border-border bg-[length:12px_8px] bg-[position:right_14px_center] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2712%27%20height%3D%278%27%20viewBox%3D%270%200%2012%208%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M1%201.5L6%206.5L11%201.5%27%20stroke%3D%27%23737c77%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E')] bg-card bg-no-repeat px-3.5 pr-9 font-[inherit] text-[14px] text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       value={props.value}
     >
       {props.children}
@@ -129,13 +129,13 @@ function ToggleRow(props: {
 }) {
   return (
     <div
-      class={`flex items-center justify-between gap-4 py-3 ${props.last ? "" : "border-border border-b dark:border-[rgba(255,255,255,0.06)]"}`}
+      class={`flex items-center justify-between gap-4 py-3 ${props.last ? "" : "border-border border-b"}`}
     >
       <div class="min-w-0 flex-1">
-        <div class="font-medium text-[14px] text-text tracking-[0.01em] dark:text-[#ededed]">
+        <div class="font-medium text-[14px] text-foreground tracking-[0.01em]">
           {props.title}
         </div>
-        <div class="mt-0.5 text-[12px] text-text-muted tracking-[0.01em]">
+        <div class="mt-0.5 text-[12px] text-faint-foreground tracking-[0.01em]">
           {props.desc}
         </div>
       </div>
@@ -145,7 +145,7 @@ function ToggleRow(props: {
           class="absolute h-0 w-0 opacity-0"
           type="checkbox"
         />
-        <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:h-[18px] before:w-[18px] before:rounded-full before:bg-white before:shadow-[0_1px_3px_rgba(0,0,0,0.15)] before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:bg-[rgba(255,255,255,0.15)] dark:checked:bg-accent" />
+        <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:h-[18px] before:w-[18px] before:rounded-full before:bg-white before:shadow-card before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
       </label>
     </div>
   );
@@ -289,8 +289,8 @@ function SectionUmum() {
                 <button
                   class={`flex flex-1 items-center justify-center gap-2 rounded-[10px] border px-3 py-2.5 font-medium text-[13px] transition-[border-color,background,color] duration-150 ${
                     active()
-                      ? "border-primary bg-accent-2 text-primary dark:border-accent dark:bg-[rgba(60,208,112,0.15)] dark:text-accent"
-                      : "border-border bg-surface text-text-secondary hover:border-border-medium dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a] dark:text-[#a0a0a0] dark:hover:border-[rgba(255,255,255,0.12)]"
+                      ? "border-primary bg-accent-soft text-primary dark:border-accent dark:text-accent"
+                      : "border-border bg-card text-muted-foreground hover:border-border"
                   }`}
                   onClick={() => {
                     setThemePref(opt.value);
@@ -517,23 +517,23 @@ function SectionTim() {
       <div class="flex flex-col gap-2">
         <For each={STAFF}>
           {(s) => (
-            <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-surface-gray px-4 py-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
-              <div class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent-2 font-bold font-display text-[13px] text-primary dark:bg-[rgba(60,208,112,0.15)] dark:text-accent">
+            <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-muted px-4 py-3.5">
+              <div class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent-soft font-bold font-display text-[13px] text-primary dark:text-accent">
                 {s.initials}
               </div>
               <div class="min-w-0 flex-1">
-                <div class="font-semibold text-[14px] text-text dark:text-[#ededed]">
+                <div class="font-semibold text-[14px] text-foreground">
                   {s.name}
                 </div>
-                <div class="mt-px text-[12px] text-text-muted dark:text-[#707070]">
+                <div class="mt-px text-[12px] text-faint-foreground">
                   {s.role}
                 </div>
               </div>
               <span
-                class={`rounded-pill px-2.5 py-[3px] font-semibold text-[11px] uppercase tracking-[0.04em] ${
+                class={`rounded-full px-2.5 py-[3px] font-semibold text-[11px] uppercase tracking-[0.04em] ${
                   s.active
-                    ? "bg-[rgba(60,208,112,0.12)] text-[#094933] dark:bg-[rgba(60,208,112,0.15)] dark:text-accent"
-                    : "bg-[rgba(192,57,43,0.08)] text-[#c0392b] dark:bg-[rgba(248,113,113,0.12)] dark:text-[#f87171]"
+                    ? "bg-accent/10 text-primary dark:text-accent"
+                    : "bg-danger/10 text-danger"
                 }`}
               >
                 {s.active ? "Aktif" : "Nonaktif"}
@@ -599,26 +599,26 @@ function SectionPerangkat() {
       <div class="flex flex-col gap-2">
         <For each={DEVICES}>
           {(d) => (
-            <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-surface-gray p-4 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
+            <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-muted p-4">
               <div
                 class={`grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[10px] ${
                   d.kind === "printer"
-                    ? "bg-[rgba(60,208,112,0.12)] text-[#094933] dark:bg-[rgba(60,208,112,0.15)] dark:text-accent"
-                    : "bg-[rgba(230,168,23,0.12)] text-[#b8860b] dark:bg-[rgba(250,204,21,0.12)] dark:text-[#fde68a]"
+                    ? "bg-accent/10 text-primary dark:text-accent"
+                    : "bg-warning/15 text-warning"
                 }`}
               >
                 <d.Icon class="h-5 w-5" />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="font-semibold text-[14px] text-text dark:text-[#ededed]">
+                <div class="font-semibold text-[14px] text-foreground">
                   {d.name}
                 </div>
-                <div class="mt-0.5 text-[12px] text-text-muted dark:text-[#707070]">
+                <div class="mt-0.5 text-[12px] text-faint-foreground">
                   <span
                     class={`mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${
                       d.connected
                         ? "bg-success dark:bg-accent"
-                        : "bg-text-muted dark:bg-[#707070]"
+                        : "bg-faint-foreground"
                     }`}
                   />
                   {d.status}
@@ -630,7 +630,7 @@ function SectionPerangkat() {
                   class="absolute h-0 w-0 opacity-0"
                   type="checkbox"
                 />
-                <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:h-[18px] before:w-[18px] before:rounded-full before:bg-white before:shadow-[0_1px_3px_rgba(0,0,0,0.15)] before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:bg-[rgba(255,255,255,0.15)] dark:checked:bg-accent" />
+                <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:h-[18px] before:w-[18px] before:rounded-full before:bg-white before:shadow-card before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
               </label>
             </div>
           )}
@@ -643,16 +643,16 @@ function SectionPerangkat() {
 function SectionTentang() {
   return (
     <SectionCard class="items-center text-center">
-      <div class="grid h-16 w-16 place-items-center rounded-[18px] border border-border bg-surface-gray dark:border-[rgba(255,255,255,0.08)] dark:bg-[#1a1a1a]">
-        <InfoIcon class="h-8 w-8 text-text-muted" />
+      <div class="grid h-16 w-16 place-items-center rounded-[18px] border border-border bg-muted">
+        <InfoIcon class="h-8 w-8 text-faint-foreground" />
       </div>
-      <div class="font-bold font-display text-[20px] text-text dark:text-[#ededed]">
+      <div class="font-bold font-display text-[20px] text-foreground">
         Sakti POS
       </div>
-      <div class="-mt-2 text-[13px] text-text-muted dark:text-[#707070]">
+      <div class="-mt-2 text-[13px] text-faint-foreground">
         Versi 1.0.0 (Build 2026.06)
       </div>
-      <p class="max-w-[360px] text-center text-[13px] text-text-muted leading-relaxed dark:text-[#707070]">
+      <p class="max-w-[360px] text-center text-[13px] text-faint-foreground leading-relaxed">
         Sistem kasir modern untuk bisnis F&amp;B Anda. Didesain untuk cepat,
         andal, dan mudah digunakan.
       </p>

@@ -6,18 +6,18 @@ import { splitProps } from "solid-js";
 import { cn } from "~/lib/utils";
 
 export const badgeVariants = cva(
-  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-pill font-semibold text-[11px] uppercase tracking-[0.06em]",
+  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full font-semibold text-[11px] uppercase tracking-[0.06em]",
   {
     variants: {
       variant: {
-        default: "bg-primary-light text-primary-foreground",
+        default: "bg-primary text-primary-foreground",
         secondary: "bg-secondary text-secondary-foreground",
         destructive: "bg-destructive text-destructive-foreground",
         outline: "border border-border text-foreground",
-        success: "bg-[rgba(34,197,94,0.10)] text-success",
-        warning: "bg-[rgba(230,168,23,0.12)] text-warning",
-        danger: "bg-[rgba(192,57,43,0.08)] text-danger",
-        accent: "bg-primary-light text-primary",
+        success: "bg-success/10 text-success",
+        warning: "bg-warning/15 text-warning",
+        danger: "bg-danger/10 text-danger",
+        accent: "bg-primary/10 text-primary",
         processing: "bg-[rgba(255,233,92,0.25)] text-[#7a5f00]",
       },
       size: {

@@ -16,7 +16,12 @@
         "displayName": "Cash Mint",
         "canonical": "#3cd070",
         "darkCanonical": "#3cd070",
-        "tonalRamp": ["rgba(60,208,112,0.06)", "rgba(60,208,112,0.12)", "#3cd070", "#2bb35c"]
+        "tonalRamp": [
+          "rgba(60,208,112,0.06)",
+          "rgba(60,208,112,0.12)",
+          "#3cd070",
+          "#2bb35c"
+        ]
       },
       "cash-mist": {
         "role": "neutral",
@@ -30,7 +35,12 @@
         "displayName": "Toko Terracotta",
         "canonical": "#cb5521",
         "darkCanonical": "#cb5521",
-        "tonalRamp": ["rgba(203,85,33,0.08)", "rgba(203,85,33,0.12)", "#cb5521", "#a8441a"]
+        "tonalRamp": [
+          "rgba(203,85,33,0.08)",
+          "rgba(203,85,33,0.12)",
+          "#cb5521",
+          "#a8441a"
+        ]
       },
       "counter-cream": {
         "role": "neutral",
@@ -82,35 +92,120 @@
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Auth/PIN screen headlines and large confirmation states. One per screen at most." },
-      "headline": { "displayName": "Headline", "purpose": "Page titles (Transaksi, Pengaturan)." },
-      "title": { "displayName": "Title", "purpose": "Section headings and KPI card titles." },
-      "body": { "displayName": "Body", "purpose": "Default copy, button labels, input text. Cap prose at 65–75ch." },
-      "numeric": { "displayName": "Numeric", "purpose": "Money figures, KPI counts, the clock. Always tabular-nums." },
-      "label": { "displayName": "Label", "purpose": "Form labels, list metadata, inline labels." },
-      "caption": { "displayName": "Caption", "purpose": "Status badges and pill chips — uppercase. Single functional labels only." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Auth/PIN screen headlines and large confirmation states. One per screen at most."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles (Transaksi, Pengaturan)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings and KPI card titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default copy, button labels, input text. Cap prose at 65–75ch."
+      },
+      "numeric": {
+        "displayName": "Numeric",
+        "purpose": "Money figures, KPI counts, the clock. Always tabular-nums."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, list metadata, inline labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Status badges and pill chips — uppercase. Single functional labels only."
+      }
     },
     "shadows": [
-      { "name": "hairline", "value": "1px solid var(--color-border)", "purpose": "Resting baseline for cards and inputs. No shadow." },
-      { "name": "focus-glow", "value": "0 0 0 3px rgba(9,73,51,0.08)", "purpose": "Text-field focus state, paired with a 2px outline ring." },
-      { "name": "soft-lift", "value": "0 4px 12px rgba(9,73,51,0.25), 0 1px 3px rgba(9,73,51,0.10)", "purpose": "Solid primary button hover; FAB hover." },
-      { "name": "card-lift", "value": "0 4px 16px rgba(0,0,0,0.05)", "purpose": "Interactive card hover (with -translate-y-px)." },
-      { "name": "elevated", "value": "0 1px 2px rgba(0,0,0,0.06)", "purpose": "Elevated card variant at rest (shadow-sm)." },
-      { "name": "nav-bar", "value": "0 -4px 20px rgba(9,73,51,0.06)", "purpose": "Mobile magic-nav top edge." },
-      { "name": "nav-bubble", "value": "0 6px 20px rgba(9,73,51,0.30)", "purpose": "Mobile nav central + bubble — the deepest, most-signature lift." },
-      { "name": "fab-rest", "value": "0 1px 3px rgba(9,73,51,0.10)", "purpose": "FAB resting ambient shadow (pulses at idle)." }
+      {
+        "name": "hairline",
+        "value": "1px solid var(--color-border)",
+        "purpose": "Resting baseline for cards and inputs. No shadow."
+      },
+      {
+        "name": "focus-glow",
+        "value": "0 0 0 3px rgba(9,73,51,0.08)",
+        "purpose": "Text-field focus state, paired with a 2px outline ring."
+      },
+      {
+        "name": "soft-lift",
+        "value": "0 4px 12px rgba(9,73,51,0.25), 0 1px 3px rgba(9,73,51,0.10)",
+        "purpose": "Solid primary button hover; FAB hover."
+      },
+      {
+        "name": "card-lift",
+        "value": "0 4px 16px rgba(0,0,0,0.05)",
+        "purpose": "Interactive card hover (with -translate-y-px)."
+      },
+      {
+        "name": "elevated",
+        "value": "0 1px 2px rgba(0,0,0,0.06)",
+        "purpose": "Elevated card variant at rest (shadow-sm)."
+      },
+      {
+        "name": "nav-bar",
+        "value": "0 -4px 20px rgba(9,73,51,0.06)",
+        "purpose": "Mobile magic-nav top edge."
+      },
+      {
+        "name": "nav-bubble",
+        "value": "0 6px 20px rgba(9,73,51,0.30)",
+        "purpose": "Mobile nav central + bubble — the deepest, most-signature lift."
+      },
+      {
+        "name": "fab-rest",
+        "value": "0 1px 3px rgba(9,73,51,0.10)",
+        "purpose": "FAB resting ambient shadow (pulses at idle)."
+      }
     ],
     "motion": [
-      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default state-transition easing (hover, focus, color)." },
-      { "name": "ease-out-quart", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Entrance/reveal easing for content and page transitions." },
-      { "name": "ease-out-back", "value": "cubic-bezier(0.175, 0.885, 0.32, 1.275)", "purpose": "Reserved for signature tactile moments: the mobile nav bubble + active tab lift. Never ambient reveals." },
-      { "name": "ease-spring", "value": "cubic-bezier(0.34, 1.56, 0.64, 1)", "purpose": "Reserved for the FAB hover lift only." },
-      { "name": "duration-standard", "value": "0.2s", "purpose": "Default transition duration." }
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default state-transition easing (hover, focus, color)."
+      },
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Entrance/reveal easing for content and page transitions."
+      },
+      {
+        "name": "ease-out-back",
+        "value": "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+        "purpose": "Reserved for signature tactile moments: the mobile nav bubble + active tab lift. Never ambient reveals."
+      },
+      {
+        "name": "ease-spring",
+        "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "purpose": "Reserved for the FAB hover lift only."
+      },
+      {
+        "name": "duration-standard",
+        "value": "0.2s",
+        "purpose": "Default transition duration."
+      }
     ],
     "breakpoints": [
-      { "name": "xs", "value": "480px", "purpose": "Small phone — compacts PIN/auth avatars, numpad, captions." },
-      { "name": "sm", "value": "800px", "purpose": "Dashboard density step (banner padding, sheet gaps)." },
-      { "name": "md", "value": "900px", "purpose": "Nav swap: below = mobile magic-nav + bottom sheet; above = desktop rail + FAB." }
+      {
+        "name": "xs",
+        "value": "480px",
+        "purpose": "Small phone — compacts PIN/auth avatars, numpad, captions."
+      },
+      {
+        "name": "sm",
+        "value": "800px",
+        "purpose": "Dashboard density step (banner padding, sheet gaps)."
+      },
+      {
+        "name": "md",
+        "value": "900px",
+        "purpose": "Nav swap: below = mobile magic-nav + bottom sheet; above = desktop rail + FAB."
+      }
     ]
   },
   "components": [
@@ -167,12 +262,36 @@
       "Full light/dark theme; dark is true neutral charcoal that keeps the green accents intact."
     ],
     "rules": [
-      { "name": "The Cool-Surface Rule", "body": "Body and card surfaces are cool near-whites. Never introduce warm beige/peach/parchment body washes; warmth is terracotta + display type only.", "section": "colors" },
-      { "name": "The Mint-Rarity Rule", "body": "Cash Mint (#3cd070) is a confirmation accent used on ≤10% of any screen. Its brightness is its value.", "section": "colors" },
-      { "name": "The Orphaned-Lavender Ban", "body": "The legacy --color-accent-4: #f6d0ff token is unused and NOT part of the active palette. Do not introduce it.", "section": "colors" },
-      { "name": "The Tight-Display Rule", "body": "Display and figure tracking stays at -0.01 to -0.02em; never tighter than -0.04em, never tracked out.", "section": "typography" },
-      { "name": "The Eyebrow-Is-A-Label Rule", "body": "The uppercase tracked caption is for single functional domain/status labels only, not a per-section eyebrow reflex.", "section": "typography" },
-      { "name": "The Lift-On-Importance Rule", "body": "Shadow depth is proportional to how far an element floats above the content plane. Resting = hairline only; never pair a 1px border with a wide decorative shadow as ornament.", "section": "elevation" }
+      {
+        "name": "The Cool-Surface Rule",
+        "body": "Body and card surfaces are cool near-whites. Never introduce warm beige/peach/parchment body washes; warmth is terracotta + display type only.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mint-Rarity Rule",
+        "body": "Cash Mint (#3cd070) is a confirmation accent used on ≤10% of any screen. Its brightness is its value.",
+        "section": "colors"
+      },
+      {
+        "name": "The Orphaned-Lavender Ban",
+        "body": "The legacy --color-accent-4: #f6d0ff token is unused and NOT part of the active palette. Do not introduce it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tight-Display Rule",
+        "body": "Display and figure tracking stays at -0.01 to -0.02em; never tighter than -0.04em, never tracked out.",
+        "section": "typography"
+      },
+      {
+        "name": "The Eyebrow-Is-A-Label Rule",
+        "body": "The uppercase tracked caption is for single functional domain/status labels only, not a per-section eyebrow reflex.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lift-On-Importance Rule",
+        "body": "Shadow depth is proportional to how far an element floats above the content plane. Resting = hairline only; never pair a 1px border with a wide decorative shadow as ornament.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do let forest-counter (#094933) carry the surface commitment; use cash-mint (#3cd070) only as a sparing confirmation accent (≤10%/screen).",

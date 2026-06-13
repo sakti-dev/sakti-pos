@@ -47,13 +47,13 @@ export const Sheet = (props: SheetProps) => {
             />
             <Drawer.Content
               class={cn(
-                "fixed z-[200] flex flex-col bg-surface shadow-[0_-8px_40px_rgba(0,0,0,0.15)] data-transitioning:transition-transform data-transitioning:duration-300 data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)] dark:bg-[#1a1a1a] dark:shadow-[0_-8px_40px_rgba(0,0,0,0.40)]",
+                "fixed z-[200] flex flex-col bg-card shadow-card data-transitioning:transition-transform data-transitioning:duration-300 data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)]",
                 sidePosition[props.side ?? "bottom"],
                 props.class
               )}
             >
               {/* Drag handle */}
-              <div class="mx-auto mt-2.5 h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing dark:bg-[rgba(255,255,255,0.12)]" />
+              <div class="mx-auto mt-2.5 h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing" />
               {props.children({ close })}
             </Drawer.Content>
           </Drawer.Portal>
@@ -73,7 +73,7 @@ export interface SheetHeaderProps {
 export const SheetHeader = (props: SheetHeaderProps) => (
   <div
     class={cn(
-      "border-border border-b px-5 pt-1.5 pb-3.5 dark:border-[rgba(255,255,255,0.06)]",
+      "border-border border-b px-5 pt-1.5 pb-3.5",
       props.class
     )}
   >
@@ -89,7 +89,7 @@ export interface SheetTitleProps {
 export const SheetTitle = (props: SheetTitleProps) => (
   <span
     class={cn(
-      "font-bold text-[16px] text-text dark:text-[#ededed]",
+      "font-bold text-[16px] text-foreground",
       props.class
     )}
   >
@@ -118,7 +118,7 @@ export interface SheetFooterProps {
 export const SheetFooter = (props: SheetFooterProps) => (
   <div
     class={cn(
-      "shrink-0 border-border border-t px-5 py-4 dark:border-[rgba(255,255,255,0.06)]",
+      "shrink-0 border-border border-t px-5 py-4",
       props.class
     )}
   >

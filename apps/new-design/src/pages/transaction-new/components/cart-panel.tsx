@@ -23,11 +23,11 @@ export const CartPanel = (props: CartPanelProps) => {
 
   return (
     <>
-      <div class="flex shrink-0 items-center justify-between border-border border-b px-5 pt-5 pb-3.5 dark:border-[rgba(255,255,255,0.06)]">
-        <span class="font-bold text-[15px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
+      <div class="flex shrink-0 items-center justify-between border-border border-b px-5 pt-5 pb-3.5">
+        <span class="font-bold text-[15px] text-foreground tracking-[-0.01em]">
           Keranjang
         </span>
-        <span class="rounded-pill bg-surface-gray px-2.5 py-[2px] font-semibold text-[12px] text-text-muted tracking-[0.02em] dark:bg-[#252525] dark:text-[#888]">
+        <span class="rounded-full bg-muted px-2.5 py-[2px] font-semibold text-[12px] text-faint-foreground tracking-[0.02em]">
           {totalItems()} item
         </span>
       </div>
@@ -35,7 +35,7 @@ export const CartPanel = (props: CartPanelProps) => {
       <div class="scrollbar-none flex flex-1 flex-col overflow-y-auto px-5 py-3">
         <Show
           fallback={
-            <div class="flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-text-muted">
+            <div class="flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-faint-foreground">
               <CartShoppingIcon class="h-12 w-12 opacity-30" />
               <span class="font-medium text-[14px] tracking-[0.01em]">
                 Keranjang kosong

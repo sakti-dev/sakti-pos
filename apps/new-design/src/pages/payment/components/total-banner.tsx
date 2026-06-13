@@ -7,11 +7,11 @@ interface TotalBannerProps {
 }
 
 export const TotalBanner = (props: TotalBannerProps) => (
-  <div class="hidden shrink-0 rounded-[18px] bg-primary px-6 py-5 max-[900px]:block dark:border dark:border-[rgba(60,208,112,0.10)] dark:bg-[#0a3322]">
+  <div class="hidden shrink-0 rounded-[18px] bg-primary px-6 py-5 max-[900px]:block dark:border">
     <div class="font-extrabold text-[28px] text-primary-foreground tabular-nums tracking-[-0.02em]">
       {formatRupiah(props.total)}
     </div>
-    <div class="mt-1 flex gap-3 text-[12px] text-[rgba(255,255,255,0.60)]">
+    <div class="mt-1 flex gap-3 text-[12px] text-white/60">
       <span>
         Subtotal: <b>{formatRupiah(props.subtotal)}</b>
       </span>

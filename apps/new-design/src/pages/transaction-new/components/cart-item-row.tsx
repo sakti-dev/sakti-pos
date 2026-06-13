@@ -10,12 +10,12 @@ interface CartItemRowProps {
 }
 
 export const CartItemRow = (props: CartItemRowProps) => (
-  <div class="flex items-center gap-3 border-border-light border-b py-2.5 last:border-b-0 dark:border-[rgba(255,255,255,0.04)]">
+  <div class="flex items-center gap-3 border-border/50 border-b py-2.5 last:border-b-0">
     <div class="min-w-0 flex-1">
-      <div class="truncate font-semibold text-[13px] text-text leading-[1.3] dark:text-[#f0f0f0]">
+      <div class="truncate font-semibold text-[13px] text-foreground leading-[1.3]">
         {props.name}
       </div>
-      <div class="mt-0.5 font-medium text-[12px] text-text-secondary tabular-nums dark:text-[#888]">
+      <div class="mt-0.5 font-medium text-[12px] text-muted-foreground tabular-nums">
         {formatRupiah(props.price)}
       </div>
     </div>
@@ -27,7 +27,7 @@ export const CartItemRow = (props: CartItemRowProps) => (
       value={props.qty}
     />
 
-    <div class="min-w-[72px] shrink-0 text-right font-bold text-[14px] text-text tabular-nums dark:text-[#f0f0f0]">
+    <div class="min-w-[72px] shrink-0 text-right font-bold text-[14px] text-foreground tabular-nums">
       {formatRupiah(props.price * props.qty)}
     </div>
   </div>

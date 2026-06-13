@@ -10,14 +10,14 @@ export const tabVariants = cva(
     variants: {
       variant: {
         inactive:
-          "border-border bg-surface text-text-secondary hover:border-[rgba(9,73,51,0.20)] hover:text-text dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1e1e1e] dark:text-[#a0a0a0] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:text-[#ededed]",
+          "border-border bg-card text-muted-foreground hover:border-primary/20 hover:text-foreground",
         active:
-          "border-primary bg-primary text-white shadow-[0_2px_8px_rgba(9,73,51,0.20)]",
+          "border-primary bg-primary text-white shadow-card",
       },
       shape: {
         rounded:
           "gap-2 whitespace-nowrap rounded-[14px] border-[1.5px] px-[18px] py-2.5",
-        pill: "rounded-pill border px-4 py-[7px]",
+        pill: "rounded-full border px-4 py-[7px]",
       },
     },
     defaultVariants: {

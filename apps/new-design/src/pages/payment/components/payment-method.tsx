@@ -106,6 +106,7 @@ interface PaymentMethodProps {
   readonly onConfirm: () => void;
   readonly onEwalletChange: (v: string) => void;
   readonly onMethodChange: (m: PayMethod) => void;
+  readonly onSelectedQuickChange: (v: number | null) => void;
   readonly selectedQuick: number | null;
   readonly subtotal: number;
   readonly tax: number;
@@ -205,8 +206,8 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
   };
 
   return (
-    <div class="rounded-[18px] border border-border-light bg-surface px-6 py-5 dark:border-border-light dark:bg-surface">
-      <div class="mb-4 font-semibold text-[13px] text-text-secondary uppercase tracking-[0.06em]">
+    <div class="rounded-[18px] border border-border/50 bg-card px-6 py-5 dark:border-border/50 dark:bg-card">
+      <div class="mb-4 font-semibold text-[13px] text-muted-foreground uppercase tracking-[0.06em]">
         Metode Pembayaran
       </div>
 
@@ -253,16 +254,16 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
 
           <div
             class={cn(
-              "flex h-[72px] items-center justify-center gap-2 rounded-[10px] border-2 border-border bg-surface-gray px-5 transition-[border-color,background] duration-150 dark:border-border dark:bg-surface",
+              "flex h-[72px] items-center justify-center gap-2 rounded-[10px] border-2 border-border bg-muted px-5 transition-[border-color,background] duration-150 dark:border-border dark:bg-card",
               cashNum() > 0 &&
-                "border-primary bg-surface dark:border-accent dark:bg-[#222]"
+                "border-primary bg-card dark:border-accent"
             )}
           >
-            <span class="shrink-0 font-semibold text-[16px] text-text-secondary dark:text-text-muted">
+            <span class="shrink-0 font-semibold text-[16px] text-muted-foreground dark:text-faint-foreground">
               Rp
             </span>
             <input
-              class="min-w-0 flex-1 bg-transparent text-center font-extrabold text-[28px] text-text tabular-nums tracking-[-0.02em] caret-color-primary placeholder:font-normal placeholder:text-[20px] placeholder:text-text-secondary focus:outline-none dark:text-text dark:caret-primary dark:placeholder:text-text-muted"
+              class="min-w-0 flex-1 bg-transparent text-center font-extrabold text-[28px] text-foreground tabular-nums tracking-[-0.02em] caret-color-primary placeholder:font-normal placeholder:text-[20px] placeholder:text-muted-foreground focus:outline-none dark:text-foreground dark:caret-primary dark:placeholder:text-faint-foreground"
               maxLength={15}
               onBlur={() => {
                 const raw = props.cashRaw.replace(/\D/g, "");
@@ -337,14 +338,14 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
           <Numpad class="mt-3" onKey={handleNumpad} />
 
           <Show when={cashNum() > 0 && change() >= 0}>
-            <div class="mt-4 flex items-center justify-between rounded-[10px] border border-[rgba(9,73,51,0.08)] bg-accent-2 px-5 py-4 dark:border-[rgba(60,208,112,0.10)] dark:bg-[rgba(60,208,112,0.06)]">
-              <span class="font-medium text-[14px] text-text">Kembalian</span>
+            <div class="mt-4 flex items-center justify-between rounded-[10px] border border-primary/10 bg-accent-soft px-5 py-4">
+              <span class="font-medium text-[14px] text-foreground">Kembalian</span>
               <span
                 class={cn(
                   "font-extrabold text-[20px] tabular-nums",
                   change() > 0
                     ? "text-primary dark:text-accent"
-                    : "text-text-muted"
+                    : "text-faint-foreground"
                 )}
               >
                 {formatRupiah(change())}
@@ -357,14 +358,14 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       {/* QRIS */}
       <Show when={props.method === "qris"}>
         <div class="mt-5 flex flex-col items-center py-6">
-          <div class="relative mb-4 grid h-[200px] w-[200px] place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-border bg-surface dark:border-border dark:bg-[#222]">
+          <div class="relative mb-4 grid h-[200px] w-[200px] place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-border bg-card dark:border-border">
             <div class="absolute inset-0 opacity-10 [background:repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_0_0/16px_16px,repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_80px_80px/16px_16px]" />
-            <QrCodeIcon class="relative z-[1] h-16 w-16 text-text-muted dark:text-text-muted" />
-            <div class="absolute grid h-11 w-11 place-items-center rounded-lg border-2 border-border bg-surface dark:border-[rgba(255,255,255,0.10)] dark:bg-surface">
+            <QrCodeIcon class="relative z-[1] h-16 w-16 text-faint-foreground dark:text-faint-foreground" />
+            <div class="absolute grid h-11 w-11 place-items-center rounded-lg border-2 border-border bg-card dark:bg-card">
               <QrCodeIcon class="h-6 w-6 text-primary" />
             </div>
           </div>
-          <div class="text-[13px] text-text-muted">
+          <div class="text-[13px] text-faint-foreground">
             Scan QR code dengan aplikasi e-wallet pelanggan
           </div>
         </div>
@@ -373,10 +374,10 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       {/* Card */}
       <Show when={props.method === "card"}>
         <div class="mt-5 flex flex-col items-center py-6">
-          <div class="mb-3 grid h-[140px] w-full place-items-center rounded-[10px] border-2 border-border border-dashed bg-surface-gray dark:border-border dark:bg-[#222]">
-            <CreditCardIcon class="h-12 w-12 text-text-muted" />
+          <div class="mb-3 grid h-[140px] w-full place-items-center rounded-[10px] border-2 border-border border-dashed bg-muted dark:border-border">
+            <CreditCardIcon class="h-12 w-12 text-faint-foreground" />
           </div>
-          <div class="text-[13px] text-text-muted">
+          <div class="text-[13px] text-faint-foreground">
             Tap atau gesek kartu di mesin EDC
           </div>
         </div>
@@ -400,7 +401,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               )}
             </For>
           </div>
-          <div class="mt-3.5 text-center text-[13px] text-text-muted">
+          <div class="mt-3.5 text-center text-[13px] text-faint-foreground">
             Kirim notifikasi ke pelanggan via {props.ewallet}
           </div>
         </div>

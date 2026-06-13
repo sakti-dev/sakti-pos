@@ -4,18 +4,16 @@ import { axis, drill, fade } from "@ssgoi/solid/view-transitions";
 /* ── Path groups ─────────────────────────────────────────────────── */
 
 const SHELL_PATHS = ["/", "/transactions", "/pengaturan"] as const;
-const _FLOW_PATHS = ["/transaction-new", "/payment", "/receipt"] as const;
 const AUTH_PATHS = ["/login", "/register", "/pin"] as const;
 
 /* ── Shell ↔ Shell: axis slide ───────────────────────────────────── */
 
 function createShellSlides(): SsgoiPathTransition[] {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 900;
-  return axis({
-    paths: [...SHELL_PATHS],
-    type: isMobile ? "x" : "y",
-    variant: isMobile ? "snappy" : "default",
-  });
+  if (isMobile) {
+    return axis({ paths: [...SHELL_PATHS], type: "x", variant: "snappy" });
+  }
+  return axis({ paths: [...SHELL_PATHS], type: "y", variant: "default" });
 }
 
 /* ── Root config ─────────────────────────────────────────────────── */

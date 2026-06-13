@@ -1,0 +1,323 @@
+/* biome-ignore-all format: tailwind v4 custom at-rules */
+/* ───────────────────────────────────────────────────────────────────────────
+   Sakti POS — theme tokens (shadcn-aligned, seed values)
+   Structural role names follow shadcn/ui so components stay portable.
+   Seed identity lives in the primitives + their values.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* ── Seed primitives (source spine) ── */
+  --color-canopy: #1c3a13;
+  --color-lime: #d3fa99;
+  --color-parchment: #fcfcf7;
+  --color-stone: #eeeee9;
+  --color-sage: #c4c7c4;
+  --color-gray: #b3b3b3;
+
+  /* ── shadcn roles — surfaces & text ── */
+  --color-background: var(--color-parchment);
+  --color-foreground: var(--color-canopy);
+  --color-card: var(--color-parchment);
+  --color-card-foreground: var(--color-canopy);
+  --color-popover: var(--color-parchment);
+  --color-popover-foreground: var(--color-canopy);
+  --color-muted: var(--color-stone);
+  --color-muted-foreground: #4b5640;
+  --color-secondary: var(--color-stone);
+  --color-secondary-foreground: var(--color-canopy);
+  --color-faint-foreground: #6e7864;
+
+  /* ── shadcn roles — brand & action ── */
+  --color-primary: var(--color-canopy);
+  --color-primary-foreground: #ffffff;
+  --color-primary-hover: #244a18;
+  --color-primary-active: #142b0e;
+  --color-accent: var(--color-lime);
+  --color-accent-foreground: var(--color-canopy);
+  --color-accent-soft: var(--color-lime);
+  --color-destructive: #c62828;
+  --color-destructive-foreground: #ffffff;
+
+  /* ── shadcn roles — lines & focus ── */
+  --color-border: rgba(28, 58, 19, 0.12);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-canopy);
+
+  /* ── Status tones (shadcn has none; seed KPI needs these) ── */
+  --color-info: #0284c7;
+  --color-info-foreground: #ffffff;
+  --color-success: var(--color-canopy);
+  --color-success-foreground: #ffffff;
+  --color-warning: #e6a817;
+  --color-warning-foreground: #ffffff;
+  --color-danger: #c0392b;
+  --color-danger-foreground: #ffffff;
+
+  /* ── Typography ── */
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    sans-serif;
+  --font-display:
+    "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
+
+  --text-caption-sm: 10px;
+  --leading-caption-sm: 1.4;
+  --tracking-caption-sm: -0.3px;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1.4;
+  --tracking-body-sm: -0.42px;
+  --text-body: 16px;
+  --leading-body: 1.4;
+  --tracking-body: -0.4px;
+  --text-body-lg: 18px;
+  --leading-body-lg: 1.3;
+  --tracking-body-lg: -0.36px;
+  --text-subheading: 20px;
+  --leading-subheading: 1.2;
+  --tracking-subheading: -0.3px;
+  --text-heading-sm: 24px;
+  --leading-heading-sm: 1.17;
+  --tracking-heading-sm: -0.48px;
+  --text-heading: 32px;
+  --leading-heading: 1.2;
+  --tracking-heading: -0.8px;
+  --text-heading-lg: 40px;
+  --leading-heading-lg: 1.1;
+  --tracking-heading-lg: -1.2px;
+  --text-display: 48px;
+  --leading-display: 1;
+  --tracking-display: -1.44px;
+
+  /* ── Elevation (canopy-tinted, light mode) ── */
+  --shadow-card:
+    0 1px 2px rgba(28, 58, 19, 0.05), 0 8px 24px -10px rgba(28, 58, 19, 0.12);
+  --shadow-card-hover:
+    0 2px 6px rgba(28, 58, 19, 0.06), 0 14px 36px -12px rgba(28, 58, 19, 0.18);
+
+  /* ── Motion ── */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-standard: 0.2s;
+
+  --animate-spin: spin 0.7s linear infinite;
+  --animate-ghost-1: ghost-float-1 7s ease-in-out infinite;
+  --animate-ghost-2: ghost-float-2 6s ease-in-out infinite;
+  --animate-ghost-3: ghost-float-3 8s ease-in-out infinite;
+  --animate-ghost-4: ghost-float-4 7.5s ease-in-out infinite;
+  --animate-shake: shake 0.5s ease;
+  --animate-success-pop: success-pop 0.5s
+    cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --animate-avatar-pulse: avatar-pulse 2.5s ease-in-out 1s 2;
+  --animate-fade-in: fade-in 0.3s ease;
+  --animate-stagger-in: fadeUp 0.35s ease both;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-content-show: content-show 0.2s ease-out;
+  --animate-content-hide: content-hide 0.2s ease-out;
+}
+
+/* ── Keyframes ── */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--kb-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  from {
+    height: var(--kb-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+@keyframes content-show {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes content-hide {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes ghost-float-1 {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-5deg);
+  }
+}
+@keyframes ghost-float-2 {
+  0%,
+  100% {
+    transform: translateY(0) rotate(3deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(3deg);
+  }
+}
+@keyframes ghost-float-3 {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-2deg);
+  }
+}
+@keyframes ghost-float-4 {
+  0%,
+  100% {
+    transform: translateY(0) rotate(4deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(4deg);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+@keyframes fab-pulse {
+  0%,
+  100% {
+    box-shadow: 0 1px 3px rgba(28, 58, 19, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 1px 3px rgba(28, 58, 19, 0.1),
+      0 0 0 6px rgba(28, 58, 19, 0.04);
+  }
+}
+@keyframes fab-pulse-dark {
+  0%,
+  100% {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.35),
+      0 0 0 6px rgba(211, 250, 153, 0.06);
+  }
+}
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-10px);
+  }
+  30% {
+    transform: translateX(10px);
+  }
+  45% {
+    transform: translateX(-8px);
+  }
+  60% {
+    transform: translateX(8px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
+  90% {
+    transform: translateX(4px);
+  }
+}
+@keyframes success-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes avatar-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(211, 250, 153, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(211, 250, 153, 0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Dark mode (charcoal) — base surfaces only; status tones stay static ── */
+@layer theme {
+  .dark,
+  [data-kb-theme="dark"] {
+    --color-background: #0a0a0a;
+    --color-foreground: #ededed;
+    --color-card: #1a1a1a;
+    --color-card-foreground: #ededed;
+    --color-popover: #1a1a1a;
+    --color-popover-foreground: #ededed;
+    --color-muted: #222;
+    --color-muted-foreground: #93939f;
+    --color-secondary: #222;
+    --color-secondary-foreground: #ededed;
+    --color-faint-foreground: #767676;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-destructive: #f87171;
+    --color-accent-foreground: #d3fa99;
+    --color-accent-soft: #d3fa99;
+  }
+}

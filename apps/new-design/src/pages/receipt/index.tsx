@@ -105,34 +105,34 @@ export default function Receipt() {
   const meta = METHOD_META[method] ?? METHOD_META.cash;
   return (
     <div
-      class="flex min-h-screen flex-col bg-surface-gray font-sans text-text antialiased dark:bg-[#111]"
+      class="flex min-h-screen flex-col bg-muted font-sans text-foreground antialiased"
       data-ssgoi-transition="/receipt"
     >
       {/* Scrollable receipt content */}
       <div class="scrollbar-none flex flex-1 flex-col items-center overflow-y-auto overflow-x-hidden px-5 pt-8 pb-44 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-48">
         {/* Success banner */}
         <div class="mb-7 flex animate-[fadeDown_0.5s_cubic-bezier(0.34,1.56,0.64,1)] flex-col items-center gap-3">
-          <div class="relative grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-2 text-primary dark:bg-[rgba(60,208,112,0.12)] dark:text-[#3cd070]">
+          <div class="relative grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-primary">
             <CheckCircleIcon class="h-9 w-9" />
-            <div class="absolute inset-[-6px] rounded-full border-2 border-[rgba(9,73,51,0.08)]" />
+            <div class="absolute inset-[-6px] rounded-full border-2 border-primary/10" />
           </div>
-          <div class="font-extrabold text-[22px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
+          <div class="font-extrabold text-[22px] text-foreground tracking-[-0.01em]">
             Pembayaran Berhasil!
           </div>
-          <div class="text-[14px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+          <div class="text-[14px] text-muted-foreground tracking-[0.02em]">
             {dateStr} · {timeStr}
           </div>
         </div>
 
         {/* Receipt card */}
-        <div class="relative w-full max-w-[480px] animate-[fadeUp_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.15s_both] rounded-[18px] border border-border-light bg-surface dark:border-[#222] dark:bg-[#1a1a1a] dark:shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+        <div class="relative w-full max-w-[480px] animate-[fadeUp_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.15s_both] rounded-[18px] border border-border/50 bg-card">
           {/* Glow */}
-          <div class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-accent-2 opacity-25 blur-[50px] dark:bg-[rgba(60,208,112,0.08)]" />
+          <div class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-accent-soft opacity-25 blur-[50px]" />
 
           {/* Header */}
           <div class="flex items-center justify-between border-border border-b border-dashed px-6 pt-6 pb-5 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-4">
             <div class="flex items-center gap-3">
-              <div class="grid h-10 w-10 place-items-center overflow-hidden rounded-[10px] bg-[rgba(9,73,51,0.06)] dark:bg-[#2a2a2a]">
+              <div class="grid h-10 w-10 place-items-center overflow-hidden rounded-[10px] bg-primary/5">
                 <img
                   alt="Nata POS"
                   class="h-full w-full object-contain"
@@ -142,42 +142,42 @@ export default function Receipt() {
                 />
               </div>
               <div>
-                <div class="font-bold text-[18px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
+                <div class="font-bold text-[18px] text-foreground tracking-[-0.01em]">
                   Nata POS
                 </div>
-                <div class="mt-0.5 text-[12px] text-text-secondary tracking-[0.02em] dark:text-[#b0b0b0]">
+                <div class="mt-0.5 text-[12px] text-muted-foreground tracking-[0.02em]">
                   Tantri Cafe
                 </div>
               </div>
             </div>
-            <div class="rounded-pill bg-surface-gray px-2.5 py-1 font-semibold text-[11px] text-text-muted uppercase tracking-[0.06em] dark:bg-[#222] dark:text-[#888]">
+            <div class="rounded-full bg-muted px-2.5 py-1 font-semibold text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
               {txNum}
             </div>
           </div>
 
           {/* Meta */}
-          <div class="flex justify-between border-border-light border-b px-6 py-4 max-[600px]:px-4 max-[600px]:py-3">
+          <div class="flex justify-between border-border/50 border-b px-6 py-4 max-[600px]:px-4 max-[600px]:py-3">
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-text-muted uppercase tracking-[0.06em]">
+              <span class="font-medium text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
                 Tanggal
               </span>
-              <span class="font-medium text-[13px] text-text tracking-[0.01em] dark:text-[#f0f0f0]">
+              <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
                 {dateStr}
               </span>
             </div>
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-text-muted uppercase tracking-[0.06em]">
+              <span class="font-medium text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
                 Waktu
               </span>
-              <span class="font-medium text-[13px] text-text tracking-[0.01em] dark:text-[#f0f0f0]">
+              <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
                 {timeStr}
               </span>
             </div>
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-text-muted uppercase tracking-[0.06em]">
+              <span class="font-medium text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
                 Kasir
               </span>
-              <span class="font-medium text-[13px] text-text tracking-[0.01em] dark:text-[#f0f0f0]">
+              <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
                 Yos Bb
               </span>
             </div>
@@ -190,22 +190,22 @@ export default function Receipt() {
                 <div
                   class={cn(
                     "flex justify-between py-2",
-                    i() < items.length - 1 && "border-border-light border-b"
+                    i() < items.length - 1 && "border-border/50 border-b"
                   )}
                 >
                   <div class="min-w-0 flex-1">
-                    <div class="font-semibold text-[14px] text-text tracking-[0.01em] dark:text-[#f0f0f0]">
+                    <div class="font-semibold text-[14px] text-foreground tracking-[0.01em]">
                       {item.name}
                     </div>
-                    <div class="mt-0.5 text-[12px] text-text-muted tracking-[0.02em] dark:text-[#737c77]">
+                    <div class="mt-0.5 text-[12px] text-faint-foreground tracking-[0.02em]">
                       {item.desc}
                     </div>
                   </div>
                   <div class="ml-4 shrink-0 text-right">
-                    <div class="font-semibold text-[14px] text-text tabular-nums tracking-[-0.01em] dark:text-[#f0f0f0]">
+                    <div class="font-semibold text-[14px] text-foreground tabular-nums tracking-[-0.01em]">
                       {formatRupiah(item.price * item.qty)}
                     </div>
-                    <div class="mt-px text-[11px] text-text-muted tracking-[0.02em] dark:text-[#737c77]">
+                    <div class="mt-px text-[11px] text-faint-foreground tracking-[0.02em]">
                       {item.qty} × {formatRupiah(item.price)}
                     </div>
                   </div>
@@ -217,24 +217,24 @@ export default function Receipt() {
           {/* Totals */}
           <div class="border-border border-t border-dashed px-6 pt-4 pb-5 max-[600px]:px-4">
             <div class="flex justify-between py-1">
-              <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+              <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
                 Subtotal
               </span>
-              <span class="font-medium text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
+              <span class="font-medium text-[13px] text-foreground tabular-nums">
                 {formatRupiah(subtotal)}
               </span>
             </div>
             <div class="flex justify-between py-1">
-              <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+              <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
                 Pajak (11%)
               </span>
-              <span class="font-medium text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
+              <span class="font-medium text-[13px] text-foreground tabular-nums">
                 {formatRupiah(tax)}
               </span>
             </div>
-            <div class="my-2.5 h-px bg-border dark:bg-[#2a2a2a]" />
+            <div class="my-2.5 h-px bg-border" />
             <div class="flex items-baseline justify-between">
-              <span class="font-bold text-[16px] text-text dark:text-[#f0f0f0]">
+              <span class="font-bold text-[16px] text-foreground">
                 Total
               </span>
               <span class="font-extrabold text-[24px] text-primary tabular-nums tracking-[-0.02em] dark:text-primary">
@@ -245,10 +245,10 @@ export default function Receipt() {
 
           {/* Payment method */}
           <div class="flex justify-between border-border border-t border-dashed px-6 pt-4 pb-5 max-[600px]:px-4">
-            <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+            <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
               Metode
             </span>
-            <span class="inline-flex items-center gap-1.5 rounded-pill bg-accent-2 px-3 py-1 font-semibold text-[12px] text-primary tracking-[0.02em] dark:bg-[rgba(60,208,112,0.10)] dark:text-[#3cd070]">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 font-semibold text-[12px] text-primary tracking-[0.02em]">
               <meta.Icon class="h-3.5 w-3.5" />
               {meta.label}
             </span>
@@ -260,10 +260,10 @@ export default function Receipt() {
               <Show
                 fallback={
                   <div class="flex w-full justify-between py-1">
-                    <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+                    <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
                       Dibayar
                     </span>
-                    <span class="font-semibold text-[14px] text-text tabular-nums dark:text-[#f0f0f0]">
+                    <span class="font-semibold text-[14px] text-foreground tabular-nums">
                       {formatRupiah(total)}
                     </span>
                   </div>
@@ -271,18 +271,18 @@ export default function Receipt() {
                 when={method === "cash"}
               >
                 <div class="flex w-full justify-between py-1">
-                  <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+                  <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
                     Dibayar
                   </span>
-                  <span class="font-semibold text-[14px] text-text tabular-nums dark:text-[#f0f0f0]">
+                  <span class="font-semibold text-[14px] text-foreground tabular-nums">
                     {formatRupiah(paid)}
                   </span>
                 </div>
                 <div class="flex w-full justify-between py-1">
-                  <span class="text-[13px] text-text-secondary tracking-[0.02em] dark:text-[#a0a0a0]">
+                  <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
                     Kembalian
                   </span>
-                  <span class="font-semibold text-[14px] text-success tabular-nums dark:text-[#66bb6a]">
+                  <span class="font-semibold text-[14px] text-success tabular-nums">
                     {formatRupiah(Math.max(0, change))}
                   </span>
                 </div>
@@ -292,7 +292,7 @@ export default function Receipt() {
 
           {/* Footer */}
           <div class="border-border border-t border-dashed px-6 pt-4 pb-5 text-center max-[600px]:px-4">
-            <div class="text-[12px] text-text-muted leading-relaxed tracking-[0.02em] dark:text-[#737c77]">
+            <div class="text-[12px] text-faint-foreground leading-relaxed tracking-[0.02em]">
               Terima kasih atas kunjungan Anda!
               <br />
               Jl. Banda No.30, Citarum, Bandung
@@ -303,7 +303,7 @@ export default function Receipt() {
                 {(w) => (
                   <div
                     class={cn(
-                      "h-8 rounded-[1px] bg-text dark:bg-text dark:opacity-50",
+                      "h-8 rounded-[1px] bg-foreground dark:bg-foreground dark:opacity-50",
                       w > 1 ? "w-[2px]" : "w-px"
                     )}
                   />
@@ -315,10 +315,10 @@ export default function Receipt() {
       </div>
 
       {/* Fixed bottom action bar */}
-      <div class="fixed inset-x-0 bottom-0 z-[100] mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] gap-2.5 border-border border-t bg-surface-gray p-3 max-[600px]:flex-col max-[600px]:gap-2.5 max-[600px]:p-4 dark:border-[#2a2a2a] dark:bg-[#141414]">
+      <div class="fixed inset-x-0 bottom-0 z-[100] mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] gap-2.5 border-border border-t bg-muted p-3 max-[600px]:flex-col max-[600px]:gap-2.5 max-[600px]:p-4">
         <div class="flex gap-2.5 max-[600px]:grid max-[600px]:grid-cols-2">
           <Button
-            class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] hover:border-[rgba(9,73,51,0.20)] hover:bg-[rgba(9,73,51,0.06)] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:hover:border-[#444] dark:hover:bg-[#222]"
+            class="h-[52px] rounded-[14px] border-2 border-border bg-card font-semibold text-[15px] text-foreground tracking-[0.02em] hover:border-primary/20 hover:bg-primary/5"
             look="outline"
             onClick={() => toast.info("Mencetak struk\u2026")}
             tone="neutral"
@@ -328,7 +328,7 @@ export default function Receipt() {
             Cetak
           </Button>
           <Button
-            class="h-[52px] rounded-[14px] border-2 border-border bg-surface font-semibold text-[15px] text-text tracking-[0.02em] hover:border-[rgba(9,73,51,0.20)] hover:bg-[rgba(9,73,51,0.06)] dark:border-[#333] dark:bg-[#1a1a1a] dark:text-[#ededed] dark:hover:border-[#444] dark:hover:bg-[#222]"
+            class="h-[52px] rounded-[14px] border-2 border-border bg-card font-semibold text-[15px] text-foreground tracking-[0.02em] hover:border-primary/20 hover:bg-primary/5"
             look="outline"
             onClick={() => toast.info("Membagikan struk\u2026")}
             tone="neutral"
@@ -339,7 +339,7 @@ export default function Receipt() {
           </Button>
         </div>
         <Button
-          class="h-[52px] flex-1 rounded-[14px] font-bold text-[15px] tracking-[0.02em] shadow-[0_4px_16px_rgba(9,73,51,0.25),0_1px_3px_rgba(9,73,51,0.12)] max-[600px]:w-full dark:bg-[#e0e0e0] dark:text-[#1a1a1a] dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)] dark:hover:bg-[#cccccc]"
+          class="h-[52px] flex-1 rounded-[14px] font-bold text-[15px] tracking-[0.02em] shadow-card max-[600px]:w-full"
           onClick={() => navigate("/", { replace: true })}
           type="button"
         >

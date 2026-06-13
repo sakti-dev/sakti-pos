@@ -10,17 +10,17 @@ const decoCards = [
 ] as const;
 
 const decoBgs = [
-  "bg-[rgba(60,208,112,0.12)]",
-  "bg-[rgba(60,208,112,0.10)]",
-  "bg-[rgba(60,208,112,0.12)]",
-  "bg-[rgba(60,208,112,0.10)]",
+  "bg-accent/10",
+  "bg-accent/10",
+  "bg-accent/10",
+  "bg-accent/10",
 ];
 
 export function LoginBannerLeftSide() {
   return (
-    <div class="relative hidden flex-1 flex-col items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#0b5239,#063a28)] p-12 lg:flex dark:bg-[linear-gradient(135deg,#0d2e1f,#091e14)]">
-      <div class="pointer-events-none absolute -top-[120px] -right-[120px] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(60,208,112,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(60,208,112,0.08)_0%,transparent_70%)]" />
-      <div class="pointer-events-none absolute -bottom-[100px] -left-[80px] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(60,208,112,0.10)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(60,208,112,0.06)_0%,transparent_70%)]" />
+    <div class="relative hidden flex-1 flex-col items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#0b5239,#063a28)] p-12 lg:flex">
+      <div class="pointer-events-none absolute -top-[120px] -right-[120px] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(211,250,153,0.15)_0%,transparent_70%)]" />
+      <div class="pointer-events-none absolute -bottom-[100px] -left-[80px] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(211,250,153,0.10)_0%,transparent_70%)]" />
 
       <div class="relative z-[1] text-center">
         <div class="mx-auto mb-6 h-20 w-20 overflow-hidden rounded-md">
@@ -35,7 +35,7 @@ export function LoginBannerLeftSide() {
         <div class="mb-2 font-bold text-[28px] text-white tracking-[-0.01em] dark:text-foreground">
           Nata POS
         </div>
-        <div class="mx-auto max-w-xs text-[15px] text-[rgba(255,255,255,0.55)] leading-relaxed">
+        <div class="mx-auto max-w-xs text-[15px] text-white/55 leading-relaxed">
           Sistem Point of Sale modern untuk mengelola transaksi, laporan, dan
           katalog bisnis Anda dalam satu platform.
         </div>
@@ -45,12 +45,12 @@ export function LoginBannerLeftSide() {
             {({ Icon, label }, i) => (
               <div
                 class={cn(
-                  "flex h-20 w-[120px] flex-col items-center justify-center gap-1.5 rounded-sm border border-[rgba(255,255,255,0.08)]",
+                  "flex h-20 w-[120px] flex-col items-center justify-center gap-1.5 rounded-sm border border-white/10",
                   decoBgs[i()]
                 )}
               >
-                <Icon class="h-6 w-6 text-[rgba(255,255,255,0.7)]" />
-                <span class="font-medium text-[10px] text-[rgba(255,255,255,0.45)] uppercase tracking-[0.04em]">
+                <Icon class="h-6 w-6 text-white/70" />
+                <span class="font-medium text-[10px] text-white/45 uppercase tracking-[0.04em]">
                   {label}
                 </span>
               </div>

@@ -65,9 +65,9 @@ const TextFieldInput = <T extends ValidComponent = "input">(
     <TextFieldPrimitive.Input
       class={cn(
         "h-12 w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 font-sans text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
-        "focus:border-primary focus:shadow-[0_0_0_3px_rgba(9,73,51,0.08)] focus:outline-2 focus:outline-ring focus:outline-offset-1",
-        "dark:focus:border-primary dark:focus:shadow-[0_0_0_3px_rgba(60,208,112,0.10)]",
-        "data-[invalid]:border-destructive data-[invalid]:shadow-[0_0_0_3px_rgba(198,40,40,0.08)] dark:data-[invalid]:shadow-[0_0_0_3px_rgba(239,83,80,0.10)]",
+        "focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-2 focus:outline-ring focus:outline-offset-1",
+        "dark:focus:border-primary",
+        "data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/10",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "file:border-0 file:bg-transparent file:font-medium file:text-sm",
         local.class
@@ -91,9 +91,9 @@ const TextFieldTextArea = <T extends ValidComponent = "textarea">(
     <TextFieldPrimitive.TextArea
       class={cn(
         "min-h-[80px] w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 py-3 font-sans text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
-        "focus:border-primary focus:shadow-[0_0_0_3px_rgba(26,51,0,0.08)] focus:outline-2 focus:outline-ring focus:outline-offset-1",
-        "dark:focus:border-accent dark:focus:shadow-[0_0_0_3px_rgba(168,229,229,0.10)]",
-        "data-[invalid]:border-destructive data-[invalid]:shadow-[0_0_0_3px_rgba(198,40,40,0.08)] dark:data-[invalid]:shadow-[0_0_0_3px_rgba(239,83,80,0.10)]",
+        "focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-2 focus:outline-ring focus:outline-offset-1",
+        "dark:focus:border-accent",
+        "data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/10",
         "disabled:cursor-not-allowed disabled:opacity-50",
         local.class
       )}

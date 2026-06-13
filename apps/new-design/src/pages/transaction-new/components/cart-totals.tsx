@@ -15,27 +15,27 @@ export const CartTotals = (props: CartTotalsProps) => {
   const total = () => props.subtotal + tax();
 
   return (
-    <div class="flex shrink-0 flex-col gap-3 border-border border-t bg-surface px-5 py-4 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]">
+    <div class="flex shrink-0 flex-col gap-3 border-border border-t bg-card px-5 py-4">
       <div class="flex flex-col gap-1.5">
         <div class="flex items-center justify-between">
-          <span class="font-medium text-[13px] text-text-secondary dark:text-[#888]">
+          <span class="font-medium text-[13px] text-muted-foreground">
             Subtotal
           </span>
-          <span class="font-semibold text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
+          <span class="font-semibold text-[13px] text-foreground tabular-nums">
             {formatRupiah(props.subtotal)}
           </span>
         </div>
         <div class="flex items-center justify-between">
-          <span class="font-medium text-[13px] text-text-secondary dark:text-[#888]">
+          <span class="font-medium text-[13px] text-muted-foreground">
             Pajak ({((props.taxRate ?? 0.11) * 100).toFixed(0)}%)
           </span>
-          <span class="font-semibold text-[13px] text-text tabular-nums dark:text-[#f0f0f0]">
+          <span class="font-semibold text-[13px] text-foreground tabular-nums">
             {formatRupiah(tax())}
           </span>
         </div>
-        <div class="my-1 h-px bg-border dark:bg-[rgba(255,255,255,0.06)]" />
+        <div class="my-1 h-px bg-border" />
         <div class="flex items-center justify-between">
-          <span class="font-bold text-[15px] text-text dark:text-[#f0f0f0]">
+          <span class="font-bold text-[15px] text-foreground">
             Total
           </span>
           <span class="font-bold text-[18px] text-primary tabular-nums tracking-[-0.01em] dark:text-accent">
@@ -47,7 +47,7 @@ export const CartTotals = (props: CartTotalsProps) => {
       <div class="flex flex-col gap-2">
         <Button
           aria-label="Bayar"
-          class="rounded-[14px] shadow-[0_4px_16px_rgba(9,73,51,0.20)] hover:shadow-[0_6px_24px_rgba(9,73,51,0.30)] active:scale-[0.98] active:shadow-[0_2px_8px_rgba(9,73,51,0.20)] disabled:opacity-40 disabled:shadow-none dark:shadow-[0_4px_16px_rgba(0,0,0,0.50)] dark:disabled:bg-[#2a2a2a] dark:disabled:text-[#555] dark:hover:shadow-[0_6px_24px_rgba(0,0,0,0.60)]"
+          class="rounded-[14px] shadow-card hover:shadow-card-hover active:scale-[0.98] active:shadow-card disabled:opacity-40 disabled:shadow-none"
           disabled={props.disabled}
           onClick={props.onPay}
           size="lg"

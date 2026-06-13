@@ -20,7 +20,7 @@ export const ProductGrid = (props: ProductGridProps) => {
     <div class="scrollbar-none grid min-h-0 flex-1 grid-cols-[repeat(5,minmax(0,1fr))] content-start items-start gap-3.5 overflow-y-auto [grid-auto-rows:min-content] max-[1200px]:grid-cols-4 max-[600px]:grid-cols-2 max-[900px]:grid-cols-3">
       <Show
         fallback={
-          <div class="col-[1/-1] py-16 text-center font-medium text-[14px] text-text-muted">
+          <div class="col-[1/-1] py-16 text-center font-medium text-[14px] text-faint-foreground">
             Tidak ada menu ditemukan
           </div>
         }
@@ -30,7 +30,7 @@ export const ProductGrid = (props: ProductGridProps) => {
           {(p) => (
             <button
               aria-label={`${p.name} ${formatRupiah(p.price)}`}
-              class="relative aspect-square cursor-pointer overflow-hidden rounded-[14px] bg-surface-gray transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.18)] active:scale-[0.97] dark:bg-[#1a1a1a] dark:hover:shadow-[0_8px_28px_rgba(0,0,0,0.50)]"
+              class="relative aspect-square cursor-pointer overflow-hidden rounded-[14px] bg-muted transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97]"
               onClick={() => props.onAdd(p.id)}
               type="button"
             >
@@ -49,13 +49,13 @@ export const ProductGrid = (props: ProductGridProps) => {
                 <div class="line-clamp-2 font-bold text-[16px] text-white leading-[1.35] [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
                   {p.name}
                 </div>
-                <div class="font-semibold text-[14px] text-[rgba(255,255,255,0.92)] tabular-nums tracking-[-0.01em] [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
+                <div class="font-semibold text-[14px] text-white/90 tabular-nums tracking-[-0.01em] [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
                   {formatRupiah(p.price)}
                 </div>
               </div>
 
               {/* Add badge (hover) */}
-              <div class="absolute top-2.5 right-2.5 z-[3] grid h-8 w-8 scale-50 place-items-center rounded-full bg-[rgba(255,255,255,0.92)] text-primary opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-[opacity,transform] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-100 hover:opacity-100 dark:bg-accent dark:text-white dark:shadow-[0_2px_12px_rgba(60,208,112,0.35)]">
+              <div class="absolute top-2.5 right-2.5 z-[3] grid h-8 w-8 scale-50 place-items-center rounded-full bg-white/90 text-primary opacity-0 shadow-card transition-[opacity,transform] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-100 hover:opacity-100 dark:bg-accent dark:text-white">
                 <PlusIcon class="h-4 w-4" />
               </div>
             </button>

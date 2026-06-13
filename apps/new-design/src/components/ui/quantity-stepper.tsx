@@ -11,24 +11,24 @@ interface QuantityStepperProps {
 export const QuantityStepper = (props: QuantityStepperProps) => (
   <div
     class={cn(
-      "flex shrink-0 items-center overflow-hidden rounded-[6px] border border-border dark:border-[rgba(255,255,255,0.10)]",
+      "flex shrink-0 items-center overflow-hidden rounded-[6px] border border-border",
       props.class
     )}
   >
     <button
       aria-label={`Kurangi ${props.ariaLabel ?? "jumlah"}`}
-      class="grid h-9 w-9 place-items-center bg-surface text-[16px] text-text transition-[background] duration-100 hover:bg-surface-gray active:bg-primary-light dark:bg-[#2a2a2a] dark:text-[#ccc] dark:hover:bg-[#333]"
+      class="grid h-9 w-9 place-items-center bg-card text-[16px] text-foreground transition-[background] duration-100 hover:bg-muted active:bg-primary/5"
       onClick={props.onDecrement}
       type="button"
     >
       −
     </button>
-    <span class="grid h-9 w-8 place-items-center border-border border-x bg-surface-gray font-semibold text-[13px] text-text tabular-nums dark:border-[rgba(255,255,255,0.10)] dark:bg-[#222] dark:text-[#ddd]">
+    <span class="grid h-9 w-8 place-items-center border-border border-x bg-muted font-semibold text-[13px] text-foreground tabular-nums">
       {String(props.value).padStart(2, "0")}
     </span>
     <button
       aria-label={`Tambah ${props.ariaLabel ?? "jumlah"}`}
-      class="grid h-9 w-9 place-items-center bg-surface text-[16px] text-text transition-[background] duration-100 hover:bg-surface-gray active:bg-primary-light dark:bg-[#2a2a2a] dark:text-[#ccc] dark:hover:bg-[#333]"
+      class="grid h-9 w-9 place-items-center bg-card text-[16px] text-foreground transition-[background] duration-100 hover:bg-muted active:bg-primary/5"
       onClick={props.onIncrement}
       type="button"
     >

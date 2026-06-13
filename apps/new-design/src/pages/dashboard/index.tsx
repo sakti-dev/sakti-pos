@@ -11,7 +11,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export default function Dashboard() {
   return (
     <div
-      class="flex flex-1 flex-col overflow-hidden bg-primary dark:bg-[linear-gradient(135deg,#073d2b,#042218)]"
+      class="flex flex-1 flex-col overflow-hidden bg-primary"
       data-ssgoi-transition="/"
     >
       {/* Banner zone */}
@@ -35,7 +35,7 @@ export default function Dashboard() {
       {/* Content body — slides up into the banner */}
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        class="scrollbar-none relative z-10 -mt-9 flex flex-1 flex-col gap-6 overflow-y-auto rounded-t-[60px] bg-cream px-6 py-9 max-[800px]:gap-5 max-[800px]:px-[18px] max-[800px]:py-7 max-[900px]:pb-24 dark:bg-surface"
+        class="scrollbar-none relative z-10 -mt-9 flex flex-1 flex-col gap-6 overflow-y-auto rounded-t-[60px] bg-background px-6 py-9 max-[800px]:gap-5 max-[800px]:px-[18px] max-[800px]:py-7 max-[900px]:pb-24"
         initial={{ opacity: 0, y: 40 }}
         transition={{ duration: 0.55, ease: EASE, delay: STAGGER * 2 }}
       >

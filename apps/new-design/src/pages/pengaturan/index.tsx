@@ -19,10 +19,10 @@ export default function Pengaturan() {
         initial={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.35, ease: EASE }}
       >
-        <h1 class="font-bold font-display text-[22px] text-text tracking-[-0.01em] dark:text-[#ededed]">
+        <h1 class="font-bold font-display text-[22px] text-foreground tracking-[-0.01em]">
           Pengaturan
         </h1>
-        <p class="mt-0.5 text-[13px] text-text-muted tracking-[0.02em]">
+        <p class="mt-0.5 text-[13px] text-faint-foreground tracking-[0.02em]">
           Kelola konfigurasi bisnis dan aplikasi Anda
         </p>
       </motion.div>

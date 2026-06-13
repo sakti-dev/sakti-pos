@@ -10,10 +10,10 @@ export const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "border border-border-light",
-        elevated: "border border-border-light shadow-sm",
+        default: "border border-border/50",
+        elevated: "border border-border/50 shadow-sm",
         interactive:
-          "border border-border-light hover:-translate-y-px hover:border-[rgba(26,51,0,0.15)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)] active:translate-y-0",
+          "border border-border/50 hover:-translate-y-px hover:border-primary/15 hover:shadow-card-hover active:translate-y-0",
         outline: "border border-border",
         ghost: "border-none shadow-none",
       },

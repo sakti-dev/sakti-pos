@@ -117,25 +117,25 @@ export default function TransactionNew() {
 
   return (
     <div
-      class="flex h-screen bg-surface-gray font-sans text-text antialiased dark:bg-[#111] dark:text-[#f0f0f0]"
+      class="flex h-screen bg-muted font-sans text-foreground antialiased"
       data-ssgoi-transition="/transaction-new"
     >
       {/* Left column — catalog */}
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-cream dark:bg-[#0a0a0a]">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <motion.header
           animate={{ opacity: 1, x: 0 }}
-          class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-surface px-5 max-[900px]:px-3.5 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]"
+          class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-card px-5 max-[900px]:px-3.5"
           initial={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
           <A
             aria-label="Kembali"
-            class="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-border bg-surface text-text transition-[background,border-color] duration-150 hover:border-[rgba(26,51,0,0.20)] hover:bg-primary-light dark:border-[rgba(255,255,255,0.08)] dark:bg-[#1a1a1a] dark:text-[#f0f0f0] dark:hover:border-[rgba(168,229,229,0.20)] dark:hover:bg-[rgba(168,229,229,0.08)]"
+            class="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-border bg-card text-foreground transition-[background,border-color] duration-150 hover:border-primary/20 hover:bg-primary/5"
             href="/"
           >
             <ArrowLeftIcon class="h-[18px] w-[18px]" />
           </A>
-          <span class="font-bold text-[17px] text-text tracking-[-0.01em] dark:text-[#f0f0f0]">
+          <span class="font-bold text-[17px] text-foreground tracking-[-0.01em]">
             Transaksi Baru
           </span>
         </motion.header>
@@ -155,7 +155,7 @@ export default function TransactionNew() {
       {/* Right column — cart sidebar (desktop only) */}
       <motion.div
         animate={{ opacity: 1, x: 0 }}
-        class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-surface max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px] dark:border-[rgba(255,255,255,0.06)] dark:bg-[#1a1a1a]"
+        class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-card max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px]"
         initial={{ opacity: 0, x: 40 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       >
@@ -179,7 +179,7 @@ export default function TransactionNew() {
         trigger={
           <SheetTrigger
             aria-label="Buka keranjang"
-            class="fixed right-4 bottom-5 left-4 z-[90] hidden h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-[14px] text-primary-foreground tracking-[0.02em] shadow-[0_6px_24px_rgba(9,73,51,0.30)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(9,73,51,0.40)] active:scale-[0.98] max-[900px]:flex dark:shadow-[0_6px_24px_rgba(0,0,0,0.60)] dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.70)]"
+            class="fixed right-4 bottom-5 left-4 z-[90] hidden h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-[14px] text-primary-foreground tracking-[0.02em] shadow-card transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] max-[900px]:flex"
           >
             <div class="flex items-center gap-2.5">
               <CartShoppingIcon class="h-5 w-5" />
@@ -203,7 +203,7 @@ export default function TransactionNew() {
             <SheetBody>
               <Show
                 fallback={
-                  <div class="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-text-muted">
+                  <div class="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-faint-foreground">
                     <CartShoppingIcon class="h-10 w-10 opacity-30" />
                     <span class="font-medium text-[14px]">
                       Keranjang kosong

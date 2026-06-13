@@ -90,23 +90,23 @@ export function RightPanel() {
         {(gc) => (
           <div
             class={cn(
-              "pointer-events-none absolute z-0 flex flex-col items-center rounded-[10px] border-[1.5px] border-[rgba(9,73,51,0.12)] bg-[rgba(9,73,51,0.04)] backdrop-blur-[2px] dark:border-[rgba(60,208,112,0.10)] dark:bg-[rgba(60,208,112,0.03)]",
+              "pointer-events-none absolute z-0 flex flex-col items-center rounded-[10px] border-[1.5px] border-primary/10 bg-primary/5 backdrop-blur-[2px]",
               gc.class,
               gc.anim
             )}
           >
             <div class="flex items-center justify-center p-3 pb-1">
-              <gc.Icon class="h-6 w-6 text-[rgba(9,73,51,0.45)] dark:text-[rgba(60,208,112,0.45)]" />
+              <gc.Icon class="h-6 w-6 text-primary/45" />
             </div>
             <For each={gc.lineWidths}>
               {(w) => (
                 <div
-                  class="mx-2 my-1 h-1.5 rounded-[3px] bg-[rgba(9,73,51,0.08)] dark:bg-[rgba(60,208,112,0.08)]"
+                  class="mx-2 my-1 h-1.5 rounded-[3px] bg-primary/10"
                   style={{ width: w }}
                 />
               )}
             </For>
-            <div class="px-2 pb-2 text-center font-semibold text-[9px] text-[rgba(9,73,51,0.50)] uppercase tracking-[0.04em] dark:text-[rgba(60,208,112,0.55)]">
+            <div class="px-2 pb-2 text-center font-semibold text-[9px] text-primary/50 uppercase tracking-[0.04em]">
               {gc.label}
             </div>
           </div>
@@ -202,7 +202,7 @@ export function RightPanel() {
               aria-label={
                 showPassword() ? "Sembunyikan password" : "Tampilkan password"
               }
-              class="absolute top-1/2 right-3 -translate-y-1/2 place-items-center rounded-xs bg-transparent text-muted-foreground hover:bg-primary-light hover:text-muted-foreground focus-visible:outline-offset-2"
+              class="absolute top-1/2 right-3 -translate-y-1/2 place-items-center rounded-xs bg-transparent text-muted-foreground hover:bg-primary/5 hover:text-muted-foreground focus-visible:outline-offset-2"
               look="ghost"
               onClick={() => setShowPassword((s) => !s)}
               size="icon-xs"
@@ -238,7 +238,7 @@ export function RightPanel() {
         >
           <Show
             fallback={
-              <div class="h-[18px] w-[18px] animate-spin rounded-full border-2 border-[rgba(255,255,255,0.3)] border-t-white" />
+              <div class="h-[18px] w-[18px] animate-spin rounded-full border-2 border-white/30 border-t-white" />
             }
             when={!loading()}
           >

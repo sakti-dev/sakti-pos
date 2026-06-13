@@ -32,7 +32,7 @@ import { cn } from "~/lib/utils";
  *   card-accent / card-accent-active → outline/soft + tone="primary" + class
  */
 export const buttonVariants = cva(
-  "inline-flex items-center gap-2 whitespace-nowrap rounded-sm font-medium font-sans text-sm transition-[background,border-color,box-shadow,transform] duration-standard ease-standard focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center gap-2 whitespace-nowrap rounded-sm font-medium font-sans text-sm transition-[background,border-color,box-shadow,transform,color] duration-standard ease-standard focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       look: {
@@ -65,7 +65,7 @@ export const buttonVariants = cva(
         look: "solid",
         tone: "primary",
         class:
-          "bg-primary text-primary-foreground hover:-translate-y-px hover:bg-primary-hover hover:shadow-[0_4px_12px_rgba(9,73,51,0.25),0_1px_3px_rgba(9,73,51,0.10)] active:translate-y-0 active:bg-primary-active active:shadow-none dark:hover:shadow-[0_6px_20px_rgba(0,0,0,0.45)]",
+          "bg-primary text-primary-foreground hover:-translate-y-px hover:bg-primary-hover hover:shadow-[0_4px_12px_rgba(28,58,19,0.25),0_1px_3px_rgba(28,58,19,0.10)] active:translate-y-0 active:bg-primary-active active:shadow-none dark:hover:shadow-[0_6px_20px_rgba(0,0,0,0.45)]",
       },
       {
         look: "solid",
@@ -79,7 +79,7 @@ export const buttonVariants = cva(
         look: "soft",
         tone: "primary",
         class:
-          "bg-accent-2 text-primary dark:bg-[rgba(60,208,112,0.10)] dark:text-accent",
+          "bg-accent-soft text-primary",
       },
       {
         look: "soft",
@@ -90,7 +90,7 @@ export const buttonVariants = cva(
         look: "soft",
         tone: "destructive",
         class:
-          "bg-[rgba(176,80,80,0.10)] text-[#b05050] hover:bg-[rgba(176,80,80,0.15)] dark:bg-[rgba(212,112,112,0.10)] dark:text-[#d47070] dark:hover:bg-[rgba(212,112,112,0.15)]",
+          "bg-destructive/10 text-destructive hover:bg-destructive/15",
       },
 
       /* ── outline ────────────────────────────────────────────────── */
@@ -98,13 +98,13 @@ export const buttonVariants = cva(
         look: "outline",
         tone: "primary",
         class:
-          "border-primary bg-transparent font-semibold text-primary hover:bg-primary-light active:scale-[0.98] dark:border-accent dark:text-accent dark:hover:bg-[rgba(60,208,112,0.10)]",
+          "border-primary bg-transparent font-semibold text-primary hover:bg-primary/5 active:scale-[0.98] dark:border-accent dark:text-accent dark:hover:bg-accent/10",
       },
       {
         look: "outline",
         tone: "neutral",
         class:
-          "border-input bg-background text-foreground hover:border-muted-foreground hover:bg-muted hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] active:bg-border-light",
+          "border-input bg-background text-foreground hover:border-muted-foreground hover:bg-muted hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] active:bg-border/50",
       },
       {
         look: "outline",
@@ -118,19 +118,19 @@ export const buttonVariants = cva(
         look: "ghost",
         tone: "primary",
         class:
-          "text-primary hover:bg-accent-2 dark:text-accent dark:hover:bg-[rgba(60,208,112,0.10)]",
+          "text-primary hover:bg-foreground/5 dark:text-accent",
       },
       {
         look: "ghost",
         tone: "neutral",
         class:
-          "text-text-secondary hover:bg-[rgba(9,73,51,0.04)] hover:text-text dark:text-[#a0a0a0] dark:hover:bg-[rgba(255,255,255,0.05)] dark:hover:text-[#ededed]",
+          "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
       },
       {
         look: "ghost",
         tone: "destructive",
         class:
-          "text-[#b05050] hover:bg-[rgba(176,80,80,0.08)] hover:text-[#8b3030] dark:text-[#d47070] dark:hover:bg-[rgba(212,112,112,0.10)] dark:hover:text-[#e08080]",
+          "text-destructive hover:bg-destructive/10",
       },
 
       /* ── link ───────────────────────────────────────────────────── */

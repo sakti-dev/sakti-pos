@@ -45,7 +45,7 @@ export const Sidebar = (props: SidebarProps) => {
         pointerEvents: props.isShell ? "auto" : "none",
         width: props.isShell && props.expanded ? 200 : 80,
       }}
-      class="fixed top-0 left-0 z-[100] flex h-screen flex-col overflow-hidden border-border border-r bg-surface px-3 py-5 pb-4 max-[900px]:hidden dark:border-[rgba(255,255,255,0.06)] dark:bg-[#141414]"
+      class="fixed top-0 left-0 z-[100] flex h-screen flex-col overflow-hidden border-border border-r bg-card px-3 py-5 pb-4 max-[900px]:hidden"
       initial={{ x: -80, opacity: 0, width: 80 }}
       onClick={props.onTouch}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
@@ -60,7 +60,7 @@ export const Sidebar = (props: SidebarProps) => {
           />
         </div>
         <Show when={props.expanded}>
-          <span class="whitespace-nowrap font-bold text-[20px] text-text-primary tracking-tight">
+          <span class="whitespace-nowrap font-bold text-[20px] text-foreground tracking-tight">
             Nata POS
           </span>
         </Show>
@@ -71,19 +71,24 @@ export const Sidebar = (props: SidebarProps) => {
             const isActive = () => props.activeNav === item.key;
             return (
               <Button
-                activeClass="[&>svg]:!text-[#059669] [&>span]:font-bold [&>span]:tracking-[0.07em] dark:[&>svg]:!text-[#34d399]"
                 aria-label={item.label}
                 as={A}
                 class={cn(
-                  "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
-                  props.expanded ? "w-full px-3" : "w-[52px] px-[15px]"
+                  "relative flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
+                  props.expanded ? "w-full px-3" : "w-[52px] px-[15px]",
                 )}
                 end={item.key === "home"}
                 href={item.href}
-                look={isActive() ? "soft" : "ghost"}
+                look="ghost"
                 size="none"
-                tone="primary"
+                tone={isActive() ? "primary" : "neutral"}
               >
+                <Show when={isActive()}>
+                  <span
+                    aria-hidden="true"
+                    class="absolute top-1/2 left-[-12px] h-6 w-[4px] -translate-y-1/2 rounded-r-full bg-accent-foreground dark:bg-accent"
+                  />
+                </Show>
                 <item.Icon class="h-[22px] w-[22px] shrink-0" />
                 <Show when={props.expanded}>
                   <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
@@ -101,7 +106,7 @@ export const Sidebar = (props: SidebarProps) => {
         aria-label="Keluar"
         class={cn(
           "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
-          props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
+          props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]",
         )}
         look="ghost"
         size="none"
