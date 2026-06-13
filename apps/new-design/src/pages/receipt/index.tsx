@@ -340,7 +340,7 @@ export default function Receipt() {
         </div>
         <Button
           class="h-[52px] flex-1 rounded-[14px] font-bold text-[15px] tracking-[0.02em] shadow-[0_4px_16px_rgba(9,73,51,0.25),0_1px_3px_rgba(9,73,51,0.12)] max-[600px]:w-full dark:bg-[#e0e0e0] dark:text-[#1a1a1a] dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)] dark:hover:bg-[#cccccc]"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/", { replace: true })}
           type="button"
         >
           <HomeIcon class="h-[18px] w-[18px]" />

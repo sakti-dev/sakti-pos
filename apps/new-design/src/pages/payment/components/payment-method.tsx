@@ -11,6 +11,7 @@ import { Numpad } from "~/components/ui/numpad";
 import { cn, formatRupiah } from "~/lib/utils";
 
 const RE_ANDROID = /android/i;
+const RE_SINGLE_DIGIT = /^\d$/;
 /** Round `val` up to the next multiple of `step`. */
 const ceilTo = (val: number, step: number) => Math.ceil(val / step) * step;
 
@@ -102,9 +103,9 @@ interface PaymentMethodProps {
   readonly ewallet: string;
   readonly method: PayMethod;
   readonly onCashRawChange: (v: string) => void;
+  readonly onConfirm: () => void;
   readonly onEwalletChange: (v: string) => void;
   readonly onMethodChange: (m: PayMethod) => void;
-  readonly onSelectedQuickChange: (v: number | null) => void;
   readonly selectedQuick: number | null;
   readonly subtotal: number;
   readonly tax: number;
@@ -117,6 +118,8 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
   let pendingRawCursor: number | undefined;
 
   const cashNum = () => Number.parseInt(props.cashRaw || "0", 10) || 0;
+  const formatted = () =>
+    cashNum() > 0 ? cashNum().toLocaleString("id-ID") : "";
   const change = () => cashNum() - props.total;
 
   const quickAmounts = () => getSmartCashSuggestions(props.total);
@@ -272,6 +275,27 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                 props.onCashRawChange(raw);
                 props.onSelectedQuickChange(null);
               }}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Backspace" ||
+                  e.key === "Delete" ||
+                  e.key === "Tab" ||
+                  e.key === "Escape" ||
+                  e.key === "Enter"
+                ) {
+                  if (
+                    e.key === "Enter" &&
+                    cashNum() >= props.total &&
+                    cashNum() > 0
+                  ) {
+                    props.onConfirm();
+                  }
+                  return;
+                }
+                if (!RE_SINGLE_DIGIT.test(e.key)) {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Masukkan jumlah"
               ref={(el) => {
                 inputRef = el;
@@ -286,31 +310,27 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                   el.addEventListener("focus", () => vk?.hide());
                 }
 
+                // Auto-focus on mount so cashier can type immediately
+                requestAnimationFrame(() => el.focus());
                 // Idempotent value sync: only write to DOM when formatted value actually changed.
                 // This prevents Solid's reactive binding from resetting Chromium's caret blink timer.
                 createEffect(() => {
-                  const formatted =
-                    cashNum() > 0 ? cashNum().toLocaleString("id-ID") : "";
-                  const domValue = el.value;
-                  if (domValue === formatted) {
+                  const fmt = formatted();
+                  if (el.value === fmt) {
                     return;
                   }
-                  el.value = formatted;
+                  el.value = fmt;
                   if (pendingRawCursor === undefined) {
-                    const len = formatted.length;
-                    el.setSelectionRange(len, len);
+                    el.setSelectionRange(fmt.length, fmt.length);
                   } else {
-                    const formatRupiahPos = rawToFormattedPos(
-                      formatted,
-                      pendingRawCursor
-                    );
-                    el.setSelectionRange(formatRupiahPos, formatRupiahPos);
+                    const pos = rawToFormattedPos(fmt, pendingRawCursor);
+                    el.setSelectionRange(pos, pos);
                   }
                   pendingRawCursor = undefined;
                 });
               }}
               type="text"
-              value=""
+              value={formatted()}
             />
           </div>
 

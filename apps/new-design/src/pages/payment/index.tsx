@@ -70,6 +70,23 @@ export default function Payment() {
   const canConfirm = () =>
     method() === "cash" ? cashNum() >= total() && cashNum() > 0 : true;
 
+  const confirmPayment = () => {
+    if (!canConfirm()) {
+      return;
+    }
+    navigate("/receipt", {
+      replace: true,
+      state: {
+        items: cart(),
+        method: method(),
+        paid: method() === "cash" ? cashNum() : total(),
+        subtotal: subtotal(),
+        tax: tax(),
+        total: total(),
+      },
+    });
+  };
+
   const adjustQty = (id: number, delta: number) =>
     setCart((prev) => {
       const updated = prev.map((i) =>
@@ -97,12 +114,12 @@ export default function Payment() {
 
           <div class="scrollbar-none flex flex-1 flex-col gap-4 overflow-y-auto max-[900px]:order-1 max-[900px]:flex-none max-[900px]:overflow-y-visible">
             <TotalBanner subtotal={subtotal()} tax={tax()} total={total()} />
-
             <PaymentMethod
               cashRaw={cashRaw()}
               ewallet={ewallet()}
               method={method()}
               onCashRawChange={setCashRaw}
+              onConfirm={confirmPayment}
               onEwalletChange={setEwallet}
               onMethodChange={setMethod}
               onSelectedQuickChange={setSelectedQuick}
@@ -124,18 +141,7 @@ export default function Payment() {
               <Button
                 class="h-14 w-full rounded-[10px] border-2 border-transparent font-bold text-[16px] shadow-[0_1px_3px_rgba(9,73,51,0.10)] disabled:opacity-40 dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)] dark:disabled:border-[#444] dark:disabled:bg-[#3a3a3a] dark:disabled:text-[#777] dark:disabled:shadow-none"
                 disabled={!canConfirm()}
-                onClick={() =>
-                  navigate("/receipt", {
-                    state: {
-                      items: cart(),
-                      method: method(),
-                      paid: method() === "cash" ? cashNum() : total(),
-                      subtotal: subtotal(),
-                      tax: tax(),
-                      total: total(),
-                    },
-                  })
-                }
+                onClick={confirmPayment}
                 size="xl"
                 type="button"
               >
@@ -152,18 +158,7 @@ export default function Payment() {
         <Button
           class="h-14 w-full rounded-[10px] border-2 border-transparent font-bold text-[16px] shadow-[0_1px_3px_rgba(9,73,51,0.10)] disabled:opacity-40 dark:shadow-[0_4px_16px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.20)] dark:disabled:border-[#444] dark:disabled:bg-[#3a3a3a] dark:disabled:text-[#777] dark:disabled:shadow-none"
           disabled={!canConfirm()}
-          onClick={() =>
-            navigate("/receipt", {
-              state: {
-                items: cart(),
-                method: method(),
-                paid: method() === "cash" ? cashNum() : total(),
-                subtotal: subtotal(),
-                tax: tax(),
-                total: total(),
-              },
-            })
-          }
+          onClick={confirmPayment}
           size="xl"
           type="button"
         >
