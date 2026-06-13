@@ -1,14 +1,9 @@
-import { useColorMode } from "@kobalte/core";
 import { A } from "@solidjs/router";
+import { motion } from "motion-solidjs";
 import { For, Show } from "solid-js";
-import {
-  FileIcon,
-  HomeIcon,
-  LogoutIcon,
-  MoonIcon,
-  SettingsIcon,
-  SunIcon,
-} from "~/assets";
+import { FileIcon, HomeIcon, LogoutIcon, SettingsIcon } from "~/assets";
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
 
 export type NavKey = "home" | "transactions" | "settings";
 
@@ -33,71 +28,93 @@ const navItems: readonly {
   },
 ] as const;
 
-export const Sidebar = () => {
-  const { colorMode, setColorMode } = useColorMode();
+interface SidebarProps {
+  readonly activeNav: NavKey;
+  readonly expanded: boolean;
+  readonly isShell: boolean;
+  readonly onClose: () => void;
+  readonly onTouch: () => void;
+}
 
+export const Sidebar = (props: SidebarProps) => {
   return (
-    <nav class="fixed top-0 left-0 z-[100] flex h-screen w-[var(--sidebar-w,80px)] min-w-[var(--sidebar-w,80px)] flex-col items-center border-border border-r bg-surface py-5 pb-4 max-[900px]:hidden dark:border-[rgba(255,255,255,0.06)] dark:bg-[#141414]">
+    <motion.nav
+      animate={{
+        x: props.isShell ? 0 : -80,
+        opacity: props.isShell ? 1 : 0,
+        pointerEvents: props.isShell ? "auto" : "none",
+        width: props.isShell && props.expanded ? 200 : 80,
+      }}
+      class="fixed top-0 left-0 z-[100] flex h-screen flex-col overflow-hidden border-border border-r bg-surface px-3 py-5 pb-4 max-[900px]:hidden dark:border-[rgba(255,255,255,0.06)] dark:bg-[#141414]"
+      initial={{ x: -80, opacity: 0, width: 80 }}
+      onClick={props.onTouch}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+    >
       {/* Brand */}
-      <div class="mb-7 grid h-12 w-12 place-items-center rounded-[14px]">
-        <img
-          alt="Nata POS"
-          class="h-full w-full object-contain"
-          height={48}
-          src="/logo.png"
-          width={48}
-        />
+      <div class="mb-7 flex h-12 shrink-0 items-center gap-2.5">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-[14px]">
+          <img
+            alt="Nata POS"
+            class="h-full w-full object-contain"
+            src="/logo.png"
+          />
+        </div>
+        <Show when={props.expanded}>
+          <span class="whitespace-nowrap font-bold text-[20px] text-text-primary tracking-tight">
+            Nata POS
+          </span>
+        </Show>
       </div>
-
-      {/* Nav items */}
-      <div class="flex flex-1 flex-col items-center justify-center gap-7">
+      <div class="flex flex-1 flex-col justify-center gap-2">
         <For each={navItems}>
-          {(item) => (
-            <A
-              activeClass="!bg-accent-2 !text-primary [&>svg]:!text-primary [&>span]:font-bold [&>span]:tracking-[0.07em] hover:!bg-accent-2 hover:!text-primary dark:!bg-[rgba(60,208,112,0.15)] dark:!text-[#3cd070] dark:hover:!bg-[rgba(60,208,112,0.15)] dark:hover:!text-[#3cd070]"
-              aria-label={item.label}
-              class="flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 text-text-muted transition-[background,color,box-shadow] duration-150 hover:bg-[rgba(9,73,51,0.04)] hover:text-text dark:text-[rgba(60,208,112,0.55)] dark:hover:bg-[rgba(60,208,112,0.10)] dark:hover:text-[rgba(60,208,112,0.85)] [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108"
-              end={item.key === "home"}
-              href={item.href}
-            >
-              <item.Icon class="h-[22px] w-[22px] shrink-0" />
-              <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
-                {item.label}
-              </span>
-            </A>
-          )}
+          {(item) => {
+            const isActive = () => props.activeNav === item.key;
+            return (
+              <Button
+                activeClass="[&>svg]:!text-[#059669] [&>span]:font-bold [&>span]:tracking-[0.07em] dark:[&>svg]:!text-[#34d399]"
+                aria-label={item.label}
+                as={A}
+                class={cn(
+                  "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
+                  props.expanded ? "w-full px-3" : "w-[52px] px-[15px]"
+                )}
+                end={item.key === "home"}
+                href={item.href}
+                look={isActive() ? "soft" : "ghost"}
+                size="none"
+                tone="primary"
+              >
+                <item.Icon class="h-[22px] w-[22px] shrink-0" />
+                <Show when={props.expanded}>
+                  <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
+                    {item.label}
+                  </span>
+                </Show>
+              </Button>
+            );
+          }}
         </For>
       </div>
 
-      {/* Theme toggle */}
-      <button
-        aria-label="Ganti tema"
-        class="mb-1 flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 text-text-muted transition-[background,color] duration-150 hover:bg-[rgba(60,208,112,0.06)] hover:text-text dark:text-[#3cd070] dark:hover:bg-[rgba(60,208,112,0.10)] [&>svg]:transition-transform [&>svg]:duration-300 [&>svg]:hover:rotate-20"
-        onClick={() => setColorMode(colorMode() === "dark" ? "light" : "dark")}
-        type="button"
-      >
-        <Show
-          fallback={<MoonIcon class="h-[22px] w-[22px] shrink-0" />}
-          when={colorMode() !== "dark"}
-        >
-          <SunIcon class="h-[22px] w-[22px] shrink-0" />
-        </Show>
-        <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
-          {colorMode() === "dark" ? "Terang" : "Gelap"}
-        </span>
-      </button>
-
       {/* Logout */}
-      <button
+      <Button
         aria-label="Keluar"
-        class="mb-1 flex w-[58px] flex-col items-center gap-[7px] rounded-[14px] px-1.5 py-2.5 text-[#b05050] transition-[background,color] duration-150 hover:bg-[rgba(176,80,80,0.08)] hover:text-[#8b3030] dark:text-[#d47070] dark:hover:bg-[rgba(212,112,112,0.10)] dark:hover:text-[#e08080] [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5"
+        class={cn(
+          "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
+          props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
+        )}
+        look="ghost"
+        size="none"
+        tone="destructive"
         type="button"
       >
         <LogoutIcon class="h-[22px] w-[22px] shrink-0" />
-        <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
-          Keluar
-        </span>
-      </button>
-    </nav>
+        <Show when={props.expanded}>
+          <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em]">
+            Keluar
+          </span>
+        </Show>
+      </Button>
+    </motion.nav>
   );
 };

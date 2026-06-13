@@ -4,7 +4,7 @@ import {
   createLocalStorageManager,
 } from "@kobalte/core";
 import { Route, Router } from "@solidjs/router";
-import { RootShell } from "./components/layout/root-shell";
+import { AppShell } from "./components/layout/app-shell";
 import { Toaster } from "./components/ui/toaster";
 import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
@@ -25,7 +25,7 @@ export default function AppRoutes() {
         <>
           <ColorModeScript storageType={storageManager.type} />
           <ColorModeProvider storageManager={storageManager}>
-            <RootShell {...props} />
+            <AppShell {...props} />
             <Toaster />
           </ColorModeProvider>
         </>
