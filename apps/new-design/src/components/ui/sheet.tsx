@@ -71,12 +71,7 @@ export interface SheetHeaderProps {
 }
 
 export const SheetHeader = (props: SheetHeaderProps) => (
-  <div
-    class={cn(
-      "border-border border-b px-5 pt-1.5 pb-3.5",
-      props.class
-    )}
-  >
+  <div class={cn("border-border border-b px-5 pt-1.5 pb-3.5", props.class)}>
     {props.children}
   </div>
 );
@@ -87,12 +82,7 @@ export interface SheetTitleProps {
 }
 
 export const SheetTitle = (props: SheetTitleProps) => (
-  <span
-    class={cn(
-      "font-bold text-[16px] text-foreground",
-      props.class
-    )}
-  >
+  <span class={cn("font-bold text-[16px] text-foreground", props.class)}>
     {props.children}
   </span>
 );
@@ -116,12 +106,7 @@ export interface SheetFooterProps {
 }
 
 export const SheetFooter = (props: SheetFooterProps) => (
-  <div
-    class={cn(
-      "shrink-0 border-border border-t px-5 py-4",
-      props.class
-    )}
-  >
+  <div class={cn("shrink-0 border-border border-t px-5 py-4", props.class)}>
     {props.children}
   </div>
 );

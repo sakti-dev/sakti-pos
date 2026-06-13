@@ -11,8 +11,7 @@ export const tabVariants = cva(
       variant: {
         inactive:
           "border-border bg-card text-muted-foreground hover:border-primary/20 hover:text-foreground",
-        active:
-          "border-primary bg-primary text-white shadow-card",
+        active: "border-primary bg-primary text-white shadow-card",
       },
       shape: {
         rounded:

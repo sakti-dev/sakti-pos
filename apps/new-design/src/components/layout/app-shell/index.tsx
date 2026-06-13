@@ -66,7 +66,7 @@ export const AppShell = (props: RouteSectionProps) => {
   onCleanup(() => clearTimeout(expandTimer));
 
   return (
-    <div class="bg-background dark:bg-card">
+    <div class="bg-card">
       <Sidebar
         activeNav={activeNav()}
         expanded={expanded()}
@@ -84,7 +84,7 @@ export const AppShell = (props: RouteSectionProps) => {
       {/* ── Main content area ── margins snap, SSGOI masks the change */}
       <main
         class={cn(
-          "relative flex flex-1 flex-col overflow-hidden transition-[margin-left] duration-300 dark:bg-card",
+          "relative flex flex-1 flex-col overflow-hidden bg-background transition-[margin-left] duration-300",
           isShell() && "mt-[54px] h-[calc(100vh-54px)]",
           isShell() && expanded() ? "ml-[200px]" : "ml-[80px]",
           !isShell() && "ml-0 h-screen",

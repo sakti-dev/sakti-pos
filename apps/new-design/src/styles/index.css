@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "./styles/theme.css";
+@import "./theme.css";
 
 /* biome-ignore-all format: tailwind v4 custom at-rules */
 @custom-variant dark (&:where(.dark, [data-kb-theme="dark"], .dark *, [data-kb-theme="dark"] *));

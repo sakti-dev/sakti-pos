@@ -8,10 +8,10 @@ type Tone = "info" | "warning" | "danger" | "success";
 /* Semantic state is carried ONLY by the icon chip (soft inner container),
    never by the card body. All four cards share one identical surface. */
 const TONE_CHIP: Record<Tone, string> = {
-  info: "bg-info text-info-foreground",
-  warning: "bg-warning text-warning-foreground",
-  danger: "bg-danger text-danger-foreground",
-  success: "bg-success text-success-foreground",
+  info: "bg-status-info text-status-info-foreground",
+  warning: "bg-status-warning text-status-warning-foreground",
+  danger: "bg-status-danger text-status-danger-foreground",
+  success: "bg-status-success text-status-success-foreground",
 };
 
 interface KpiCardData {

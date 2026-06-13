@@ -78,8 +78,7 @@ export const buttonVariants = cva(
       {
         look: "soft",
         tone: "primary",
-        class:
-          "bg-accent-soft text-primary",
+        class: "bg-accent-soft text-primary",
       },
       {
         look: "soft",
@@ -89,8 +88,7 @@ export const buttonVariants = cva(
       {
         look: "soft",
         tone: "destructive",
-        class:
-          "bg-destructive/10 text-destructive hover:bg-destructive/15",
+        class: "bg-destructive/10 text-destructive hover:bg-destructive/15",
       },
 
       /* ── outline ────────────────────────────────────────────────── */
@@ -117,8 +115,7 @@ export const buttonVariants = cva(
       {
         look: "ghost",
         tone: "primary",
-        class:
-          "text-primary hover:bg-foreground/5 dark:text-accent",
+        class: "text-primary hover:bg-foreground/5 dark:text-accent",
       },
       {
         look: "ghost",
@@ -129,8 +126,7 @@ export const buttonVariants = cva(
       {
         look: "ghost",
         tone: "destructive",
-        class:
-          "text-destructive hover:bg-destructive/10",
+        class: "text-destructive hover:bg-destructive/10",
       },
 
       /* ── link ───────────────────────────────────────────────────── */

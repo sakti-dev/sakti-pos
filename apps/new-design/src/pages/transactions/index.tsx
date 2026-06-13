@@ -32,56 +32,56 @@ const STATUS_META: Record<
 > = {
   new: {
     Icon: FileIcon,
-    bg: "bg-accent/10",
+    bg: "bg-accent/10 dark:bg-accent",
     color: "text-primary",
     label: "Baru",
   },
   processing: {
     Icon: LoaderIcon,
-    bg: "bg-[rgba(255,233,92,0.25)]",
-    color: "text-[#7a5f00]",
+    bg: "bg-status-processing/25 dark:bg-status-processing",
+    color: "text-status-processing-foreground",
     label: "Diproses",
   },
   waiting: {
     Icon: ClockIcon,
-    bg: "bg-warning/15",
-    color: "text-warning",
+    bg: "bg-status-warning/15 dark:bg-status-warning",
+    color: "text-status-warning dark:text-status-warning-foreground",
     label: "Menunggu",
   },
   done: {
     Icon: CheckCircleIcon,
-    bg: "bg-success/10",
-    color: "text-success",
+    bg: "bg-status-success/10 dark:bg-status-success",
+    color: "text-status-success dark:text-status-success-foreground",
     label: "Selesai",
   },
   cancelled: {
     Icon: XCircleIcon,
-    bg: "bg-danger/10",
-    color: "text-danger",
+    bg: "bg-status-danger/10 dark:bg-status-danger",
+    color: "text-status-danger dark:text-status-danger-foreground",
     label: "Batal",
   },
 };
 
 const STATUS_PILL: Record<TxStatus, { bg: string; color: string }> = {
   new: {
-    bg: "bg-accent/10",
+    bg: "bg-accent/10 dark:bg-accent",
     color: "text-primary",
   },
   processing: {
-    bg: "bg-[rgba(255,233,92,0.25)]",
-    color: "text-[#7a5f00]",
+    bg: "bg-status-processing/25 dark:bg-status-processing",
+    color: "text-status-processing-foreground",
   },
   waiting: {
-    bg: "bg-warning/15",
-    color: "text-warning",
+    bg: "bg-status-warning/15 dark:bg-status-warning",
+    color: "text-status-warning dark:text-status-warning-foreground",
   },
   done: {
-    bg: "bg-success/10",
-    color: "text-success",
+    bg: "bg-status-success/10 dark:bg-status-success",
+    color: "text-status-success dark:text-status-success-foreground",
   },
   cancelled: {
-    bg: "bg-danger/10",
-    color: "text-danger",
+    bg: "bg-status-danger/10 dark:bg-status-danger",
+    color: "text-status-danger dark:text-status-danger-foreground",
   },
 };
 
@@ -246,10 +246,10 @@ export default function Transactions() {
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
       >
         {/* Search field */}
-        <label class="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-card">
+        <label class="flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 shadow-card">
           <SearchIcon class="h-4 w-4 shrink-0 text-faint-foreground" />
           <input
-            class="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-faint-foreground"
+            class="w-full bg-transparent text-foreground text-sm outline-none placeholder:text-faint-foreground"
             onInput={(e) => setSearch(e.currentTarget.value)}
             placeholder="Cari transaksi..."
             type="text"
@@ -276,7 +276,7 @@ export default function Transactions() {
       <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-6 pb-24 max-[800px]:px-[18px] max-[900px]:pb-28">
         <Show
           fallback={
-            <div class="flex flex-1 items-center justify-center py-20 text-sm text-faint-foreground">
+            <div class="flex flex-1 items-center justify-center py-20 text-faint-foreground text-sm">
               Tidak ada transaksi ditemukan
             </div>
           }
@@ -289,7 +289,7 @@ export default function Transactions() {
               return (
                 <motion.div
                   animate={{ opacity: 1, y: 0 }}
-                  class="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-card"
+                  class="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-card"
                   initial={{ opacity: 0, y: 12 }}
                   transition={{
                     duration: 0.35,
@@ -307,10 +307,10 @@ export default function Transactions() {
                   {/* Body */}
                   <div class="flex min-w-0 flex-1 flex-col gap-1">
                     <div class="flex items-center justify-between gap-2">
-                      <span class="truncate font-semibold text-sm text-foreground">
+                      <span class="truncate font-semibold text-foreground text-sm">
                         {tx.customer}
                       </span>
-                      <span class="shrink-0 font-semibold text-sm text-foreground">
+                      <span class="shrink-0 font-semibold text-foreground text-sm">
                         {formatRupiah(tx.total)}
                       </span>
                     </div>

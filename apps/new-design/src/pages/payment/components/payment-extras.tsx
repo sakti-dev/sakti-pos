@@ -16,7 +16,7 @@ export const PaymentExtras = (props: PaymentExtrasProps) => (
           Nama Pelanggan
         </label>
         <input
-          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-muted px-3.5 font-sans text-[14px] text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-faint-foreground focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/10 focus:outline-none dark:focus:border-primary"
+          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-muted px-3.5 font-sans text-[14px] text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-faint-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/10 dark:focus:border-primary"
           id="customer"
           onInput={(e) => props.onCustomerChange(e.currentTarget.value)}
           placeholder="Opsional"
@@ -32,7 +32,7 @@ export const PaymentExtras = (props: PaymentExtrasProps) => (
           Catatan
         </label>
         <input
-          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-muted px-3.5 font-sans text-[14px] text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-faint-foreground focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/10 focus:outline-none dark:focus:border-primary"
+          class="h-11 w-full rounded-[10px] border-[1.5px] border-border bg-muted px-3.5 font-sans text-[14px] text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-faint-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/10 dark:focus:border-primary"
           id="notes"
           onInput={(e) => props.onNotesChange(e.currentTarget.value)}
           placeholder="Opsional"

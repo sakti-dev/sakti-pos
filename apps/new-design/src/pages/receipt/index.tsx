@@ -234,9 +234,7 @@ export default function Receipt() {
             </div>
             <div class="my-2.5 h-px bg-border" />
             <div class="flex items-baseline justify-between">
-              <span class="font-bold text-[16px] text-foreground">
-                Total
-              </span>
+              <span class="font-bold text-[16px] text-foreground">Total</span>
               <span class="font-extrabold text-[24px] text-primary tabular-nums tracking-[-0.02em] dark:text-primary">
                 {formatRupiah(total)}
               </span>
@@ -282,7 +280,7 @@ export default function Receipt() {
                   <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
                     Kembalian
                   </span>
-                  <span class="font-semibold text-[14px] text-success tabular-nums">
+                  <span class="font-semibold text-[14px] text-status-success tabular-nums">
                     {formatRupiah(Math.max(0, change))}
                   </span>
                 </div>

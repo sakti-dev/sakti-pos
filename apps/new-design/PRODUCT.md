@@ -34,9 +34,13 @@ professional than the legacy POS it replaces — across the full flow: dashboard
 catalog, transaction-new, payment, receipt, transactions history, and
 pengaturan.
 
-The `references/` directory holds 15 HTML mockup screens plus design analysis
-(`COHERE-DESIGN.md`, `DESIGN-HANDOFF.md`, `DESIGN-MANIFEST.json`) that form the
-visual contract for this redesign.
+The visual system is defined in `DESIGN.md` — an apothecary-greenhouse
+aesthetic derived from the Seed style reference: a warm parchment canvas, one
+deep botanical green (`canopy`, `#1c3a13`) that carries the whole brand, a
+single sunlit-lime accent (`lime`, `#d3fa99`) for confirmation/highlights, and
+pill-shaped status markers. All tokens live in `src/styles/theme.css` as
+`oklch()`. (This supersedes the earlier cool-surface / forest-counter /
+cash-mint / terracotta vocabulary; that palette is retired.)
 
 ## Brand Personality
 
@@ -46,13 +50,15 @@ visual contract for this redesign.
   control, never rushed or overwhelmed. Restraint over decoration.
 - **Capable** — precise and competent; the app handles money with obvious
   competence. Tight type, honest numbers, no theatrical effects.
-- **Trustworthy** — money-confidence through restraint (deep green primary),
-  with warmth carried selectively by terracotta accents and optimism by the
-  bright accent green.
+- **Trustworthy** — money-confidence through restraint (deep canopy-green
+  primary), with warmth carried by the warm parchment canvas and optimism by the
+  bright lime accent.
 
-Indonesian local-commerce warmth is carried by accent color, typography, and
-imagery — **not** by warm beige/cream background washes. Warmth is an accent
-role, never the body.
+Indonesian local-commerce warmth is carried by the parchment canvas, the
+botanical green, the lime accent, and tight display type — together, not by a
+saturated or muddy cream wash. The canvas is an extremely-light, almost-neutral
+warm paper (an apothecary-lab surface), a deliberate identity choice; it is the
+*only* warm surface. Warmth elsewhere is green, lime, and type.
 
 ## Anti-references
 
@@ -65,6 +71,9 @@ What this must NOT look like:
 - **Sterile / placeless minimal** — cold all-white minimalism with no warmth or
   sense of place; could be any product, anywhere. Loses the Indonesian
   local-commerce identity.
+- **Muddy cream / beige wash** — a saturated, low-contrast warm fill smeared
+  across surfaces. The parchment canvas is a near-white warm *paper*, not a
+  generic cream wash; do not drift it toward sand, peach, or beige.
 
 ## Design Principles
 
@@ -86,8 +95,9 @@ pixels.
    retrofit. Lead with touch ergonomics and bottom-reachable primary actions,
    then adapt up to wider screens — never the reverse.
 5. **Place-aware, not placeless.** Carry Indonesian local-commerce warmth through
-   accent, typography, and imagery, and reject the placeless all-white default.
-   The product should feel like it belongs to the shops that use it.
+   the parchment canvas, the botanical green, the lime accent, and tight display
+   type, and reject the placeless all-white default. The product should feel
+   like it belongs to the shops that use it.
 
 ## Accessibility & Inclusion
 

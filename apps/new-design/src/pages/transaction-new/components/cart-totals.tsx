@@ -35,9 +35,7 @@ export const CartTotals = (props: CartTotalsProps) => {
         </div>
         <div class="my-1 h-px bg-border" />
         <div class="flex items-center justify-between">
-          <span class="font-bold text-[15px] text-foreground">
-            Total
-          </span>
+          <span class="font-bold text-[15px] text-foreground">Total</span>
           <span class="font-bold text-[18px] text-primary tabular-nums tracking-[-0.01em] dark:text-accent">
             {formatRupiah(total())}
           </span>

@@ -1,6 +1,6 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
-import "./index.css";
+import "./styles/index.css";
 import AppRoutes from "./routes.tsx";
 
 const root = document.getElementById("root");

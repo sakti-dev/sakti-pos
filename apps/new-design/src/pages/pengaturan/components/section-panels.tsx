@@ -533,7 +533,7 @@ function SectionTim() {
                 class={`rounded-full px-2.5 py-[3px] font-semibold text-[11px] uppercase tracking-[0.04em] ${
                   s.active
                     ? "bg-accent/10 text-primary dark:text-accent"
-                    : "bg-danger/10 text-danger"
+                    : "bg-status-danger/10 dark:bg-status-danger text-status-danger dark:text-status-danger-foreground"
                 }`}
               >
                 {s.active ? "Aktif" : "Nonaktif"}
@@ -604,7 +604,7 @@ function SectionPerangkat() {
                 class={`grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[10px] ${
                   d.kind === "printer"
                     ? "bg-accent/10 text-primary dark:text-accent"
-                    : "bg-warning/15 text-warning"
+                    : "bg-status-warning/15 dark:bg-status-warning text-status-warning dark:text-status-warning-foreground"
                 }`}
               >
                 <d.Icon class="h-5 w-5" />
@@ -617,7 +617,7 @@ function SectionPerangkat() {
                   <span
                     class={`mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${
                       d.connected
-                        ? "bg-success dark:bg-accent"
+                        ? "bg-status-success dark:bg-accent"
                         : "bg-faint-foreground"
                     }`}
                   />

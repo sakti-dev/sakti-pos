@@ -255,8 +255,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
           <div
             class={cn(
               "flex h-[72px] items-center justify-center gap-2 rounded-[10px] border-2 border-border bg-muted px-5 transition-[border-color,background] duration-150 dark:border-border dark:bg-card",
-              cashNum() > 0 &&
-                "border-primary bg-card dark:border-accent"
+              cashNum() > 0 && "border-primary bg-card dark:border-accent"
             )}
           >
             <span class="shrink-0 font-semibold text-[16px] text-muted-foreground dark:text-faint-foreground">
@@ -339,7 +338,9 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
 
           <Show when={cashNum() > 0 && change() >= 0}>
             <div class="mt-4 flex items-center justify-between rounded-[10px] border border-primary/10 bg-accent-soft px-5 py-4">
-              <span class="font-medium text-[14px] text-foreground">Kembalian</span>
+              <span class="font-medium text-[14px] text-foreground">
+                Kembalian
+              </span>
               <span
                 class={cn(
                   "font-extrabold text-[20px] tabular-nums",

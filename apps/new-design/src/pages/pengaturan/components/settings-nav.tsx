@@ -44,7 +44,7 @@ interface SettingsNavProps {
 
 export function SettingsNav(props: SettingsNavProps) {
   return (
-    <nav class="flex w-[220px] shrink-0 flex-col gap-0.5 max-[900px]:w-full max-[900px]:flex-row max-[900px]:gap-1">
+    <nav class="flex w-[220px] shrink-0 flex-col gap-0.5 gap-y-2 max-[900px]:w-full max-[900px]:flex-row max-[900px]:gap-1">
       <For each={NAV_ITEMS}>
         {(item) => {
           const isActive = () => props.active === item.key;
@@ -62,7 +62,7 @@ export function SettingsNav(props: SettingsNavProps) {
                 class={cn(
                   "h-[18px] w-[18px] shrink-0",
                   isActive()
-                    ? "text-primary dark:text-accent"
+                    ? "text-primary"
                     : "opacity-55 transition-[opacity] duration-150 hover:opacity-80 dark:opacity-40"
                 )}
               />

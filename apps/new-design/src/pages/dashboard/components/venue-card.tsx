@@ -12,9 +12,7 @@ export const VenueCard = () => {
       {/* Info */}
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="font-medium text-[13px] text-white/85">
-            Yos Bb
-          </span>
+          <span class="font-medium text-[13px] text-white/85">Yos Bb</span>
           <span class="rounded-full bg-accent-soft px-2 py-[2px] font-medium text-[11px] text-primary dark:text-accent">
             Manager
           </span>
