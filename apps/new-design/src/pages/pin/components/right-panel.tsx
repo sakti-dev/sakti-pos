@@ -156,8 +156,8 @@ export function PinRightPanel() {
       {/* Right panel */}
       <div class="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-background p-8 max-[900px]:min-h-screen max-[900px]:p-6">
         {/* Background decorative */}
-        <div class="pointer-events-none absolute top-[15%] right-[-5%] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle,rgba(211,250,153,0.06)_0%,transparent_70%)]" />
-        <div class="pointer-events-none absolute bottom-[10%] left-[5%] h-[200px] w-[200px] rounded-full bg-[radial-gradient(circle,rgba(28,58,19,0.04)_0%,transparent_70%)]" />
+        <div class="pointer-events-none absolute top-[15%] right-[-5%] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-accent)_6%,transparent)_0%,transparent_70%)]" />
+        <div class="pointer-events-none absolute bottom-[10%] left-[5%] h-[200px] w-[200px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-canopy)_4%,transparent)_0%,transparent_70%)]" />
 
         <div class="relative z-[1] flex w-full max-w-[400px] flex-col items-center gap-6 max-[480px]:gap-5">
           {/* Mobile logo (hidden on desktop) */}
@@ -178,7 +178,7 @@ export function PinRightPanel() {
 
           {/* User info */}
           <div class="flex flex-col items-center gap-3">
-            <div class="relative grid h-[88px] w-[88px] animate-avatar-pulse place-items-center rounded-full border-[3px] border-accent/20 bg-accent-soft font-display font-extrabold text-[32px] text-primary max-[480px]:h-[76px] max-[480px]:w-[76px] max-[480px]:text-[28px] dark:text-accent">
+            <div class="relative grid h-[88px] w-[88px] animate-avatar-pulse place-items-center rounded-full border-[3px] border-accent/20 bg-accent-soft font-display font-extrabold text-[32px] text-primary max-[480px]:h-[76px] max-[480px]:w-[76px] max-[480px]:text-[28px]">
               {u.initials}
               <span class="absolute right-1 bottom-1 h-4 w-4 rounded-full border-[3px] border-card bg-accent" />
             </div>
@@ -204,7 +204,7 @@ export function PinRightPanel() {
               {(_, i) => {
                 const dotClass = () => {
                   if (error()) {
-                    return "h-4 w-4 animate-shake rounded-full border-2 border-[var(--color-destructive)] bg-[var(--color-destructive)] ring-4 ring-destructive/10";
+                    return "h-4 w-4 animate-shake rounded-full border-2 border-destructive bg-destructive ring-4 ring-destructive/10";
                   }
                   if (i() < pin().length) {
                     return "h-4 w-4 scale-125 rounded-full border-2 border-primary bg-primary ring-4 ring-primary/10 dark:border-accent dark:bg-accent";
@@ -216,7 +216,7 @@ export function PinRightPanel() {
                     class={dotClass()}
                     style={{
                       "transition-timing-function":
-                        "cubic-bezier(0.34,1.56,0.64,1)",
+                        "cubic-bezier(0.22,1,0.36,1)",
                     }}
                   />
                 );
@@ -227,7 +227,7 @@ export function PinRightPanel() {
           {/* Error message */}
           <div
             class={cn(
-              "min-h-[18px] text-center font-medium text-[13px] text-[var(--color-destructive)] tracking-[0.01em] transition-[opacity,transform] duration-200",
+              "min-h-[18px] text-center font-medium text-[13px] text-destructive tracking-[0.01em] transition-[opacity,transform] duration-200",
               !error() && "-translate-y-1 opacity-0",
               !!error() && "translate-y-0 opacity-100"
             )}
@@ -250,7 +250,8 @@ export function PinRightPanel() {
                   return (
                     <button
                       aria-label="Hapus"
-                      class="flex h-[60px] items-center justify-center rounded-[14px] border border-border bg-card text-muted-foreground shadow-none transition-[background,transform] duration-150 hover:border-destructive/20 hover:bg-destructive/5 hover:text-[var(--color-destructive)] active:scale-[0.94] active:bg-destructive/10 max-[480px]:h-14"
+                      class="flex h-[60px] items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-none transition-[background,transform] duration-150 hover:border-destructive/20 hover:bg-destructive/5 hover:text-destructive active:scale-[0.94] active:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14"
+                      disabled={locked()}
                       onClick={removeDigit}
                       type="button"
                     >
@@ -261,7 +262,8 @@ export function PinRightPanel() {
                 return (
                   <button
                     aria-label={String(key)}
-                    class="grid h-[60px] place-items-center rounded-[14px] border-none bg-card font-display font-semibold text-[22px] text-foreground shadow-card transition-[background,transform,box-shadow] duration-150 hover:bg-accent-soft hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 max-[480px]:h-14 max-[480px]:text-[20px]"
+                    class="grid h-[60px] place-items-center rounded-lg border-none bg-card font-display font-semibold text-[22px] text-foreground shadow-card transition-[background,color,transform,box-shadow] duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14 max-[480px]:text-[20px]"
+                    disabled={locked()}
                     onClick={[addDigit, String(key)]}
                     type="button"
                   >
@@ -305,12 +307,12 @@ export function PinRightPanel() {
                 {(user, i) => (
                   <button
                     aria-label={`${user.name}, ${user.role}`}
-                    class="flex animate-stagger-in flex-col items-center gap-2.5 rounded-xl border-[1.5px] border-border bg-card px-3 py-6 shadow-card transition-[border-color,background,transform,box-shadow] duration-200 hover:border-accent hover:bg-accent-soft hover:shadow-card-hover active:scale-[0.97]"
+                    class="flex animate-stagger-in flex-col items-center gap-2.5 rounded-lg border-[1.5px] border-border bg-card px-3 py-6 transition-[border-color,background,transform,box-shadow] duration-200 hover:border-accent hover:bg-accent-soft hover:shadow-card active:scale-[0.97]"
                     onClick={[selectUser, user]}
                     style={{ "animation-delay": `${i() * 0.08}s` }}
                     type="button"
                   >
-                    <div class="grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-accent/20 bg-accent-soft font-display font-extrabold text-[18px] text-primary dark:text-accent">
+                    <div class="grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-accent/20 bg-accent-soft font-display font-extrabold text-[18px] text-primary">
                       {user.initials}
                     </div>
                     <div class="text-center font-display font-semibold text-[14px] text-foreground">
@@ -341,7 +343,7 @@ export function PinRightPanel() {
 
       {/* Success overlay */}
       <Show when={showSuccess()}>
-        <div class="fixed inset-0 z-[1000] flex animate-fade-in items-center justify-center bg-[linear-gradient(135deg,#0b5239,#063a28)]">
+        <div class="fixed inset-0 z-[1000] flex animate-fade-in items-center justify-center bg-[linear-gradient(135deg,var(--color-banner-from),var(--color-banner-to))]">
           <div class="flex animate-success-pop flex-col items-center gap-4">
             <div class="grid h-20 w-20 place-items-center rounded-full bg-accent/15 text-accent shadow-card">
               <CheckCircleIcon class="h-9 w-9" />

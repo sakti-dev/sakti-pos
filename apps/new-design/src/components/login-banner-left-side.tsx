@@ -1,58 +1,68 @@
 import { For } from "solid-js";
-import { ChartIcon, FileIcon, GridIcon, WalletIcon } from "../assets";
-import { cn } from "../lib/utils";
+import { ChartIcon, GridIcon, WalletIcon } from "../assets";
 
-const decoCards = [
-  { Icon: FileIcon, label: "Transaksi" },
-  { Icon: GridIcon, label: "Katalog" },
-  { Icon: ChartIcon, label: "Laporan" },
-  { Icon: WalletIcon, label: "Dompet" },
+const features = [
+  {
+    Icon: WalletIcon,
+    text: "Multi Pembayaran",
+    label: "Tunai, QRIS, kartu, e-wallet",
+  },
+  {
+    Icon: ChartIcon,
+    text: "Laporan Real-time",
+    label: "Pendapatan, transaksi, dan stok",
+  },
+  {
+    Icon: GridIcon,
+    text: "Manajemen Katalog",
+    label: "Atur produk dan inventory",
+  },
 ] as const;
-
-const decoBgs = [
-  "bg-accent/10",
-  "bg-accent/10",
-  "bg-accent/10",
-  "bg-accent/10",
-];
 
 export function LoginBannerLeftSide() {
   return (
-    <div class="relative hidden flex-1 flex-col items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#0b5239,#063a28)] p-12 lg:flex">
-      <div class="pointer-events-none absolute -top-[120px] -right-[120px] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(211,250,153,0.15)_0%,transparent_70%)]" />
-      <div class="pointer-events-none absolute -bottom-[100px] -left-[80px] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(211,250,153,0.10)_0%,transparent_70%)]" />
+    <div class="relative hidden flex-1 flex-col items-center justify-center overflow-hidden bg-[linear-gradient(135deg,var(--color-banner-from),var(--color-banner-to))] p-12 lg:flex">
+      <div class="pointer-events-none absolute -top-[120px] -right-[120px] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-accent)_15%,transparent)_0%,transparent_70%)]" />
+      <div class="pointer-events-none absolute -bottom-[100px] -left-[80px] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-accent)_10%,transparent)_0%,transparent_70%)]" />
 
-      <div class="relative z-[1] text-center">
-        <div class="mx-auto mb-6 h-20 w-20 overflow-hidden rounded-md">
+      <div class="relative z-[1] flex animate-fade-in flex-col items-center gap-5">
+        <div class="grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg bg-white/10 p-3.5 backdrop-blur-[10px]">
           <img
             alt="Nata POS"
-            class="h-full w-full object-contain"
-            height={80}
+            class="h-full w-full object-contain brightness-0 invert"
+            height={44}
             src="/logo.png"
-            width={80}
+            width={44}
           />
         </div>
-        <div class="mb-2 font-bold text-[28px] text-white tracking-[-0.01em] dark:text-foreground">
+        <div class="font-display font-extrabold text-[32px] text-white tracking-[-0.02em]">
           Nata POS
         </div>
-        <div class="mx-auto max-w-xs text-[15px] text-white/55 leading-relaxed">
-          Sistem Point of Sale modern untuk mengelola transaksi, laporan, dan
-          katalog bisnis Anda dalam satu platform.
+        <div class="max-w-[280px] text-center font-medium text-[15px] text-white/55 leading-relaxed tracking-[0.01em]">
+          Kelola transaksi, katalog, dan laporan bisnis Anda dalam satu
+          platform.
         </div>
 
-        <div class="mt-12 grid grid-cols-2 gap-3">
-          <For each={decoCards}>
-            {({ Icon, label }, i) => (
+        <div class="mt-10 flex flex-col gap-3">
+          <For each={features}>
+            {(f, i) => (
               <div
-                class={cn(
-                  "flex h-20 w-[120px] flex-col items-center justify-center gap-1.5 rounded-sm border border-white/10",
-                  decoBgs[i()]
-                )}
+                class="flex items-center gap-3.5 rounded-lg border border-white/10 bg-white/5 px-5 py-3.5 backdrop-blur-[8px] transition-[background] duration-200 hover:bg-white/10"
+                style={{
+                  animation: `fadeUp 0.4s ease ${0.15 + i() * 0.1}s both`,
+                }}
               >
-                <Icon class="h-6 w-6 text-white/70" />
-                <span class="font-medium text-[10px] text-white/45 uppercase tracking-[0.04em]">
-                  {label}
-                </span>
+                <div class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-accent/15">
+                  <f.Icon class="h-[18px] w-[18px] text-accent" />
+                </div>
+                <div>
+                  <div class="font-medium text-[14px] text-white/75 tracking-[0.01em]">
+                    {f.text}
+                  </div>
+                  <div class="mt-0.5 text-[12px] text-white/40 tracking-[0.01em]">
+                    {f.label}
+                  </div>
+                </div>
               </div>
             )}
           </For>

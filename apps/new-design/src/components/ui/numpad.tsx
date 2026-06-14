@@ -28,11 +28,10 @@ export const Numpad = (props: NumpadProps) => (
         <button
           aria-label={k.key === "back" ? "Hapus digit" : k.label}
           class={cn(
-            "flex min-h-[48px] select-none items-center justify-center rounded-[6px] border-[1.5px] border-border bg-card font-sans font-semibold text-[20px] text-foreground transition-[background,border-color,transform] duration-100 hover:border-primary/10 hover:bg-muted active:scale-[0.96] active:border-primary/20 active:bg-primary/5 dark:active:border-primary",
+            "flex min-h-[48px] select-none items-center justify-center rounded-md border-[1.5px] border-border bg-card font-sans font-semibold text-[20px] text-foreground transition-[background,border-color,transform] duration-100 hover:border-primary/10 hover:bg-muted active:scale-[0.96] active:border-primary/20 active:bg-primary/5 dark:active:border-primary",
             k.key === "back" &&
               "bg-muted text-muted-foreground active:bg-destructive/10 active:text-destructive",
-            k.key === "000" && "text-[16px] tracking-[0.02em]",
-            k.key === "0" && "text-[22px]"
+            k.key === "000" && "tracking-[0.02em]"
           )}
           onClick={() => props.onKey(k.key)}
           onPointerDown={(e) => e.preventDefault()}

@@ -139,7 +139,7 @@ export default function Payment() {
             {/* Desktop: inline button */}
             <div class="shrink-0 pt-1 max-[900px]:hidden">
               <Button
-                class="h-14 w-full rounded-[10px] border-2 border-transparent font-bold text-[16px] shadow-card disabled:opacity-40 dark:disabled:shadow-none"
+                class="h-14 w-full rounded-md font-bold text-[16px] shadow-card disabled:opacity-40 dark:disabled:shadow-none"
                 disabled={!canConfirm()}
                 onClick={confirmPayment}
                 size="xl"
@@ -156,7 +156,7 @@ export default function Payment() {
       {/* Mobile: fixed bottom button */}
       <div class="fixed inset-x-0 bottom-0 z-[100] hidden border-border border-t bg-card p-4 pb-4 max-[900px]:block max-[600px]:p-3 max-[600px]:pb-3">
         <Button
-          class="h-14 w-full rounded-[10px] border-2 border-transparent font-bold text-[16px] shadow-card disabled:opacity-40 dark:disabled:shadow-none"
+          class="h-14 w-full rounded-md font-bold text-[16px] shadow-card disabled:opacity-40 dark:disabled:shadow-none"
           disabled={!canConfirm()}
           onClick={confirmPayment}
           size="xl"

@@ -72,6 +72,9 @@ const sampleSubtotal = sampleItems.reduce((s, i) => s + i.price * i.qty, 0);
 const sampleTax = Math.round(sampleSubtotal * 0.11);
 const sampleTotal = sampleSubtotal + sampleTax;
 
+const secondaryActionClass =
+  "h-[52px] rounded-md border-2 border-border bg-card font-semibold text-[15px] text-foreground tracking-[0.02em] hover:border-primary/20 hover:bg-primary/5";
+
 /* ── component ───────────────────────────────────────────────── */
 
 export default function Receipt() {
@@ -125,14 +128,14 @@ export default function Receipt() {
         </div>
 
         {/* Receipt card */}
-        <div class="relative w-full max-w-[480px] animate-[fadeUp_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.15s_both] rounded-[18px] border border-border/50 bg-card">
+        <div class="relative w-full max-w-[480px] animate-[fadeUp_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.15s_both] rounded-lg border border-border/50 bg-card">
           {/* Glow */}
           <div class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-accent-soft opacity-25 blur-[50px]" />
 
           {/* Header */}
           <div class="flex items-center justify-between border-border border-b border-dashed px-6 pt-6 pb-5 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-4">
             <div class="flex items-center gap-3">
-              <div class="grid h-10 w-10 place-items-center overflow-hidden rounded-[10px] bg-primary/5">
+              <div class="grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-primary/5">
                 <img
                   alt="Nata POS"
                   class="h-full w-full object-contain"
@@ -150,7 +153,7 @@ export default function Receipt() {
                 </div>
               </div>
             </div>
-            <div class="rounded-full bg-muted px-2.5 py-1 font-semibold text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
+            <div class="rounded-full bg-muted px-2.5 py-1 font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
               {txNum}
             </div>
           </div>
@@ -158,7 +161,7 @@ export default function Receipt() {
           {/* Meta */}
           <div class="flex justify-between border-border/50 border-b px-6 py-4 max-[600px]:px-4 max-[600px]:py-3">
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
+              <span class="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
                 Tanggal
               </span>
               <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
@@ -166,7 +169,7 @@ export default function Receipt() {
               </span>
             </div>
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
+              <span class="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
                 Waktu
               </span>
               <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
@@ -174,7 +177,7 @@ export default function Receipt() {
               </span>
             </div>
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-faint-foreground uppercase tracking-[0.06em]">
+              <span class="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
                 Kasir
               </span>
               <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
@@ -197,7 +200,7 @@ export default function Receipt() {
                     <div class="font-semibold text-[14px] text-foreground tracking-[0.01em]">
                       {item.name}
                     </div>
-                    <div class="mt-0.5 text-[12px] text-faint-foreground tracking-[0.02em]">
+                    <div class="mt-0.5 text-[12px] text-muted-foreground tracking-[0.02em]">
                       {item.desc}
                     </div>
                   </div>
@@ -205,7 +208,7 @@ export default function Receipt() {
                     <div class="font-semibold text-[14px] text-foreground tabular-nums tracking-[-0.01em]">
                       {formatRupiah(item.price * item.qty)}
                     </div>
-                    <div class="mt-px text-[11px] text-faint-foreground tracking-[0.02em]">
+                    <div class="mt-px text-[11px] text-muted-foreground tracking-[0.02em]">
                       {item.qty} × {formatRupiah(item.price)}
                     </div>
                   </div>
@@ -235,7 +238,7 @@ export default function Receipt() {
             <div class="my-2.5 h-px bg-border" />
             <div class="flex items-baseline justify-between">
               <span class="font-bold text-[16px] text-foreground">Total</span>
-              <span class="font-extrabold text-[24px] text-primary tabular-nums tracking-[-0.02em] dark:text-primary">
+              <span class="font-extrabold text-[24px] text-primary tabular-nums tracking-[-0.02em] dark:text-accent">
                 {formatRupiah(total)}
               </span>
             </div>
@@ -290,7 +293,7 @@ export default function Receipt() {
 
           {/* Footer */}
           <div class="border-border border-t border-dashed px-6 pt-4 pb-5 text-center max-[600px]:px-4">
-            <div class="text-[12px] text-faint-foreground leading-relaxed tracking-[0.02em]">
+            <div class="text-[12px] text-muted-foreground leading-relaxed tracking-[0.02em]">
               Terima kasih atas kunjungan Anda!
               <br />
               Jl. Banda No.30, Citarum, Bandung
@@ -316,7 +319,7 @@ export default function Receipt() {
       <div class="fixed inset-x-0 bottom-0 z-[100] mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] gap-2.5 border-border border-t bg-muted p-3 max-[600px]:flex-col max-[600px]:gap-2.5 max-[600px]:p-4">
         <div class="flex gap-2.5 max-[600px]:grid max-[600px]:grid-cols-2">
           <Button
-            class="h-[52px] rounded-[14px] border-2 border-border bg-card font-semibold text-[15px] text-foreground tracking-[0.02em] hover:border-primary/20 hover:bg-primary/5"
+            class={secondaryActionClass}
             look="outline"
             onClick={() => toast.info("Mencetak struk\u2026")}
             tone="neutral"
@@ -326,7 +329,7 @@ export default function Receipt() {
             Cetak
           </Button>
           <Button
-            class="h-[52px] rounded-[14px] border-2 border-border bg-card font-semibold text-[15px] text-foreground tracking-[0.02em] hover:border-primary/20 hover:bg-primary/5"
+            class={secondaryActionClass}
             look="outline"
             onClick={() => toast.info("Membagikan struk\u2026")}
             tone="neutral"
@@ -337,7 +340,7 @@ export default function Receipt() {
           </Button>
         </div>
         <Button
-          class="h-[52px] flex-1 rounded-[14px] font-bold text-[15px] tracking-[0.02em] shadow-card max-[600px]:w-full"
+          class="h-[52px] flex-1 rounded-md font-bold text-[15px] tracking-[0.02em] shadow-card max-[600px]:w-full"
           onClick={() => navigate("/", { replace: true })}
           type="button"
         >

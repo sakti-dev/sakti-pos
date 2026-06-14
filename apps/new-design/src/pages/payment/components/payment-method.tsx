@@ -8,6 +8,7 @@ import {
 } from "~/assets";
 import { Button } from "~/components/ui/button";
 import { Numpad } from "~/components/ui/numpad";
+import { Tab } from "~/components/ui/tab";
 import { cn, formatRupiah } from "~/lib/utils";
 
 const RE_ANDROID = /android/i;
@@ -195,18 +196,8 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
     props.onSelectedQuickChange(amt);
   };
 
-  const amountLook = (amt: number) => {
-    if (props.selectedQuick === amt) {
-      return "solid" as const;
-    }
-    if (amt === props.total) {
-      return "soft" as const;
-    }
-    return "outline" as const;
-  };
-
   return (
-    <div class="rounded-[18px] border border-border/50 bg-card px-6 py-5 dark:border-border/50 dark:bg-card">
+    <div class="rounded-lg border border-border/50 bg-card px-6 py-5">
       <div class="mb-4 font-semibold text-[13px] text-muted-foreground uppercase tracking-[0.06em]">
         Metode Pembayaran
       </div>
@@ -215,19 +206,17 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       <div class="grid grid-cols-4 gap-2.5 max-[600px]:grid-cols-2">
         <For each={methodOptions}>
           {(m) => (
-            <Button
+            <Tab
+              active={props.method === m.key}
               aria-label={m.label}
-              class="flex-col gap-2.5 rounded-[10px] py-[18px] pb-3.5 [&>span]:text-current [&>svg]:size-7 [&>svg]:text-current"
-              look={props.method === m.key ? "soft" : "outline"}
+              class="flex-col gap-2.5 py-[18px] pb-3.5 [&>svg]:size-7"
               onClick={() => props.onMethodChange(m.key)}
-              size="none"
-              tone="primary"
             >
               <m.Icon class="transition-colors duration-200" />
               <span class="font-medium text-[13px] transition-colors duration-200">
                 {m.label}
               </span>
-            </Button>
+            </Tab>
           )}
         </For>
       </div>
@@ -235,15 +224,21 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       {/* Cash */}
       <Show when={props.method === "cash"}>
         <div class="mt-5">
+          <div class="mb-1.5 flex items-center justify-between">
+            <span class="font-medium text-[12px] text-muted-foreground">
+              Jumlah cepat
+            </span>
+          </div>
           <div class="mb-3 grid grid-cols-4 gap-2 max-[600px]:grid-cols-2">
             <For each={quickAmounts()}>
               {(amt) => (
                 <Button
                   aria-label={`Jumlah ${formatRupiah(amt)}`}
-                  class="rounded-[10px] py-2.5 font-semibold text-[12px]"
-                  look={amountLook(amt)}
+                  class="!border-border h-9 w-full justify-center rounded-sm border font-semibold text-[12px] text-muted-foreground tabular-nums transition-colors hover:bg-muted hover:text-foreground"
+                  look="outline"
                   onClick={() => selectQuick(amt)}
                   onPointerDown={(e) => e.preventDefault()}
+                  size="none"
                   tone="primary"
                 >
                   {formatRupiah(amt)}
@@ -254,7 +249,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
 
           <div
             class={cn(
-              "flex h-[72px] items-center justify-center gap-2 rounded-[10px] border-2 border-border bg-muted px-5 transition-[border-color,background] duration-150 dark:border-border dark:bg-card",
+              "flex h-[72px] items-center justify-center gap-2 rounded-lg border-2 border-border bg-muted px-5 transition-[border-color,background] duration-150",
               cashNum() > 0 && "border-primary bg-card dark:border-accent"
             )}
           >
@@ -339,20 +334,31 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
 
           <Numpad class="mt-3" onKey={handleNumpad} />
 
-          <Show when={cashNum() > 0 && change() >= 0}>
-            <div class="mt-4 flex items-center justify-between rounded-[10px] border border-primary/10 bg-accent-soft px-5 py-4">
-              <span class="font-medium text-[14px] text-foreground">
-                Kembalian
+          <Show when={cashNum() > 0}>
+            <div
+              class={cn(
+                "mt-3 flex items-center justify-between rounded-lg border px-4 py-3",
+                change() >= 0
+                  ? "border-border bg-muted/40"
+                  : "border-destructive/20 bg-destructive/5"
+              )}
+            >
+              <span class="flex items-center gap-2 font-medium text-[13px] text-muted-foreground">
+                <span
+                  class={cn(
+                    "size-1.5 rounded-full",
+                    change() >= 0 ? "bg-accent" : "bg-destructive"
+                  )}
+                />
+                {change() >= 0 ? "Kembalian" : "Kurang"}
               </span>
               <span
                 class={cn(
-                  "font-extrabold text-[20px] tabular-nums",
-                  change() > 0
-                    ? "text-primary dark:text-accent"
-                    : "text-faint-foreground"
+                  "font-bold text-[18px] tabular-nums",
+                  change() >= 0 ? "text-foreground" : "text-destructive"
                 )}
               >
-                {formatRupiah(change())}
+                {formatRupiah(Math.abs(change()))}
               </span>
             </div>
           </Show>
@@ -362,10 +368,10 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       {/* QRIS */}
       <Show when={props.method === "qris"}>
         <div class="mt-5 flex flex-col items-center py-6">
-          <div class="relative mb-4 grid h-[200px] w-[200px] place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-border bg-card dark:border-border">
+          <div class="relative mb-4 grid h-[200px] w-[200px] place-items-center overflow-hidden rounded-md border-[1.5px] border-border bg-card">
             <div class="absolute inset-0 opacity-10 [background:repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_0_0/16px_16px,repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_80px_80px/16px_16px]" />
             <QrCodeIcon class="relative z-[1] h-16 w-16 text-faint-foreground dark:text-faint-foreground" />
-            <div class="absolute grid h-11 w-11 place-items-center rounded-lg border-2 border-border bg-card dark:bg-card">
+            <div class="absolute grid h-11 w-11 place-items-center rounded-md border-2 border-border bg-card">
               <QrCodeIcon class="h-6 w-6 text-primary" />
             </div>
           </div>
@@ -378,7 +384,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       {/* Card */}
       <Show when={props.method === "card"}>
         <div class="mt-5 flex flex-col items-center py-6">
-          <div class="mb-3 grid h-[140px] w-full place-items-center rounded-[10px] border-2 border-border border-dashed bg-muted dark:border-border">
+          <div class="mb-3 grid h-[140px] w-full place-items-center rounded-md border-2 border-border border-dashed bg-muted">
             <CreditCardIcon class="h-12 w-12 text-faint-foreground" />
           </div>
           <div class="text-[13px] text-faint-foreground">
@@ -395,7 +401,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               {(name) => (
                 <Button
                   aria-label={name}
-                  class="rounded-[10px] py-3.5 font-semibold text-[14px]"
+                  class="rounded-md py-3.5 font-semibold text-[14px]"
                   look={props.ewallet === name ? "soft" : "outline"}
                   onClick={() => props.onEwalletChange(name)}
                   tone="primary"

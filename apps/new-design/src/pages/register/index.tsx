@@ -4,7 +4,7 @@ import { RegisterRightPanel } from "./components/right-panel";
 export default function Register() {
   return (
     <div
-      class="flex h-screen bg-background font-sans text-foreground antialiased dark:bg-background"
+      class="flex h-screen bg-background font-sans text-foreground antialiased"
       data-ssgoi-transition="/register"
     >
       <LoginBannerLeftSide />

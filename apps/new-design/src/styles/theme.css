@@ -15,6 +15,10 @@
   --color-sage: oklch(0.8264 0.0053 145.53);
   --color-gray: oklch(0.7668 0.0000 0);
 
+  /* ── Brand banner gradient (auth / PIN surfaces) ── */
+  --color-banner-from: oklch(0.3904 0.0789 163.39);
+  --color-banner-to: oklch(0.3105 0.0617 164.22);
+
   /* ── shadcn roles — surfaces & text ── */
   --color-background: var(--color-parchment);
   --color-foreground: var(--color-canopy);
@@ -332,5 +336,16 @@
     --color-status-info-foreground: oklch(0.30 0.06 240);
     --color-accent-foreground: oklch(0.9356 0.1298 126.62);
     --color-accent-soft: oklch(0.9356 0.1298 126.62);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

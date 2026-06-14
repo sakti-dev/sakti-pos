@@ -34,7 +34,7 @@ export const tabVariants = cva(
       variant: "inactive",
       shape: "rounded",
     },
-  },
+  }
 );
 
 export interface TabProps {
@@ -60,7 +60,7 @@ export const Tab = (props: TabProps) => {
           variant: local.active ? "active" : "inactive",
           shape: local.shape,
         }),
-        local.class,
+        local.class
       )}
       type="button"
       {...others}
