@@ -2,6 +2,7 @@ import { A, useNavigate } from "@solidjs/router";
 import { createSignal } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
+import { FadeIn } from "~/components/ui/fade-in";
 import {
   Sheet,
   SheetBody,
@@ -10,7 +11,6 @@ import {
   SheetTrigger,
 } from "~/components/ui/sheet";
 import { formatRupiah } from "~/lib/utils";
-import { FadeIn } from "~/components/ui/fade-in";
 import { CartList } from "./components/cart-list";
 import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
@@ -123,9 +123,9 @@ export default function TransactionNew() {
       {/* Left column — catalog */}
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <FadeIn
-          x={-20}
-          duration={0.4}
           class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-card px-5 max-[900px]:px-3.5"
+          duration={0.4}
+          x={-20}
         >
           <A
             aria-label="Kembali"
@@ -140,10 +140,10 @@ export default function TransactionNew() {
         </FadeIn>
 
         <FadeIn
+          class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5 max-[900px]:gap-3 max-[900px]:p-3.5 max-[900px]:pb-20"
           delay={0.08}
           duration={0.45}
           y={16}
-          class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5 max-[900px]:gap-3 max-[900px]:p-3.5 max-[900px]:pb-20"
         >
           <CategoryTabs active={activeCat()} onSelect={setActiveCat} />
           <SearchBar onInput={setSearch} value={search()} />
@@ -153,10 +153,10 @@ export default function TransactionNew() {
 
       {/* Right column — cart sidebar (desktop only) */}
       <FadeIn
+        class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-card max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px]"
         delay={0.15}
         duration={0.45}
         x={40}
-        class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-card max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px]"
       >
         <CartPanel
           cart={cart()}

@@ -9,6 +9,7 @@ import {
 } from "~/assets";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
+import { useOrientation } from "~/lib/use-orientation";
 
 /* ── types ────────────────────────────────────────────────────── */
 
@@ -203,6 +204,8 @@ import { formatItems, formatRupiah } from "~/lib/utils";
 /* ── component ────────────────────────────────────────────────── */
 
 export default function Transactions() {
+  const isPortrait = useOrientation();
+  const enable = () => !isPortrait();
   const [search, setSearch] = createSignal("");
   const [filter, setFilter] = createSignal<FilterKey>("all");
 
@@ -229,9 +232,10 @@ export default function Transactions() {
     >
       {/* Header bar */}
       <FadeIn
-        duration={0.35}
-        y={-8}
         class="flex shrink-0 items-center gap-3 px-6 pt-5 pb-3 max-[800px]:px-[18px]"
+        duration={0.35}
+        enable={enable()}
+        y={-8}
       >
         <h1 class="font-bold font-display text-foreground text-heading-sm">
           Transaksi
@@ -240,10 +244,11 @@ export default function Transactions() {
 
       {/* Search + filter row */}
       <FadeIn
+        class="flex shrink-0 flex-col gap-3 px-6 pb-3 max-[800px]:px-[18px]"
         delay={0.05}
         duration={0.4}
+        enable={enable()}
         y={8}
-        class="flex shrink-0 flex-col gap-3 px-6 pb-3 max-[800px]:px-[18px]"
       >
         {/* Search field */}
         <label class="flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 shadow-card">
@@ -294,10 +299,11 @@ export default function Transactions() {
               const pill = STATUS_PILL[tx.status];
               return (
                 <FadeIn
+                  class="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-card"
                   delay={0.1 + i() * 0.03}
                   duration={0.35}
+                  enable={enable()}
                   y={12}
-                  class="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-card"
                 >
                   {/* Icon */}
                   <div

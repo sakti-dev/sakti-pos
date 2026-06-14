@@ -1,9 +1,12 @@
 import { createSignal } from "solid-js";
 import { FadeIn } from "~/components/ui/fade-in";
+import { useOrientation } from "~/lib/use-orientation";
 import { SectionPanel } from "./components/section-panels";
 import { type SectionKey, SettingsNav } from "./components/settings-nav";
 
 export default function Pengaturan() {
+  const isPortrait = useOrientation();
+  const enable = () => !isPortrait();
   const [activeSection, setActiveSection] = createSignal<SectionKey>("bisnis");
 
   return (
@@ -12,7 +15,7 @@ export default function Pengaturan() {
       data-ssgoi-transition="/pengaturan"
     >
       {/* Header */}
-      <FadeIn duration={0.35} y={-8}>
+      <FadeIn duration={0.35} enable={enable()} y={-8}>
         <h1 class="font-bold font-display text-foreground text-heading-sm">
           Pengaturan
         </h1>
@@ -24,17 +27,18 @@ export default function Pengaturan() {
       {/* Settings layout: nav + panel */}
       <div class="flex gap-6 max-[900px]:flex-col">
         {/* Nav slides in from left */}
-        <FadeIn delay={0.06} duration={0.45} x={-30}>
+        <FadeIn delay={0.06} duration={0.45} enable={enable()} x={-30}>
           <SettingsNav active={activeSection()} onSelect={setActiveSection} />
         </FadeIn>
 
         {/* Panel slides in from right with subtle scale */}
         <FadeIn
+          class="flex min-w-0 flex-1 flex-col gap-6"
           delay={0.14}
           duration={0.5}
-          x={24}
+          enable={enable()}
           scale={0.97}
-          class="flex min-w-0 flex-1 flex-col gap-6"
+          x={24}
         >
           <SectionPanel active={activeSection()} />
         </FadeIn>

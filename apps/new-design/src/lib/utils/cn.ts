@@ -24,6 +24,22 @@ const twMerge = extendTailwindMerge({
         "text-muted",
       ],
       radius: ["xs", "sm", "lg", "xl"],
+      // tailwind-merge's font-size text validator reads from theme key 'text'
+      // (not 'font-size'). Registering our semantic tokens here so they're
+      // classified as font-sizes, not text-colors — otherwise text-body-sm
+      // conflicts with text-primary and one gets stripped.
+      text: [
+        "caption-sm",
+        "caption",
+        "body-sm",
+        "body",
+        "body-lg",
+        "subheading",
+        "heading-sm",
+        "heading",
+        "heading-lg",
+        "display",
+      ],
     },
   },
 });

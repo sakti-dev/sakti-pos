@@ -9,6 +9,7 @@ import {
 } from "~/assets";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
+import { useOrientation } from "~/lib/use-orientation";
 import type { SectionKey } from "./settings-nav";
 
 /* ── shared primitives ────────────────────────────────────────── */
@@ -694,11 +695,13 @@ const SECTION_MAP: Record<SectionKey, () => JSX.Element> = {
 };
 
 export function SectionPanel(props: { readonly active: SectionKey }) {
+  const isPortrait = useOrientation();
+  const enable = () => !isPortrait();
   const key = () => props.active;
   return (
     <Show keyed when={key()}>
       {(k) => (
-        <FadeIn duration={0.35} x={16} scale={0.98}>
+        <FadeIn duration={0.35} enable={enable()} scale={0.98} x={16}>
           {SECTION_MAP[k]()}
         </FadeIn>
       )}

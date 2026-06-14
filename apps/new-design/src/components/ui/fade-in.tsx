@@ -1,4 +1,4 @@
-import { type JSX, splitProps } from "solid-js";
+import { type JSX, Show, splitProps } from "solid-js";
 
 type FadeInProps = Omit<JSX.HTMLAttributes<HTMLDivElement>, "style"> & {
   /** Seconds to wait before starting */
@@ -11,6 +11,10 @@ type FadeInProps = Omit<JSX.HTMLAttributes<HTMLDivElement>, "style"> & {
   x?: number;
   /** Initial scale (animates to 1). e.g. 0.97 for a subtle grow */
   scale?: number;
+  /** Enable the entrance animation (default: true). Set to false to render
+   * children without animation — useful where an SSGOI page transition
+   * already carries the motion (e.g. portrait x-slide). */
+  enable?: boolean;
   style?: JSX.CSSProperties;
 };
 
@@ -33,28 +37,43 @@ export function FadeIn(props: FadeInProps) {
     "y",
     "x",
     "scale",
+    "enable",
     "style",
     "class",
+    "onAnimationEnd",
     "children",
   ]);
 
+  const enabled = () => local.enable ?? true;
+
   return (
-    <div
-      {...rest}
-      class={local.class}
-      style={{
-        "--enter-y": `${local.y ?? 12}px`,
-        "--enter-x": `${local.x ?? 0}px`,
-        "--enter-scale": `${local.scale ?? 1}`,
-        "animation": `${local.duration ?? 0.45}s ${EASE} ${local.delay ?? 0}s both ssgoi-enter`,
-        ...local.style,
-      }}
-      onAnimationEnd={(e) => {
-        e.currentTarget.style.animation = "none";
-        rest.onAnimationEnd?.(e);
-      }}
+    <Show
+      fallback={
+        <div {...rest} class={local.class} style={local.style}>
+          {local.children}
+        </div>
+      }
+      when={enabled()}
     >
-      {local.children}
-    </div>
+      <div
+        {...rest}
+        class={local.class}
+        onAnimationEnd={(e) => {
+          e.currentTarget.style.animation = "none";
+          if (typeof local.onAnimationEnd === "function") {
+            (local.onAnimationEnd as (e: AnimationEvent) => void)(e);
+          }
+        }}
+        style={{
+          "--enter-y": `${local.y ?? 12}px`,
+          "--enter-x": `${local.x ?? 0}px`,
+          "--enter-scale": `${local.scale ?? 1}`,
+          animation: `${local.duration ?? 0.45}s ${EASE} ${local.delay ?? 0}s both ssgoi-enter`,
+          ...local.style,
+        }}
+      >
+        {local.children}
+      </div>
+    </Show>
   );
 }

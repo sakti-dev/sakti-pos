@@ -76,7 +76,8 @@ export const TopBar = (props: TopBarProps) => (
       "fixed top-0 right-0 z-[99] flex h-[54px] shrink-0 items-center justify-between border-border border-b bg-card px-7 max-[900px]:left-0 max-[900px]:px-[18px]",
       props.isShell ? "" : "hidden",
       props.isShell && (props.expanded ? "left-[200px]" : "left-[80px]"),
-      props.isShell && "transition-[left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+      props.isShell &&
+        "transition-[left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
     )}
     onPointerDown={props.onClose}
   >
