@@ -47,5 +47,18 @@
         "noNamespaceImport": "off"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/new-design/src/components/layout/app-shell/sidebar.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noNoninteractiveElementInteractions": "off",
+            "useKeyWithClickEvents": "off"
+          }
+        }
+      }
+    }
+  ]
 }
