@@ -334,7 +334,12 @@
     --color-status-danger-foreground: oklch(0.30 0.08 25);
     --color-status-info: oklch(0.72 0.13 240);
     --color-status-info-foreground: oklch(0.30 0.06 240);
-    --color-accent-foreground: oklch(0.9356 0.1298 126.62);
+
+    --color-primary: oklch(0.4 0.1298 126.62);
+    --color-primary-foreground: oklch(0.98 0 0);
+    --color-primary-hover: oklch(0.45 0.1298 126.62);
+    --color-primary-active: oklch(0.35 0.1298 126.62);
+    --color-accent-foreground: oklch(0.4 0.1298 126.62);
     --color-accent-soft: oklch(0.9356 0.1298 126.62);
   }
 }

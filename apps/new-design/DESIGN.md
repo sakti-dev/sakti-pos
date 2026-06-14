@@ -34,11 +34,17 @@ colors:
   success: "{colors.canopy}"
   warning: "#e6a817"
   danger: "#c0392b"
-  # Dark mode — near-neutral charcoal (status tones stay static, same as light)
+  # Dark mode — near-neutral charcoal; primary shifts to dark lime, status tones brightened
   dark-background: "#151515"
   dark-card: "#1a1a1a"
   dark-foreground: "#ededed"
   dark-border: "rgba(255,255,255,0.08)"
+  dark-primary: "oklch(0.4 0.1298 126.62)"
+  dark-primary-foreground: "oklch(0.98 0 0)"
+  dark-accent-foreground: "oklch(0.4 0.1298 126.62)"
+  # Auth/PIN/banner gradient — fresh teal (distinct from interactive lime)
+  banner-from: "oklch(0.3904 0.0789 163.39)"
+  banner-to: "oklch(0.3105 0.0617 164.22)"
 typography:
   display:
     fontFamily: '"Plus Jakarta Sans", "Inter", system-ui, sans-serif'
@@ -191,8 +197,10 @@ in three places, all forced by being a *money tool* rather than a supplement sto
 - Sheet-over-banner composition on the dashboard: a deep-green banner zone with a content
   sheet sliding up over it.
 - Full light/dark theme. Light is the warm parchment canvas; dark is a true-neutral
-  **charcoal** (background `#151515`, cards `#1a1a1a`) that keeps the green/lime
-  accents intact. Status tones are **static** — identical in both modes.
+  **charcoal** (background `#151515`, cards `#1a1a1a`) where the primary shifts to **dark
+  lime** (`oklch(0.4 0.1298 126.62)`) — aligning interactive elements with the lime accent.
+  Banner surfaces use a separate **teal gradient** (hue 163°). Status tones are brightened
+  for dark-mode contrast.
 
 ## 2. Tokens: where they live
 
@@ -216,12 +224,24 @@ components.
 
 Dark is a **true-neutral charcoal**, not a green-tinted black: background
 `oklch(19.574% 0.00002 271.152)` (near-neutral ≈ `#151515`), cards/popovers `#1a1a1a`,
-muted `#222`, foreground `#ededed`, borders at `rgba(255,255,255,0.08)`. The green/lime
-accents are preserved — canopy stays the primary, lime becomes the outline/active voice in
-dark — so the brand reads identically across themes. **Status tones are static**: info,
-warning, danger keep their light-mode values in dark (deliberate — a stable, glanceable
-status vocabulary matters more than theme-matched tinting). Dark mode is a *base-surface
-override only* in `@layer theme` under `.dark`; everything else inherits.
+muted `#222`, foreground `#ededed`, borders at `rgba(255,255,255,0.08)`.
+
+**Dark-mode primary shifts to dark lime** (`oklch(0.4 0.1298 126.62)`) — the same hue as
+the lime accent, darkened to a mid-tone that reads as a clear interactive color on
+charcoal. This is a deliberate mode-specific identity choice: in light mode canopy green
+carries the brand; in dark mode the green family consolidates around lime (hue 126°),
+keeping buttons and accent surfaces visually aligned. Primary-foreground is neutral white
+(`oklch(0.98 0 0)`); hover brightens to `0.45`, active darkens to `0.35`.
+
+**Banner environment surfaces use teal** (hue 163°, via `--color-banner-from` /
+`--color-banner-to`) — auth, PIN, and the dashboard banner zone. The hue split is
+intentional: teal (fresh botanical) for large environment surfaces, lime (energetic) for
+interactive elements. Two greens, two roles.
+
+**Status tones are brightened** in dark mode for text-on-tint contrast (success →
+`oklch(0.74 0.14 140)`, danger → `oklch(0.78 0.15 25)`, etc.), with deepened foregrounds so
+solid chips keep ≥4.5:1. Dark mode is a base-surface + brand override in `@layer theme`
+under `.dark`.
 
 ## 3. Colors: the Greenhouse Palette
 
@@ -238,6 +258,8 @@ confirms and highlights, and warm paper is the canvas.
 | `--color-stone`  | `#eeeee9` | `oklch(0.9477 0.0066 106.53)`           | Secondary surface — muted bands, secondary fills.                |
 | `--color-sage`   | `#c4c7c4` | `oklch(0.8264 0.0053 145.53)`           | Cool muted panel — inactive/disabled zones.                       |
 | `--color-gray`   | `#b3b3b3` | `oklch(0.7668 0 0)`                     | Disabled controls, lowest-prominence surface.                     |
+| `--color-banner-from` | `#0b5239` | `oklch(0.3904 0.0789 163.39)`      | Teal banner gradient start (auth/PIN/dashboard banner zone).       |
+| `--color-banner-to`   | `#063a28` | `oklch(0.3105 0.0617 164.22)`      | Teal banner gradient end.                                           |
 
 ### Roles (mapped from the primitives)
 
@@ -246,8 +268,10 @@ confirms and highlights, and warm paper is the canvas.
   same deep green — the single-color discipline.
 - **Primary-hover** `#244a18` / **Primary-active** `#142b0e` — the two press steps on the
   solid button.
-- **Accent / Accent-soft** = `lime`. Used sparingly: the sync pill, online dot, highlight
+- **Accent / Accent-soft** = `lime` (light mode). Used sparingly: the sync pill, online dot, highlight
   washes, soft-primary buttons. **Accent-soft is static lime in both modes** (not theme-tinted).
+  In dark mode, `accent-foreground` shifts to dark lime (`oklch(0.4 0.1298 126.62)`) to
+  match the dark-mode primary — so `bg-accent text-accent-foreground` stays readable.
 - **Muted / Secondary** = `stone`. Secondary fills and muted zones.
 - **Muted-foreground** `#4b5640` (a dark green-gray, `oklch(0.4369 0.0376 129.47)`):
   secondary copy. **Faint-foreground** `#6e7864` (`oklch(0.5583 0.0324 129.13)`):
@@ -259,7 +283,9 @@ confirms and highlights, and warm paper is the canvas.
 
 info `#0284c7`, success = `canopy` (the brand green *is* the success color), warning
 `#e6a817`, danger `#c0392b`, destructive `#c62828`. Each has a `*-foreground` (white).
-Dark mode lightens destructive to `#f87171` for contrast; the others stay static. The
+Dark mode **brightens all status tones** for text-on-tint contrast (success →
+`oklch(0.74 0.14 140)`, danger → `oklch(0.78 0.15 25)`, etc.) with deepened foregrounds so
+solid chips keep ≥4.5:1. The
 **processing** badge is the one intentional literal: yellow `rgba(255,233,92,0.25)` fill
 with `#7a5f00` text — a "pending/in-flight" state that deliberately does not map to the
 semantic ramp.
@@ -434,6 +460,12 @@ The dashboard stacks a deep-green **banner zone** (`bg-primary`, holding the ven
 earnings cards) under a **content sheet** in `background` (parchment) that slides up over
 it with a motion-solidjs entrance. It is the brand's signature composition — calm
 authority below, the working surface floating above.
+
+The venue and earnings cards inside the banner zone use **tinted glass morphism**:
+`bg-white/[0.12]` + `backdrop-blur-md` + a `border-white/15` hairline, with a subtle noise
+texture overlay (`/noise.svg` at `opacity-[0.03] mix-blend-overlay`) for material depth.
+Glass is mode-agnostic — it floats above whatever the banner color is. This treatment is
+shared across auth/PIN left panels (glass feature cards on the teal banner gradient).
 
 ## 7. Motion
 

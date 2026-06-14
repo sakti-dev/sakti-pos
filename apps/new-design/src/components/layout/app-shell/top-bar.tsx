@@ -29,7 +29,7 @@ const TopBarContent = () => {
       <div class="flex items-center gap-3">
         <button
           aria-label="Sinkronisasi"
-          class="inline-flex items-center gap-[7px] rounded-full border border-accent-foreground/15 bg-accent/15 px-3.5 py-1.5 font-medium text-[13px] text-accent-foreground tracking-[0.01em] transition-[background,border-color,transform] duration-200 hover:border-accent-foreground/25 hover:bg-accent/25 active:scale-[0.96]"
+          class="inline-flex items-center gap-[7px] rounded-full border border-accent-foreground/15 bg-accent/15 px-3.5 py-1.5 font-medium text-[13px] text-accent-foreground tracking-[0.01em] transition-[background,border-color,transform] duration-200 hover:border-accent-foreground/25 hover:bg-accent/25 active:scale-[0.96] dark:border-accent/30 dark:text-accent dark:hover:border-accent/50"
           onClick={handleSync}
           type="button"
         >
@@ -39,7 +39,7 @@ const TopBarContent = () => {
             ) : (
               <>
                 <CloudIcon class="h-4 w-4" />
-                <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-[1.5px] border-primary bg-accent" />
+                <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-[1.5px] border-primary bg-accent dark:border-accent/40" />
               </>
             )}
           </span>

@@ -2,7 +2,13 @@ import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 
 export const VenueCard = () => {
   return (
-    <div class="flex items-center gap-3.5 rounded-[18px] border border-accent/15 bg-white/10 p-[14px_18px]">
+    <div class="relative flex items-center gap-3.5 overflow-hidden rounded-lg border border-white/15 bg-banner-to/60 p-[14px_18px]">
+      {/* Noise texture */}
+      <div
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-0 bg-cover opacity-[0.03] mix-blend-overlay"
+        style={{ "background-image": "url(/noise.webp)" }}
+      />
       <Avatar class="h-11 w-11 shrink-0">
         <AvatarFallback class="rounded-full bg-accent-soft font-bold text-[15px] text-primary">
           YB
