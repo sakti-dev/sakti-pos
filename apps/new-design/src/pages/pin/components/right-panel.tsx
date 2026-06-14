@@ -1,131 +1,30 @@
-import { useNavigate } from "@solidjs/router";
-import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { createSignal, onCleanup, onMount } from "solid-js";
 import { toast } from "solid-sonner";
-import { CheckCircleIcon, DeleteIcon, UsersIcon } from "~/assets";
+import { UsersIcon } from "~/assets";
 import { cn } from "~/lib/utils";
-
-const DIGIT_RE = /^\d$/;
-
-/* ── Types ────────────────────────────────────────────────────── */
-
-export interface PinUser {
-  readonly id: number;
-  readonly initials: string;
-  readonly name: string;
-  readonly pin: string;
-  readonly role: string;
-  readonly venue: string;
-}
-
-/* ── Constants ────────────────────────────────────────────────── */
-
-const MAX_PIN = 6;
-const MAX_ATTEMPTS = 5;
-const LOCK_DURATION_MS = 30_000;
-
-const SAMPLE_USERS: readonly PinUser[] = [
-  {
-    id: 1,
-    name: "Yos Bb",
-    role: "Manager",
-    pin: "123456",
-    initials: "YB",
-    venue: "Tantri Cafe",
-  },
-  {
-    id: 2,
-    name: "Rina Sari",
-    role: "Kasir",
-    pin: "654321",
-    initials: "RS",
-    venue: "Tantri Cafe",
-  },
-  {
-    id: 3,
-    name: "Ahmad Fauzi",
-    role: "Kasir",
-    pin: "111111",
-    initials: "AF",
-    venue: "Tantri Cafe",
-  },
-] as const;
-
-/* ── Component ────────────────────────────────────────────────── */
+import { DIGIT_RE, MAX_PIN, type PinUser, SAMPLE_USERS } from "../types";
+import { usePinAuth } from "../use-pin-auth";
+import { AccountSelector } from "./account-selector";
+import { Numpad } from "./numpad";
+import { PinDots } from "./pin-dots";
+import { SuccessOverlay } from "./success-overlay";
+import { UserCard } from "./user-card";
 
 export function PinRightPanel() {
-  const navigate = useNavigate();
-
   const [currentUser, setCurrentUser] = createSignal<PinUser>(SAMPLE_USERS[0]);
-  const [pin, setPin] = createSignal("");
-  const [error, setError] = createSignal("");
-  const [attempts, setAttempts] = createSignal(0);
-  const [locked, setLocked] = createSignal(false);
-  const [showSuccess, setShowSuccess] = createSignal(false);
   const [showUserList, setShowUserList] = createSignal(false);
+  const [showSuccess, setShowSuccess] = createSignal(false);
 
-  let lockTimer: ReturnType<typeof setTimeout> | undefined;
-
-  onCleanup(() => clearTimeout(lockTimer));
-
-  function resetPin() {
-    setPin("");
-    setError("");
-    setLocked(false);
-  }
+  const auth = usePinAuth({
+    user: currentUser,
+    onSuccess: () => setShowSuccess(true),
+  });
 
   function selectUser(user: PinUser) {
     setCurrentUser(user);
-    resetPin();
-    setAttempts(0);
+    auth.reset();
     setShowUserList(false);
     toast.success(`Akun dipilih: ${user.name}`);
-  }
-
-  function addDigit(d: string) {
-    if (locked() || pin().length >= MAX_PIN) {
-      return;
-    }
-    const next = pin() + d;
-    setPin(next);
-    if (next.length === MAX_PIN) {
-      setTimeout(submitPin, 200);
-    }
-  }
-
-  function removeDigit() {
-    if (locked() || pin().length === 0) {
-      return;
-    }
-    setPin(pin().slice(0, -1));
-  }
-
-  function submitPin() {
-    if (locked() || pin().length !== MAX_PIN) {
-      return;
-    }
-    if (pin() === currentUser().pin) {
-      setShowSuccess(true);
-      toast.success(`Selamat datang, ${currentUser().name.split(" ")[0]}!`);
-      setTimeout(() => navigate("/"), 1200);
-    } else {
-      const nextAttempts = attempts() + 1;
-      setAttempts(nextAttempts);
-      if (nextAttempts >= MAX_ATTEMPTS) {
-        setLocked(true);
-        setError("Terlalu banyak percobaan. Coba lagi nanti.");
-        toast.error("Akun terkunci sementara");
-        lockTimer = setTimeout(() => {
-          setAttempts(0);
-          resetPin();
-        }, LOCK_DURATION_MS);
-      } else {
-        setError(
-          `PIN salah (${MAX_ATTEMPTS - nextAttempts} percobaan tersisa)`
-        );
-        setTimeout(() => setPin(""), 500);
-        setTimeout(() => setError(""), 3000);
-      }
-    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -136,11 +35,11 @@ export function PinRightPanel() {
       return;
     }
     if (DIGIT_RE.test(e.key)) {
-      addDigit(e.key);
+      auth.addDigit(e.key);
     } else if (e.key === "Backspace") {
-      removeDigit();
-    } else if (e.key === "Enter" && pin().length === MAX_PIN) {
-      submitPin();
+      auth.removeDigit();
+    } else if (e.key === "Enter" && auth.pin().length === MAX_PIN) {
+      auth.submit();
     }
   }
 
@@ -149,17 +48,13 @@ export function PinRightPanel() {
     onCleanup(() => window.removeEventListener("keydown", handleKeydown));
   });
 
-  const u = currentUser();
-
   return (
     <>
       {/* Right panel */}
       <div class="relative flex flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-8 max-[900px]:min-h-screen max-[900px]:p-6">
         <div class="relative z-[1] my-auto flex w-full max-w-[400px] flex-col items-center gap-6 max-[480px]:gap-5">
           {/* Mobile logo (hidden on desktop) */}
-
           <div>
-            {/* Mobile logo (hidden on desktop) */}
             <div class="flex flex-col items-center gap-3 lg:hidden">
               <img
                 alt="Nata POS"
@@ -180,18 +75,7 @@ export function PinRightPanel() {
           </div>
 
           {/* User info */}
-          <div class="flex flex-col items-center gap-3">
-            <div class="relative grid h-[88px] w-[88px] animate-avatar-pulse place-items-center rounded-full border-[3px] border-accent/20 bg-accent-soft font-display font-extrabold text-heading text-primary max-[480px]:h-[76px] max-[480px]:w-[76px] max-[480px]:text-heading">
-              {u.initials}
-              <span class="absolute right-1 bottom-1 h-4 w-4 rounded-full border-[3px] border-card bg-accent" />
-            </div>
-            <div class="font-bold font-display text-foreground text-heading-sm tracking-[-0.02em] max-[480px]:text-heading-sm">
-              {u.name}
-            </div>
-            <div class="-mt-1.5 font-medium text-body-sm text-faint-foreground tracking-[0.02em]">
-              {u.role} · {u.venue}
-            </div>
-          </div>
+          <UserCard user={currentUser()} />
 
           {/* Title */}
           <div class="text-center font-medium text-body text-muted-foreground leading-relaxed tracking-[0.01em]">
@@ -199,83 +83,26 @@ export function PinRightPanel() {
           </div>
 
           {/* PIN dots */}
-          <fieldset
-            aria-label="PIN input"
-            class="flex justify-center gap-[18px] border-none px-0 py-2 max-[480px]:gap-[14px]"
-          >
-            <For each={Array.from({ length: MAX_PIN })}>
-              {(_, i) => {
-                const dotClass = () => {
-                  if (error() && pin().length > 0) {
-                    return "h-4 w-4 animate-shake rounded-full border-2 border-destructive bg-destructive ring-4 ring-destructive/10";
-                  }
-                  if (i() < pin().length) {
-                    return "h-4 w-4 scale-125 rounded-full border-2 border-primary bg-primary ring-4 ring-primary/10 dark:border-accent dark:bg-accent";
-                  }
-                  return "h-4 w-4 rounded-full border-2 border-border bg-transparent transition-[background,border-color,transform,box-shadow] duration-200 max-[480px]:h-[14px] max-[480px]:w-[14px]";
-                };
-                return (
-                  <div
-                    class={dotClass()}
-                    style={{
-                      "transition-timing-function":
-                        "cubic-bezier(0.22,1,0.36,1)",
-                    }}
-                  />
-                );
-              }}
-            </For>
-          </fieldset>
+          <PinDots hasError={!!auth.error()} length={auth.pin().length} />
 
           {/* Error message */}
           <div
             class={cn(
               "min-h-[18px] text-center font-medium text-body-sm text-destructive transition-[opacity,transform] duration-200",
-              !error() && "-translate-y-1 opacity-0",
-              !!error() && "translate-y-0 opacity-100"
+              !auth.error() && "-translate-y-1 opacity-0",
+              !!auth.error() && "translate-y-0 opacity-100"
             )}
             role="alert"
           >
-            {error() || "PIN salah, coba lagi"}
+            {auth.error() || "PIN salah, coba lagi"}
           </div>
 
           {/* Numpad */}
-          <fieldset
-            aria-label="Numpad"
-            class="grid w-full max-w-[280px] grid-cols-3 gap-2.5 border-none p-0 max-[480px]:max-w-[260px] max-[480px]:gap-2"
-          >
-            <For each={[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, "back"]}>
-              {(key) => {
-                if (key === null) {
-                  return <div class="h-[60px] max-[480px]:h-14" />;
-                }
-                if (key === "back") {
-                  return (
-                    <button
-                      aria-label="Hapus"
-                      class="flex h-[60px] items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-none transition-[background,transform] duration-150 hover:border-destructive/20 hover:bg-destructive/5 hover:text-destructive active:scale-[0.94] active:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14"
-                      disabled={locked()}
-                      onClick={removeDigit}
-                      type="button"
-                    >
-                      <DeleteIcon class="h-[22px] w-[22px]" />
-                    </button>
-                  );
-                }
-                return (
-                  <button
-                    aria-label={String(key)}
-                    class="grid h-[60px] place-items-center rounded-lg border-none bg-card font-display font-semibold text-foreground text-heading-sm shadow-card transition-[background,color,transform,box-shadow] duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14 max-[480px]:text-subheading"
-                    disabled={locked()}
-                    onClick={[addDigit, String(key)]}
-                    type="button"
-                  >
-                    {key}
-                  </button>
-                );
-              }}
-            </For>
-          </fieldset>
+          <Numpad
+            disabled={auth.locked()}
+            onBackspace={auth.removeDigit}
+            onDigit={auth.addDigit}
+          />
 
           {/* Switch account */}
           <div class="mt-1 flex items-center gap-2">
@@ -292,74 +119,15 @@ export function PinRightPanel() {
         </div>
       </div>
 
-      {/* User list overlay */}
-      <Show when={showUserList()}>
-        <div class="fixed inset-0 z-[1000] flex animate-fade-in items-center justify-center bg-background p-6">
-          <div class="flex w-full max-w-[500px] flex-col gap-6">
-            <div class="flex flex-col items-center gap-2">
-              <div class="font-bold font-display text-foreground text-heading-sm tracking-[-0.02em]">
-                Pilih Akun
-              </div>
-              <div class="font-medium text-body-sm text-faint-foreground">
-                Siapa yang akan menggunakan perangkat ini?
-              </div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-3 max-[480px]:grid-cols-2">
-              <For each={SAMPLE_USERS}>
-                {(user, i) => (
-                  <button
-                    aria-label={`${user.name}, ${user.role}`}
-                    class="flex animate-stagger-in flex-col items-center gap-2.5 rounded-lg border-[1.5px] border-border bg-card px-3 py-6 transition-[border-color,background,transform,box-shadow] duration-200 hover:border-accent hover:bg-accent-soft hover:shadow-card active:scale-[0.97]"
-                    onClick={[selectUser, user]}
-                    style={{ "animation-delay": `${i() * 0.08}s` }}
-                    type="button"
-                  >
-                    <div class="grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-accent/20 bg-accent-soft font-display font-extrabold text-body-lg text-primary">
-                      {user.initials}
-                    </div>
-                    <div class="text-center font-display font-semibold text-body-sm text-foreground">
-                      {user.name}
-                    </div>
-                    <div class="font-medium text-caption text-faint-foreground">
-                      {user.role}
-                    </div>
-                  </button>
-                )}
-              </For>
-            </div>
-
-            <div class="text-center">
-              <button
-                aria-label="Batal"
-                class="flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-body-sm text-faint-foreground transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
-                onClick={() => setShowUserList(false)}
-                type="button"
-              >
-                <UsersIcon class="h-[15px] w-[15px]" />
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      </Show>
+      {/* Account selector overlay — AnimatePresence for exit animation */}
+      <AccountSelector
+        onCancel={() => setShowUserList(false)}
+        onSelect={selectUser}
+        open={showUserList()}
+      />
 
       {/* Success overlay */}
-      <Show when={showSuccess()}>
-        <div class="fixed inset-0 z-[1000] flex animate-fade-in items-center justify-center bg-[linear-gradient(135deg,var(--color-banner-from),var(--color-banner-to))]">
-          <div class="flex animate-success-pop flex-col items-center gap-4">
-            <div class="grid h-20 w-20 place-items-center rounded-full bg-accent/15 text-accent shadow-card">
-              <CheckCircleIcon class="h-9 w-9" />
-            </div>
-            <div class="font-bold font-display text-heading-sm text-white tracking-[-0.02em]">
-              Berhasil masuk
-            </div>
-            <div class="font-medium text-body-sm text-white/55">
-              Mengalihkan ke dashboard...
-            </div>
-          </div>
-        </div>
-      </Show>
+      <SuccessOverlay show={showSuccess()} />
     </>
   );
 }

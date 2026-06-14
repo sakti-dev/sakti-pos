@@ -1,0 +1,37 @@
+import { For } from "solid-js";
+import { MAX_PIN } from "../types";
+
+interface PinDotsProps {
+  readonly hasError: boolean;
+  readonly length: number;
+}
+
+export function PinDots(props: PinDotsProps) {
+  const dotClass = (i: number) => {
+    if (props.hasError && props.length > 0) {
+      return "h-4 w-4 animate-shake rounded-full border-2 border-destructive bg-destructive ring-4 ring-destructive/10";
+    }
+    if (i < props.length) {
+      return "h-4 w-4 scale-125 rounded-full border-2 border-primary bg-primary ring-4 ring-primary/10 dark:border-accent dark:bg-accent";
+    }
+    return "h-4 w-4 rounded-full border-2 border-border bg-transparent transition-[background,border-color,transform,box-shadow] duration-200 max-[480px]:h-[14px] max-[480px]:w-[14px]";
+  };
+
+  return (
+    <fieldset
+      aria-label="PIN input"
+      class="flex justify-center gap-[18px] border-none px-0 py-2 max-[480px]:gap-[14px]"
+    >
+      <For each={Array.from({ length: MAX_PIN })}>
+        {(_, i) => (
+          <div
+            class={dotClass(i())}
+            style={{
+              "transition-timing-function": "cubic-bezier(0.22,1,0.36,1)",
+            }}
+          />
+        )}
+      </For>
+    </fieldset>
+  );
+}
