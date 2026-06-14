@@ -21,8 +21,8 @@ export const CartPanel = (props: CartPanelProps) => {
 
   return (
     <>
-      <div class="flex shrink-0 items-center justify-between border-border border-b px-5 pt-5 pb-3.5">
-        <span class="font-bold text-[15px] text-foreground tracking-[-0.01em]">
+      <div class="flex h-header shrink-0 items-center justify-between border-border border-b px-5">
+        <span class="font-bold text-foreground text-lg tracking-[-0.01em]">
           Keranjang
         </span>
         <span class="rounded-full bg-muted px-2.5 py-[2px] font-semibold text-[12px] text-muted-foreground tracking-[0.02em]">

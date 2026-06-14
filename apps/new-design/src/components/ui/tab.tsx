@@ -16,7 +16,7 @@ import { cn } from "~/lib/utils";
  * so no dark override is needed.
  */
 export const tabVariants = cva(
-  "flex shrink-0 items-center font-medium text-[13px] transition-[background,border-color,color,box-shadow] duration-150",
+  "flex shrink-0 items-center font-semibold text-[13px] transition-[background,border-color,color,box-shadow] duration-150",
   {
     variants: {
       variant: {

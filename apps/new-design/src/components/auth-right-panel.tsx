@@ -106,14 +106,14 @@ export function AuthRightPanel(props: {
           src="/logo.png"
           width={48}
         />
-        <span class="font-bold text-[22px] text-primary tracking-[-0.01em] dark:text-foreground">
+        <span class="font-bold font-display text-[22px] text-primary tracking-[-0.01em] dark:text-foreground">
           Nata POS
         </span>
       </div>
 
       {/* Form header */}
       <div class="relative z-[1] mb-7 text-center lg:text-left">
-        <h1 class="mb-1.5 font-bold text-[26px] tracking-[-0.01em]">
+        <h1 class="mb-1.5 font-bold font-display text-[26px] tracking-[-0.01em]">
           {props.title}
         </h1>
         <p class="text-muted-foreground text-sm leading-relaxed">

@@ -60,7 +60,7 @@ export const Sidebar = (props: SidebarProps) => {
           />
         </div>
         <Show when={props.expanded}>
-          <span class="whitespace-nowrap font-bold text-[20px] text-foreground tracking-tight">
+          <span class="whitespace-nowrap font-bold font-display text-[20px] text-foreground tracking-tight">
             Nata POS
           </span>
         </Show>

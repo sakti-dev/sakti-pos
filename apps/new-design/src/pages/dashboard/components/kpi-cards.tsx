@@ -69,7 +69,7 @@ export const KpiCards = () => (
       </p>
     </div>
 
-    <div class="grid grid-cols-[repeat(4,1fr)] gap-4 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-2">
+    <div class="grid grid-cols-[repeat(4,1fr)] gap-4 max-[1100px]:grid-cols-2 max-[600px]:grid-cols-1">
       <For each={cards}>
         {(card) => (
           <article class="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card dark:shadow-none">

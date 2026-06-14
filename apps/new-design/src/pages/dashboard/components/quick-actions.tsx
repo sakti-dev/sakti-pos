@@ -29,15 +29,15 @@ const actions: readonly QuickAction[] = [
 
 export const QuickActions = () => (
   <section>
-    <div class="grid grid-cols-[repeat(8,1fr)] gap-4 max-[1100px]:grid-cols-[repeat(4,1fr)] max-[600px]:grid-cols-[repeat(4,1fr)]">
+    <div class="grid grid-cols-3 gap-4 sm:grid-cols-[repeat(4,1fr)] lg:grid-cols-[repeat(8,1fr)]">
       <For each={actions}>
         {(qa) => (
           <button
             aria-label={qa.label}
-            class="flex min-h-[96px] flex-col items-center gap-2.5 rounded-lg border border-border bg-card px-1 pt-[18px] pb-4 shadow-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-card-hover dark:shadow-none dark:hover:shadow-none"
+            class="group flex min-h-[96px] cursor-pointer flex-col items-center gap-2.5 rounded-lg px-1 pt-[18px] pb-4 text-muted-foreground transition-[background,border-color,box-shadow,transform,color] duration-200 hover:bg-foreground/5 hover:text-foreground sm:border sm:border-border sm:bg-card sm:shadow-card sm:hover:-translate-y-0.5 sm:hover:border-accent/30 sm:hover:bg-transparent sm:hover:shadow-card-hover dark:sm:shadow-none dark:sm:hover:shadow-none"
             type="button"
           >
-            <div class="grid h-12 w-12 place-items-center rounded-full border border-border bg-muted text-muted-foreground transition-colors duration-200 hover:border-accent/50 hover:bg-accent/10 hover:text-foreground">
+            <div class="grid h-12 w-12 place-items-center rounded-full border border-border bg-muted text-muted-foreground transition-colors duration-200 group-hover:border-accent/50 group-hover:bg-accent/10 group-hover:text-foreground">
               <qa.Icon class="h-5 w-5" />
             </div>
             <span class="max-w-[80px] text-center font-medium text-[11px] text-muted-foreground leading-tight tracking-[0.02em]">

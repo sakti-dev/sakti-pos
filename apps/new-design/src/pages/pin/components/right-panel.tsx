@@ -122,8 +122,8 @@ export function PinRightPanel() {
         setError(
           `PIN salah (${MAX_ATTEMPTS - nextAttempts} percobaan tersisa)`
         );
-        setPin("");
-        setTimeout(() => setError(""), 700);
+        setTimeout(() => setPin(""), 500);
+        setTimeout(() => setError(""), 3000);
       }
     }
   }
@@ -154,26 +154,29 @@ export function PinRightPanel() {
   return (
     <>
       {/* Right panel */}
-      <div class="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-background p-8 max-[900px]:min-h-screen max-[900px]:p-6">
-        {/* Background decorative */}
-        <div class="pointer-events-none absolute top-[15%] right-[-5%] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-accent)_6%,transparent)_0%,transparent_70%)]" />
-        <div class="pointer-events-none absolute bottom-[10%] left-[5%] h-[200px] w-[200px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-canopy)_4%,transparent)_0%,transparent_70%)]" />
-
-        <div class="relative z-[1] flex w-full max-w-[400px] flex-col items-center gap-6 max-[480px]:gap-5">
+      <div class="relative flex flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-8 max-[900px]:min-h-screen max-[900px]:p-6">
+        <div class="relative z-[1] my-auto flex w-full max-w-[400px] flex-col items-center gap-6 max-[480px]:gap-5">
           {/* Mobile logo (hidden on desktop) */}
-          <div class="hidden h-14 w-14 place-items-center overflow-hidden rounded-lg border border-white/10 bg-card p-2.5 shadow-card max-[900px]:grid max-[900px]:place-items-center">
-            <img
-              alt=""
-              class="h-full w-full object-contain"
-              height={36}
-              src="/logo.png"
-              width={36}
-            />
-          </div>
 
-          {/* Greeting */}
-          <div class="font-medium text-[14px] text-faint-foreground tracking-[0.02em]">
-            Selamat datang kembali
+          <div>
+            {/* Mobile logo (hidden on desktop) */}
+            <div class="flex flex-col items-center gap-3 lg:hidden">
+              <img
+                alt="Nata POS"
+                class="h-12 w-12 rounded-sm object-contain"
+                height={48}
+                src="/logo.png"
+                width={48}
+              />
+              <span class="font-bold font-display text-[22px] text-primary tracking-[-0.01em] dark:text-foreground">
+                Nata POS
+              </span>
+            </div>
+
+            {/* Greeting */}
+            <div class="font-medium text-[14px] text-faint-foreground tracking-[0.02em]">
+              Selamat datang kembali
+            </div>
           </div>
 
           {/* User info */}
@@ -203,7 +206,7 @@ export function PinRightPanel() {
             <For each={Array.from({ length: MAX_PIN })}>
               {(_, i) => {
                 const dotClass = () => {
-                  if (error()) {
+                  if (error() && pin().length > 0) {
                     return "h-4 w-4 animate-shake rounded-full border-2 border-destructive bg-destructive ring-4 ring-destructive/10";
                   }
                   if (i() < pin().length) {

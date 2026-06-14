@@ -119,7 +119,7 @@ export default function Receipt() {
             <CheckCircleIcon class="h-9 w-9" />
             <div class="absolute inset-[-6px] rounded-full border-2 border-primary/10" />
           </div>
-          <div class="font-extrabold text-[22px] text-foreground tracking-[-0.01em]">
+          <div class="font-display font-extrabold text-[22px] text-foreground tracking-[-0.01em]">
             Pembayaran Berhasil!
           </div>
           <div class="text-[14px] text-muted-foreground tracking-[0.02em]">
@@ -145,7 +145,7 @@ export default function Receipt() {
                 />
               </div>
               <div>
-                <div class="font-bold text-[18px] text-foreground tracking-[-0.01em]">
+                <div class="font-bold font-display text-[18px] text-foreground tracking-[-0.01em]">
                   Nata POS
                 </div>
                 <div class="mt-0.5 text-[12px] text-muted-foreground tracking-[0.02em]">

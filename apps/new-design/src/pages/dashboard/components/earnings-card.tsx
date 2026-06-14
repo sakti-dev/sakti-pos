@@ -24,13 +24,13 @@ export const EarningsCard = () => {
         </div>
         <Show
           fallback={
-            <div class="flex h-[48px] items-center font-light text-[30px] text-white/30 tabular-nums tracking-[0.14em]">
+            <div class="flex items-center font-light text-2xl text-white/30 tabular-nums tracking-[0.14em] md:text-[30px]">
               {masked}
             </div>
           }
           when={visible()}
         >
-          <div class="flex items-center font-light text-display text-white tabular-nums">
+          <div class="flex items-center font-semibold text-2xl text-white tabular-nums sm:text-display">
             {amount}
           </div>
         </Show>
@@ -38,7 +38,7 @@ export const EarningsCard = () => {
 
       <button
         aria-label="Tampilkan/sembunyikan"
-        class="relative z-[1] grid h-10 w-10 shrink-0 place-items-center rounded-md border border-white/10 bg-transparent text-white/65 transition-[background,border-color] duration-150 hover:border-white/25 hover:bg-white/10"
+        class="relative z-[1] grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-md border border-white/10 bg-transparent text-white/65 transition-[background,border-color] duration-150 hover:border-white/25 hover:bg-white/10"
         onClick={() => setVisible((v) => !v)}
         type="button"
       >

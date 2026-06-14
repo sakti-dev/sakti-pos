@@ -11,12 +11,12 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export default function Dashboard() {
   return (
     <div
-      class="relative flex flex-1 flex-col overflow-hidden bg-banner-to bg-cover"
+      class="scrollbar-none relative flex flex-1 flex-col overflow-y-auto bg-banner-to bg-cover"
       data-ssgoi-transition="/"
       style={{ "background-image": "url(/green-flux.webp)" }}
     >
       {/* Banner zone */}
-      <div class="relative flex shrink-0 flex-col gap-3 px-6 pt-4 pb-24 max-[800px]:px-[18px] max-[800px]:pt-3.5 max-[800px]:pb-10">
+      <div class="relative flex shrink-0 flex-col gap-3 px-[18px] pt-3.5 pb-10 md:px-6 md:pt-4 md:pb-24">
         <motion.div
           animate={{ opacity: 1, y: 0 }}
           initial={{ opacity: 0, y: 12 }}
@@ -36,7 +36,7 @@ export default function Dashboard() {
       {/* Content body — slides up into the banner */}
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        class="scrollbar-none relative z-10 -mt-14 flex flex-1 flex-col gap-6 overflow-y-auto rounded-t-[60px] bg-background px-6 py-9 max-[800px]:gap-5 max-[800px]:px-[18px] max-[800px]:py-7 max-[900px]:pb-24"
+        class="relative z-10 -mt-6 flex flex-1 flex-col gap-5 rounded-t-3xl bg-background px-[18px] py-7 pb-[105px] md:-mt-14 md:gap-6 md:rounded-t-[60px] md:px-6 md:py-9"
         initial={{ opacity: 0, y: 40 }}
         transition={{ duration: 0.55, ease: EASE, delay: STAGGER * 2 }}
       >
