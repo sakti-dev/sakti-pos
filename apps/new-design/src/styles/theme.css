@@ -102,7 +102,7 @@
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --duration-standard: 0.2s;
 
-  --animate-spin: spin 0.7s linear infinite;
+  --animate-spin: spin 1s linear infinite;
   --animate-ghost-1: ghost-float-1 7s ease-in-out infinite;
   --animate-ghost-2: ghost-float-2 6s ease-in-out infinite;
   --animate-ghost-3: ghost-float-3 8s ease-in-out infinite;

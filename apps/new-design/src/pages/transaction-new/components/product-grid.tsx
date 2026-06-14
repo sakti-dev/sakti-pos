@@ -1,14 +1,7 @@
 import { For, Show } from "solid-js";
 import { PlusIcon } from "~/assets";
 import { formatRupiah } from "~/lib/utils";
-
-export interface Product {
-  readonly cat: string;
-  readonly id: number;
-  readonly img: number;
-  readonly name: string;
-  readonly price: number;
-}
+import type { Product } from "./types";
 
 interface ProductGridProps {
   readonly onAdd: (id: number) => void;
@@ -20,7 +13,7 @@ export const ProductGrid = (props: ProductGridProps) => {
     <div class="scrollbar-none grid min-h-0 flex-1 grid-cols-[repeat(5,minmax(0,1fr))] content-start items-start gap-3.5 overflow-y-auto [grid-auto-rows:min-content] max-[1200px]:grid-cols-4 max-[600px]:grid-cols-2 max-[900px]:grid-cols-3">
       <Show
         fallback={
-          <div class="col-[1/-1] py-16 text-center font-medium text-[14px] text-faint-foreground">
+          <div class="col-[1/-1] py-16 text-center font-medium text-[14px] text-muted-foreground">
             Tidak ada menu ditemukan
           </div>
         }
@@ -30,7 +23,7 @@ export const ProductGrid = (props: ProductGridProps) => {
           {(p) => (
             <button
               aria-label={`${p.name} ${formatRupiah(p.price)}`}
-              class="relative aspect-square cursor-pointer overflow-hidden rounded-[14px] bg-muted transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97]"
+              class="group relative aspect-square cursor-pointer overflow-hidden rounded-[14px] bg-muted transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97]"
               onClick={() => props.onAdd(p.id)}
               type="button"
             >
@@ -55,7 +48,7 @@ export const ProductGrid = (props: ProductGridProps) => {
               </div>
 
               {/* Add badge (hover) */}
-              <div class="absolute top-2.5 right-2.5 z-[3] grid h-8 w-8 scale-50 place-items-center rounded-full bg-white/90 text-primary opacity-0 shadow-card transition-[opacity,transform] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-100 hover:opacity-100 dark:bg-accent dark:text-white">
+              <div class="absolute top-2.5 right-2.5 z-[3] grid h-8 w-8 scale-50 place-items-center rounded-full bg-white/90 text-primary opacity-0 shadow-card transition-[opacity,transform] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-100 group-hover:opacity-100 dark:bg-accent">
                 <PlusIcon class="h-4 w-4" />
               </div>
             </button>

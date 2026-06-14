@@ -310,8 +310,11 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                   el.addEventListener("focus", () => vk?.hide());
                 }
 
-                // Auto-focus on mount so cashier can type immediately
-                requestAnimationFrame(() => el.focus());
+                // Auto-focus on mount so cashier can type immediately.
+                // preventScroll: focusing during the ssgoi entrance would otherwise
+                // trigger a scroll-into-view (root is translated off-screen) and
+                // jitter the content mid-transition.
+                requestAnimationFrame(() => el.focus({ preventScroll: true }));
                 // Idempotent value sync: only write to DOM when formatted value actually changed.
                 // This prevents Solid's reactive binding from resetting Chromium's caret blink timer.
                 createEffect(() => {

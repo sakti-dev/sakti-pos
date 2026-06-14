@@ -75,7 +75,7 @@ export const Sidebar = (props: SidebarProps) => {
                 as={A}
                 class={cn(
                   "relative flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
-                  props.expanded ? "w-full px-3" : "w-[52px] px-[15px]",
+                  props.expanded ? "w-full px-3" : "w-[52px] px-[15px]"
                 )}
                 end={item.key === "home"}
                 href={item.href}
@@ -106,7 +106,7 @@ export const Sidebar = (props: SidebarProps) => {
         aria-label="Keluar"
         class={cn(
           "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
-          props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]",
+          props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
         )}
         look="ghost"
         size="none"

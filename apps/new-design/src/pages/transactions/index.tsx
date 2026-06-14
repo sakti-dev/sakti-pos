@@ -8,7 +8,7 @@ import {
   SearchIcon,
   XCircleIcon,
 } from "~/assets";
-import { Tab } from "~/components/ui/tab";
+import { Button } from "~/components/ui/button";
 
 /* ── types ────────────────────────────────────────────────────── */
 
@@ -85,14 +85,15 @@ const STATUS_PILL: Record<TxStatus, { bg: string; color: string }> = {
   },
 };
 
-const FILTER_TABS: readonly { key: FilterKey; label: string }[] = [
-  { key: "all", label: "Semua" },
-  { key: "new", label: "Baru" },
-  { key: "processing", label: "Diproses" },
-  { key: "waiting", label: "Menunggu" },
-  { key: "done", label: "Selesai" },
-  { key: "cancelled", label: "Batal" },
-];
+const FILTER_TABS: readonly { key: FilterKey; label: string; total: number }[] =
+  [
+    { key: "all", label: "Semua", total: 100 },
+    { key: "new", label: "Baru", total: 20 },
+    { key: "processing", label: "Diproses", total: 30 },
+    { key: "waiting", label: "Menunggu", total: 5 },
+    { key: "done", label: "Selesai", total: 92 },
+    { key: "cancelled", label: "Batal", total: 0 },
+  ];
 
 /* ── sample data (matches reference) ──────────────────────────── */
 
@@ -261,12 +262,18 @@ export default function Transactions() {
         <div class="scrollbar-none flex gap-1.5 overflow-x-auto">
           <For each={FILTER_TABS}>
             {(tab) => (
-              <Tab
-                active={filter() === tab.key}
+              <Button
+                aria-label={tab.label}
+                class="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-left font-semibold text-[13px] tracking-[0.01em] max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-[12px]"
+                look={filter() === tab.key ? "soft" : "outline"}
                 onClick={() => setFilter(tab.key)}
+                size="none"
+                tone={filter() === tab.key ? "primary" : "neutral"}
+                type="button"
               >
-                {tab.label}
-              </Tab>
+                {tab.label}&nbsp;
+                <span class="text-[10px]">({tab.total})</span>
+              </Button>
             )}
           </For>
         </div>
@@ -289,7 +296,7 @@ export default function Transactions() {
               return (
                 <motion.div
                   animate={{ opacity: 1, y: 0 }}
-                  class="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-card"
+                  class="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-card"
                   initial={{ opacity: 0, y: 12 }}
                   transition={{
                     duration: 0.35,

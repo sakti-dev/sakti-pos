@@ -1,5 +1,5 @@
 import type { SsgoiConfig, SsgoiPathTransition } from "@ssgoi/solid";
-import { axis, drill, fade } from "@ssgoi/solid/view-transitions";
+import { axis, fade, sheet } from "@ssgoi/solid/view-transitions";
 
 /* ── Path groups ─────────────────────────────────────────────────── */
 
@@ -23,20 +23,16 @@ export const rootConfig: SsgoiConfig = {
     // Shell ↔ Shell
     ...createShellSlides(),
 
-    // Flow → Flow: drill parallax
-    drill({ enter: "/payment", exit: "/transaction-new", type: "parallax" }),
-    drill({ enter: "/receipt", exit: "/payment", type: "parallax" }),
+    // Flow → Flow: sheet scale (rises from bottom, bg scales behind)
+    sheet({ enter: "/payment", exit: "/transaction-new", type: "scale" }),
+    sheet({ enter: "/receipt", exit: "/payment", type: "scale" }),
 
     // Auth ↔ Auth: fade
     fade({ paths: [...AUTH_PATHS] }),
 
-    // Shell → Flow: drill in (any shell page → transaction-new)
-    drill({ enter: "/transaction-new", exit: "/", type: "parallax" }),
-    drill({
-      enter: "/transaction-new",
-      exit: "/transactions",
-      type: "parallax",
-    }),
-    drill({ enter: "/transaction-new", exit: "/pengaturan", type: "parallax" }),
+    // Shell → Flow: sheet in (any shell page → transaction-new)
+    sheet({ enter: "/transaction-new", exit: "/", type: "scale" }),
+    sheet({ enter: "/transaction-new", exit: "/transactions", type: "scale" }),
+    sheet({ enter: "/transaction-new", exit: "/pengaturan", type: "scale" }),
   ],
 };

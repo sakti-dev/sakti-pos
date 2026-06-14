@@ -22,7 +22,7 @@ export default function Pengaturan() {
         <h1 class="font-bold font-display text-[22px] text-foreground tracking-[-0.01em]">
           Pengaturan
         </h1>
-        <p class="mt-0.5 text-[13px] text-faint-foreground tracking-[0.02em]">
+        <p class="mt-0.5 text-[13px] text-muted-foreground tracking-[0.02em]">
           Kelola konfigurasi bisnis dan aplikasi Anda
         </p>
       </motion.div>

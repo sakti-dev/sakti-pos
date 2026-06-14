@@ -1,6 +1,6 @@
 import { motion } from "motion-solidjs";
 import { createSignal, onCleanup } from "solid-js";
-import { BellIcon, CloudIcon } from "~/assets";
+import { BellIcon, CloudIcon, LoaderIcon } from "~/assets";
 import { cn } from "~/lib/utils";
 
 function formatClock(): string {
@@ -29,13 +29,19 @@ const TopBarContent = () => {
       <div class="flex items-center gap-3">
         <button
           aria-label="Sinkronisasi"
-          class="inline-flex items-center gap-[7px] rounded-full border border-accent/20 bg-accent/10 px-3.5 py-1.5 font-medium text-[13px] text-accent tracking-[0.01em] transition-[background,border-color,transform] duration-200 hover:border-accent/35 hover:bg-accent/20 active:scale-[0.96]"
+          class="inline-flex items-center gap-[7px] rounded-full border border-accent-foreground/15 bg-accent/15 px-3.5 py-1.5 font-medium text-[13px] text-accent-foreground tracking-[0.01em] transition-[background,border-color,transform] duration-200 hover:border-accent-foreground/25 hover:bg-accent/25 active:scale-[0.96]"
           onClick={handleSync}
           type="button"
         >
           <span class="relative h-4 w-4 shrink-0">
-            <CloudIcon class={syncing() ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-            <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-[1.5px] border-primary bg-accent" />
+            {syncing() ? (
+              <LoaderIcon class="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <CloudIcon class="h-4 w-4" />
+                <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-[1.5px] border-primary bg-accent" />
+              </>
+            )}
           </span>
           {syncing() ? "Sinkronisasi\u2026" : "Online"}
         </button>

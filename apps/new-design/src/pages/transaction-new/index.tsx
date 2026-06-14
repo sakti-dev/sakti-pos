@@ -1,6 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { motion } from "motion-solidjs";
-import { createSignal, For, Show } from "solid-js";
+import { createSignal } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
 import {
@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from "~/components/ui/sheet";
 import { formatRupiah } from "~/lib/utils";
-import { CartItemRow } from "./components/cart-item-row";
+import { CartList } from "./components/cart-list";
 import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
 import { type CategoryKey, CategoryTabs } from "./components/category-tabs";
@@ -201,33 +201,12 @@ export default function TransactionNew() {
             </SheetHeader>
 
             <SheetBody>
-              <Show
-                fallback={
-                  <div class="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-faint-foreground">
-                    <CartShoppingIcon class="h-10 w-10 opacity-30" />
-                    <span class="font-medium text-[14px]">
-                      Keranjang kosong
-                    </span>
-                    <span class="text-[12px]">Tap menu untuk menambahkan</span>
-                  </div>
-                }
-                when={cart().length > 0}
-              >
-                <For each={cart()}>
-                  {(item) => {
-                    const p = products.find((pr) => pr.id === item.id);
-                    return (
-                      <CartItemRow
-                        name={p?.name ?? ""}
-                        onDecrement={() => decrement(item.id)}
-                        onIncrement={() => increment(item.id)}
-                        price={p?.price ?? 0}
-                        qty={item.qty}
-                      />
-                    );
-                  }}
-                </For>
-              </Show>
+              <CartList
+                cart={cart()}
+                onDecrement={decrement}
+                onIncrement={increment}
+                products={products}
+              />
             </SheetBody>
 
             <CartTotals

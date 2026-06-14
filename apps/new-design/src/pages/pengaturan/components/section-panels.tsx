@@ -36,7 +36,7 @@ function CardTitle(props: { readonly children: JSX.Element }) {
 
 function CardDesc(props: { readonly children: JSX.Element }) {
   return (
-    <p class="mt-0.5 text-[13px] text-faint-foreground leading-relaxed tracking-[0.01em]">
+    <p class="mt-0.5 text-[13px] text-muted-foreground leading-relaxed tracking-[0.01em]">
       {props.children}
     </p>
   );
@@ -135,7 +135,7 @@ function ToggleRow(props: {
         <div class="font-medium text-[14px] text-foreground tracking-[0.01em]">
           {props.title}
         </div>
-        <div class="mt-0.5 text-[12px] text-faint-foreground tracking-[0.01em]">
+        <div class="mt-0.5 text-[12px] text-muted-foreground tracking-[0.01em]">
           {props.desc}
         </div>
       </div>
@@ -289,7 +289,7 @@ function SectionUmum() {
                 <button
                   class={`flex flex-1 items-center justify-center gap-2 rounded-[10px] border px-3 py-2.5 font-medium text-[13px] transition-[border-color,background,color] duration-150 ${
                     active()
-                      ? "border-primary bg-accent-soft text-primary dark:border-accent dark:text-accent"
+                      ? "border-primary bg-accent-soft text-primary"
                       : "border-border bg-card text-muted-foreground hover:border-border"
                   }`}
                   onClick={() => {
@@ -518,14 +518,14 @@ function SectionTim() {
         <For each={STAFF}>
           {(s) => (
             <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-muted px-4 py-3.5">
-              <div class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent-soft font-bold font-display text-[13px] text-primary dark:text-accent">
+              <div class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent-soft font-bold font-display text-[13px] text-primary">
                 {s.initials}
               </div>
               <div class="min-w-0 flex-1">
                 <div class="font-semibold text-[14px] text-foreground">
                   {s.name}
                 </div>
-                <div class="mt-px text-[12px] text-faint-foreground">
+                <div class="mt-px text-[12px] text-muted-foreground">
                   {s.role}
                 </div>
               </div>
@@ -533,7 +533,7 @@ function SectionTim() {
                 class={`rounded-full px-2.5 py-[3px] font-semibold text-[11px] uppercase tracking-[0.04em] ${
                   s.active
                     ? "bg-accent/10 text-primary dark:text-accent"
-                    : "bg-status-danger/10 dark:bg-status-danger text-status-danger dark:text-status-danger-foreground"
+                    : "bg-status-danger/10 text-status-danger dark:bg-status-danger dark:text-status-danger-foreground"
                 }`}
               >
                 {s.active ? "Aktif" : "Nonaktif"}
@@ -604,7 +604,7 @@ function SectionPerangkat() {
                 class={`grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[10px] ${
                   d.kind === "printer"
                     ? "bg-accent/10 text-primary dark:text-accent"
-                    : "bg-status-warning/15 dark:bg-status-warning text-status-warning dark:text-status-warning-foreground"
+                    : "bg-status-warning/15 text-status-warning dark:bg-status-warning dark:text-status-warning-foreground"
                 }`}
               >
                 <d.Icon class="h-5 w-5" />
@@ -613,7 +613,7 @@ function SectionPerangkat() {
                 <div class="font-semibold text-[14px] text-foreground">
                   {d.name}
                 </div>
-                <div class="mt-0.5 text-[12px] text-faint-foreground">
+                <div class="mt-0.5 text-[12px] text-muted-foreground">
                   <span
                     class={`mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${
                       d.connected
@@ -649,10 +649,10 @@ function SectionTentang() {
       <div class="font-bold font-display text-[20px] text-foreground">
         Sakti POS
       </div>
-      <div class="-mt-2 text-[13px] text-faint-foreground">
+      <div class="-mt-2 text-[13px] text-muted-foreground">
         Versi 1.0.0 (Build 2026.06)
       </div>
-      <p class="max-w-[360px] text-center text-[13px] text-faint-foreground leading-relaxed">
+      <p class="max-w-[360px] text-center text-[13px] text-muted-foreground leading-relaxed">
         Sistem kasir modern untuk bisnis F&amp;B Anda. Didesain untuk cepat,
         andal, dan mudah digunakan.
       </p>

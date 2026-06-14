@@ -37,7 +37,7 @@ export const CategoryTabs = (props: CategoryTabsProps) => (
         <Tab
           active={props.active === tab.key}
           aria-label={tab.label}
-          class="!px-8 !py-4 !text-[16px] !gap-3"
+          class="gap-3 px-8 py-4 text-[16px]"
           onClick={() => props.onSelect(tab.key)}
         >
           <tab.Icon class="h-5 w-5 shrink-0" />

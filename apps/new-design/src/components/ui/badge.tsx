@@ -14,11 +14,15 @@ export const badgeVariants = cva(
         secondary: "bg-secondary text-secondary-foreground",
         destructive: "bg-destructive text-destructive-foreground",
         outline: "border border-border text-foreground",
-        success: "bg-status-success/10 dark:bg-status-success text-status-success dark:text-status-success-foreground",
-        warning: "bg-status-warning/15 dark:bg-status-warning text-status-warning dark:text-status-warning-foreground",
-        danger: "bg-status-danger/10 dark:bg-status-danger text-status-danger dark:text-status-danger-foreground",
+        success:
+          "bg-status-success/10 text-status-success dark:bg-status-success dark:text-status-success-foreground",
+        warning:
+          "bg-status-warning/15 text-status-warning dark:bg-status-warning dark:text-status-warning-foreground",
+        danger:
+          "bg-status-danger/10 text-status-danger dark:bg-status-danger dark:text-status-danger-foreground",
         accent: "bg-primary/10 text-primary",
-        processing: "bg-status-processing/25 dark:bg-status-processing text-status-processing-foreground",
+        processing:
+          "bg-status-processing/25 text-status-processing-foreground dark:bg-status-processing",
       },
       size: {
         default: "px-2.5 py-0.5",
