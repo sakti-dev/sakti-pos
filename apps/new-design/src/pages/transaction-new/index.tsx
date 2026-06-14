@@ -134,7 +134,7 @@ export default function TransactionNew() {
           >
             <ArrowLeftIcon class="h-[18px] w-[18px]" />
           </A>
-          <span class="font-bold text-body-lg text-foreground">
+          <span class="font-bold font-display text-body-lg text-foreground">
             Transaksi Baru
           </span>
         </FadeIn>

@@ -46,6 +46,9 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
         exit: "/katalog",
         type: "parallax",
       }),
+
+      // Pengaturan → section sub-pages (mobile drill-in, like iOS Settings)
+      drill({ enter: "/pengaturan/*", exit: "/pengaturan", type: "parallax" }),
     ],
   };
 }

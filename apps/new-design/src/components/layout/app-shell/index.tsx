@@ -2,6 +2,7 @@ import type { RouteSectionProps } from "@solidjs/router";
 import { Ssgoi } from "@ssgoi/solid";
 import { createMemo, createSignal, onCleanup, Show } from "solid-js";
 import { createRootConfig } from "~/lib/ssgoi-config";
+import { useIsWide } from "~/lib/use-is-wide";
 import { useOrientation } from "~/lib/use-orientation";
 import { cn } from "~/lib/utils";
 import { Fab } from "./fab";
@@ -27,6 +28,8 @@ const ZONE_MAP: Record<string, Zone> = {
   "/pin": "auth",
 };
 
+const SECTION_ROUTE_RE = /^\/pengaturan\/.+$/;
+
 const navFromPath = (pathname: string): NavKey => {
   if (pathname === "/") {
     return "home";
@@ -37,7 +40,7 @@ const navFromPath = (pathname: string): NavKey => {
   if (pathname === "/katalog") {
     return "katalog";
   }
-  if (pathname === "/pengaturan") {
+  if (pathname.startsWith("/pengaturan")) {
     return "settings";
   }
   return "home";
@@ -47,7 +50,16 @@ const navFromPath = (pathname: string): NavKey => {
 
 export const AppShell = (props: RouteSectionProps) => {
   const pathname = () => props.location.pathname;
-  const zone = (): Zone => ZONE_MAP[pathname()] ?? "shell";
+  const isPortrait = useOrientation();
+  const isWide = useIsWide();
+  const zone = (): Zone => {
+    const base = ZONE_MAP[pathname()] ?? "shell";
+    // Pengaturan section sub-pages are full-screen drill-in screens below lg
+    if (base === "shell" && !isWide() && SECTION_ROUTE_RE.test(pathname())) {
+      return "flow";
+    }
+    return base;
+  };
   const isShell = () => zone() === "shell";
   const activeNav = () => navFromPath(pathname());
 
@@ -58,7 +70,6 @@ export const AppShell = (props: RouteSectionProps) => {
   /* ── SSGOI config memo: axis choice (x vs y) tracks orientation.
      SSGOI's own createMemo recreates the transition context when config
      identity changes. Orientation signal is global (use-orientation.ts). */
-  const isPortrait = useOrientation();
   const config = createMemo(() => createRootConfig(isPortrait()));
 
   const touchSidebar = () => {
@@ -108,7 +119,7 @@ export const AppShell = (props: RouteSectionProps) => {
       </main>
 
       {/* ── Shell-only chrome ── */}
-      <Show when={isShell() && pathname() !== "/pengaturan"}>
+      <Show when={isShell() && !pathname().startsWith("/pengaturan")}>
         <Fab />
       </Show>
       <Show when={isShell()}>

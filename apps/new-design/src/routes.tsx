@@ -11,6 +11,14 @@ import Katalog from "./pages/katalog";
 import Login from "./pages/login";
 import Payment from "./pages/payment";
 import Pengaturan from "./pages/pengaturan";
+import { SectionBisnis } from "./pages/pengaturan/components/section-bisnis";
+import { SectionPajak } from "./pages/pengaturan/components/section-pajak";
+import { SectionPembayaran } from "./pages/pengaturan/components/section-pembayaran";
+import { SectionPerangkat } from "./pages/pengaturan/components/section-perangkat";
+import { SectionStruk } from "./pages/pengaturan/components/section-struk";
+import { SectionTentang } from "./pages/pengaturan/components/section-tentang";
+import { SectionTim } from "./pages/pengaturan/components/section-tim";
+import { SectionUmum } from "./pages/pengaturan/components/section-umum";
 import Pin from "./pages/pin";
 import Receipt from "./pages/receipt";
 import Register from "./pages/register";
@@ -34,7 +42,17 @@ export default function AppRoutes() {
     >
       <Route component={Dashboard} path="/" />
       <Route component={Transactions} path="/transactions" />
-      <Route component={Pengaturan} path="/pengaturan" />
+      <Route component={Pengaturan} path="/pengaturan">
+        <Route component={SectionBisnis} path="/" />
+        <Route component={SectionBisnis} path="/bisnis" />
+        <Route component={SectionUmum} path="/umum" />
+        <Route component={SectionPajak} path="/pajak" />
+        <Route component={SectionPembayaran} path="/pembayaran" />
+        <Route component={SectionStruk} path="/struk" />
+        <Route component={SectionTim} path="/tim" />
+        <Route component={SectionPerangkat} path="/perangkat" />
+        <Route component={SectionTentang} path="/tentang" />
+      </Route>
       <Route component={Katalog} path="/katalog" />
       <Route component={TransactionNew} path="/transaction-new" />
       <Route component={Payment} path="/payment" />
