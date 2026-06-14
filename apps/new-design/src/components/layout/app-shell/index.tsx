@@ -97,20 +97,14 @@ export const AppShell = (props: RouteSectionProps) => {
         onTouch={touchSidebar}
       />
 
-      <TopBar
-        expanded={expanded()}
-        isShell={isShell()}
-        onClose={closeSidebar}
-      />
+      <TopBar isShell={isShell()} onClose={closeSidebar} />
 
-      {/* ── Main content area ── margins snap, SSGOI masks the change */}
+      {/* ── Main content area ── fixed 80px margin for sidebar rail.
+          Sidebar expands as overlay (clip-path), content stays put. */}
       <main
         class={cn(
           "relative flex flex-1 flex-col overflow-hidden bg-background",
-          isShell() && "mt-[54px] h-[calc(100vh-54px)]",
-          isShell() && (expanded() ? "lg:ml-[200px]" : "lg:ml-[80px]"),
-          isShell() &&
-            "transition-[margin-left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          isShell() && "mt-[54px] h-[calc(100vh-54px)] lg:ml-[80px]",
           !isShell() && "h-screen"
         )}
         onPointerDown={closeSidebar}

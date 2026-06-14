@@ -65,7 +65,6 @@ const TopBarContent = () => {
 };
 
 interface TopBarProps {
-  readonly expanded: boolean;
   readonly isShell: boolean;
   readonly onClose: () => void;
 }
@@ -73,11 +72,8 @@ interface TopBarProps {
 export const TopBar = (props: TopBarProps) => (
   <header
     class={cn(
-      "fixed top-0 right-0 left-0 z-[99] flex h-[54px] shrink-0 items-center justify-between border-border border-b bg-card px-[18px] lg:px-7",
-      props.isShell ? "" : "hidden",
-      props.isShell && (props.expanded ? "lg:left-[200px]" : "lg:left-[80px]"),
-      props.isShell &&
-        "transition-[left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      "fixed top-0 right-0 left-0 z-[99] flex h-[54px] shrink-0 items-center justify-between border-border border-b bg-card px-[18px] lg:left-[80px] lg:px-7",
+      props.isShell ? "" : "hidden"
     )}
     onPointerDown={props.onClose}
   >

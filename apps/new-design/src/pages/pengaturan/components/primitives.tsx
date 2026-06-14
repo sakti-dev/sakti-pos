@@ -52,7 +52,7 @@ export function FormGroup(props: {
 
 export function FormLabel(props: { readonly children: JSX.Element }) {
   return (
-    <span class="font-semibold text-caption text-muted-foreground uppercase tracking-[0.04em]">
+    <span class="font-semibold text-caption text-muted-foreground tracking-[0.04em]">
       {props.children}
     </span>
   );
