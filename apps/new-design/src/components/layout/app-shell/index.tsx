@@ -84,9 +84,10 @@ export const AppShell = (props: RouteSectionProps) => {
       {/* ── Main content area ── margins snap, SSGOI masks the change */}
       <main
         class={cn(
-          "relative flex flex-1 flex-col overflow-hidden bg-background transition-[margin-left] duration-300",
+          "relative flex flex-1 flex-col overflow-hidden bg-background",
           isShell() && "mt-[54px] h-[calc(100vh-54px)]",
           isShell() && expanded() ? "ml-[200px]" : "ml-[80px]",
+          isShell() && "transition-[margin-left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
           !isShell() && "ml-0 h-screen",
           "max-[900px]:ml-0"
         )}

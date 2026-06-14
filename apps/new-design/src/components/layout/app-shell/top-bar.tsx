@@ -1,4 +1,3 @@
-import { motion } from "motion-solidjs";
 import { createSignal, onCleanup } from "solid-js";
 import { BellIcon, CloudIcon, LoaderIcon } from "~/assets";
 import { cn } from "~/lib/utils";
@@ -72,21 +71,15 @@ interface TopBarProps {
 }
 
 export const TopBar = (props: TopBarProps) => (
-  <motion.header
-    animate={{
-      x: props.isShell ? 0 : -80,
-      opacity: props.isShell ? 1 : 0,
-      pointerEvents: props.isShell ? "auto" : "none",
-    }}
+  <header
     class={cn(
-      "fixed top-0 right-0 z-[99] flex h-[54px] shrink-0 items-center justify-between border-border border-b bg-card px-7 transition-[left] duration-300 max-[900px]:left-0 max-[900px]:px-[18px]",
+      "fixed top-0 right-0 z-[99] flex h-[54px] shrink-0 items-center justify-between border-border border-b bg-card px-7 max-[900px]:left-0 max-[900px]:px-[18px]",
+      props.isShell ? "" : "hidden",
       props.isShell && (props.expanded ? "left-[200px]" : "left-[80px]"),
-      !props.isShell && "left-0"
+      props.isShell && "transition-[left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
     )}
-    initial={{ x: -80, opacity: 0 }}
     onPointerDown={props.onClose}
-    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
   >
     <TopBarContent />
-  </motion.header>
+  </header>
 );

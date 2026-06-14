@@ -1,5 +1,4 @@
 import { A } from "@solidjs/router";
-import { motion } from "motion-solidjs";
 import { For, Show } from "solid-js";
 import { FileIcon, HomeIcon, LogoutIcon, SettingsIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
@@ -38,17 +37,13 @@ interface SidebarProps {
 
 export const Sidebar = (props: SidebarProps) => {
   return (
-    <motion.nav
-      animate={{
-        x: props.isShell ? 0 : -80,
-        opacity: props.isShell ? 1 : 0,
-        pointerEvents: props.isShell ? "auto" : "none",
-        width: props.isShell && props.expanded ? 200 : 80,
-      }}
-      class="fixed top-0 left-0 z-[100] flex h-screen flex-col overflow-hidden border-border border-r bg-card px-3 py-5 pb-4 max-[900px]:hidden"
-      initial={{ x: -80, opacity: 0, width: 80 }}
+    <nav
+      class={cn(
+        "fixed top-0 left-0 z-[100] flex h-screen flex-col overflow-hidden border-border border-r bg-card px-3 py-5 pb-4 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-[900px]:hidden",
+        props.isShell ? "" : "hidden",
+        props.expanded ? "w-[200px]" : "w-[80px]",
+      )}
       onClick={props.onTouch}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
     >
       {/* Brand */}
       <div class="mb-7 flex h-12 shrink-0 items-center gap-2.5">
@@ -74,7 +69,7 @@ export const Sidebar = (props: SidebarProps) => {
                 aria-label={item.label}
                 as={A}
                 class={cn(
-                  "relative flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
+                  "relative flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
                   props.expanded ? "w-full px-3" : "w-[52px] px-[15px]"
                 )}
                 end={item.key === "home"}
@@ -105,7 +100,7 @@ export const Sidebar = (props: SidebarProps) => {
       <Button
         aria-label="Keluar"
         class={cn(
-          "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] transition-[width,padding] duration-300 [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
+          "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
           props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
         )}
         look="ghost"
@@ -120,6 +115,6 @@ export const Sidebar = (props: SidebarProps) => {
           </span>
         </Show>
       </Button>
-    </motion.nav>
+    </nav>
   );
 };
