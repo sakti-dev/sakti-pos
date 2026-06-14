@@ -1,14 +1,6 @@
-import { useColorMode } from "@kobalte/core";
-import { For, type JSX, Show } from "solid-js";
+import { For, type JSX } from "solid-js";
 import { toast } from "solid-sonner";
-import {
-  BagIcon,
-  ChartIcon,
-  GoogleIcon,
-  GridDetailIcon,
-  MoonIcon,
-  SunIcon,
-} from "~/assets";
+import { BagIcon, ChartIcon, GoogleIcon, GridDetailIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
@@ -50,10 +42,8 @@ export function AuthRightPanel(props: {
   footer: JSX.Element;
   children: JSX.Element;
 }) {
-  const { colorMode, setColorMode } = useColorMode();
-
   return (
-    <main class="relative flex w-full flex-col justify-start overflow-y-auto bg-background p-8 pt-16 lg:w-[480px] lg:min-w-[420px] lg:justify-center lg:px-14 lg:py-10 lg:pt-10">
+    <main class="relative flex w-full flex-col justify-start overflow-y-auto bg-background p-8 pt-10 lg:w-[480px] lg:min-w-[420px] lg:justify-center lg:px-14 lg:py-10">
       <For each={ghostCards}>
         {(gc) => (
           <div
@@ -80,22 +70,6 @@ export function AuthRightPanel(props: {
           </div>
         )}
       </For>
-
-      {/* Theme toggle */}
-      <Button
-        aria-label="Toggle tema"
-        class="absolute top-5 right-6 z-[2] grid size-10 place-items-center rounded-xs border border-input bg-background text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-offset-2"
-        look="ghost"
-        onClick={() => setColorMode(colorMode() === "dark" ? "light" : "dark")}
-        tone="neutral"
-      >
-        <Show
-          fallback={<MoonIcon class="h-[18px] w-[18px]" />}
-          when={colorMode() !== "dark"}
-        >
-          <SunIcon class="h-[18px] w-[18px]" />
-        </Show>
-      </Button>
 
       {/* Mobile logo (≤lg) */}
       <div class="mb-6 flex flex-col items-center gap-3 lg:hidden">

@@ -51,8 +51,8 @@ export function PinRightPanel() {
   return (
     <>
       {/* Right panel */}
-      <div class="relative flex min-h-screen flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-6 lg:p-8">
-        <div class="relative z-[1] my-auto flex w-full max-w-[400px] flex-col items-center gap-5 sm:gap-6">
+      <div class="relative flex min-h-screen flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-6 pt-10 lg:p-8">
+        <div class="relative z-[1] flex w-full max-w-[400px] flex-col items-center gap-5 sm:gap-6">
           {/* Mobile logo (hidden on desktop) */}
           <div>
             <div class="flex flex-col items-center gap-3 lg:hidden">
