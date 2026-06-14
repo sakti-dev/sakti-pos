@@ -7,6 +7,7 @@ export { default as BellIcon } from "./bell.svg";
 export { default as BoxPackageIcon } from "./box-package.svg";
 export { default as CalendarIcon } from "./calendar.svg";
 export { default as CartShoppingIcon } from "./cart-shopping.svg";
+export { default as CashRegisterIcon } from "./cash-register.svg";
 export { default as ChartIcon } from "./chart.svg";
 export { default as CheckCircleIcon } from "./check-circle.svg";
 export { default as ClipboardIcon } from "./clipboard.svg";
