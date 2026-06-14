@@ -102,7 +102,7 @@ export default function Payment() {
       title="Pembayaran"
     >
       <div class="flex flex-1 overflow-hidden">
-        <div class="flex flex-1 gap-3 overflow-y-auto p-3 pb-24 sm:flex-col sm:gap-4 sm:p-4 sm:pb-24 lg:gap-5 lg:p-5">
+        <div class="flex flex-1 flex-col gap-3 overflow-y-auto p-3 pb-24 sm:gap-4 sm:p-4 sm:pb-24 lg:flex-row lg:gap-5 lg:p-5">
           <OrderSummary
             items={cart()}
             onAdjustQty={adjustQty}
@@ -112,7 +112,7 @@ export default function Payment() {
             totalQty={totalQty()}
           />
 
-          <div class="scrollbar-none order-1 flex flex-1 flex-none flex-col gap-4 overflow-y-visible lg:overflow-y-auto">
+          <div class="scrollbar-none order-1 flex flex-none flex-col gap-4 overflow-y-visible lg:order-2 lg:flex-1 lg:overflow-y-auto">
             <TotalBanner subtotal={subtotal()} tax={tax()} total={total()} />
             <PaymentMethod
               cashRaw={cashRaw()}
