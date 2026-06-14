@@ -71,7 +71,7 @@ export const MagicNav = (props: MagicNavProps) => {
                   {/* Indicator bubble — shared-layout animation via layoutId */}
                   <Show when={isActive()}>
                     <motion.div
-                      class="absolute top-[-28px] left-1/2 z-[3] flex h-[62px] w-[62px] -ml-[31px] items-center justify-center rounded-full border-[6px] border-background bg-primary shadow-card"
+                      class="absolute top-[-28px] left-1/2 z-[3] -ml-[31px] flex h-[62px] w-[62px] items-center justify-center rounded-full border-[6px] border-background bg-primary shadow-card"
                       layoutId="magic-bubble"
                       transition={BUBBLE_SPRING}
                     >
