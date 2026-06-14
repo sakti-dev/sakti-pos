@@ -45,9 +45,7 @@ function CardDesc(props: { readonly children: JSX.Element }) {
 
 function FormGrid(props: { readonly children: JSX.Element }) {
   return (
-    <div class="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
-      {props.children}
-    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">{props.children}</div>
   );
 }
 
@@ -57,7 +55,7 @@ function FormGroup(props: {
 }) {
   return (
     <div
-      class={`flex flex-col gap-1.5 ${props.fullWidth ? "col-span-1 -col-end-1 max-[600px]:col-span-auto" : ""}`}
+      class={`flex flex-col gap-1.5 ${props.fullWidth ? "col-span-auto sm:col-span-1 sm:-col-end-1" : ""}`}
     >
       {props.children}
     </div>

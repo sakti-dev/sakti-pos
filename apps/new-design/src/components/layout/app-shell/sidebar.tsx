@@ -39,9 +39,9 @@ export const Sidebar = (props: SidebarProps) => {
   return (
     <nav
       class={cn(
-        "fixed top-0 left-0 z-[100] flex h-screen flex-col overflow-hidden border-border border-r bg-card px-3 py-5 pb-4 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-[900px]:hidden",
-        props.isShell ? "" : "hidden",
-        props.expanded ? "w-[200px]" : "w-[80px]"
+        "fixed top-0 left-0 z-[100] h-screen flex-col overflow-hidden border-border border-r bg-card px-3 py-5 pb-4 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        props.isShell ? "hidden lg:flex" : "hidden",
+        props.expanded ? "lg:w-[200px]" : "lg:w-[80px]"
       )}
       onClick={props.onTouch}
     >

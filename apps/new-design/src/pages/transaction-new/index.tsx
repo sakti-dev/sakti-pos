@@ -123,7 +123,7 @@ export default function TransactionNew() {
       {/* Left column — catalog */}
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <FadeIn
-          class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-card px-5 max-[900px]:px-3.5"
+          class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
           duration={0.4}
           x={-20}
         >
@@ -140,7 +140,7 @@ export default function TransactionNew() {
         </FadeIn>
 
         <FadeIn
-          class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5 max-[900px]:gap-3 max-[900px]:p-3.5 max-[900px]:pb-20"
+          class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3.5 pb-20 lg:gap-4 lg:p-5"
           delay={0.08}
           duration={0.45}
           y={16}
@@ -153,7 +153,7 @@ export default function TransactionNew() {
 
       {/* Right column — cart sidebar (desktop only) */}
       <FadeIn
-        class="flex w-[360px] min-w-[360px] flex-col overflow-hidden border-border border-l bg-card max-[900px]:hidden max-[1100px]:w-[320px] max-[1100px]:min-w-[320px]"
+        class="hidden flex-col overflow-hidden border-border border-l bg-card lg:w-[320px] lg:min-w-[320px] xl:flex xl:w-[360px] xl:min-w-[360px]"
         delay={0.15}
         duration={0.45}
         x={40}
@@ -178,7 +178,7 @@ export default function TransactionNew() {
         trigger={
           <SheetTrigger
             aria-label="Buka keranjang"
-            class="fixed right-4 bottom-5 left-4 z-[90] hidden h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-[0.02em] shadow-card transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] max-[900px]:flex"
+            class="fixed right-4 bottom-5 left-4 z-[90] flex h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-[0.02em] shadow-card transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] lg:hidden"
           >
             <div class="flex items-center gap-2.5">
               <CartShoppingIcon class="h-5 w-5" />

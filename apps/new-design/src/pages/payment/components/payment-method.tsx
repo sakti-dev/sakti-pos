@@ -203,7 +203,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       </div>
 
       {/* Method grid */}
-      <div class="grid grid-cols-4 gap-2.5 max-[600px]:grid-cols-2">
+      <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <For each={methodOptions}>
           {(m) => (
             <Tab
@@ -229,7 +229,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               Jumlah cepat
             </span>
           </div>
-          <div class="mb-3 grid grid-cols-4 gap-2 max-[600px]:grid-cols-2">
+          <div class="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <For each={quickAmounts()}>
               {(amt) => (
                 <Button

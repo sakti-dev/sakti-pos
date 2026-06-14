@@ -15,7 +15,7 @@ export const ScreenHeader = (props: ScreenHeaderProps) => {
   const { colorMode, setColorMode } = useColorMode();
 
   return (
-    <header class="flex h-header shrink-0 items-center justify-between border-border border-b bg-card px-5 max-[900px]:px-3.5">
+    <header class="flex h-header shrink-0 items-center justify-between border-border border-b bg-card px-3.5 lg:px-5">
       <div class="flex items-center gap-3.5">
         <A
           aria-label={props.backLabel ?? "Kembali"}

@@ -14,13 +14,13 @@ export function PinDots(props: PinDotsProps) {
     if (i < props.length) {
       return "h-4 w-4 scale-125 rounded-full border-2 border-primary bg-primary ring-4 ring-primary/10 dark:border-accent dark:bg-accent";
     }
-    return "h-4 w-4 rounded-full border-2 border-border bg-transparent transition-[background,border-color,transform,box-shadow] duration-200 max-[480px]:h-[14px] max-[480px]:w-[14px]";
+    return "h-[14px] w-[14px] rounded-full border-2 border-border bg-transparent transition-[background,border-color,transform,box-shadow] duration-200 sm:h-4 sm:w-4";
   };
 
   return (
     <fieldset
       aria-label="PIN input"
-      class="flex justify-center gap-[18px] border-none px-0 py-2 max-[480px]:gap-[14px]"
+      class="flex justify-center gap-[14px] border-none px-0 py-2 sm:gap-[18px]"
     >
       <For each={Array.from({ length: MAX_PIN })}>
         {(_, i) => (

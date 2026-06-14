@@ -112,7 +112,7 @@ export default function Receipt() {
       data-ssgoi-transition="/receipt"
     >
       {/* Scrollable receipt content */}
-      <div class="scrollbar-none flex flex-1 flex-col items-center overflow-y-auto overflow-x-hidden px-5 pt-8 pb-44 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-48">
+      <div class="scrollbar-none flex flex-1 flex-col items-center overflow-y-auto overflow-x-hidden px-4 pt-5 pb-48 sm:px-5 sm:pt-8 sm:pb-44">
         {/* Success banner */}
         <div class="mb-7 flex animate-[fadeDown_0.5s_cubic-bezier(0.34,1.56,0.64,1)] flex-col items-center gap-3">
           <div class="relative grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-primary">
@@ -133,7 +133,7 @@ export default function Receipt() {
           <div class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-accent-soft opacity-25 blur-[50px]" />
 
           {/* Header */}
-          <div class="flex items-center justify-between border-border border-b border-dashed px-6 pt-6 pb-5 max-[600px]:px-4 max-[600px]:pt-5 max-[600px]:pb-4">
+          <div class="flex items-center justify-between border-border border-b border-dashed px-4 pt-5 pb-4 sm:px-6 sm:pt-6 sm:pb-5">
             <div class="flex items-center gap-3">
               <div class="grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-primary/5">
                 <img
@@ -159,7 +159,7 @@ export default function Receipt() {
           </div>
 
           {/* Meta */}
-          <div class="flex justify-between border-border/50 border-b px-6 py-4 max-[600px]:px-4 max-[600px]:py-3">
+          <div class="flex justify-between border-border/50 border-b px-4 py-3 sm:px-6 sm:py-4">
             <div class="flex flex-col gap-0.5">
               <span class="font-medium text-caption-sm text-muted-foreground uppercase tracking-[0.06em]">
                 Tanggal
@@ -187,7 +187,7 @@ export default function Receipt() {
           </div>
 
           {/* Items */}
-          <div class="px-6 py-4 max-[600px]:px-4 max-[600px]:py-3">
+          <div class="px-4 py-3 sm:px-6 sm:py-4">
             <For each={[...items]}>
               {(item, i) => (
                 <div
@@ -218,7 +218,7 @@ export default function Receipt() {
           </div>
 
           {/* Totals */}
-          <div class="border-border border-t border-dashed px-6 pt-4 pb-5 max-[600px]:px-4">
+          <div class="border-border border-t border-dashed px-4 pt-4 pb-5 sm:px-6">
             <div class="flex justify-between py-1">
               <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
                 Subtotal
@@ -245,7 +245,7 @@ export default function Receipt() {
           </div>
 
           {/* Payment method */}
-          <div class="flex justify-between border-border border-t border-dashed px-6 pt-4 pb-5 max-[600px]:px-4">
+          <div class="flex justify-between border-border border-t border-dashed px-4 pt-4 pb-5 sm:px-6">
             <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
               Metode
             </span>
@@ -256,7 +256,7 @@ export default function Receipt() {
           </div>
 
           {/* Paid section */}
-          <div class="px-6 pb-4 max-[600px]:px-4">
+          <div class="px-4 pb-4 sm:px-6">
             <div class="w-full">
               <Show
                 fallback={
@@ -292,7 +292,7 @@ export default function Receipt() {
           </div>
 
           {/* Footer */}
-          <div class="border-border border-t border-dashed px-6 pt-4 pb-5 text-center max-[600px]:px-4">
+          <div class="border-border border-t border-dashed px-4 pt-4 pb-5 text-center sm:px-6">
             <div class="text-caption text-muted-foreground leading-relaxed tracking-[0.02em]">
               Terima kasih atas kunjungan Anda!
               <br />
@@ -316,8 +316,8 @@ export default function Receipt() {
       </div>
 
       {/* Fixed bottom action bar */}
-      <div class="fixed inset-x-0 bottom-0 z-[100] mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] gap-2.5 border-border border-t bg-muted p-3 max-[600px]:flex-col max-[600px]:gap-2.5 max-[600px]:p-4">
-        <div class="flex gap-2.5 max-[600px]:grid max-[600px]:grid-cols-2">
+      <div class="fixed inset-x-0 bottom-0 z-[100] mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] flex-col gap-2.5 border-border border-t bg-muted p-4 sm:flex-row sm:gap-2.5 sm:p-3">
+        <div class="grid grid-cols-2 gap-2.5 sm:flex">
           <Button
             class={secondaryActionClass}
             look="outline"
@@ -340,7 +340,7 @@ export default function Receipt() {
           </Button>
         </div>
         <Button
-          class="h-[52px] flex-1 rounded-md font-bold text-body tracking-[0.02em] shadow-card max-[600px]:w-full"
+          class="h-[52px] w-full flex-1 rounded-md font-bold text-body tracking-[0.02em] shadow-card"
           onClick={() => navigate("/", { replace: true })}
           type="button"
         >

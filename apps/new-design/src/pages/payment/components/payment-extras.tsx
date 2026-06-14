@@ -7,7 +7,7 @@ interface PaymentExtrasProps {
 
 export const PaymentExtras = (props: PaymentExtrasProps) => (
   <div class="rounded-lg border border-border/50 bg-card px-6 py-5">
-    <div class="grid grid-cols-2 gap-3 max-[600px]:grid-cols-1">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <label
           class="mb-1.5 block font-medium text-caption text-muted-foreground"

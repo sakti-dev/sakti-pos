@@ -44,14 +44,14 @@ interface SettingsNavProps {
 
 export function SettingsNav(props: SettingsNavProps) {
   return (
-    <nav class="flex w-[220px] shrink-0 flex-col gap-0.5 gap-y-2 max-[900px]:w-full max-[900px]:flex-row max-[900px]:gap-1">
+    <nav class="flex w-full shrink-0 flex-row gap-1 gap-y-2 lg:w-[220px] lg:flex-col lg:gap-0.5">
       <For each={NAV_ITEMS}>
         {(item) => {
           const isActive = () => props.active === item.key;
           return (
             <Button
               aria-label={item.label}
-              class="flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-left font-semibold text-body-sm max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-caption"
+              class="flex items-center gap-2.5 whitespace-nowrap rounded-[10px] px-3 py-2 text-left font-semibold text-body-sm text-caption lg:px-3.5 lg:py-2.5"
               look={isActive() ? "soft" : "ghost"}
               onClick={() => props.onSelect(item.key)}
               size="none"

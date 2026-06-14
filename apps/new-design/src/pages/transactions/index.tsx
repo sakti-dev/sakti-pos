@@ -232,7 +232,7 @@ export default function Transactions() {
     >
       {/* Header bar */}
       <FadeIn
-        class="flex shrink-0 items-center gap-3 px-6 pt-5 pb-3 max-[800px]:px-[18px]"
+        class="flex shrink-0 items-center gap-3 px-[18px] pt-5 pb-3 lg:px-6"
         duration={0.35}
         enable={enable()}
         y={-8}
@@ -244,7 +244,7 @@ export default function Transactions() {
 
       {/* Search + filter row */}
       <FadeIn
-        class="flex shrink-0 flex-col gap-3 px-6 pb-3 max-[800px]:px-[18px]"
+        class="flex shrink-0 flex-col gap-3 px-[18px] pb-3 lg:px-6"
         delay={0.05}
         duration={0.4}
         enable={enable()}
@@ -268,7 +268,7 @@ export default function Transactions() {
             {(tab) => (
               <Button
                 aria-label={tab.label}
-                class="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-left font-semibold text-body-sm max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-caption"
+                class="flex items-center gap-2.5 whitespace-nowrap rounded-full px-3 py-2 text-left font-semibold text-body-sm text-caption lg:px-3.5 lg:py-2.5"
                 look={filter() === tab.key ? "soft" : "outline"}
                 onClick={() => setFilter(tab.key)}
                 size="none"
@@ -284,7 +284,7 @@ export default function Transactions() {
       </FadeIn>
 
       {/* Transaction list */}
-      <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-6 pb-24 max-[800px]:px-[18px] max-[900px]:pb-28">
+      <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-[18px] pb-28 lg:px-6 lg:pb-24">
         <Show
           fallback={
             <div class="flex flex-1 items-center justify-center py-20 text-faint-foreground text-sm">

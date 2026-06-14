@@ -102,7 +102,7 @@ export default function Payment() {
       title="Pembayaran"
     >
       <div class="flex flex-1 overflow-hidden">
-        <div class="flex flex-1 gap-5 overflow-y-auto p-5 max-[900px]:flex-col max-[600px]:gap-3 max-[900px]:gap-4 max-[600px]:p-3 max-[900px]:p-4 max-[600px]:pb-24 max-[900px]:pb-24">
+        <div class="flex flex-1 gap-3 overflow-y-auto p-3 pb-24 sm:flex-col sm:gap-4 sm:p-4 sm:pb-24 lg:gap-5 lg:p-5">
           <OrderSummary
             items={cart()}
             onAdjustQty={adjustQty}
@@ -112,7 +112,7 @@ export default function Payment() {
             totalQty={totalQty()}
           />
 
-          <div class="scrollbar-none flex flex-1 flex-col gap-4 overflow-y-auto max-[900px]:order-1 max-[900px]:flex-none max-[900px]:overflow-y-visible">
+          <div class="scrollbar-none order-1 flex flex-1 flex-none flex-col gap-4 overflow-y-visible lg:overflow-y-auto">
             <TotalBanner subtotal={subtotal()} tax={tax()} total={total()} />
             <PaymentMethod
               cashRaw={cashRaw()}
@@ -137,7 +137,7 @@ export default function Payment() {
             />
 
             {/* Desktop: inline button */}
-            <div class="shrink-0 pt-1 max-[900px]:hidden">
+            <div class="hidden shrink-0 pt-1 lg:block">
               <Button
                 class="h-14 w-full rounded-md font-bold text-body shadow-card disabled:opacity-40 dark:disabled:shadow-none"
                 disabled={!canConfirm()}
@@ -154,7 +154,7 @@ export default function Payment() {
       </div>
 
       {/* Mobile: fixed bottom button */}
-      <div class="fixed inset-x-0 bottom-0 z-[100] hidden border-border border-t bg-card p-4 pb-4 max-[900px]:block max-[600px]:p-3 max-[600px]:pb-3">
+      <div class="fixed inset-x-0 bottom-0 z-[100] border-border border-t bg-card p-3 pb-3 sm:block lg:hidden lg:p-4 lg:pb-4">
         <Button
           class="h-14 w-full rounded-md font-bold text-body shadow-card disabled:opacity-40 dark:disabled:shadow-none"
           disabled={!canConfirm()}

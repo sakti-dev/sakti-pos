@@ -11,7 +11,7 @@ export default function Pengaturan() {
 
   return (
     <div
-      class="scrollbar-none flex flex-1 flex-col gap-5 overflow-y-auto px-7 pt-6 pb-24 max-[800px]:gap-4 max-[800px]:px-[18px] max-[800px]:pb-28 max-[900px]:pb-28"
+      class="scrollbar-none flex flex-1 flex-col gap-4 overflow-y-auto px-[18px] pt-6 pb-28 lg:gap-5 lg:px-7 lg:pb-24"
       data-ssgoi-transition="/pengaturan"
     >
       {/* Header */}
@@ -25,7 +25,7 @@ export default function Pengaturan() {
       </FadeIn>
 
       {/* Settings layout: nav + panel */}
-      <div class="flex gap-6 max-[900px]:flex-col">
+      <div class="flex flex-col gap-6 lg:flex-row">
         {/* Nav slides in from left */}
         <FadeIn delay={0.06} duration={0.45} enable={enable()} x={-30}>
           <SettingsNav active={activeSection()} onSelect={setActiveSection} />

@@ -18,7 +18,7 @@ export const EarningsCard = () => {
         </div>
         <Show
           fallback={
-            <div class="flex items-center font-light text-2xl text-white/30 tabular-nums tracking-[0.14em] md:text-heading">
+            <div class="flex items-center font-light text-2xl text-white/30 tabular-nums tracking-[0.14em] lg:text-heading">
               {masked}
             </div>
           }

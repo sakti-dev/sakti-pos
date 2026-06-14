@@ -7,7 +7,7 @@ interface TotalBannerProps {
 }
 
 export const TotalBanner = (props: TotalBannerProps) => (
-  <div class="hidden shrink-0 rounded-lg bg-primary px-6 py-5 max-[900px]:block">
+  <div class="block shrink-0 rounded-lg bg-primary px-6 py-5 lg:hidden">
     <div class="font-extrabold text-heading text-primary-foreground tabular-nums tracking-[-0.02em]">
       {formatRupiah(props.total)}
     </div>

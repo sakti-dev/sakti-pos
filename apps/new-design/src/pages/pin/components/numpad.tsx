@@ -11,18 +11,18 @@ export function Numpad(props: NumpadProps) {
   return (
     <fieldset
       aria-label="Numpad"
-      class="grid w-full max-w-[280px] grid-cols-3 gap-2.5 border-none p-0 max-[480px]:max-w-[260px] max-[480px]:gap-2"
+      class="grid w-full max-w-[260px] grid-cols-3 gap-2 border-none p-0 sm:max-w-[280px] sm:gap-2.5"
     >
       <For each={[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, "back"]}>
         {(key) => {
           if (key === null) {
-            return <div class="h-[60px] max-[480px]:h-14" />;
+            return <div class="h-14 sm:h-[60px]" />;
           }
           if (key === "back") {
             return (
               <button
                 aria-label="Hapus"
-                class="flex h-[60px] items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-none transition-[background,transform] duration-150 hover:border-destructive/20 hover:bg-destructive/5 hover:text-destructive active:scale-[0.94] active:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14"
+                class="flex h-14 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-none transition-[background,transform] duration-150 hover:border-destructive/20 hover:bg-destructive/5 hover:text-destructive active:scale-[0.94] active:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40 sm:h-[60px]"
                 disabled={props.disabled}
                 onClick={props.onBackspace}
                 type="button"
@@ -34,7 +34,7 @@ export function Numpad(props: NumpadProps) {
           return (
             <button
               aria-label={String(key)}
-              class="grid h-[60px] place-items-center rounded-lg border-none bg-card font-display font-semibold text-foreground text-heading-sm shadow-card transition-[background,color,transform,box-shadow] duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14 max-[480px]:text-subheading"
+              class="grid h-14 place-items-center rounded-lg border-none bg-card font-display font-semibold text-foreground text-heading-sm text-subheading shadow-card transition-[background,color,transform,box-shadow] duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 sm:h-[60px]"
               disabled={props.disabled}
               onClick={() => props.onDigit(String(key))}
               type="button"

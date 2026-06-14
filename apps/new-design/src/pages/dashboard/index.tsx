@@ -17,7 +17,7 @@ export default function Dashboard() {
       data-ssgoi-transition="/"
     >
       {/* Banner zone */}
-      <div class="relative flex shrink-0 flex-col gap-3 px-[18px] pt-3.5 pb-10 md:px-6 md:pt-4 md:pb-24">
+      <div class="relative flex shrink-0 flex-col gap-3 px-[18px] pt-3.5 pb-10 lg:px-6 lg:pt-4 lg:pb-24">
         <FadeIn delay={STAGGER * 0} duration={0.45} enable={enable()} y={12}>
           <VenueCard />
         </FadeIn>
@@ -28,7 +28,7 @@ export default function Dashboard() {
 
       {/* Content body — slides up into the banner */}
       <FadeIn
-        class="relative z-10 -mt-6 flex flex-1 flex-col gap-5 rounded-t-3xl bg-background px-[18px] py-7 pb-[105px] md:-mt-14 md:gap-6 md:rounded-t-[60px] md:px-6 md:py-9"
+        class="relative z-10 -mt-6 flex flex-1 flex-col gap-5 rounded-t-3xl bg-background px-[18px] py-7 pb-[105px] lg:-mt-14 lg:gap-6 lg:rounded-t-[60px] lg:px-6 lg:py-9"
         delay={STAGGER * 2}
         duration={0.55}
         enable={enable()}

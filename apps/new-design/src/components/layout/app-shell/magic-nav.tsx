@@ -33,7 +33,7 @@ export const MagicNav = (props: MagicNavProps) => {
   return (
     <nav
       aria-label="Mobile navigation"
-      class="fixed right-0 bottom-0 left-0 z-[100] hidden h-[75px] max-[900px]:block"
+      class="fixed right-0 bottom-0 left-0 z-[100] block h-[75px] lg:hidden"
     >
       <div class="relative h-[75px] w-full bg-card shadow-card">
         <ul class="m-0 flex h-[75px] w-full list-none p-0">

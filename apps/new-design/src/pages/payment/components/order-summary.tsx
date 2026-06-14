@@ -21,7 +21,7 @@ interface OrderSummaryProps {
 }
 
 export const OrderSummary = (props: OrderSummaryProps) => (
-  <div class="flex w-[380px] min-w-[380px] flex-col overflow-hidden rounded-lg border border-border/50 bg-card max-[900px]:order-2 max-[900px]:w-full max-[900px]:min-w-0 max-[900px]:flex-none">
+  <div class="order-2 flex w-[380px] w-full min-w-0 flex-none flex-col overflow-hidden rounded-lg border border-border/50 bg-card lg:min-w-[380px]">
     {/* header */}
     <div class="shrink-0 border-border/50 border-b px-5 pt-5 pb-4">
       <div class="flex items-center justify-between">
@@ -79,14 +79,14 @@ export const OrderSummary = (props: OrderSummaryProps) => (
           {formatRupiah(props.subtotal)}
         </span>
       </div>
-      <div class="flex items-center justify-between py-1.5 max-[900px]:hidden">
+      <div class="hidden items-center justify-between py-1.5 lg:flex">
         <span class="text-body-sm text-muted-foreground">Pajak (11%)</span>
         <span class="font-medium text-body-sm text-foreground tabular-nums">
           {formatRupiah(props.tax)}
         </span>
       </div>
-      <div class="my-3 h-px bg-border max-[900px]:hidden" />
-      <div class="flex items-center justify-between max-[900px]:hidden">
+      <div class="my-3 hidden h-px bg-border lg:block" />
+      <div class="hidden items-center justify-between lg:flex">
         <span class="font-bold text-body text-foreground">Total</span>
         <span class="font-extrabold text-heading text-primary tabular-nums tracking-[-0.02em] dark:text-accent">
           {formatRupiah(props.total)}
