@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion-solidjs";
 import { For, Show } from "solid-js";
 import { XCloseIcon } from "~/assets";
+import { Button } from "~/components/ui/button";
 import { type PinUser, SAMPLE_USERS } from "../types";
 
 interface AccountSelectorProps {
@@ -62,16 +63,16 @@ export function AccountSelector(props: AccountSelectorProps) {
               </For>
             </div>
 
-            <div class="text-center">
-              <button
-                aria-label="Batal"
-                class="inline-flex items-center justify-center rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-body-sm text-faint-foreground transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
+            <div class="flex justify-center">
+              <Button
+                class="rounded-full px-5 py-2.5 text-faint-foreground hover:text-foreground"
+                look="outline"
                 onClick={props.onCancel}
-                type="button"
+                tone="neutral"
               >
                 <XCloseIcon class="h-[15px] w-[15px]" />
                 Batal
-              </button>
+              </Button>
             </div>
           </motion.div>
         </motion.div>

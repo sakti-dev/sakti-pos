@@ -1,6 +1,7 @@
 import { createSignal, onCleanup, onMount } from "solid-js";
 import { toast } from "solid-sonner";
 import { UsersIcon } from "~/assets";
+import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { DIGIT_RE, MAX_PIN, type PinUser, SAMPLE_USERS } from "../types";
 import { usePinAuth } from "../use-pin-auth";
@@ -105,16 +106,16 @@ export function PinRightPanel() {
           />
 
           {/* Switch account */}
-          <div class="mt-1 flex items-center gap-2">
-            <button
-              aria-label="Ganti akun"
-              class="flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-body-sm text-faint-foreground transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
+          <div class="mt-1 flex items-center justify-center">
+            <Button
+              class="rounded-full px-5 py-2.5 text-faint-foreground hover:text-foreground"
+              look="outline"
               onClick={() => setShowUserList(true)}
-              type="button"
+              tone="neutral"
             >
               <UsersIcon class="h-[15px] w-[15px]" />
               Ganti Akun
-            </button>
+            </Button>
           </div>
         </div>
       </div>

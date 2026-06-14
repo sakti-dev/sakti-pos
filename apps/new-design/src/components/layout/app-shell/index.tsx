@@ -104,7 +104,7 @@ export const AppShell = (props: RouteSectionProps) => {
       </main>
 
       {/* ── Shell-only chrome ── */}
-      <Show when={isShell()}>
+      <Show when={isShell() && pathname() !== "/pengaturan"}>
         <Fab />
         <MagicNav active={activeNav()} />
       </Show>
