@@ -89,7 +89,7 @@ export function PinRightPanel() {
           {/* Error message */}
           <div
             class={cn(
-              "min-h-[18px] text-center font-medium text-body-sm text-destructive transition-[opacity,transform] duration-200",
+              "min-h-[18px] text-center font-medium text-body-sm text-danger transition-[opacity,transform] duration-200",
               !auth.error() && "-translate-y-1 opacity-0",
               !!auth.error() && "translate-y-0 opacity-100"
             )}

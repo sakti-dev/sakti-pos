@@ -14,7 +14,7 @@ export const Toaster: Component<ToasterProps> = (props) => (
       classes: {
         toast:
           "group toast group-[.toaster]:font-medium group-[.toaster]:text-[13px] group-[.toaster]:tracking-[0.01em] group-[.toaster]:rounded-sm group-[.toaster]:border-none group-[.toaster]:text-white group-[.toaster]:bg-primary group-[.toaster]:shadow-[0_8px_24px_rgba(0,0,0,0.15)]",
-        error: "group-[.toaster]:!bg-destructive",
+        error: "group-[.toaster]:!bg-danger",
         description: "group-[.toast]:text-white/80",
         actionButton:
           "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",

@@ -67,7 +67,7 @@ const TextFieldInput = <T extends ValidComponent = "input">(
         "h-12 w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 font-sans text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
         "focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10",
         "dark:focus:border-accent",
-        "data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/10",
+        "data-[invalid]:border-danger data-[invalid]:ring-2 data-[invalid]:ring-danger/10",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "file:border-0 file:bg-transparent file:font-medium file:text-sm",
         local.class
@@ -93,7 +93,7 @@ const TextFieldTextArea = <T extends ValidComponent = "textarea">(
         "min-h-[80px] w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 py-3 font-sans text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
         "focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10",
         "dark:focus:border-accent",
-        "data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/10",
+        "data-[invalid]:border-danger data-[invalid]:ring-2 data-[invalid]:ring-danger/10",
         "disabled:cursor-not-allowed disabled:opacity-50",
         local.class
       )}
@@ -107,9 +107,9 @@ const labelVariants = cva(
   {
     variants: {
       variant: {
-        label: "data-[invalid]:text-destructive",
+        label: "data-[invalid]:text-danger",
         description: "font-normal text-muted-foreground",
-        error: "text-destructive text-xs",
+        error: "text-danger text-xs",
       },
     },
     defaultVariants: {

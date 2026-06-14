@@ -340,14 +340,14 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                 "mt-3 flex items-center justify-between rounded-lg border px-4 py-3",
                 change() >= 0
                   ? "border-border bg-muted/40"
-                  : "border-destructive/20 bg-destructive/5"
+                  : "border-danger/20 bg-danger/5"
               )}
             >
               <span class="flex items-center gap-2 font-medium text-body-sm text-muted-foreground">
                 <span
                   class={cn(
                     "size-1.5 rounded-full",
-                    change() >= 0 ? "bg-accent" : "bg-destructive"
+                    change() >= 0 ? "bg-accent" : "bg-danger"
                   )}
                 />
                 {change() >= 0 ? "Kembalian" : "Kurang"}
@@ -355,7 +355,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               <span
                 class={cn(
                   "font-bold text-body-lg tabular-nums",
-                  change() >= 0 ? "text-foreground" : "text-destructive"
+                  change() >= 0 ? "text-foreground" : "text-danger"
                 )}
               >
                 {formatRupiah(Math.abs(change()))}

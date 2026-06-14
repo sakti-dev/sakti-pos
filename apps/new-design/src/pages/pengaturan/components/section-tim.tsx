@@ -51,7 +51,7 @@ export function SectionTim() {
                 class={`rounded-full px-2.5 py-[3px] font-semibold text-caption-sm uppercase tracking-[0.04em] ${
                   s.active
                     ? "bg-accent/10 text-primary dark:text-accent"
-                    : "bg-status-danger/10 text-status-danger dark:bg-status-danger dark:text-status-danger-foreground"
+                    : "bg-danger/10 text-danger dark:bg-danger dark:text-danger-foreground"
                 }`}
               >
                 {s.active ? "Aktif" : "Nonaktif"}

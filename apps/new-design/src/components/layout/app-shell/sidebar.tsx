@@ -117,7 +117,7 @@ export const Sidebar = (props: SidebarProps) => {
         )}
         look="ghost"
         size="none"
-        tone="destructive"
+        tone="danger"
         type="button"
       >
         <LogoutIcon class="h-[22px] w-[22px] shrink-0" />

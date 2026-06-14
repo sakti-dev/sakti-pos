@@ -14,14 +14,14 @@ import { cn } from "~/lib/utils";
  *
  * ┌──────────┬──────────────────────────────────────────────────────┐
  * │ look     │ solid | soft | outline | ghost | link                │
- * │ tone     │ primary | destructive | neutral                     │
+ * │ tone     │ primary | danger | neutral                     │
  * │ size     │ xs | sm | md | lg | xl | icon | icon-sm | icon-xs   │
  * │          │ | none                                              │
  * └──────────┴──────────────────────────────────────────────────────┘
  *
  * Migration from old variants:
  *   default           → look="solid"  tone="primary"
- *   destructive       → look="solid"  tone="destructive"
+ *   danger       → look="solid"  tone="danger"
  *   outline           → look="outline" tone="neutral"
  *   outline-primary   → look="outline" tone="primary"
  *   secondary         → look="soft"   tone="neutral"
@@ -44,7 +44,7 @@ export const buttonVariants = cva(
       },
       tone: {
         primary: "",
-        destructive: "",
+        danger: "",
         neutral: "",
       },
       size: {
@@ -69,9 +69,8 @@ export const buttonVariants = cva(
       },
       {
         look: "solid",
-        tone: "destructive",
-        class:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        tone: "danger",
+        class: "bg-danger text-danger-foreground hover:bg-danger/90",
       },
 
       /* ── soft ───────────────────────────────────────────────────── */
@@ -87,8 +86,8 @@ export const buttonVariants = cva(
       },
       {
         look: "soft",
-        tone: "destructive",
-        class: "bg-destructive/10 text-destructive hover:bg-destructive/15",
+        tone: "danger",
+        class: "bg-danger/10 text-danger hover:bg-danger/15",
       },
 
       /* ── outline ────────────────────────────────────────────────── */
@@ -106,9 +105,8 @@ export const buttonVariants = cva(
       },
       {
         look: "outline",
-        tone: "destructive",
-        class:
-          "border-destructive/50 bg-transparent text-destructive hover:bg-destructive/10",
+        tone: "danger",
+        class: "border-danger/50 bg-transparent text-danger hover:bg-danger/10",
       },
 
       /* ── ghost ──────────────────────────────────────────────────── */
@@ -125,8 +123,8 @@ export const buttonVariants = cva(
       },
       {
         look: "ghost",
-        tone: "destructive",
-        class: "text-destructive hover:bg-destructive/10",
+        tone: "danger",
+        class: "text-danger hover:bg-danger/10",
       },
 
       /* ── link ───────────────────────────────────────────────────── */

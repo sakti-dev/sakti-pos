@@ -48,8 +48,8 @@
   --color-accent: var(--color-lime);
   --color-accent-foreground: var(--color-canopy);
   --color-accent-soft: var(--color-lime);
-  --color-destructive: oklch(0.5386 0.1937 26.72);
-  --color-destructive-foreground: oklch(1.0000 0.0000 0);
+  --color-danger: oklch(0.5386 0.1937 26.72);
+  --color-danger-foreground: oklch(1.0000 0.0000 0);
 
   /* ── shadcn roles — lines & focus ── */
   --color-border: oklch(0.3146 0.0734 139.03 / 0.12);
@@ -365,7 +365,7 @@
     --color-secondary-foreground: oklch(0.9461 0.0000 0);
     --color-faint-foreground: oklch(0.61 0.004 285);
     --color-border: oklch(1.0000 0.0000 0 / 0.08);
-    --color-destructive: oklch(0.63 0.19 27);
+    --color-danger: oklch(0.63 0.19 27);
     /* Status tones: brightened as text-on-tint; foregrounds deepened so solid
        chips (bg-X text-X-foreground) keep contrast. Measured ≥4.5:1 on #1a1a1a. */
     --color-status-success: oklch(0.74 0.14 140);

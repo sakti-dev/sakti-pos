@@ -9,7 +9,7 @@ interface PinDotsProps {
 export function PinDots(props: PinDotsProps) {
   const dotClass = (i: number) => {
     if (props.hasError && props.length > 0) {
-      return "h-4 w-4 animate-shake rounded-full border-2 border-destructive bg-destructive ring-4 ring-destructive/10";
+      return "h-4 w-4 animate-shake rounded-full border-2 border-danger bg-danger ring-4 ring-danger/10";
     }
     if (i < props.length) {
       return "h-4 w-4 scale-125 rounded-full border-2 border-primary bg-primary ring-4 ring-primary/10 dark:border-accent dark:bg-accent";
