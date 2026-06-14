@@ -1,7 +1,8 @@
 import type { RouteSectionProps } from "@solidjs/router";
 import { Ssgoi } from "@ssgoi/solid";
-import { createSignal, onCleanup, Show } from "solid-js";
-import { rootConfig } from "~/lib/ssgoi-config";
+import { createMemo, createSignal, onCleanup, Show } from "solid-js";
+import { createRootConfig } from "~/lib/ssgoi-config";
+import { useOrientation } from "~/lib/use-orientation";
 import { cn } from "~/lib/utils";
 import { Fab } from "./fab";
 import { MagicNav } from "./magic-nav";
@@ -50,6 +51,12 @@ export const AppShell = (props: RouteSectionProps) => {
   const [expanded, setExpanded] = createSignal(false);
   let expandTimer: ReturnType<typeof setTimeout> | undefined;
 
+  /* ── SSGOI config memo: axis choice (x vs y) tracks orientation.
+     SSGOI's own createMemo recreates the transition context when config
+     identity changes. Orientation signal is global (use-orientation.ts). */
+  const isPortrait = useOrientation();
+  const config = createMemo(() => createRootConfig(isPortrait()));
+
   const touchSidebar = () => {
     setExpanded(true);
     clearTimeout(expandTimer);
@@ -87,13 +94,14 @@ export const AppShell = (props: RouteSectionProps) => {
           "relative flex flex-1 flex-col overflow-hidden bg-background",
           isShell() && "mt-[54px] h-[calc(100vh-54px)]",
           isShell() && expanded() ? "ml-[200px]" : "ml-[80px]",
-          isShell() && "transition-[margin-left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          isShell() &&
+            "transition-[margin-left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
           !isShell() && "ml-0 h-screen",
           "max-[900px]:ml-0"
         )}
         onPointerDown={closeSidebar}
       >
-        <Ssgoi config={rootConfig}>{props.children}</Ssgoi>
+        <Ssgoi config={config()}>{props.children}</Ssgoi>
       </main>
 
       {/* ── Shell-only chrome ── */}
