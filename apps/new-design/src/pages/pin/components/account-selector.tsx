@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion-solidjs";
 import { For, Show } from "solid-js";
-import { UsersIcon } from "~/assets";
+import { XCloseIcon } from "~/assets";
 import { type PinUser, SAMPLE_USERS } from "../types";
 
 interface AccountSelectorProps {
@@ -65,11 +65,11 @@ export function AccountSelector(props: AccountSelectorProps) {
             <div class="text-center">
               <button
                 aria-label="Batal"
-                class="flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-body-sm text-faint-foreground transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
+                class="inline-flex items-center justify-center rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-body-sm text-faint-foreground transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
                 onClick={props.onCancel}
                 type="button"
               >
-                <UsersIcon class="h-[15px] w-[15px]" />
+                <XCloseIcon class="h-[15px] w-[15px]" />
                 Batal
               </button>
             </div>
