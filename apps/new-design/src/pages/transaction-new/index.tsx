@@ -153,7 +153,7 @@ export default function TransactionNew() {
 
       {/* Right column — cart sidebar (desktop only) */}
       <FadeIn
-        class="hidden flex-col overflow-hidden border-border border-l bg-card lg:w-[320px] lg:min-w-[320px] xl:flex xl:w-[360px] xl:min-w-[360px]"
+        class="hidden flex-col overflow-hidden border-border border-l bg-card lg:flex lg:w-[320px] lg:min-w-[320px] xl:w-[360px] xl:min-w-[360px]"
         delay={0.15}
         duration={0.45}
         x={40}
