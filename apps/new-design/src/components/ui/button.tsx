@@ -32,7 +32,7 @@ import { cn } from "~/lib/utils";
  *   card-accent / card-accent-active → outline/soft + tone="primary" + class
  */
 export const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-sm font-medium font-sans text-sm transition-[background,border-color,box-shadow,transform,color] duration-standard ease-standard focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-sm font-medium font-sans text-sm transition-[background,border-color,box-shadow,transform,color] duration-standard ease-standard focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       look: {

@@ -53,7 +53,7 @@ export function AuthRightPanel(props: {
   const { colorMode, setColorMode } = useColorMode();
 
   return (
-    <main class="relative flex w-full flex-col justify-center overflow-y-auto bg-background p-8 lg:w-[480px] lg:min-w-[420px] lg:px-14 lg:py-10">
+    <main class="relative flex w-full flex-col justify-start overflow-y-auto bg-background p-8 pt-16 lg:w-[480px] lg:min-w-[420px] lg:justify-center lg:px-14 lg:py-10 lg:pt-10">
       <For each={ghostCards}>
         {(gc) => (
           <div
