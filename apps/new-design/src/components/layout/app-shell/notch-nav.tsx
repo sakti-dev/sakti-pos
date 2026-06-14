@@ -123,7 +123,7 @@ export const NotchNav = (props: NotchNavProps) => {
       {/* Center floating button — sits in the notch */}
       <A
         aria-label="Buat Transaksi"
-        class="absolute left-1/2 flex -translate-x-1/2 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_4px_14px_rgba(0,0,0,0.18)] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 active:scale-95 active:duration-75"
+        class="absolute left-1/2 -translate-x-1/2 overflow-hidden rounded-full p-[2px] shadow-[0_4px_14px_rgba(0,0,0,0.18)] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 active:scale-95 active:duration-75"
         href="/transaction-new"
         style={{
           width: `${BUTTON_SIZE}px`,
@@ -131,7 +131,12 @@ export const NotchNav = (props: NotchNavProps) => {
           bottom: `${BAR_HEIGHT - BUTTON_RADIUS}px`,
         }}
       >
-        <CashRegisterIcon class="h-6 w-6" />
+        {/* Rotating gradient ring */}
+        <span class="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,var(--color-accent)_0%,var(--color-primary)_50%,var(--color-accent)_100%)]" />
+        {/* Content */}
+        <span class="relative flex h-full w-full items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <CashRegisterIcon class="h-6 w-6" />
+        </span>
       </A>
     </nav>
   );

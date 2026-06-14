@@ -53,7 +53,7 @@ export const Sidebar = (props: SidebarProps) => {
       class={cn(
         "fixed top-0 left-0 z-[100] h-screen flex-col overflow-hidden border-border border-r bg-card px-3 py-5 pb-4 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         props.isShell ? "hidden lg:flex" : "hidden",
-        props.expanded ? "lg:w-[200px]" : "lg:w-[80px]"
+        props.expanded ? "lg:w-[200px]" : "lg:w-[80px]",
       )}
       onClick={props.onTouch}
     >
@@ -82,11 +82,11 @@ export const Sidebar = (props: SidebarProps) => {
                 as={A}
                 class={cn(
                   "relative flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
-                  props.expanded ? "w-full px-3" : "w-[52px] px-[15px]"
+                  props.expanded ? "w-full px-3" : "w-[52px] px-[15px]",
                 )}
                 end={item.key === "home"}
                 href={item.href}
-                look="ghost"
+                look="soft"
                 size="none"
                 tone={isActive() ? "primary" : "neutral"}
               >
@@ -113,7 +113,7 @@ export const Sidebar = (props: SidebarProps) => {
         aria-label="Keluar"
         class={cn(
           "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
-          props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
+          props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]",
         )}
         look="ghost"
         size="none"

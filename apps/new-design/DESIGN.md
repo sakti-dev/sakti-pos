@@ -29,11 +29,10 @@ colors:
   input: "{colors.border}"
   ring: "{colors.canopy}"
   # Status tones (POS extension — seed has none)
-  destructive: "#c62828"
+  danger: "#c62828"
   info: "#0284c7"
   success: "{colors.canopy}"
   warning: "#e6a817"
-  danger: "#c0392b"
   # Dark mode — near-neutral charcoal; primary shifts to dark lime, status tones brightened
   dark-background: "#151515"
   dark-card: "#1a1a1a"
@@ -47,43 +46,45 @@ colors:
   banner-to: "oklch(0.3105 0.0617 164.22)"
 typography:
   display:
-    fontFamily: '"Plus Jakarta Sans", "Inter", system-ui, sans-serif'
+    fontFamily: '"Bricolage Grotesque", "Archivo Black", system-ui, sans-serif'
     fontWeight: 700
     fontSize: "32–48px"
-    letterSpacing: "-0.8px to -1.44px"
+    letterSpacing: "-0.02em to 0.04em"
     lineHeight: "1–1.2"
   heading:
-    fontFamily: '"Plus Jakarta Sans", "Inter", system-ui, sans-serif'
+    fontFamily: '"Bricolage Grotesque", system-ui, sans-serif'
     fontWeight: 700
     fontSize: "24px"
-    letterSpacing: "-0.48px"
+    letterSpacing: "-0.01em"
     lineHeight: "1.17"
   title:
-    fontFamily: '"Plus Jakarta Sans", "Inter", system-ui, sans-serif'
+    fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif'
     fontWeight: 600
     fontSize: "18–20px"
-    letterSpacing: "-0.3px"
+    letterSpacing: "-0.01em"
     lineHeight: "1.2"
   body:
-    fontFamily: '"Inter", system-ui, sans-serif'
+    fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif'
     fontWeight: 400
     fontSize: "14–16px"
-    letterSpacing: "-0.4px"
-    lineHeight: "1.4–1.5"
+    letterSpacing: "0em to 0.01em"
+    lineHeight: "1.4"
   label:
-    fontFamily: '"Inter", system-ui, sans-serif'
-    fontWeight: 500
-    fontSize: "13px"
-    letterSpacing: "0.01em"
-    lineHeight: "1"
-  caption:
-    fontFamily: '"Inter", system-ui, sans-serif'
+    fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif'
     fontWeight: 600
-    fontSize: "11px"
+    fontSize: "12px"
+    letterSpacing: "0.04em"
+    lineHeight: "1"
+    textTransform: uppercase
+  caption:
+    fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif'
+    fontWeight: 600
+    fontSize: "10–12px"
     letterSpacing: "0.06em"
     lineHeight: "1"
+    textTransform: uppercase
   numeric:
-    fontFamily: '"Plus Jakarta Sans", "Inter", system-ui, sans-serif'
+    fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif'
     fontWeight: 700
     fontSize: "18–30px"
     letterSpacing: "-0.02em"
@@ -176,7 +177,7 @@ in three places, all forced by being a *money tool* rather than a supplement sto
 - **Shadows exist.** Seed is intentionally flat. A money surface needs confident depth on
   its actions, so elevated/active/signature elements carry canopy-tinted lift. Resting
   surfaces stay flat + hairline, preserving the apothecary calm.
-- **Display type is Plus Jakarta Sans (700), not a weight-300 whisper.** Seed uses a light
+- **Display type is Bricolage Grotesque (700), not a weight-300 whisper.** Seed uses a light
   display to defer to product photography; a POS needs figures and headlines that read
   instantly under retail glare, so the display is tight and weighted, not whisper-light.
 
@@ -185,15 +186,16 @@ in three places, all forced by being a *money tool* rather than a supplement sto
 - Deep canopy green (`#1c3a13`) as the dominant brand voice — primary buttons, the
   dashboard banner zone, the sidebar active state, the floating action button; sunlit lime
   (`#d3fa99`) as a sparing confirmation/online/accent.
-- Plus Jakarta Sans for display headings and figures (tight, `-0.3` to `-1.44px`); Inter
-  for all body, UI, and labels.
+- Plus Jakarta Sans for all body, UI, and labels; Bricolage Grotesque for display
+  headings (tight, `-0.01em` to `-0.02em`). Body/caption tracking is near-zero or
+  slightly positive (adapted to actual UI usage).
 - Hairline resting borders (canopy @ 12% alpha) + canopy-tinted confident shadows on lift;
   a 2px canopy ring + canopy focus glow on inputs.
 - Pill (`9999px`) chips for status/counts; `rounded-sm` on buttons and inputs;
   `rounded-lg` on cards. Radius uses **Tailwind's default scale** — there is no custom
   radius scale.
-- Two-mode navigation: a hover-expand desktop rail + floating action button, and a mobile
-  bottom "magic nav" with a rising `+` bubble.
+- Two-mode navigation: a hover-expand desktop rail + floating action button, and a
+  mobile bottom "notch nav" with a curved-notch cutout and center cash-register button.
 - Sheet-over-banner composition on the dashboard: a deep-green banner zone with a content
   sheet sliding up over it.
 - Full light/dark theme. Light is the warm parchment canvas; dark is a true-neutral
@@ -220,6 +222,21 @@ imported by `src/index.css`. Two layers:
 `oklch(0.3146 0.0734 139.03)`). Edit colors in `theme.css`, never as arbitrary hex in
 components.
 
+### Breakpoints (mobile-first)
+
+The scale overrides Tailwind's defaults with 3 named min-width breakpoints:
+
+| Token              | Value       | Pixel  | Transition                          |
+| ------------------ | ----------- | ------ | ----------------------------------- |
+| `--breakpoint-sm`  | `37.5rem`   | 600px  | Phone → tablet                      |
+| `--breakpoint-lg`  | `56.25rem`  | 900px  | Tablet → desktop (shell rail shows) |
+| `--breakpoint-xl`  | `75rem`     | 1200px | Desktop → large desktop             |
+
+Layout decisions that must match the CSS breakpoint (e.g. mobile drill-in vs two-column)
+use the `useIsWide()` hook (`src/lib/use-is-wide.ts`) — a global `matchMedia` signal for
+`min-width: 56.25rem`. Do **not** use `isPortrait()` for layout decisions; orientation and
+breakpoint do not always agree.
+
 ### Dark mode
 
 Dark is a **true-neutral charcoal**, not a green-tinted black: background
@@ -239,9 +256,9 @@ intentional: teal (fresh botanical) for large environment surfaces, lime (energe
 interactive elements. Two greens, two roles.
 
 **Status tones are brightened** in dark mode for text-on-tint contrast (success →
-`oklch(0.74 0.14 140)`, danger → `oklch(0.78 0.15 25)`, etc.), with deepened foregrounds so
-solid chips keep ≥4.5:1. Dark mode is a base-surface + brand override in `@layer theme`
-under `.dark`.
+`oklch(0.74 0.14 140)`, `danger` → `oklch(0.63 0.19 27)`, `status-danger` →
+`oklch(0.78 0.15 25)`, etc.), with deepened foregrounds so solid chips keep ≥4.5:1. Dark
+mode is a base-surface + brand override in `@layer theme` under `.dark`.
 
 ## 3. Colors: the Greenhouse Palette
 
@@ -282,10 +299,13 @@ confirms and highlights, and warm paper is the canvas.
 ### Status tones (POS extension — used on badges and validation only)
 
 info `#0284c7`, success = `canopy` (the brand green *is* the success color), warning
-`#e6a817`, danger `#c0392b`, destructive `#c62828`. Each has a `*-foreground` (white).
+`#e6a817`, danger `#c62828`. Each has a `*-foreground` (white). The **`danger`** token
+is the general-purpose destructive red — used on button `tone="danger"`, invalid input
+borders, PIN error states, and the danger badge variant. The **`status-danger`** token is
+a separate, slightly pinker red used only on KPI cards — it is intentionally distinct.
 Dark mode **brightens all status tones** for text-on-tint contrast (success →
-`oklch(0.74 0.14 140)`, danger → `oklch(0.78 0.15 25)`, etc.) with deepened foregrounds so
-solid chips keep ≥4.5:1. The
+`oklch(0.74 0.14 140)`, `danger` → `oklch(0.63 0.19 27)`, `status-danger` →
+`oklch(0.78 0.15 25)`, etc.) with deepened foregrounds so solid chips keep ≥4.5:1. The
 **processing** badge is the one intentional literal: yellow `rgba(255,233,92,0.25)` fill
 with `#7a5f00` text — a "pending/in-flight" state that deliberately does not map to the
 semantic ramp.
@@ -309,47 +329,49 @@ neutrals for disabled/inactive surfaces, not a second brand green.
 
 ## 4. Typography
 
-**Display Font:** Plus Jakarta Sans (fallback Inter → system-ui) — loaded weights 500–800.
-**Body Font:** Inter (fallback system-ui) — loaded weights 300–700.
-**Numeric Font:** Plus Jakarta Sans / Inter with `font-feature-settings: "tnum"`.
+**Display Font:** Bricolage Grotesque (fallback Archivo Black → Mulish → Inter → system-ui).
+**Body Font:** Plus Jakarta Sans (fallback system-ui) — loaded weights 500–800.
+**Numeric Font:** Plus Jakarta Sans with `font-feature-settings: "tnum"`.
 
-**Character:** A confident geometric-plus-humanist split. Plus Jakarta Sans is tight and
-slightly geometric; it carries headings and figures with quiet authority. Inter does all
-the patient body and UI work. Display tracking tightens progressively with size (Seed's
-ramp: `-0.3px` at 10px caption → `-1.44px` at 48px display); labels track *out*
-(`0.01em`) for legibility.
+**Character:** A confident geometric-plus-humanist split. Bricolage Grotesque carries
+headings with characterful weight; Plus Jakarta Sans does all the patient body, UI, and
+figure work. Tracking is tight-negative on headings (`-0.01em` to `-0.02em`), near-zero
+on body, and slightly positive on small text (captions, labels) for legibility.
 
 ### Type scale (tokens in `theme.css`)
 
 | Token                | Size | Line height | Letter spacing | Role                          |
 | -------------------- | ---- | ----------- | -------------- | ----------------------------- |
-| `--text-caption-sm`  | 10px | 1.4         | -0.3px         | Tiny metadata                 |
-| `--text-body-sm`     | 14px | 1.4         | -0.42px        | Dense UI, secondary copy      |
-| `--text-body`        | 16px | 1.4         | -0.4px         | Body default                  |
-| `--text-body-lg`     | 18px | 1.3         | -0.36px        | Lead body                     |
-| `--text-subheading`  | 20px | 1.2         | -0.3px         | Section subtitles             |
-| `--text-heading-sm`  | 24px | 1.17        | -0.48px        | Card / section headings       |
-| `--text-heading`     | 32px | 1.2         | -0.8px         | Page headlines                |
-| `--text-heading-lg`  | 40px | 1.1         | -1.2px         | Large headlines               |
-| `--text-display`     | 48px | 1           | -1.44px        | Display (auth/confirmation)   |
+| `--text-caption-sm`  | 10px | 1.4         | 0.02em         | Tiny metadata                 |
+| `--text-caption`     | 12px | 1.4         | 0.01em         | Small UI labels, captions     |
+| `--text-body-sm`     | 14px | 1.4         | 0.01em         | Dense UI, secondary copy      |
+| `--text-body`        | 16px | 1.4         | 0em             | Body default                  |
+| `--text-body-lg`     | 18px | 1.3         | -0.01em        | Lead body                     |
+| `--text-subheading`  | 20px | 1.2         | -0.01em        | Section subtitles             |
+| `--text-heading-sm`  | 24px | 1.17        | -0.01em        | Card / section headings       |
+| `--text-heading`     | 32px | 1.2         | -0.01em        | Page headlines                |
+| `--text-heading-lg`  | 40px | 1.1         | -0.02em        | Large headlines               |
+| `--text-display`     | 48px | 1.1         | 0.04em         | Display (auth/confirmation)   |
 
 ### Practical roles
 
-- **Display** (Plus Jakarta Sans, 700, 32–48px, tight): auth/PIN headlines, large
+- **Display** (Bricolage Grotesque, 700, 32–48px, tight): auth/PIN headlines, large
   confirmation states. One per screen at most.
-- **Headline** (Plus Jakarta Sans, 700, 24px): page titles (`Transaksi`, `Pengaturan`).
+- **Headline** (Bricolage Grotesque, 700, 24px): page titles (`Transaksi`, `Pengaturan`).
 - **Title** (Plus Jakarta Sans, 600, 18–20px): section headings, KPI card titles.
-- **Body** (Inter, 400, 14–16px, 1.4–1.5): all default copy, button labels, input text.
-  Cap prose at 65–75ch; UI copy is exempt.
+- **Body** (Plus Jakarta Sans, 400, 14–16px, 1.4): all default copy, button labels, input
+  text. Cap prose at 65–75ch; UI copy is exempt.
 - **Numeric** (Plus Jakarta Sans, 700, 18–30px, tabular-nums): money figures, KPI counts,
   the clock. Always tabular for alignment.
-- **Label** (Inter, 500, 13px, `0.01em`): form labels, list metadata.
-- **Caption** (Inter, 600, 11px, `0.06em`, uppercase): status badges and pill chips.
+- **Label** (Plus Jakarta Sans, 600, 12px, `0.04em`, uppercase): form labels, list metadata.
+- **Caption** (Plus Jakarta Sans, 600, 10–12px, `0.06em`, uppercase): status badges and
+  pill chips.
 
 ### Named Rules
 
-**The Tight-Display Rule.** Display and figure tracking follows the Seed ramp and stays
-negative. Never track display *out*, and never go so tight that letters touch.
+**The Tight-Display Rule.** Display and figure tracking stays negative (`-0.01em` to
+`-0.02em`), except `display` which is `0.04em` for letter-spaced affirmation text. Never
+track body text *out* beyond `0.01em`.
 
 **The Eyebrow-Is-A-Label Rule.** The uppercase tracked caption is reserved for **single
 functional domain/status labels** (e.g. the earnings caption, status pills). Do **not**
@@ -406,7 +428,8 @@ CVA matrix (`look × tone × size`) in `src/components/ui/button.tsx` — 5 look
   hover fills `primary/5`. Dark mode uses the `accent` (lime) border/text.
 - **Ghost:** transparent, `muted-foreground` text; hover faint foreground tint. For
   low-emphasis/tertiary actions.
-- **Destructive:** `destructive` solid, or `destructive/10` text on red-tinted soft/ghost.
+- **Destructive/Danger:** `danger` solid, or `danger/10` text on red-tinted soft/ghost.
+  (The `destructive` token was unified into `danger` — one token, one name.)
 - **Focus:** `outline-2` ring in `--color-ring` (canopy) with offset.
 - **Disabled:** `opacity-50`, `pointer-events-none`.
 
@@ -429,13 +452,13 @@ Kobalte `TextField` in `src/components/ui/text-field.tsx`; 48px tall, 1.5px `bor
 `background` (parchment) fill, `rounded-sm`, Inter 15px.
 
 - **Focus:** border → `primary` + 2px `ring` outline + `ring-2 ring-primary/10`.
-- **Invalid:** `destructive` border + red-tinted `ring-destructive/10`.
+- **Invalid:** `danger` border + red-tinted `ring-danger/10`.
 - **Disabled:** `opacity-50`. **Labels:** Inter 13px / 500, `0.01em` tracking.
 
 ### Chips / Badges
 
-Pill (`rounded-full`, 9999px), Inter 11px / 600, uppercase, `0.06em` tracking. Variants in
-`src/components/ui/badge.tsx`: default (`primary`/white), secondary, destructive, outline,
+Pill (`rounded-full`, 9999px), Plus Jakarta Sans 11px / 600, uppercase, `0.06em` tracking. Variants in
+`src/components/ui/badge.tsx`: default (`primary`/white), secondary, outline,
 success/warning/danger/accent (tinted fills: `success/10`, `warning/15`, etc.), and the
 literal-yellow **processing** badge. For status, counts, and roles — never for primary
 navigation.
@@ -443,13 +466,15 @@ navigation.
 ### Navigation
 
 - **Desktop rail (Sidebar):** fixed, 80px collapsed → expands on hover to ~200px. `card`
-  fill, `border-r` hairline; motion-solidjs slide-in. Active item in `primary` (canopy).
+  fill, `border-r` hairline; CSS transition slide-in. Active item in `primary` (canopy).
   Hidden under 900px.
-- **Desktop FAB:** floating `Buat Transaksi` action, bottom-right, `primary`, pulsing
-  ambient shadow that clears on hover with a spring lift. Hidden under 900px.
-- **Mobile magic nav:** fixed bottom bar, tabs + a central floating `+` bubble in
-  `primary` that rises with overshoot easing and a curved-notch cutout. Active tab icon
-  lifts and turns green; label fades in. Hidden above 900px.
+- **Desktop FAB:** floating `Buat Transaksi` action (cash-register icon), bottom-right,
+  `primary`, with spring lift on hover. Hidden under 900px and on `/pengaturan`.
+- **Mobile notch nav:** fixed bottom bar with an Instagram-style curved SVG notch
+  cutout. 4 tabs (Home, Transaksi, Katalog, Pengaturan) distributed with `justify-around`,
+  and a central floating cash-register button (60px) seated in the notch. Composite
+  layout: two `flex-1` card-colored wings + a fixed-width center SVG for the notch shape.
+  Sub-pixel seam overlap (`-ml-px -mr-px -mt-px`) between SVG and wings. Hidden above 900px.
 - **Top bar:** fixed 54px header, `card` fill, with the online/sync pill (lime `accent`
   fill/border + a `primary`-rimmed lime dot), a tabular clock (`muted-foreground` + WIB in
   `faint-foreground`), and a notification button. Slides with the sidebar's expand state.
@@ -458,7 +483,7 @@ navigation.
 
 The dashboard stacks a deep-green **banner zone** (`bg-primary`, holding the venue and
 earnings cards) under a **content sheet** in `background` (parchment) that slides up over
-it with a motion-solidjs entrance. It is the brand's signature composition — calm
+it with a CSS entrance. It is the brand's signature composition — calm
 authority below, the working surface floating above.
 
 The venue and earnings cards inside the banner zone use **tinted glass morphism**:
@@ -473,17 +498,29 @@ Tokens: `--ease-standard: cubic-bezier(0.4,0,0.2,1)`, `--duration-standard: 0.2s
 transitions are 150–250ms exponential ease-out — users are in flow; motion conveys state,
 not choreography.
 
+Chrome animations (sidebar, top bar) use pure CSS transitions. Page and section entrances
+use a lightweight `FadeIn` component (`src/components/ui/fade-in.tsx`) with a CSS-keyframe
+`ssgoi-enter` animation — this is SSGOI-safe: `cloneNode` preserves CSS vars so the OUT-page
+clone retains its final state. `motion-solidjs` is no longer used in shell chrome; the only
+remaining `AnimatePresence` usage is the PIN page account-selector exit animation.
+
+`FadeIn` has an explicit `enable` prop (defaults `true`); pages set `enable={!isPortrait()}`
+to disable entrance animations in portrait (where SSGOI handles the transition).
+
+SSGOI view transitions handle route-level navigation. Config is reactive — recreated on
+orientation change via `createRootConfig(isPortrait)`. Shell pages slide on X in portrait,
+Y in landscape. Flow pages use drill-parallax.
+
 - **State feedback:** `shake` (error), `success-pop` (`cubic-bezier(0.175,0.885,0.32,1.275)`,
   the one signature overshoot — reserved for a confirmed payment), `avatar-pulse`,
   `pulse-dot` (the online indicator).
 - **Reveal:** `fade-in`, `fadeUp` (stagger entrance), `content-show`/`content-hide` for
-  sheets. Reveal animations enhance an already-visible default; content is never gated on a
-  class-triggered transition (transitions pause on hidden tabs / headless renderers).
-- **Ambient:** the FAB's `fab-pulse` shadow pulse; `ghost-float` decorative drift.
+  sheets, `ssgoi-enter` for page/section entrances via `FadeIn`.
+- **Ambient:** `ghost-float` decorative drift.
 - **Reduced motion is not optional.** Every animation has a
   `@media (prefers-reduced-motion: reduce)` alternative (crossfade or instant). Bounce and
-  elastic easing are reserved for the signature tactile moments (FAB, mobile nav bubble);
-  everything else uses exponential ease-out.
+  elastic easing are reserved for the signature tactile moments; everything else uses
+  exponential ease-out.
 
 ## 8. Do's and Don'ts
 
@@ -513,7 +550,7 @@ Concrete guardrails. Every PRODUCT.md anti-reference is carried through here.
   surface is the single parchment canvas; warmth elsewhere is lime + canopy + type
   (Parchment-Canvas Rule).
 - **Don't** add semantic colors outside the controlled status-tone set
-  (`info/success/warning/danger/destructive` + the literal processing yellow). Seed is
+  (`info/success/warning/danger` + the literal processing yellow). Seed is
   deliberately one-green; the POS extension is closed, not open.
 - **Don't** introduce a custom radius scale. Use Tailwind defaults (`rounded-sm` buttons
   and inputs, `rounded-lg` cards, `rounded-full` badges/pills).
