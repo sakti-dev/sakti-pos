@@ -1,10 +1,16 @@
 import { A } from "@solidjs/router";
 import { For, Show } from "solid-js";
-import { FileIcon, HomeIcon, LogoutIcon, SettingsIcon } from "~/assets";
+import {
+  FileIcon,
+  GridIcon,
+  HomeIcon,
+  LogoutIcon,
+  SettingsIcon,
+} from "~/assets";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
-export type NavKey = "home" | "transactions" | "settings";
+export type NavKey = "home" | "transactions" | "katalog" | "settings";
 
 const navItems: readonly {
   key: NavKey;
@@ -18,6 +24,12 @@ const navItems: readonly {
     Icon: FileIcon,
     label: "Transaksi",
     href: "/transactions",
+  },
+  {
+    key: "katalog",
+    Icon: GridIcon,
+    label: "Katalog",
+    href: "/katalog",
   },
   {
     key: "settings",

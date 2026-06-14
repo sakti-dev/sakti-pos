@@ -5,7 +5,7 @@ import { createRootConfig } from "~/lib/ssgoi-config";
 import { useOrientation } from "~/lib/use-orientation";
 import { cn } from "~/lib/utils";
 import { Fab } from "./fab";
-import { MagicNav } from "./magic-nav";
+import { NotchNav } from "./notch-nav";
 import type { NavKey } from "./sidebar";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
@@ -17,6 +17,7 @@ type Zone = "shell" | "flow" | "auth";
 const ZONE_MAP: Record<string, Zone> = {
   "/": "shell",
   "/transactions": "shell",
+  "/katalog": "shell",
   "/pengaturan": "shell",
   "/transaction-new": "flow",
   "/payment": "flow",
@@ -32,6 +33,9 @@ const navFromPath = (pathname: string): NavKey => {
   }
   if (pathname === "/transactions") {
     return "transactions";
+  }
+  if (pathname === "/katalog") {
+    return "katalog";
   }
   if (pathname === "/pengaturan") {
     return "settings";
@@ -106,7 +110,9 @@ export const AppShell = (props: RouteSectionProps) => {
       {/* ── Shell-only chrome ── */}
       <Show when={isShell() && pathname() !== "/pengaturan"}>
         <Fab />
-        <MagicNav active={activeNav()} />
+      </Show>
+      <Show when={isShell()}>
+        <NotchNav active={activeNav()} />
       </Show>
     </div>
   );
