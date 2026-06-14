@@ -37,11 +37,13 @@ interface SidebarProps {
 
 export const Sidebar = (props: SidebarProps) => {
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: peek-on-click affordance on a desktop-only rail; keyboard users navigate the real buttons inside
+    // biome-ignore lint/a11y/useKeyWithClickEvents: transient visual peek (1.2s auto-collapse), not a keyboard action — buttons inside handle navigation
     <nav
       class={cn(
         "fixed top-0 left-0 z-[100] flex h-screen flex-col overflow-hidden border-border border-r bg-card px-3 py-5 pb-4 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-[900px]:hidden",
         props.isShell ? "" : "hidden",
-        props.expanded ? "w-[200px]" : "w-[80px]",
+        props.expanded ? "w-[200px]" : "w-[80px]"
       )}
       onClick={props.onTouch}
     >
