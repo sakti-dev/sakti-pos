@@ -1,4 +1,3 @@
-import { motion } from "motion-solidjs";
 import { createSignal, For, Show } from "solid-js";
 import {
   CheckCircleIcon,
@@ -9,6 +8,7 @@ import {
   XCircleIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
+import { FadeIn } from "~/components/ui/fade-in";
 
 /* ── types ────────────────────────────────────────────────────── */
 
@@ -228,23 +228,22 @@ export default function Transactions() {
       data-ssgoi-transition="/transactions"
     >
       {/* Header bar */}
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
+      <FadeIn
+        duration={0.35}
+        y={-8}
         class="flex shrink-0 items-center gap-3 px-6 pt-5 pb-3 max-[800px]:px-[18px]"
-        initial={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       >
         <h1 class="font-bold font-display text-foreground text-heading-sm">
           Transaksi
         </h1>
-      </motion.div>
+      </FadeIn>
 
       {/* Search + filter row */}
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
+      <FadeIn
+        delay={0.05}
+        duration={0.4}
+        y={8}
         class="flex shrink-0 flex-col gap-3 px-6 pb-3 max-[800px]:px-[18px]"
-        initial={{ opacity: 0, y: 8 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
       >
         {/* Search field */}
         <label class="flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 shadow-card">
@@ -277,7 +276,7 @@ export default function Transactions() {
             )}
           </For>
         </div>
-      </motion.div>
+      </FadeIn>
 
       {/* Transaction list */}
       <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-6 pb-24 max-[800px]:px-[18px] max-[900px]:pb-28">
@@ -294,15 +293,11 @@ export default function Transactions() {
               const meta = STATUS_META[tx.status];
               const pill = STATUS_PILL[tx.status];
               return (
-                <motion.div
-                  animate={{ opacity: 1, y: 0 }}
+                <FadeIn
+                  delay={0.1 + i() * 0.03}
+                  duration={0.35}
+                  y={12}
                   class="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-card"
-                  initial={{ opacity: 0, y: 12 }}
-                  transition={{
-                    duration: 0.35,
-                    ease: [0.22, 1, 0.36, 1],
-                    delay: 0.1 + i() * 0.03,
-                  }}
                 >
                   {/* Icon */}
                   <div
@@ -332,7 +327,7 @@ export default function Transactions() {
                       </span>
                     </div>
                   </div>
-                </motion.div>
+                </FadeIn>
               );
             }}
           </For>

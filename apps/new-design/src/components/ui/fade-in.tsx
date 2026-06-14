@@ -9,6 +9,8 @@ type FadeInProps = Omit<JSX.HTMLAttributes<HTMLDivElement>, "style"> & {
   y?: number;
   /** Initial horizontal offset in px (animates to 0) */
   x?: number;
+  /** Initial scale (animates to 1). e.g. 0.97 for a subtle grow */
+  scale?: number;
   style?: JSX.CSSProperties;
 };
 
@@ -30,6 +32,7 @@ export function FadeIn(props: FadeInProps) {
     "duration",
     "y",
     "x",
+    "scale",
     "style",
     "class",
     "children",
@@ -42,6 +45,7 @@ export function FadeIn(props: FadeInProps) {
       style={{
         "--enter-y": `${local.y ?? 12}px`,
         "--enter-x": `${local.x ?? 0}px`,
+        "--enter-scale": `${local.scale ?? 1}`,
         "animation": `${local.duration ?? 0.45}s ${EASE} ${local.delay ?? 0}s both ssgoi-enter`,
         ...local.style,
       }}

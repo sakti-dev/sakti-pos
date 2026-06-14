@@ -1,5 +1,4 @@
 import { useColorMode } from "@kobalte/core";
-import { motion } from "motion-solidjs";
 import { createSignal, For, type JSX, Show } from "solid-js";
 import {
   InfoIcon,
@@ -9,6 +8,7 @@ import {
   SunIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
+import { FadeIn } from "~/components/ui/fade-in";
 import type { SectionKey } from "./settings-nav";
 
 /* ── shared primitives ────────────────────────────────────────── */
@@ -698,13 +698,9 @@ export function SectionPanel(props: { readonly active: SectionKey }) {
   return (
     <Show keyed when={key()}>
       {(k) => (
-        <motion.div
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          initial={{ opacity: 0, x: 16, scale: 0.98 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <FadeIn duration={0.35} x={16} scale={0.98}>
           {SECTION_MAP[k]()}
-        </motion.div>
+        </FadeIn>
       )}
     </Show>
   );
