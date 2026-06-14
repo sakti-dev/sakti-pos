@@ -15,10 +15,8 @@ export const CartList = (props: CartListProps) => (
     fallback={
       <div class="flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-muted-foreground">
         <CartShoppingIcon class="h-12 w-12 opacity-30" />
-        <span class="font-medium text-[14px] tracking-[0.01em]">
-          Keranjang kosong
-        </span>
-        <span class="text-[12px] tracking-[0.02em]">
+        <span class="font-medium text-body-sm">Keranjang kosong</span>
+        <span class="text-caption tracking-[0.02em]">
           Tap menu untuk menambahkan
         </span>
       </div>

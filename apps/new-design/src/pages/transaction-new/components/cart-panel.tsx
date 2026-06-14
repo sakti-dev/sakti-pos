@@ -25,7 +25,7 @@ export const CartPanel = (props: CartPanelProps) => {
         <span class="font-bold text-foreground text-lg tracking-[-0.01em]">
           Keranjang
         </span>
-        <span class="rounded-full bg-muted px-2.5 py-[2px] font-semibold text-[12px] text-muted-foreground tracking-[0.02em]">
+        <span class="rounded-full bg-muted px-2.5 py-[2px] font-semibold text-caption text-muted-foreground tracking-[0.02em]">
           {totalItems()} item
         </span>
       </div>

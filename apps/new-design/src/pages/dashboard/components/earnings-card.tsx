@@ -8,23 +8,17 @@ export const EarningsCard = () => {
 
   return (
     <div class="relative flex items-center justify-between overflow-hidden rounded-lg border border-white/15 bg-banner-to/60 p-6">
-      {/* Noise texture */}
-      <div
-        aria-hidden="true"
-        class="pointer-events-none absolute inset-0 bg-cover opacity-[0.03] mix-blend-overlay"
-        style={{ "background-image": "url(/noise.webp)" }}
-      />
       {/* Decorative circles */}
       <div class="pointer-events-none absolute -top-[50px] -right-[30px] h-[140px] w-[140px] rounded-full bg-accent/5" />
       <div class="pointer-events-none absolute -bottom-[40px] left-[35%] h-[100px] w-[100px] rounded-full bg-accent/5" />
 
       <div class="relative z-[1]">
-        <div class="mb-2 font-semibold text-[11px] text-white/70 uppercase tracking-[0.08em]">
+        <div class="mb-2 font-semibold text-caption-sm text-white/70 uppercase tracking-[0.08em]">
           Est. Pendapatan Hari Ini
         </div>
         <Show
           fallback={
-            <div class="flex items-center font-light text-2xl text-white/30 tabular-nums tracking-[0.14em] md:text-[30px]">
+            <div class="flex items-center font-light text-2xl text-white/30 tabular-nums tracking-[0.14em] md:text-heading">
               {masked}
             </div>
           }

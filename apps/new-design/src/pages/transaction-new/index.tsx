@@ -135,7 +135,7 @@ export default function TransactionNew() {
           >
             <ArrowLeftIcon class="h-[18px] w-[18px]" />
           </A>
-          <span class="font-bold text-[17px] text-foreground tracking-[-0.01em]">
+          <span class="font-bold text-body-lg text-foreground">
             Transaksi Baru
           </span>
         </motion.header>
@@ -179,16 +179,16 @@ export default function TransactionNew() {
         trigger={
           <SheetTrigger
             aria-label="Buka keranjang"
-            class="fixed right-4 bottom-5 left-4 z-[90] hidden h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-[14px] text-primary-foreground tracking-[0.02em] shadow-card transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] max-[900px]:flex"
+            class="fixed right-4 bottom-5 left-4 z-[90] hidden h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-[0.02em] shadow-card transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] max-[900px]:flex"
           >
             <div class="flex items-center gap-2.5">
               <CartShoppingIcon class="h-5 w-5" />
-              <span class="grid min-w-[20px] place-items-center rounded-full bg-accent px-1.5 py-0 font-bold text-[11px] text-primary tabular-nums">
+              <span class="grid min-w-[20px] place-items-center rounded-full bg-accent px-1.5 py-0 font-bold text-caption-sm text-primary tabular-nums">
                 {cartItemCount()}
               </span>
               <span>Keranjang</span>
             </div>
-            <span class="font-bold text-[15px] tabular-nums">
+            <span class="font-bold text-body tabular-nums">
               {formatRupiah(cartTotal())}
             </span>
           </SheetTrigger>

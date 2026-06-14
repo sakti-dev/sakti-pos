@@ -234,7 +234,7 @@ export default function Transactions() {
         initial={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h1 class="font-bold font-display text-[22px] text-foreground tracking-[-0.01em]">
+        <h1 class="font-bold font-display text-foreground text-heading-sm">
           Transaksi
         </h1>
       </motion.div>
@@ -264,7 +264,7 @@ export default function Transactions() {
             {(tab) => (
               <Button
                 aria-label={tab.label}
-                class="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-left font-semibold text-[13px] tracking-[0.01em] max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-[12px]"
+                class="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-left font-semibold text-body-sm max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-caption"
                 look={filter() === tab.key ? "soft" : "outline"}
                 onClick={() => setFilter(tab.key)}
                 size="none"
@@ -272,7 +272,7 @@ export default function Transactions() {
                 type="button"
               >
                 {tab.label}&nbsp;
-                <span class="text-[10px]">({tab.total})</span>
+                <span class="text-caption-sm">({tab.total})</span>
               </Button>
             )}
           </For>
@@ -326,7 +326,7 @@ export default function Transactions() {
                         {formatItems(tx.items)} · {tx.time}
                       </span>
                       <span
-                        class={`shrink-0 rounded-full px-2.5 py-0.5 font-medium text-[11px] ${pill.bg} ${pill.color}`}
+                        class={`shrink-0 rounded-full px-2.5 py-0.5 font-medium text-caption-sm ${pill.bg} ${pill.color}`}
                       >
                         {meta.label}
                       </span>

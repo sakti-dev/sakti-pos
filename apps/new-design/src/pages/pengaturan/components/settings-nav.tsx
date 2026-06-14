@@ -51,7 +51,7 @@ export function SettingsNav(props: SettingsNavProps) {
           return (
             <Button
               aria-label={item.label}
-              class="flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-left font-semibold text-[13px] tracking-[0.01em] max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-[12px]"
+              class="flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-left font-semibold text-body-sm max-[900px]:whitespace-nowrap max-[900px]:px-3 max-[900px]:py-2 max-[900px]:text-caption"
               look={isActive() ? "soft" : "ghost"}
               onClick={() => props.onSelect(item.key)}
               size="none"

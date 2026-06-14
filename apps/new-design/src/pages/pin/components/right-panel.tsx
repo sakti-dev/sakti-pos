@@ -168,33 +168,33 @@ export function PinRightPanel() {
                 src="/logo.png"
                 width={48}
               />
-              <span class="font-bold font-display text-[22px] text-primary tracking-[-0.01em] dark:text-foreground">
+              <span class="font-bold font-display text-heading-sm text-primary dark:text-foreground">
                 Nata POS
               </span>
             </div>
 
             {/* Greeting */}
-            <div class="font-medium text-[14px] text-faint-foreground tracking-[0.02em]">
+            <div class="font-medium text-body-sm text-faint-foreground tracking-[0.02em]">
               Selamat datang kembali
             </div>
           </div>
 
           {/* User info */}
           <div class="flex flex-col items-center gap-3">
-            <div class="relative grid h-[88px] w-[88px] animate-avatar-pulse place-items-center rounded-full border-[3px] border-accent/20 bg-accent-soft font-display font-extrabold text-[32px] text-primary max-[480px]:h-[76px] max-[480px]:w-[76px] max-[480px]:text-[28px]">
+            <div class="relative grid h-[88px] w-[88px] animate-avatar-pulse place-items-center rounded-full border-[3px] border-accent/20 bg-accent-soft font-display font-extrabold text-heading text-primary max-[480px]:h-[76px] max-[480px]:w-[76px] max-[480px]:text-heading">
               {u.initials}
               <span class="absolute right-1 bottom-1 h-4 w-4 rounded-full border-[3px] border-card bg-accent" />
             </div>
-            <div class="font-bold font-display text-[24px] text-foreground tracking-[-0.02em] max-[480px]:text-[22px]">
+            <div class="font-bold font-display text-foreground text-heading-sm tracking-[-0.02em] max-[480px]:text-heading-sm">
               {u.name}
             </div>
-            <div class="-mt-1.5 font-medium text-[13px] text-faint-foreground tracking-[0.02em]">
+            <div class="-mt-1.5 font-medium text-body-sm text-faint-foreground tracking-[0.02em]">
               {u.role} · {u.venue}
             </div>
           </div>
 
           {/* Title */}
-          <div class="text-center font-medium text-[15px] text-muted-foreground leading-relaxed tracking-[0.01em]">
+          <div class="text-center font-medium text-body text-muted-foreground leading-relaxed tracking-[0.01em]">
             Masukkan PIN untuk melanjutkan
           </div>
 
@@ -230,7 +230,7 @@ export function PinRightPanel() {
           {/* Error message */}
           <div
             class={cn(
-              "min-h-[18px] text-center font-medium text-[13px] text-destructive tracking-[0.01em] transition-[opacity,transform] duration-200",
+              "min-h-[18px] text-center font-medium text-body-sm text-destructive transition-[opacity,transform] duration-200",
               !error() && "-translate-y-1 opacity-0",
               !!error() && "translate-y-0 opacity-100"
             )}
@@ -265,7 +265,7 @@ export function PinRightPanel() {
                 return (
                   <button
                     aria-label={String(key)}
-                    class="grid h-[60px] place-items-center rounded-lg border-none bg-card font-display font-semibold text-[22px] text-foreground shadow-card transition-[background,color,transform,box-shadow] duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14 max-[480px]:text-[20px]"
+                    class="grid h-[60px] place-items-center rounded-lg border-none bg-card font-display font-semibold text-foreground text-heading-sm shadow-card transition-[background,color,transform,box-shadow] duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 max-[480px]:h-14 max-[480px]:text-subheading"
                     disabled={locked()}
                     onClick={[addDigit, String(key)]}
                     type="button"
@@ -281,7 +281,7 @@ export function PinRightPanel() {
           <div class="mt-1 flex items-center gap-2">
             <button
               aria-label="Ganti akun"
-              class="flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-[13px] text-faint-foreground tracking-[0.01em] transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
+              class="flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-body-sm text-faint-foreground transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
               onClick={() => setShowUserList(true)}
               type="button"
             >
@@ -297,10 +297,10 @@ export function PinRightPanel() {
         <div class="fixed inset-0 z-[1000] flex animate-fade-in items-center justify-center bg-background p-6">
           <div class="flex w-full max-w-[500px] flex-col gap-6">
             <div class="flex flex-col items-center gap-2">
-              <div class="font-bold font-display text-[24px] text-foreground tracking-[-0.02em]">
+              <div class="font-bold font-display text-foreground text-heading-sm tracking-[-0.02em]">
                 Pilih Akun
               </div>
-              <div class="font-medium text-[14px] text-faint-foreground">
+              <div class="font-medium text-body-sm text-faint-foreground">
                 Siapa yang akan menggunakan perangkat ini?
               </div>
             </div>
@@ -315,13 +315,13 @@ export function PinRightPanel() {
                     style={{ "animation-delay": `${i() * 0.08}s` }}
                     type="button"
                   >
-                    <div class="grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-accent/20 bg-accent-soft font-display font-extrabold text-[18px] text-primary">
+                    <div class="grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-accent/20 bg-accent-soft font-display font-extrabold text-body-lg text-primary">
                       {user.initials}
                     </div>
-                    <div class="text-center font-display font-semibold text-[14px] text-foreground">
+                    <div class="text-center font-display font-semibold text-body-sm text-foreground">
                       {user.name}
                     </div>
-                    <div class="font-medium text-[12px] text-faint-foreground tracking-[0.01em]">
+                    <div class="font-medium text-caption text-faint-foreground">
                       {user.role}
                     </div>
                   </button>
@@ -332,7 +332,7 @@ export function PinRightPanel() {
             <div class="text-center">
               <button
                 aria-label="Batal"
-                class="flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-[13px] text-faint-foreground tracking-[0.01em] transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
+                class="flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-5 py-2.5 font-medium text-body-sm text-faint-foreground transition-[background,color,border-color] duration-150 hover:border-border hover:bg-primary/5 hover:text-foreground"
                 onClick={() => setShowUserList(false)}
                 type="button"
               >
@@ -351,10 +351,10 @@ export function PinRightPanel() {
             <div class="grid h-20 w-20 place-items-center rounded-full bg-accent/15 text-accent shadow-card">
               <CheckCircleIcon class="h-9 w-9" />
             </div>
-            <div class="font-bold font-display text-[24px] text-white tracking-[-0.02em]">
+            <div class="font-bold font-display text-heading-sm text-white tracking-[-0.02em]">
               Berhasil masuk
             </div>
-            <div class="font-medium text-[14px] text-white/55">
+            <div class="font-medium text-body-sm text-white/55">
               Mengalihkan ke dashboard...
             </div>
           </div>

@@ -6,11 +6,10 @@ export const VenueCard = () => {
       {/* Noise texture */}
       <div
         aria-hidden="true"
-        class="pointer-events-none absolute inset-0 bg-cover opacity-[0.03] mix-blend-overlay"
-        style={{ "background-image": "url(/noise.webp)" }}
+        class="pointer-events-none absolute inset-0 opacity-[0.03] mix-blend-overlay"
       />
       <Avatar class="h-11 w-11 shrink-0">
-        <AvatarFallback class="rounded-full bg-accent-soft font-bold text-[15px] text-primary">
+        <AvatarFallback class="rounded-full bg-accent-soft font-bold text-body text-primary">
           YB
         </AvatarFallback>
       </Avatar>
@@ -18,13 +17,13 @@ export const VenueCard = () => {
       {/* Info */}
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="font-medium text-[13px] text-white/90">Yos Bb</span>
-          <span class="rounded-full bg-accent-soft px-2 py-[2px] font-medium text-[11px] text-primary">
+          <span class="font-medium text-body-sm text-white/90">Yos Bb</span>
+          <span class="rounded-full bg-accent-soft px-2 py-[2px] font-medium text-caption-sm text-primary">
             Manager
           </span>
-          <span class="font-semibold text-[15px] text-white">Tantri Cafe</span>
+          <span class="font-semibold text-body text-white">Tantri Cafe</span>
         </div>
-        <div class="mt-[3px] overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-white/65 tracking-[0.01em]">
+        <div class="mt-[3px] overflow-hidden text-ellipsis whitespace-nowrap text-caption text-white/65">
           Jl. Banda No.30, Citarum, Kec. Bandung Wetan, Kota Bandung, Jawa Barat
           40115
         </div>

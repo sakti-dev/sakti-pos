@@ -13,7 +13,7 @@ export const ProductGrid = (props: ProductGridProps) => {
     <div class="scrollbar-none grid min-h-0 flex-1 grid-cols-[repeat(5,minmax(0,1fr))] content-start items-start gap-3.5 overflow-y-auto [grid-auto-rows:min-content] max-[1200px]:grid-cols-4 max-[600px]:grid-cols-2 max-[900px]:grid-cols-3">
       <Show
         fallback={
-          <div class="col-[1/-1] py-16 text-center font-medium text-[14px] text-muted-foreground">
+          <div class="col-[1/-1] py-16 text-center font-medium text-body-sm text-muted-foreground">
             Tidak ada menu ditemukan
           </div>
         }
@@ -39,10 +39,10 @@ export const ProductGrid = (props: ProductGridProps) => {
 
               {/* Text */}
               <div class="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-1.5 p-4">
-                <div class="line-clamp-2 font-bold text-[16px] text-white leading-[1.35] [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
+                <div class="line-clamp-2 font-bold text-body text-white leading-[1.35] [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
                   {p.name}
                 </div>
-                <div class="font-semibold text-[14px] text-white/90 tabular-nums tracking-[-0.01em] [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
+                <div class="font-semibold text-body-sm text-white/90 tabular-nums tracking-[-0.01em] [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
                   {formatRupiah(p.price)}
                 </div>
               </div>

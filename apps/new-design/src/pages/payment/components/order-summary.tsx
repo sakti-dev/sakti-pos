@@ -25,10 +25,10 @@ export const OrderSummary = (props: OrderSummaryProps) => (
     {/* header */}
     <div class="shrink-0 border-border/50 border-b px-5 pt-5 pb-4">
       <div class="flex items-center justify-between">
-        <span class="font-semibold text-[13px] text-muted-foreground uppercase tracking-[0.06em]">
+        <span class="font-semibold text-body-sm text-muted-foreground uppercase tracking-[0.06em]">
           Pesanan
         </span>
-        <span class="rounded-full bg-muted px-2.5 py-[3px] font-medium text-[12px] text-faint-foreground dark:bg-muted dark:text-faint-foreground">
+        <span class="rounded-full bg-muted px-2.5 py-[3px] font-medium text-caption text-faint-foreground dark:bg-muted dark:text-faint-foreground">
           {props.totalQty} item
         </span>
       </div>
@@ -39,7 +39,7 @@ export const OrderSummary = (props: OrderSummaryProps) => (
       <For each={props.items}>
         {(item) => (
           <div class="border-border/50 border-b py-3.5 last:border-b-0">
-            <div class="mb-2.5 truncate font-semibold text-[14px] text-foreground leading-tight">
+            <div class="mb-2.5 truncate font-semibold text-body-sm text-foreground leading-tight">
               {item.name}
             </div>
             <div class="flex items-center gap-3">
@@ -52,10 +52,10 @@ export const OrderSummary = (props: OrderSummaryProps) => (
                 />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-[12px] text-faint-foreground">
+                <div class="text-caption text-faint-foreground">
                   {item.desc} · {formatRupiah(item.price)}
                 </div>
-                <div class="font-bold text-[14px] text-foreground tabular-nums">
+                <div class="font-bold text-body-sm text-foreground tabular-nums">
                   {formatRupiah(item.price * item.qty)}
                 </div>
               </div>
@@ -74,21 +74,21 @@ export const OrderSummary = (props: OrderSummaryProps) => (
     {/* totals — simplified on mobile: only subtotal row visible */}
     <div class="shrink-0 border-border border-t bg-card px-5 py-4">
       <div class="flex items-center justify-between py-1.5">
-        <span class="text-[13px] text-muted-foreground">Subtotal</span>
-        <span class="font-medium text-[13px] text-foreground tabular-nums">
+        <span class="text-body-sm text-muted-foreground">Subtotal</span>
+        <span class="font-medium text-body-sm text-foreground tabular-nums">
           {formatRupiah(props.subtotal)}
         </span>
       </div>
       <div class="flex items-center justify-between py-1.5 max-[900px]:hidden">
-        <span class="text-[13px] text-muted-foreground">Pajak (11%)</span>
-        <span class="font-medium text-[13px] text-foreground tabular-nums">
+        <span class="text-body-sm text-muted-foreground">Pajak (11%)</span>
+        <span class="font-medium text-body-sm text-foreground tabular-nums">
           {formatRupiah(props.tax)}
         </span>
       </div>
       <div class="my-3 h-px bg-border max-[900px]:hidden" />
       <div class="flex items-center justify-between max-[900px]:hidden">
-        <span class="font-bold text-[16px] text-foreground">Total</span>
-        <span class="font-extrabold text-[26px] text-primary tabular-nums tracking-[-0.02em] dark:text-accent">
+        <span class="font-bold text-body text-foreground">Total</span>
+        <span class="font-extrabold text-heading text-primary tabular-nums tracking-[-0.02em] dark:text-accent">
           {formatRupiah(props.total)}
         </span>
       </div>

@@ -28,7 +28,7 @@ function SectionCard(props: {
 
 function CardTitle(props: { readonly children: JSX.Element }) {
   return (
-    <h3 class="font-bold font-display text-[16px] text-foreground tracking-[-0.01em]">
+    <h3 class="font-bold font-display text-body text-foreground tracking-[-0.01em]">
       {props.children}
     </h3>
   );
@@ -36,7 +36,7 @@ function CardTitle(props: { readonly children: JSX.Element }) {
 
 function CardDesc(props: { readonly children: JSX.Element }) {
   return (
-    <p class="mt-0.5 text-[13px] text-muted-foreground leading-relaxed tracking-[0.01em]">
+    <p class="mt-0.5 text-body-sm text-muted-foreground leading-relaxed">
       {props.children}
     </p>
   );
@@ -65,7 +65,7 @@ function FormGroup(props: {
 
 function FormLabel(props: { readonly children: JSX.Element }) {
   return (
-    <span class="font-semibold text-[12px] text-muted-foreground uppercase tracking-[0.04em]">
+    <span class="font-semibold text-caption text-muted-foreground uppercase tracking-[0.04em]">
       {props.children}
     </span>
   );
@@ -81,7 +81,7 @@ function FormInput(props: {
 }) {
   return (
     <input
-      class="h-[42px] rounded-[10px] border border-border bg-card px-3.5 font-[inherit] text-[14px] text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+      class="h-[42px] rounded-[10px] border border-border bg-card px-3.5 font-[inherit] text-body-sm text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       max={props.max}
       min={props.min}
       placeholder={props.placeholder}
@@ -99,7 +99,7 @@ function FormTextarea(props: {
 }) {
   return (
     <textarea
-      class="min-h-[80px] resize-y rounded-[10px] border border-border bg-card px-3.5 py-2.5 font-[inherit] text-[14px] text-foreground leading-relaxed outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+      class="min-h-[80px] resize-y rounded-[10px] border border-border bg-card px-3.5 py-2.5 font-[inherit] text-body-sm text-foreground leading-relaxed outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       placeholder={props.placeholder}
       rows={props.rows ?? 3}
       value={props.value}
@@ -113,7 +113,7 @@ function FormSelect(props: {
 }) {
   return (
     <select
-      class="h-[42px] cursor-pointer appearance-none rounded-[10px] border border-border bg-[length:12px_8px] bg-[position:right_14px_center] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2712%27%20height%3D%278%27%20viewBox%3D%270%200%2012%208%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M1%201.5L6%206.5L11%201.5%27%20stroke%3D%27%23737c77%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E')] bg-card bg-no-repeat px-3.5 pr-9 font-[inherit] text-[14px] text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+      class="h-[42px] cursor-pointer appearance-none rounded-[10px] border border-border bg-[length:12px_8px] bg-[position:right_14px_center] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2712%27%20height%3D%278%27%20viewBox%3D%270%200%2012%208%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M1%201.5L6%206.5L11%201.5%27%20stroke%3D%27%23737c77%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E')] bg-card bg-no-repeat px-3.5 pr-9 font-[inherit] text-body-sm text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       value={props.value}
     >
       {props.children}
@@ -132,10 +132,10 @@ function ToggleRow(props: {
       class={`flex items-center justify-between gap-4 py-3 ${props.last ? "" : "border-border border-b"}`}
     >
       <div class="min-w-0 flex-1">
-        <div class="font-medium text-[14px] text-foreground tracking-[0.01em]">
+        <div class="font-medium text-body-sm text-foreground">
           {props.title}
         </div>
-        <div class="mt-0.5 text-[12px] text-muted-foreground tracking-[0.01em]">
+        <div class="mt-0.5 text-caption text-muted-foreground">
           {props.desc}
         </div>
       </div>
@@ -287,7 +287,7 @@ function SectionUmum() {
               const active = () => themePref() === opt.value;
               return (
                 <button
-                  class={`flex flex-1 items-center justify-center gap-2 rounded-[10px] border px-3 py-2.5 font-medium text-[13px] transition-[border-color,background,color] duration-150 ${
+                  class={`flex flex-1 items-center justify-center gap-2 rounded-[10px] border px-3 py-2.5 font-medium text-body-sm transition-[border-color,background,color] duration-150 ${
                     active()
                       ? "border-primary bg-accent-soft text-primary"
                       : "border-border bg-card text-muted-foreground hover:border-border"
@@ -518,19 +518,19 @@ function SectionTim() {
         <For each={STAFF}>
           {(s) => (
             <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-muted px-4 py-3.5">
-              <div class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent-soft font-bold font-display text-[13px] text-primary">
+              <div class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent-soft font-bold font-display text-body-sm text-primary">
                 {s.initials}
               </div>
               <div class="min-w-0 flex-1">
-                <div class="font-semibold text-[14px] text-foreground">
+                <div class="font-semibold text-body-sm text-foreground">
                   {s.name}
                 </div>
-                <div class="mt-px text-[12px] text-muted-foreground">
+                <div class="mt-px text-caption text-muted-foreground">
                   {s.role}
                 </div>
               </div>
               <span
-                class={`rounded-full px-2.5 py-[3px] font-semibold text-[11px] uppercase tracking-[0.04em] ${
+                class={`rounded-full px-2.5 py-[3px] font-semibold text-caption-sm uppercase tracking-[0.04em] ${
                   s.active
                     ? "bg-accent/10 text-primary dark:text-accent"
                     : "bg-status-danger/10 text-status-danger dark:bg-status-danger dark:text-status-danger-foreground"
@@ -610,10 +610,10 @@ function SectionPerangkat() {
                 <d.Icon class="h-5 w-5" />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="font-semibold text-[14px] text-foreground">
+                <div class="font-semibold text-body-sm text-foreground">
                   {d.name}
                 </div>
-                <div class="mt-0.5 text-[12px] text-muted-foreground">
+                <div class="mt-0.5 text-caption text-muted-foreground">
                   <span
                     class={`mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${
                       d.connected
@@ -646,31 +646,31 @@ function SectionTentang() {
       <div class="grid h-16 w-16 place-items-center rounded-[18px] border border-border bg-muted">
         <InfoIcon class="h-8 w-8 text-faint-foreground" />
       </div>
-      <div class="font-bold font-display text-[20px] text-foreground">
+      <div class="font-bold font-display text-foreground text-subheading">
         Sakti POS
       </div>
-      <div class="-mt-2 text-[13px] text-muted-foreground">
+      <div class="-mt-2 text-body-sm text-muted-foreground">
         Versi 1.0.0 (Build 2026.06)
       </div>
-      <p class="max-w-[360px] text-center text-[13px] text-muted-foreground leading-relaxed">
+      <p class="max-w-[360px] text-center text-body-sm text-muted-foreground leading-relaxed">
         Sistem kasir modern untuk bisnis F&amp;B Anda. Didesain untuk cepat,
         andal, dan mudah digunakan.
       </p>
       <div class="mt-2 flex gap-3">
         <button
-          class="font-medium text-[13px] text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
+          class="font-medium text-body-sm text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
           type="button"
         >
           Kebijakan Privasi
         </button>
         <button
-          class="font-medium text-[13px] text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
+          class="font-medium text-body-sm text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
           type="button"
         >
           Syarat &amp; Ketentuan
         </button>
         <button
-          class="font-medium text-[13px] text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
+          class="font-medium text-body-sm text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
           type="button"
         >
           Bantuan

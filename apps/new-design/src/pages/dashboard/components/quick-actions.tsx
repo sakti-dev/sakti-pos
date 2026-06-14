@@ -40,7 +40,7 @@ export const QuickActions = () => (
             <div class="grid h-12 w-12 place-items-center rounded-full border border-border bg-muted text-muted-foreground transition-colors duration-200 group-hover:border-accent/50 group-hover:bg-accent/10 group-hover:text-foreground">
               <qa.Icon class="h-5 w-5" />
             </div>
-            <span class="max-w-[80px] text-center font-medium text-[11px] text-muted-foreground leading-tight tracking-[0.02em]">
+            <span class="max-w-[80px] text-center font-medium text-caption-sm text-muted-foreground leading-tight">
               {qa.label}
             </span>
           </button>

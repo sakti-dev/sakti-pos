@@ -11,9 +11,8 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export default function Dashboard() {
   return (
     <div
-      class="scrollbar-none relative flex flex-1 flex-col overflow-y-auto bg-banner-to bg-cover"
+      class="scrollbar-none relative flex flex-1 flex-col overflow-y-auto bg-banner-to"
       data-ssgoi-transition="/"
-      style={{ "background-image": "url(/green-flux.webp)" }}
     >
       {/* Banner zone */}
       <div class="relative flex shrink-0 flex-col gap-3 px-[18px] pt-3.5 pb-10 md:px-6 md:pt-4 md:pb-24">

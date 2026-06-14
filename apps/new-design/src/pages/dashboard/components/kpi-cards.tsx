@@ -61,10 +61,10 @@ const cards: readonly KpiCardData[] = [
 export const KpiCards = () => (
   <section>
     <div class="mb-3.5">
-      <h3 class="font-display font-medium text-[18px] text-foreground tracking-[-0.36px]">
+      <h3 class="font-display font-medium text-body-lg text-foreground tracking-[-0.36px]">
         Transaksi
       </h3>
-      <p class="mt-[3px] text-[13px] text-muted-foreground tracking-[0.01em]">
+      <p class="mt-[3px] text-body-sm text-muted-foreground">
         Aktivitas transaksi yang perlu dituntaskan
       </p>
     </div>
@@ -74,7 +74,7 @@ export const KpiCards = () => (
         {(card) => (
           <article class="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card dark:shadow-none">
             <header class="flex items-start justify-between gap-3">
-              <h4 class="pt-1.5 font-medium text-[14px] text-foreground tracking-[-0.42px]">
+              <h4 class="pt-1.5 font-medium text-body-sm text-foreground tracking-[-0.42px]">
                 {card.name}
               </h4>
               <span
@@ -98,11 +98,11 @@ export const KpiCards = () => (
             </div>
 
             <footer class="flex items-center gap-2">
-              <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-[3px] font-semibold text-[11px] text-muted-foreground tabular-nums">
+              <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-[3px] font-semibold text-caption-sm text-muted-foreground tabular-nums">
                 {card.count}
                 <span class="text-[0.62em] leading-none">▲</span>
               </span>
-              <span class="truncate text-[12px] text-faint-foreground">
+              <span class="truncate text-caption text-faint-foreground">
                 {card.subtitle}
               </span>
             </footer>

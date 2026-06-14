@@ -18,25 +18,25 @@ export const CartTotals = (props: CartTotalsProps) => {
     <div class="flex shrink-0 flex-col gap-3 border-border border-t bg-card px-5 py-4">
       <div class="flex flex-col gap-1.5">
         <div class="flex items-center justify-between">
-          <span class="font-medium text-[13px] text-muted-foreground">
+          <span class="font-medium text-body-sm text-muted-foreground">
             Subtotal
           </span>
-          <span class="font-semibold text-[13px] text-foreground tabular-nums">
+          <span class="font-semibold text-body-sm text-foreground tabular-nums">
             {formatRupiah(props.subtotal)}
           </span>
         </div>
         <div class="flex items-center justify-between">
-          <span class="font-medium text-[13px] text-muted-foreground">
+          <span class="font-medium text-body-sm text-muted-foreground">
             Pajak ({((props.taxRate ?? 0.11) * 100).toFixed(0)}%)
           </span>
-          <span class="font-semibold text-[13px] text-foreground tabular-nums">
+          <span class="font-semibold text-body-sm text-foreground tabular-nums">
             {formatRupiah(tax())}
           </span>
         </div>
         <div class="my-1 h-px bg-border" />
         <div class="flex items-center justify-between">
-          <span class="font-bold text-[15px] text-foreground">Total</span>
-          <span class="font-bold text-[18px] text-primary tabular-nums tracking-[-0.01em] dark:text-accent">
+          <span class="font-bold text-body text-foreground">Total</span>
+          <span class="font-bold text-body-lg text-primary tabular-nums dark:text-accent">
             {formatRupiah(total())}
           </span>
         </div>

@@ -198,7 +198,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
 
   return (
     <div class="rounded-lg border border-border/50 bg-card px-6 py-5">
-      <div class="mb-4 font-semibold text-[13px] text-muted-foreground uppercase tracking-[0.06em]">
+      <div class="mb-4 font-semibold text-body-sm text-muted-foreground uppercase tracking-[0.06em]">
         Metode Pembayaran
       </div>
 
@@ -213,7 +213,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               onClick={() => props.onMethodChange(m.key)}
             >
               <m.Icon class="transition-colors duration-200" />
-              <span class="font-medium text-[13px] transition-colors duration-200">
+              <span class="font-medium text-body-sm transition-colors duration-200">
                 {m.label}
               </span>
             </Tab>
@@ -225,7 +225,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       <Show when={props.method === "cash"}>
         <div class="mt-5">
           <div class="mb-1.5 flex items-center justify-between">
-            <span class="font-medium text-[12px] text-muted-foreground">
+            <span class="font-medium text-caption text-muted-foreground">
               Jumlah cepat
             </span>
           </div>
@@ -234,7 +234,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               {(amt) => (
                 <Button
                   aria-label={`Jumlah ${formatRupiah(amt)}`}
-                  class="!border-border h-9 w-full justify-center rounded-sm border font-semibold text-[12px] text-muted-foreground tabular-nums transition-colors hover:bg-muted hover:text-foreground"
+                  class="!border-border h-9 w-full justify-center rounded-sm border font-semibold text-caption text-muted-foreground tabular-nums transition-colors hover:bg-muted hover:text-foreground"
                   look="outline"
                   onClick={() => selectQuick(amt)}
                   onPointerDown={(e) => e.preventDefault()}
@@ -253,11 +253,11 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               cashNum() > 0 && "border-primary bg-card dark:border-accent"
             )}
           >
-            <span class="shrink-0 font-semibold text-[16px] text-muted-foreground dark:text-faint-foreground">
+            <span class="shrink-0 font-semibold text-body text-muted-foreground dark:text-faint-foreground">
               Rp
             </span>
             <input
-              class="min-w-0 flex-1 bg-transparent text-center font-extrabold text-[28px] text-foreground tabular-nums tracking-[-0.02em] caret-color-primary placeholder:font-normal placeholder:text-[20px] placeholder:text-muted-foreground focus:outline-none dark:text-foreground dark:caret-primary dark:placeholder:text-faint-foreground"
+              class="min-w-0 flex-1 bg-transparent text-center font-extrabold text-foreground text-heading tabular-nums tracking-[-0.02em] caret-color-primary placeholder:font-normal placeholder:text-muted-foreground placeholder:text-subheading focus:outline-none dark:text-foreground dark:caret-primary dark:placeholder:text-faint-foreground"
               maxLength={15}
               onBlur={() => {
                 const raw = props.cashRaw.replace(/\D/g, "");
@@ -343,7 +343,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                   : "border-destructive/20 bg-destructive/5"
               )}
             >
-              <span class="flex items-center gap-2 font-medium text-[13px] text-muted-foreground">
+              <span class="flex items-center gap-2 font-medium text-body-sm text-muted-foreground">
                 <span
                   class={cn(
                     "size-1.5 rounded-full",
@@ -354,7 +354,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               </span>
               <span
                 class={cn(
-                  "font-bold text-[18px] tabular-nums",
+                  "font-bold text-body-lg tabular-nums",
                   change() >= 0 ? "text-foreground" : "text-destructive"
                 )}
               >
@@ -375,7 +375,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               <QrCodeIcon class="h-6 w-6 text-primary" />
             </div>
           </div>
-          <div class="text-[13px] text-faint-foreground">
+          <div class="text-body-sm text-faint-foreground">
             Scan QR code dengan aplikasi e-wallet pelanggan
           </div>
         </div>
@@ -387,7 +387,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
           <div class="mb-3 grid h-[140px] w-full place-items-center rounded-md border-2 border-border border-dashed bg-muted">
             <CreditCardIcon class="h-12 w-12 text-faint-foreground" />
           </div>
-          <div class="text-[13px] text-faint-foreground">
+          <div class="text-body-sm text-faint-foreground">
             Tap atau gesek kartu di mesin EDC
           </div>
         </div>
@@ -401,7 +401,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               {(name) => (
                 <Button
                   aria-label={name}
-                  class="rounded-md py-3.5 font-semibold text-[14px]"
+                  class="rounded-md py-3.5 font-semibold text-body-sm"
                   look={props.ewallet === name ? "soft" : "outline"}
                   onClick={() => props.onEwalletChange(name)}
                   tone="primary"
@@ -411,7 +411,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               )}
             </For>
           </div>
-          <div class="mt-3.5 text-center text-[13px] text-faint-foreground">
+          <div class="mt-3.5 text-center text-body-sm text-faint-foreground">
             Kirim notifikasi ke pelanggan via {props.ewallet}
           </div>
         </div>

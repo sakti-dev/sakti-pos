@@ -73,7 +73,7 @@ const sampleTax = Math.round(sampleSubtotal * 0.11);
 const sampleTotal = sampleSubtotal + sampleTax;
 
 const secondaryActionClass =
-  "h-[52px] rounded-md border-2 border-border bg-card font-semibold text-[15px] text-foreground tracking-[0.02em] hover:border-primary/20 hover:bg-primary/5";
+  "h-[52px] rounded-md border-2 border-border bg-card font-semibold text-body text-foreground tracking-[0.02em] hover:border-primary/20 hover:bg-primary/5";
 
 /* ── component ───────────────────────────────────────────────── */
 
@@ -119,10 +119,10 @@ export default function Receipt() {
             <CheckCircleIcon class="h-9 w-9" />
             <div class="absolute inset-[-6px] rounded-full border-2 border-primary/10" />
           </div>
-          <div class="font-display font-extrabold text-[22px] text-foreground tracking-[-0.01em]">
+          <div class="font-display font-extrabold text-foreground text-heading-sm">
             Pembayaran Berhasil!
           </div>
-          <div class="text-[14px] text-muted-foreground tracking-[0.02em]">
+          <div class="text-body-sm text-muted-foreground tracking-[0.02em]">
             {dateStr} · {timeStr}
           </div>
         </div>
@@ -145,15 +145,15 @@ export default function Receipt() {
                 />
               </div>
               <div>
-                <div class="font-bold font-display text-[18px] text-foreground tracking-[-0.01em]">
+                <div class="font-bold font-display text-body-lg text-foreground">
                   Nata POS
                 </div>
-                <div class="mt-0.5 text-[12px] text-muted-foreground tracking-[0.02em]">
+                <div class="mt-0.5 text-caption text-muted-foreground tracking-[0.02em]">
                   Tantri Cafe
                 </div>
               </div>
             </div>
-            <div class="rounded-full bg-muted px-2.5 py-1 font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
+            <div class="rounded-full bg-muted px-2.5 py-1 font-semibold text-caption-sm text-muted-foreground uppercase tracking-[0.06em]">
               {txNum}
             </div>
           </div>
@@ -161,26 +161,26 @@ export default function Receipt() {
           {/* Meta */}
           <div class="flex justify-between border-border/50 border-b px-6 py-4 max-[600px]:px-4 max-[600px]:py-3">
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
+              <span class="font-medium text-caption-sm text-muted-foreground uppercase tracking-[0.06em]">
                 Tanggal
               </span>
-              <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
+              <span class="font-medium text-body-sm text-foreground">
                 {dateStr}
               </span>
             </div>
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
+              <span class="font-medium text-caption-sm text-muted-foreground uppercase tracking-[0.06em]">
                 Waktu
               </span>
-              <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
+              <span class="font-medium text-body-sm text-foreground">
                 {timeStr}
               </span>
             </div>
             <div class="flex flex-col gap-0.5">
-              <span class="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.06em]">
+              <span class="font-medium text-caption-sm text-muted-foreground uppercase tracking-[0.06em]">
                 Kasir
               </span>
-              <span class="font-medium text-[13px] text-foreground tracking-[0.01em]">
+              <span class="font-medium text-body-sm text-foreground">
                 Yos Bb
               </span>
             </div>
@@ -197,18 +197,18 @@ export default function Receipt() {
                   )}
                 >
                   <div class="min-w-0 flex-1">
-                    <div class="font-semibold text-[14px] text-foreground tracking-[0.01em]">
+                    <div class="font-semibold text-body-sm text-foreground">
                       {item.name}
                     </div>
-                    <div class="mt-0.5 text-[12px] text-muted-foreground tracking-[0.02em]">
+                    <div class="mt-0.5 text-caption text-muted-foreground tracking-[0.02em]">
                       {item.desc}
                     </div>
                   </div>
                   <div class="ml-4 shrink-0 text-right">
-                    <div class="font-semibold text-[14px] text-foreground tabular-nums tracking-[-0.01em]">
+                    <div class="font-semibold text-body-sm text-foreground tabular-nums tracking-[-0.01em]">
                       {formatRupiah(item.price * item.qty)}
                     </div>
-                    <div class="mt-px text-[11px] text-muted-foreground tracking-[0.02em]">
+                    <div class="mt-px text-caption-sm text-muted-foreground">
                       {item.qty} × {formatRupiah(item.price)}
                     </div>
                   </div>
@@ -220,25 +220,25 @@ export default function Receipt() {
           {/* Totals */}
           <div class="border-border border-t border-dashed px-6 pt-4 pb-5 max-[600px]:px-4">
             <div class="flex justify-between py-1">
-              <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
+              <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
                 Subtotal
               </span>
-              <span class="font-medium text-[13px] text-foreground tabular-nums">
+              <span class="font-medium text-body-sm text-foreground tabular-nums">
                 {formatRupiah(subtotal)}
               </span>
             </div>
             <div class="flex justify-between py-1">
-              <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
+              <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
                 Pajak (11%)
               </span>
-              <span class="font-medium text-[13px] text-foreground tabular-nums">
+              <span class="font-medium text-body-sm text-foreground tabular-nums">
                 {formatRupiah(tax)}
               </span>
             </div>
             <div class="my-2.5 h-px bg-border" />
             <div class="flex items-baseline justify-between">
-              <span class="font-bold text-[16px] text-foreground">Total</span>
-              <span class="font-extrabold text-[24px] text-primary tabular-nums tracking-[-0.02em] dark:text-accent">
+              <span class="font-bold text-body text-foreground">Total</span>
+              <span class="font-extrabold text-heading-sm text-primary tabular-nums tracking-[-0.02em] dark:text-accent">
                 {formatRupiah(total)}
               </span>
             </div>
@@ -246,10 +246,10 @@ export default function Receipt() {
 
           {/* Payment method */}
           <div class="flex justify-between border-border border-t border-dashed px-6 pt-4 pb-5 max-[600px]:px-4">
-            <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
+            <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
               Metode
             </span>
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 font-semibold text-[12px] text-primary tracking-[0.02em]">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 font-semibold text-caption text-primary tracking-[0.02em]">
               <meta.Icon class="h-3.5 w-3.5" />
               {meta.label}
             </span>
@@ -261,10 +261,10 @@ export default function Receipt() {
               <Show
                 fallback={
                   <div class="flex w-full justify-between py-1">
-                    <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
+                    <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
                       Dibayar
                     </span>
-                    <span class="font-semibold text-[14px] text-foreground tabular-nums">
+                    <span class="font-semibold text-body-sm text-foreground tabular-nums">
                       {formatRupiah(total)}
                     </span>
                   </div>
@@ -272,18 +272,18 @@ export default function Receipt() {
                 when={method === "cash"}
               >
                 <div class="flex w-full justify-between py-1">
-                  <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
+                  <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
                     Dibayar
                   </span>
-                  <span class="font-semibold text-[14px] text-foreground tabular-nums">
+                  <span class="font-semibold text-body-sm text-foreground tabular-nums">
                     {formatRupiah(paid)}
                   </span>
                 </div>
                 <div class="flex w-full justify-between py-1">
-                  <span class="text-[13px] text-muted-foreground tracking-[0.02em]">
+                  <span class="text-body-sm text-muted-foreground tracking-[0.02em]">
                     Kembalian
                   </span>
-                  <span class="font-semibold text-[14px] text-status-success tabular-nums">
+                  <span class="font-semibold text-body-sm text-status-success tabular-nums">
                     {formatRupiah(Math.max(0, change))}
                   </span>
                 </div>
@@ -293,7 +293,7 @@ export default function Receipt() {
 
           {/* Footer */}
           <div class="border-border border-t border-dashed px-6 pt-4 pb-5 text-center max-[600px]:px-4">
-            <div class="text-[12px] text-muted-foreground leading-relaxed tracking-[0.02em]">
+            <div class="text-caption text-muted-foreground leading-relaxed tracking-[0.02em]">
               Terima kasih atas kunjungan Anda!
               <br />
               Jl. Banda No.30, Citarum, Bandung
@@ -340,7 +340,7 @@ export default function Receipt() {
           </Button>
         </div>
         <Button
-          class="h-[52px] flex-1 rounded-md font-bold text-[15px] tracking-[0.02em] shadow-card max-[600px]:w-full"
+          class="h-[52px] flex-1 rounded-md font-bold text-body tracking-[0.02em] shadow-card max-[600px]:w-full"
           onClick={() => navigate("/", { replace: true })}
           type="button"
         >
