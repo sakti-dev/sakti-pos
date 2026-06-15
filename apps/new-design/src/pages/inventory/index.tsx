@@ -2,7 +2,7 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { SearchBar } from "~/components/search-bar";
 import { FadeIn } from "~/components/ui/fade-in";
-import { Tab } from "~/components/ui/tab";
+import { TabButton } from "~/components/ui/tab";
 import { categories, products } from "~/lib/data/catalog";
 import { useOrientation } from "~/lib/use-orientation";
 import { InventoryRow } from "./product-row";
@@ -14,7 +14,7 @@ export default function InventoryPage() {
   const [activeCat, setActiveCat] = createSignal("all");
 
   const [stockMap, setStockMap] = createStore<Record<number, number>>(
-    Object.fromEntries(products.map((p) => [p.id, p.stock]))
+    Object.fromEntries(products.map((p) => [p.id, p.stock])),
   );
 
   const effectiveStock = (id: number) => stockMap[id] ?? 0;
@@ -77,7 +77,7 @@ export default function InventoryPage() {
         enable={enable()}
         y={8}
       >
-        <Tab
+        <TabButton
           active={activeCat() === "all"}
           class="flex items-center gap-1.5"
           onClick={() => setActiveCat("all")}
@@ -86,10 +86,10 @@ export default function InventoryPage() {
         >
           Semua
           <span class="text-caption-sm opacity-70">{products.length}</span>
-        </Tab>
+        </TabButton>
         <For each={categories}>
           {(cat) => (
-            <Tab
+            <TabButton
               active={activeCat() === cat.id}
               class="flex items-center gap-1.5"
               onClick={() => setActiveCat(cat.id)}
@@ -100,7 +100,7 @@ export default function InventoryPage() {
               <span class="text-caption-sm opacity-70">
                 {products.filter((p) => p.category === cat.id).length}
               </span>
-            </Tab>
+            </TabButton>
           )}
         </For>
       </FadeIn>

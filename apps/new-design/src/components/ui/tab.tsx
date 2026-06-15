@@ -51,10 +51,10 @@ export const tabVariants = cva(
       tone: "primary",
       shape: "rounded",
     },
-  }
+  },
 );
 
-export interface TabProps {
+export interface TabButtonProps {
   readonly active?: boolean;
   readonly "aria-label"?: string;
   readonly children: JSX.Element;
@@ -64,7 +64,7 @@ export interface TabProps {
   readonly tone?: VariantProps<typeof tabVariants>["tone"];
 }
 
-export const Tab = (props: TabProps) => {
+export const TabButton = (props: TabButtonProps) => {
   const [local, others] = splitProps(props, [
     "active",
     "shape",
@@ -80,7 +80,7 @@ export const Tab = (props: TabProps) => {
           shape: local.shape,
           tone: local.tone,
         }),
-        local.class
+        local.class,
       )}
       type="button"
       {...others}

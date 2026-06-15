@@ -1,5 +1,5 @@
 import { For } from "solid-js";
-import { Tab } from "~/components/ui/tab";
+import { TabButton } from "~/components/ui/tab";
 
 export type CategoryKey = "minuman" | "makanan" | "snack" | "dessert" | "paket";
 
@@ -25,14 +25,14 @@ export const CategoryTabs = (props: CategoryTabsProps) => (
   <div class="scrollbar-none flex shrink-0 gap-2.5 overflow-x-auto pb-1">
     <For each={categoryTabs}>
       {(tab) => (
-        <Tab
+        <TabButton
           active={props.active === tab.key}
           aria-label={tab.label}
           class="px-8 py-4 text-body"
           onClick={() => props.onSelect(tab.key)}
         >
           {tab.label}
-        </Tab>
+        </TabButton>
       )}
     </For>
   </div>

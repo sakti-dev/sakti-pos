@@ -4,7 +4,7 @@ import { PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Tab } from "~/components/ui/tab";
+import { TabButton } from "~/components/ui/tab";
 import {
   categories,
   type Product,
@@ -53,7 +53,7 @@ export function ProductTab() {
 
       {/* Category filter pills */}
       <div class="scrollbar-none flex shrink-0 gap-2 overflow-x-auto px-4 pb-3 lg:px-6">
-        <Tab
+        <TabButton
           active={activeCat() === "all"}
           class="flex items-center gap-1.5"
           onClick={() => setActiveCat("all")}
@@ -62,10 +62,10 @@ export function ProductTab() {
         >
           Semua
           <span class="text-caption-sm opacity-70">{products.length}</span>
-        </Tab>
+        </TabButton>
         <For each={categories}>
           {(cat) => (
-            <Tab
+            <TabButton
               active={activeCat() === cat.id}
               class="flex items-center gap-1.5"
               onClick={() => setActiveCat(cat.id)}
@@ -76,7 +76,7 @@ export function ProductTab() {
               <span class="text-caption-sm opacity-70">
                 {products.filter((p) => p.category === cat.id).length}
               </span>
-            </Tab>
+            </TabButton>
           )}
         </For>
       </div>

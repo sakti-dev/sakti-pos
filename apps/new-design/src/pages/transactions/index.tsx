@@ -8,7 +8,7 @@ import {
 } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { FadeIn } from "~/components/ui/fade-in";
-import { Tab } from "~/components/ui/tab";
+import { TabButton } from "~/components/ui/tab";
 import {
   type FilterKey,
   sampleTransactions,
@@ -151,7 +151,7 @@ export default function Transactions() {
         <div class="scrollbar-none flex gap-2 overflow-x-auto">
           <For each={FILTER_TABS}>
             {(tab) => (
-              <Tab
+              <TabButton
                 active={filter() === tab.key}
                 aria-label={tab.label}
                 class="flex items-center gap-2"
@@ -163,7 +163,7 @@ export default function Transactions() {
                 <span class="text-caption-sm opacity-70">
                   ({transactionFilterCounts[tab.key]})
                 </span>
-              </Tab>
+              </TabButton>
             )}
           </For>
         </div>
