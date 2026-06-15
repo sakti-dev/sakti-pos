@@ -2,6 +2,7 @@ import { A, useNavigate } from "@solidjs/router";
 import { createSignal } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
+import { SearchBar } from "~/components/search-bar";
 import { FadeIn } from "~/components/ui/fade-in";
 import {
   Sheet,
@@ -17,7 +18,6 @@ import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
 import { type CategoryKey, CategoryTabs } from "./components/category-tabs";
 import { ProductGrid } from "./components/product-grid";
-import { SearchBar } from "./components/search-bar";
 import type { CartEntry } from "./components/types";
 
 export default function CashRegisterPage() {
@@ -75,20 +75,28 @@ export default function CashRegisterPage() {
       {/* Left column — catalog */}
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <FadeIn
-          class="flex h-14 shrink-0 items-center gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
+          class="flex h-14 shrink-0 items-center justify-between gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
           duration={0.4}
           x={-20}
         >
-          <A
-            aria-label="Kembali"
-            class="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-border bg-card text-foreground transition-[background,border-color] duration-150 hover:border-primary/20 hover:bg-primary/5"
-            href="/"
-          >
-            <ArrowLeftIcon class="h-[18px] w-[18px]" />
-          </A>
-          <span class="font-bold font-display text-body-lg text-foreground">
-            Transaksi Baru
-          </span>
+          <div class="flex shrink-0 items-center gap-3.5">
+            <A
+              aria-label="Kembali"
+              class="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-border bg-card text-foreground transition-[background,border-color] duration-150 hover:border-primary/20 hover:bg-primary/5"
+              href="/"
+            >
+              <ArrowLeftIcon class="h-[18px] w-[18px]" />
+            </A>
+            <span class="hidden font-bold font-display text-body-lg text-foreground sm:block">
+              Transaksi Baru
+            </span>
+          </div>
+          <SearchBar
+            class="w-40 sm:w-56 lg:w-72"
+            mode="compact"
+            onInput={setSearch}
+            value={search()}
+          />
         </FadeIn>
 
         <FadeIn
@@ -98,7 +106,6 @@ export default function CashRegisterPage() {
           y={16}
         >
           <CategoryTabs active={activeCat()} onSelect={setActiveCat} />
-          <SearchBar onInput={setSearch} value={search()} />
           <ProductGrid onAdd={addToCart} products={filtered()} />
         </FadeIn>
       </div>

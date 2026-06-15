@@ -25,17 +25,16 @@ export interface Variant {
 }
 
 export interface Category {
-  readonly color: string;
   readonly id: string;
   readonly name: string;
 }
 
 export const categories: readonly Category[] = [
-  { id: "kopi", name: "Kopi", color: "#1c3a13" },
-  { id: "non-kopi", name: "Non-Kopi", color: "#0284c7" },
-  { id: "makanan", name: "Makanan", color: "#e6a817" },
-  { id: "snack", name: "Snack", color: "#22c55e" },
-  { id: "dessert", name: "Dessert", color: "#c62828" },
+  { id: "kopi", name: "Kopi" },
+  { id: "non-kopi", name: "Non-Kopi" },
+  { id: "makanan", name: "Makanan" },
+  { id: "snack", name: "Snack" },
+  { id: "dessert", name: "Dessert" },
 ] as const;
 
 export const products: readonly Product[] = [

@@ -4,9 +4,9 @@ import {
   ClockIcon,
   FileIcon,
   LoaderIcon,
-  SearchIcon,
   XCircleIcon,
 } from "~/assets";
+import { SearchBar } from "~/components/search-bar";
 import { FadeIn } from "~/components/ui/fade-in";
 import { Tab } from "~/components/ui/tab";
 import {
@@ -141,16 +141,11 @@ export default function Transactions() {
         y={8}
       >
         {/* Search field */}
-        <label class="flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 shadow-card">
-          <SearchIcon class="h-4 w-4 shrink-0 text-faint-foreground" />
-          <input
-            class="w-full bg-transparent text-foreground text-sm outline-none placeholder:text-faint-foreground"
-            onInput={(e) => setSearch(e.currentTarget.value)}
-            placeholder="Cari transaksi..."
-            type="text"
-            value={search()}
-          />
-        </label>
+        <SearchBar
+          onInput={setSearch}
+          placeholder="Cari transaksi..."
+          value={search()}
+        />
 
         {/* Filter tabs */}
         <div class="scrollbar-none flex gap-2 overflow-x-auto">

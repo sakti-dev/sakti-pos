@@ -31,6 +31,7 @@ const ZONE_MAP: Record<string, Zone> = {
 
 const SECTION_ROUTE_RE = /^\/setting\/.+$/;
 const CATALOG_FORM_RE = /^\/catalog\/(product|variant|category)\//;
+const FAB_PATHS = ["/", "/transactions"];
 
 const navFromPath = (pathname: string): NavKey => {
   if (pathname === "/") {
@@ -110,7 +111,7 @@ export const AppShell = (props: RouteSectionProps) => {
         class={cn(
           "relative flex flex-1 flex-col overflow-hidden bg-background",
           isShell() && "mt-[54px] h-[calc(100vh-54px)] lg:ml-[80px]",
-          !isShell() && "h-screen"
+          !isShell() && "h-screen",
         )}
         onPointerDown={closeSidebar}
       >
@@ -118,7 +119,7 @@ export const AppShell = (props: RouteSectionProps) => {
       </main>
 
       {/* ── Shell-only chrome ── */}
-      <Show when={isShell() && !pathname().startsWith("/setting")}>
+      <Show when={isShell() && FAB_PATHS.includes(pathname())}>
         <Fab />
       </Show>
       <Show when={isShell()}>

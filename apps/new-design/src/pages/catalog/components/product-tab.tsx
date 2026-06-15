@@ -1,6 +1,7 @@
 import { A } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { PlusIcon, SearchIcon } from "~/assets";
+import { PlusIcon } from "~/assets";
+import { SearchBar } from "~/components/search-bar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Tab } from "~/components/ui/tab";
@@ -33,16 +34,12 @@ export function ProductTab() {
     <div class="flex flex-1 flex-col overflow-hidden">
       {/* Search + add */}
       <div class="flex shrink-0 items-center gap-2.5 px-4 pt-3 pb-2 lg:px-6">
-        <label class="flex flex-1 items-center gap-2 rounded-xl bg-card px-3.5 py-2 shadow-card">
-          <SearchIcon class="h-4 w-4 shrink-0 text-faint-foreground" />
-          <input
-            class="w-full bg-transparent text-body-sm text-foreground outline-none placeholder:text-faint-foreground"
-            onInput={(e) => setSearch(e.currentTarget.value)}
-            placeholder="Cari produk atau SKU..."
-            type="text"
-            value={search()}
-          />
-        </label>
+        <SearchBar
+          class="flex-1"
+          onInput={setSearch}
+          placeholder="Cari produk atau SKU..."
+          value={search()}
+        />
         <Button as={A} href="/catalog/product/new" size="sm">
           <PlusIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Tambah Produk</span>

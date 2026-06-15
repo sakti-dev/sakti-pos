@@ -1,12 +1,7 @@
 import { A } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import {
-  LayersIcon,
-  PencilIcon,
-  PlusIcon,
-  SearchIcon,
-  TrashIcon,
-} from "~/assets";
+import { LayersIcon, PencilIcon, PlusIcon, TrashIcon } from "~/assets";
+import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import {
   formatVariantOptions,
@@ -45,16 +40,12 @@ export function VariantTab() {
     <div class="flex flex-1 flex-col overflow-hidden">
       {/* Search + add */}
       <div class="flex shrink-0 items-center gap-2.5 px-4 pt-3 pb-3 lg:px-6">
-        <label class="flex flex-1 items-center gap-2 rounded-xl bg-card px-3.5 py-2 shadow-card">
-          <SearchIcon class="h-4 w-4 shrink-0 text-faint-foreground" />
-          <input
-            class="w-full bg-transparent text-body-sm text-foreground outline-none placeholder:text-faint-foreground"
-            onInput={(e) => setSearch(e.currentTarget.value)}
-            placeholder="Cari varian..."
-            type="text"
-            value={search()}
-          />
-        </label>
+        <SearchBar
+          class="flex-1"
+          onInput={setSearch}
+          placeholder="Cari varian..."
+          value={search()}
+        />
         <Button as={A} href="/catalog/variant/new" size="sm">
           <PlusIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Tambah Varian</span>

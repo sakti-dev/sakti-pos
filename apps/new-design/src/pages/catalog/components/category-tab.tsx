@@ -1,12 +1,7 @@
 import { A } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import {
-  GridIcon,
-  PencilIcon,
-  PlusIcon,
-  SearchIcon,
-  TrashIcon,
-} from "~/assets";
+import { PencilIcon, PlusIcon, TrashIcon } from "~/assets";
+import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import { type Category, categories, products } from "~/lib/data/catalog";
 
@@ -25,16 +20,12 @@ export function CategoryTab() {
     <div class="flex flex-1 flex-col overflow-hidden">
       {/* Search + add */}
       <div class="flex shrink-0 items-center gap-2.5 px-4 pt-3 pb-3 lg:px-6">
-        <label class="flex flex-1 items-center gap-2 rounded-xl bg-card px-3.5 py-2 shadow-card">
-          <SearchIcon class="h-4 w-4 shrink-0 text-faint-foreground" />
-          <input
-            class="w-full bg-transparent text-body-sm text-foreground outline-none placeholder:text-faint-foreground"
-            onInput={(e) => setSearch(e.currentTarget.value)}
-            placeholder="Cari kategori..."
-            type="text"
-            value={search()}
-          />
-        </label>
+        <SearchBar
+          class="flex-1"
+          onInput={setSearch}
+          placeholder="Cari kategori..."
+          value={search()}
+        />
         <Button as={A} href="/catalog/category/new" size="sm">
           <PlusIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Tambah Kategori</span>
@@ -68,12 +59,6 @@ function CategoryItem(props: { category: Category }) {
     products.filter((p) => p.category === props.category.id).length;
   return (
     <div class="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/20 lg:gap-4 lg:p-4">
-      <div
-        class="flex size-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: props.category.color }}
-      >
-        <GridIcon class="h-5 w-5 text-white" />
-      </div>
       <div class="min-w-0 flex-1">
         <h3 class="font-semibold text-body-sm text-foreground">
           {props.category.name}
