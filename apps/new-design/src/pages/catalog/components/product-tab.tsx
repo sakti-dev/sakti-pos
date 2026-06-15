@@ -67,7 +67,9 @@ export function ProductTab() {
               value="all"
             >
               Semua
-              <span class="text-caption-sm opacity-70">{products.length}</span>
+              <span class="text-caption-sm opacity-70">
+                ({products.length})
+              </span>
             </TabsTrigger>
             <For each={categories}>
               {(cat) => (
@@ -79,7 +81,7 @@ export function ProductTab() {
                 >
                   {cat.name}
                   <span class="text-caption-sm opacity-70">
-                    {products.filter((p) => p.category === cat.id).length}
+                    ({products.filter((p) => p.category === cat.id).length})
                   </span>
                 </TabsTrigger>
               )}

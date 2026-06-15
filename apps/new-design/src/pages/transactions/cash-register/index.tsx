@@ -77,7 +77,7 @@ export default function CashRegisterPage() {
       {/* Left column — catalog */}
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <FadeIn
-          class="flex h-14 shrink-0 items-center justify-between gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
+          class="flex h-header shrink-0 items-center justify-between gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
           duration={0.4}
           x={-20}
         >

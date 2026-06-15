@@ -13,7 +13,7 @@
   --breakpoint-xl: 75rem;    /* 1200px — desktop → large desktop */
 
   /* ── App chrome spacing ── */
-  --spacing-header: 54px;
+  --spacing-header: 56px;
   --spacing-sidebar-rail: 80px;
   --spacing-sidebar-expanded: 202px;
   --spacing-gutter: 18px;

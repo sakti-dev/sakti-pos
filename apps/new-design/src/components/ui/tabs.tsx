@@ -50,7 +50,7 @@ export const tabVariants = cva(
       {
         variant: "pill",
         shape: "pill",
-        class: "rounded-full px-4 py-[7px]",
+        class: "gap-1.5 rounded-full px-4 py-[7px]",
       },
       {
         variant: "pill",

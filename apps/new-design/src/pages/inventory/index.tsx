@@ -90,7 +90,9 @@ export default function InventoryPage() {
               value="all"
             >
               Semua
-              <span class="text-caption-sm opacity-70">{products.length}</span>
+              <span class="text-caption-sm opacity-70">
+                ({products.length})
+              </span>
             </TabsTrigger>
             <For each={categories}>
               {(cat) => (
@@ -102,7 +104,7 @@ export default function InventoryPage() {
                 >
                   {cat.name}
                   <span class="text-caption-sm opacity-70">
-                    {products.filter((p) => p.category === cat.id).length}
+                    ({products.filter((p) => p.category === cat.id).length})
                   </span>
                 </TabsTrigger>
               )}
