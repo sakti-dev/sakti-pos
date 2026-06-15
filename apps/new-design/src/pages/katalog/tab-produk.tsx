@@ -1,21 +1,34 @@
 import { A } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "~/assets";
+import { createStore } from "solid-js/store";
+import { PlusIcon, SearchIcon } from "~/assets";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { Tab } from "~/components/ui/tab";
-import { formatRupiah } from "~/lib/utils";
 import {
   categories,
   type Product,
-  productImage,
   products,
   stockStatus,
-} from "./data";
+} from "~/lib/data/catalog";
+import { formatRupiah } from "~/lib/utils";
 
 export function TabProduk() {
   const [search, setSearch] = createSignal("");
   const [activeCat, setActiveCat] = createSignal("all");
+
+  // Mutable stock overlay so inline steppers work without touching
+  // the immutable sample data. stockMap[id] → current stock value.
+  const [stockMap, setStockMap] = createStore<Record<number, number>>(
+    Object.fromEntries(products.map((p) => [p.id, p.stock]))
+  );
+
+  const effectiveStock = (id: number) => stockMap[id] ?? 0;
+  const adjustStock = (id: number, delta: number) =>
+    setStockMap(id, (prev) => Math.max(0, (prev ?? 0) + delta));
+  const setStock = (id: number, value: number) =>
+    setStockMap(id, Math.max(0, value));
 
   const filtered = createMemo(() => {
     const q = search().toLowerCase();
@@ -80,8 +93,9 @@ export function TabProduk() {
         </For>
       </div>
 
-      {/* Product grid */}
-      <div class="scrollbar-none flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
+      {/* Product list — container query so columns adapt to content width,
+          not viewport. 2 cols when container ≥40rem (640px). */}
+      <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
         <Show
           fallback={
             <EmptyState
@@ -91,9 +105,16 @@ export function TabProduk() {
           }
           when={filtered().length > 0}
         >
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5">
+          <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
             <For each={filtered()}>
-              {(product) => <ProductCard product={product} />}
+              {(product) => (
+                <ProductRow
+                  onAdjustStock={(delta) => adjustStock(product.id, delta)}
+                  onSetStock={(v) => setStock(product.id, v)}
+                  product={product}
+                  stock={effectiveStock(product.id)}
+                />
+              )}
             </For>
           </div>
         </Show>
@@ -102,58 +123,44 @@ export function TabProduk() {
   );
 }
 
-function ProductCard(props: { product: Product }) {
-  const s = () => stockStatus(props.product.stock);
+function ProductRow(props: {
+  onAdjustStock: (delta: number) => void;
+  onSetStock: (value: number) => void;
+  product: Product;
+  stock: number;
+}) {
+  const s = () => stockStatus(props.stock);
   return (
-    <div class="group overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/20">
-      {/* Thumbnail */}
-      <div class="relative aspect-square overflow-hidden bg-muted">
-        <img
-          alt={props.product.name}
-          class="h-full w-full object-cover"
-          src={productImage(props.product.id)}
-        />
-        <Badge class="absolute top-2 left-2" size="sm" variant={s().badge}>
-          {s().label}
-        </Badge>
-        <div class="absolute top-2 right-2 flex gap-1">
-          <Button
-            aria-label={`Edit ${props.product.name}`}
-            class="flex size-8 justify-center bg-card p-0 shadow-card"
-            look="ghost"
-            size="none"
-            tone="neutral"
-          >
-            <PencilIcon class="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            aria-label={`Hapus ${props.product.name}`}
-            class="flex size-8 justify-center bg-card p-0 shadow-card"
-            look="ghost"
-            size="none"
-            tone="danger"
-          >
-            <TrashIcon class="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div class="p-2.5 lg:p-3">
+    <div class="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/20 lg:gap-4">
+      {/* Left: tap to edit form */}
+      <A
+        aria-label={`Edit ${props.product.name}`}
+        class="min-w-0 flex-1 no-underline"
+        href="#"
+      >
         <h3 class="truncate font-semibold text-body-sm text-foreground">
           {props.product.name}
         </h3>
-        <p class="mb-2 font-mono text-caption-sm text-faint-foreground">
-          {props.product.sku}
+        <p class="mt-0.5 truncate text-caption-sm text-faint-foreground">
+          {props.product.sku} · {formatRupiah(props.product.price)}
         </p>
-        <div class="flex items-center justify-between gap-2">
-          <span class="font-bold text-body-sm text-primary tabular-nums">
-            {formatRupiah(props.product.price)}
-          </span>
-          <span class="shrink-0 rounded-full bg-muted px-2 py-0.5 font-medium text-caption-sm text-muted-foreground">
-            {props.product.stock} {props.product.unit}
-          </span>
-        </div>
+        <Badge class="mt-1" size="sm" variant={s().badge}>
+          {s().label}
+        </Badge>
+      </A>
+      {/* Right: inline stock stepper */}
+      <div class="flex shrink-0 flex-col items-center gap-1">
+        <QuantityStepper
+          ariaLabel={`Stok ${props.product.name}`}
+          editable
+          onDecrement={() => props.onAdjustStock(-1)}
+          onIncrement={() => props.onAdjustStock(1)}
+          onInput={(v) => props.onSetStock(v)}
+          value={props.stock}
+        />
+        <span class="font-medium text-caption-sm text-faint-foreground">
+          {props.product.unit}
+        </span>
       </div>
     </div>
   );

@@ -29,6 +29,17 @@
     background-color: #1a1a1a;
     border: 1px solid var(--color-border);
   }
+
+  /* ── Hide native number input spinners ── */
+  /* We provide our own +/- buttons via QuantityStepper. */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
 }
 
 @media (max-width: 640px) {

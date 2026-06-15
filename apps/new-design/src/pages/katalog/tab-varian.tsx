@@ -14,7 +14,7 @@ import {
   products,
   type Variant,
   variants,
-} from "./data";
+} from "~/lib/data/catalog";
 
 export function TabVarian() {
   const [search, setSearch] = createSignal("");

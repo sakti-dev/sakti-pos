@@ -376,7 +376,3 @@ export function getVariantProductNames(
   const rest = names.length - cap;
   return rest > 0 ? `${shown} dan ${rest} lainnya` : shown;
 }
-
-export function productImage(id: number): string {
-  return `https://picsum.photos/seed/sakti-${id}/400/400`;
-}

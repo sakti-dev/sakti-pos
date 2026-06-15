@@ -8,7 +8,7 @@ import {
   TrashIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
-import { type Category, categories, products } from "./data";
+import { type Category, categories, products } from "~/lib/data/catalog";
 
 export function TabKategori() {
   const [search, setSearch] = createSignal("");
