@@ -7,8 +7,8 @@ import {
   SearchIcon,
   XCircleIcon,
 } from "~/assets";
-import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
+import { Tab } from "~/components/ui/tab";
 import { useOrientation } from "~/lib/use-orientation";
 
 /* ── types ────────────────────────────────────────────────────── */
@@ -263,21 +263,20 @@ export default function Transactions() {
         </label>
 
         {/* Filter tabs */}
-        <div class="scrollbar-none flex gap-1.5 overflow-x-auto">
+        <div class="scrollbar-none flex gap-2 overflow-x-auto">
           <For each={FILTER_TABS}>
             {(tab) => (
-              <Button
+              <Tab
+                active={filter() === tab.key}
                 aria-label={tab.label}
-                class="flex items-center gap-2.5 whitespace-nowrap rounded-full px-3 py-2 text-left font-semibold text-body-sm text-caption lg:px-3.5 lg:py-2.5"
-                look={filter() === tab.key ? "soft" : "outline"}
+                class="flex items-center gap-2"
                 onClick={() => setFilter(tab.key)}
-                size="none"
-                tone={filter() === tab.key ? "primary" : "neutral"}
-                type="button"
+                shape="pill"
+                tone="accent"
               >
-                {tab.label}&nbsp;
-                <span class="text-caption-sm">({tab.total})</span>
-              </Button>
+                {tab.label}
+                <span class="text-caption-sm opacity-70">({tab.total})</span>
+              </Tab>
             )}
           </For>
         </div>

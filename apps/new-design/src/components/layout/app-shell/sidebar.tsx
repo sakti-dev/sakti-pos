@@ -51,7 +51,7 @@ export const Sidebar = (props: SidebarProps) => {
   return (
     <div
       class={cn(
-        "fixed top-0 left-0 z-[100] h-screen w-[80px] bg-card after:absolute after:top-0 after:right-0 after:bottom-0 after:z-[1] after:w-px after:bg-border after:transition-opacity after:duration-200 after:ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "fixed top-0 left-0 z-[100] h-screen w-[82px] bg-card after:absolute after:top-0 after:right-0 after:bottom-0 after:z-[1] after:w-px after:bg-border after:transition-opacity after:duration-200 after:ease-[cubic-bezier(0.22,1,0.36,1)]",
         props.isShell ? "hidden lg:block" : "hidden",
         props.expanded ? "after:opacity-0" : "after:opacity-100"
       )}
