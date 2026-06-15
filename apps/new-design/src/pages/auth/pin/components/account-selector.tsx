@@ -2,7 +2,8 @@ import { AnimatePresence, motion } from "motion-solidjs";
 import { For, Show } from "solid-js";
 import { XCloseIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
-import { type PinUser, SAMPLE_USERS } from "../types";
+import { pinUsers } from "~/lib/data/auth";
+import type { PinUser } from "../types";
 
 interface AccountSelectorProps {
   readonly onCancel: () => void;
@@ -40,7 +41,7 @@ export function AccountSelector(props: AccountSelectorProps) {
             </div>
 
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <For each={SAMPLE_USERS}>
+              <For each={pinUsers}>
                 {(user, i) => (
                   <button
                     aria-label={`${user.name}, ${user.role}`}

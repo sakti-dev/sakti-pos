@@ -33,7 +33,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
   return (
     <div
       class={cn(
-        "flex shrink-0 items-center overflow-hidden rounded-[6px] border border-border",
+        "flex shrink-0 items-center overflow-hidden rounded-md border border-border",
         props.class
       )}
     >

@@ -1,62 +1,15 @@
-import type { Component } from "solid-js";
 import { For } from "solid-js";
-import { CheckCircleIcon, ClockIcon, CreditCardIcon, FileIcon } from "~/assets";
+import { type KpiTone, kpiCards } from "~/lib/data/dashboard";
 import { cn } from "~/lib/utils";
-
-type Tone = "info" | "warning" | "danger" | "success";
 
 /* Semantic state is carried ONLY by the icon chip (soft inner container),
    never by the card body. All four cards share one identical surface. */
-const TONE_CHIP: Record<Tone, string> = {
+const TONE_CHIP: Record<KpiTone, string> = {
   info: "bg-status-info text-status-info-foreground",
   warning: "bg-status-warning text-status-warning-foreground",
   danger: "bg-status-danger text-status-danger-foreground",
   success: "bg-status-success text-status-success-foreground",
 };
-
-interface KpiCardData {
-  readonly ActionIcon: Component<{ class?: string }>;
-  readonly count: number;
-  readonly name: string;
-  readonly subtitle: string;
-  readonly tone: Tone;
-  readonly value: number;
-}
-
-const cards: readonly KpiCardData[] = [
-  {
-    name: "Transaksi Baru",
-    value: 0,
-    count: 0,
-    subtitle: "Hari ini",
-    tone: "info",
-    ActionIcon: FileIcon,
-  },
-  {
-    name: "Sedang Diproses",
-    value: 0,
-    count: 0,
-    subtitle: "Perlu dituntaskan",
-    tone: "warning",
-    ActionIcon: ClockIcon,
-  },
-  {
-    name: "Menunggu Dibayar",
-    value: 0,
-    count: 0,
-    subtitle: "Menunggu pembayaran",
-    tone: "danger",
-    ActionIcon: CreditCardIcon,
-  },
-  {
-    name: "Transaksi Selesai",
-    value: 0,
-    count: 0,
-    subtitle: "Selesai hari ini",
-    tone: "success",
-    ActionIcon: CheckCircleIcon,
-  },
-] as const;
 
 export const KpiCards = () => (
   <section>
@@ -70,7 +23,7 @@ export const KpiCards = () => (
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(4,1fr)]">
-      <For each={cards}>
+      <For each={kpiCards}>
         {(card) => (
           <article class="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card dark:shadow-none">
             <header class="flex items-start justify-between gap-3">

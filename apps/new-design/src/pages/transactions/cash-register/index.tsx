@@ -10,6 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
+import { cashRegisterProducts as products } from "~/lib/data/transactions";
 import { formatRupiah } from "~/lib/utils";
 import { CartList } from "./components/cart-list";
 import { CartPanel } from "./components/cart-panel";
@@ -17,56 +18,7 @@ import { CartTotals } from "./components/cart-totals";
 import { type CategoryKey, CategoryTabs } from "./components/category-tabs";
 import { ProductGrid } from "./components/product-grid";
 import { SearchBar } from "./components/search-bar";
-import type { CartEntry, Product } from "./components/types";
-
-const products: readonly Product[] = [
-  { id: 1, name: "Es Kopi Susu", price: 18_000, cat: "minuman", img: 225 },
-  { id: 2, name: "Kopi Hitam", price: 12_000, cat: "minuman", img: 302 },
-  { id: 3, name: "Matcha Latte", price: 22_000, cat: "minuman", img: 425 },
-  { id: 4, name: "Cappuccino", price: 25_000, cat: "minuman", img: 431 },
-  { id: 5, name: "Teh Manis", price: 8000, cat: "minuman", img: 591 },
-  { id: 6, name: "Americano", price: 20_000, cat: "minuman", img: 312 },
-  { id: 7, name: "Es Teh Tarik", price: 15_000, cat: "minuman", img: 383 },
-  {
-    id: 8,
-    name: "Chocolate Milkshake",
-    price: 28_000,
-    cat: "minuman",
-    img: 404,
-  },
-  {
-    id: 9,
-    name: "Nasi Goreng Spesial",
-    price: 32_000,
-    cat: "makanan",
-    img: 292,
-  },
-  { id: 10, name: "Mie Goreng", price: 28_000, cat: "makanan", img: 505 },
-  { id: 11, name: "Ayam Geprek", price: 25_000, cat: "makanan", img: 416 },
-  { id: 12, name: "Sandwich Club", price: 30_000, cat: "makanan", img: 326 },
-  { id: 13, name: "Burger Classic", price: 35_000, cat: "makanan", img: 461 },
-  {
-    id: 14,
-    name: "Roti Bakar Coklat",
-    price: 18_000,
-    cat: "makanan",
-    img: 488,
-  },
-  { id: 15, name: "Indomie Goreng", price: 15_000, cat: "makanan", img: 366 },
-  { id: 16, name: "Kentang Goreng", price: 20_000, cat: "snack", img: 429 },
-  { id: 17, name: "Pisang Goreng Keju", price: 18_000, cat: "snack", img: 317 },
-  { id: 18, name: "Dimsum Ayam", price: 22_000, cat: "snack", img: 257 },
-  { id: 19, name: "Cireng Isi", price: 15_000, cat: "snack", img: 139 },
-  { id: 20, name: "Tahu Crispy", price: 12_000, cat: "snack", img: 493 },
-  { id: 21, name: "Es Krim Vanilla", price: 15_000, cat: "dessert", img: 357 },
-  { id: 22, name: "Pancake Madu", price: 25_000, cat: "dessert", img: 490 },
-  { id: 23, name: "Waffle Coklat", price: 28_000, cat: "dessert", img: 225 },
-  { id: 24, name: "Brownies", price: 20_000, cat: "dessert", img: 411 },
-  { id: 25, name: "Paket Hemat A", price: 38_000, cat: "paket", img: 460 },
-  { id: 26, name: "Paket Hemat B", price: 45_000, cat: "paket", img: 402 },
-  { id: 27, name: "Paket Couple", price: 65_000, cat: "paket", img: 318 },
-  { id: 28, name: "Paket Keluarga", price: 95_000, cat: "paket", img: 359 },
-] as const;
+import type { CartEntry } from "./components/types";
 
 export default function CashRegisterPage() {
   const navigate = useNavigate();

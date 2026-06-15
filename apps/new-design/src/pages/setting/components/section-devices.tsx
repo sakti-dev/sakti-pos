@@ -1,31 +1,7 @@
 import { For } from "solid-js";
-import { PrinterIcon, ScannerIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
+import { connectedDevices } from "~/lib/data/devices";
 import { CardDesc, CardTitle, SectionCard } from "./primitives";
-
-const DEVICES = [
-  {
-    name: "Thermal Printer — EPSON TM-T82X",
-    status: "Terhubung via USB",
-    connected: true,
-    Icon: PrinterIcon,
-    kind: "printer" as const,
-  },
-  {
-    name: "Barcode Scanner — Honeywell 1900g",
-    status: "Terhubung via USB",
-    connected: true,
-    Icon: ScannerIcon,
-    kind: "scanner" as const,
-  },
-  {
-    name: "Kitchen Printer — EPSON TM-U220",
-    status: "Tidak terhubung",
-    connected: false,
-    Icon: PrinterIcon,
-    kind: "printer" as const,
-  },
-] as const;
 
 export function SectionDevices() {
   return (
@@ -54,7 +30,7 @@ export function SectionDevices() {
         </Button>
       </div>
       <div class="flex flex-col gap-2">
-        <For each={DEVICES}>
+        <For each={connectedDevices}>
           {(d) => (
             <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-muted p-4">
               <div

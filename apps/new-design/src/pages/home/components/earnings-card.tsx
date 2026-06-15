@@ -1,9 +1,9 @@
 import { createSignal, Show } from "solid-js";
 import { EyeClosedIcon, EyeOpenIcon } from "~/assets";
+import { earningsAmount } from "~/lib/data/dashboard";
 
 export const EarningsCard = () => {
   const [visible, setVisible] = createSignal(true);
-  const amount = "Rp 2.450.000";
   const masked = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
 
   return (
@@ -25,7 +25,7 @@ export const EarningsCard = () => {
           when={visible()}
         >
           <div class="flex items-center font-semibold text-2xl text-white tabular-nums sm:text-display">
-            {amount}
+            {earningsAmount}
           </div>
         </Show>
       </div>

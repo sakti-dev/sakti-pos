@@ -3,58 +3,16 @@ import { createSignal } from "solid-js";
 import { CheckCircleIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
+import { samplePaymentCart } from "~/lib/data/transactions";
 import { type OrderItem, OrderSummary } from "./components/order-summary";
 import { PaymentExtras } from "./components/payment-extras";
 import type { PayMethod } from "./components/payment-method";
 import { PaymentMethod } from "./components/payment-method";
 import { TotalBanner } from "./components/total-banner";
 
-const sampleCart: OrderItem[] = [
-  {
-    id: 1,
-    name: "Es Kopi Susu",
-    desc: "Minuman",
-    price: 18_000,
-    qty: 2,
-    img: 237,
-  },
-  {
-    id: 4,
-    name: "Cappuccino",
-    desc: "Minuman",
-    price: 25_000,
-    qty: 1,
-    img: 225,
-  },
-  {
-    id: 9,
-    name: "Nasi Goreng Spesial",
-    desc: "Makanan",
-    price: 32_000,
-    qty: 1,
-    img: 292,
-  },
-  {
-    id: 16,
-    name: "Kentang Goreng",
-    desc: "Snack",
-    price: 20_000,
-    qty: 2,
-    img: 312,
-  },
-  {
-    id: 21,
-    name: "Es Krim Vanilla",
-    desc: "Dessert",
-    price: 15_000,
-    qty: 1,
-    img: 291,
-  },
-];
-
 export default function PaymentPage() {
   const navigate = useNavigate();
-  const [cart, setCart] = createSignal<OrderItem[]>(sampleCart);
+  const [cart, setCart] = createSignal<OrderItem[]>(samplePaymentCart);
   const [method, setMethod] = createSignal<PayMethod>("cash");
   const [cashRaw, setCashRaw] = createSignal("");
   const [selectedQuick, setSelectedQuick] = createSignal<number | null>(null);

@@ -1,5 +1,6 @@
 import { For } from "solid-js";
 import { Button } from "~/components/ui/button";
+import { paymentMethods } from "~/lib/data/payment-methods";
 import {
   BtnRow,
   CardDesc,
@@ -7,34 +8,6 @@ import {
   SectionCard,
   ToggleRow,
 } from "./primitives";
-
-const METHODS = [
-  {
-    title: "Tunai",
-    desc: "Terima pembayaran uang tunai langsung dari pelanggan.",
-    checked: true,
-  },
-  {
-    title: "QRIS",
-    desc: "Pembayaran via scan QR code (GoPay, OVO, Dana, dll).",
-    checked: true,
-  },
-  {
-    title: "Kartu Debit / Kredit",
-    desc: "Terima pembayaran via mesin EDC atau terminal kartu.",
-    checked: true,
-  },
-  {
-    title: "E-Wallet",
-    desc: "Transfer langsung ke e-wallet bisnis Anda.",
-    checked: false,
-  },
-  {
-    title: "Transfer Bank",
-    desc: "Terima pembayaran via transfer bank (BCA, Mandiri, BRI, dll).",
-    checked: false,
-  },
-] as const;
 
 export function SectionPaymentMethods() {
   return (
@@ -45,12 +18,12 @@ export function SectionPaymentMethods() {
           Kelola metode pembayaran yang diterima di kasir Anda.
         </CardDesc>
       </div>
-      <For each={METHODS}>
+      <For each={paymentMethods}>
         {(m, i) => (
           <ToggleRow
             checked={m.checked}
             desc={m.desc}
-            last={i() === METHODS.length - 1}
+            last={i() === paymentMethods.length - 1}
             title={m.title}
           />
         )}

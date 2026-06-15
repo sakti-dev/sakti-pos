@@ -2,8 +2,9 @@ import { createSignal, onCleanup, onMount } from "solid-js";
 import { toast } from "solid-sonner";
 import { UsersIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
+import { pinUsers } from "~/lib/data/auth";
 import { cn } from "~/lib/utils";
-import { DIGIT_RE, MAX_PIN, type PinUser, SAMPLE_USERS } from "../types";
+import { DIGIT_RE, MAX_PIN, type PinUser } from "../types";
 import { usePinAuth } from "../use-pin-auth";
 import { AccountSelector } from "./account-selector";
 import { Numpad } from "./numpad";
@@ -12,7 +13,7 @@ import { SuccessOverlay } from "./success-overlay";
 import { UserCard } from "./user-card";
 
 export function PinRightPanel() {
-  const [currentUser, setCurrentUser] = createSignal<PinUser>(SAMPLE_USERS[0]);
+  const [currentUser, setCurrentUser] = createSignal<PinUser>(pinUsers[0]);
   const [showUserList, setShowUserList] = createSignal(false);
   const [showSuccess, setShowSuccess] = createSignal(false);
 

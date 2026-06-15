@@ -12,6 +12,7 @@ import {
   WalletIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
+import { sampleReceiptItems } from "~/lib/data/transactions";
 import { cn, formatRupiah } from "~/lib/utils";
 
 const BARCODE_PATTERN = [
@@ -29,15 +30,7 @@ const METHOD_META: Record<
   ewallet: { Icon: WalletIcon, label: "E-Wallet" },
 };
 
-/* ── sample data (matches reference) ─────────────────────────── */
-
-const sampleItems = [
-  { name: "Es Kopi Susu", desc: "Minuman", price: 18_000, qty: 2 },
-  { name: "Cappuccino", desc: "Minuman", price: 25_000, qty: 1 },
-  { name: "Nasi Goreng Spesial", desc: "Makanan", price: 32_000, qty: 1 },
-  { name: "Kentang Goreng", desc: "Snack", price: 20_000, qty: 2 },
-  { name: "Es Krim Vanilla", desc: "Dessert", price: 15_000, qty: 1 },
-] as const;
+/* ── sample data ── */
 
 const now = new Date();
 const days = [
@@ -68,7 +61,10 @@ const dateStr = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()
 const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 const txNum = `TX-${String(Math.floor(Math.random() * 900_000) + 100_000)}`;
 
-const sampleSubtotal = sampleItems.reduce((s, i) => s + i.price * i.qty, 0);
+const sampleSubtotal = sampleReceiptItems.reduce(
+  (s, i) => s + i.price * i.qty,
+  0
+);
 const sampleTax = Math.round(sampleSubtotal * 0.11);
 const sampleTotal = sampleSubtotal + sampleTax;
 
@@ -97,7 +93,7 @@ export default function Receipt() {
       }
     | undefined;
 
-  const items = state?.items ?? sampleItems;
+  const items = state?.items ?? sampleReceiptItems;
   const method = state?.method ?? "cash";
   const subtotal = state?.subtotal ?? sampleSubtotal;
   const tax = state?.tax ?? sampleTax;

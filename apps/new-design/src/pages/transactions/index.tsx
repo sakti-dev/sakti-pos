@@ -9,21 +9,13 @@ import {
 } from "~/assets";
 import { FadeIn } from "~/components/ui/fade-in";
 import { Tab } from "~/components/ui/tab";
+import {
+  type FilterKey,
+  sampleTransactions,
+  type TxStatus,
+  transactionFilterCounts,
+} from "~/lib/data/transactions";
 import { useOrientation } from "~/lib/use-orientation";
-
-/* ── types ────────────────────────────────────────────────────── */
-
-type TxStatus = "new" | "processing" | "waiting" | "done" | "cancelled";
-type FilterKey = "all" | TxStatus;
-
-interface TxEntry {
-  readonly customer: string;
-  readonly id: string;
-  readonly items: readonly string[];
-  readonly status: TxStatus;
-  readonly time: string;
-  readonly total: number;
-}
 
 /* ── constants ────────────────────────────────────────────────── */
 
@@ -86,116 +78,14 @@ const STATUS_PILL: Record<TxStatus, { bg: string; color: string }> = {
   },
 };
 
-const FILTER_TABS: readonly { key: FilterKey; label: string; total: number }[] =
-  [
-    { key: "all", label: "Semua", total: 100 },
-    { key: "new", label: "Baru", total: 20 },
-    { key: "processing", label: "Diproses", total: 30 },
-    { key: "waiting", label: "Menunggu", total: 5 },
-    { key: "done", label: "Selesai", total: 92 },
-    { key: "cancelled", label: "Batal", total: 0 },
-  ];
-
-/* ── sample data (matches reference) ──────────────────────────── */
-
-const sampleTxs: readonly TxEntry[] = [
-  {
-    id: "TX-20260611-001",
-    customer: "Meja 3",
-    items: ["Es Kopi Susu", "Nasi Goreng Spesial"],
-    total: 68_000,
-    status: "new",
-    time: "08:42",
-  },
-  {
-    id: "TX-20260611-002",
-    customer: "Budi Santoso",
-    items: ["Matcha Latte", "Roti Bakar"],
-    total: 52_000,
-    status: "processing",
-    time: "08:35",
-  },
-  {
-    id: "TX-20260611-003",
-    customer: "Meja 7",
-    items: ["Americano", "Cappuccino", "Cheesecake"],
-    total: 115_000,
-    status: "waiting",
-    time: "08:28",
-  },
-  {
-    id: "TX-20260611-004",
-    customer: "Sari Dewi",
-    items: ["Teh Tarik"],
-    total: 22_000,
-    status: "done",
-    time: "08:15",
-  },
-  {
-    id: "TX-20260611-005",
-    customer: "Walk-in",
-    items: ["Kopi Tubruk", "Pisang Goreng"],
-    total: 35_000,
-    status: "done",
-    time: "08:02",
-  },
-  {
-    id: "TX-20260611-006",
-    customer: "Meja 1",
-    items: ["Latte", "Sandwich Club"],
-    total: 78_000,
-    status: "processing",
-    time: "07:55",
-  },
-  {
-    id: "TX-20260611-007",
-    customer: "Andi Pratama",
-    items: ["Es Teh Manis"],
-    total: 12_000,
-    status: "cancelled",
-    time: "07:48",
-  },
-  {
-    id: "TX-20260611-008",
-    customer: "Meja 5",
-    items: ["Mocha Frappe", "Brownies", "Es Jeruk"],
-    total: 95_000,
-    status: "new",
-    time: "07:30",
-  },
-  {
-    id: "TX-20260611-009",
-    customer: "Rina Kartika",
-    items: ["Caramel Macchiato", "Croissant"],
-    total: 62_000,
-    status: "done",
-    time: "07:15",
-  },
-  {
-    id: "TX-20260611-010",
-    customer: "Meja 2",
-    items: ["Ayam Geprek", "Es Jeruk Segar"],
-    total: 48_000,
-    status: "waiting",
-    time: "07:05",
-  },
-  {
-    id: "TX-20260611-011",
-    customer: "Dian Lestari",
-    items: ["Flat White"],
-    total: 32_000,
-    status: "done",
-    time: "06:50",
-  },
-  {
-    id: "TX-20260611-012",
-    customer: "Meja 9",
-    items: ["Nasi Goreng Spesial", "Es Kopi Susu", "Es Teh Tarik"],
-    total: 92_000,
-    status: "processing",
-    time: "06:35",
-  },
-];
+const FILTER_TABS: readonly { key: FilterKey; label: string }[] = [
+  { key: "all", label: "Semua" },
+  { key: "new", label: "Baru" },
+  { key: "processing", label: "Diproses" },
+  { key: "waiting", label: "Menunggu" },
+  { key: "done", label: "Selesai" },
+  { key: "cancelled", label: "Batal" },
+] as const;
 
 /* ── helpers ──────────────────────────────────────────────────── */
 
@@ -212,7 +102,7 @@ export default function Transactions() {
   const filtered = () => {
     const q = search().toLowerCase();
     const f = filter();
-    return sampleTxs.filter((tx) => {
+    return sampleTransactions.filter((tx) => {
       if (f !== "all" && tx.status !== f) {
         return false;
       }
@@ -275,7 +165,9 @@ export default function Transactions() {
                 tone="accent"
               >
                 {tab.label}
-                <span class="text-caption-sm opacity-70">({tab.total})</span>
+                <span class="text-caption-sm opacity-70">
+                  ({transactionFilterCounts[tab.key]})
+                </span>
               </Tab>
             )}
           </For>
