@@ -42,7 +42,7 @@ export function SectionTeams() {
                 </div>
               </div>
               <span
-                class={`rounded-full px-2.5 py-[3px] font-semibold text-caption-sm uppercase tracking-[0.04em] ${
+                class={`rounded-full px-2.5 py-[3px] font-semibold text-caption-sm uppercase tracking-wider ${
                   s.active
                     ? "bg-accent/10 text-primary dark:text-accent"
                     : "bg-danger/10 text-danger dark:bg-danger dark:text-danger-foreground"

@@ -14,7 +14,7 @@ const TONE_CHIP: Record<KpiTone, string> = {
 export const KpiCards = () => (
   <section>
     <div class="mb-3.5">
-      <h3 class="font-display font-medium text-body-lg text-foreground tracking-[-0.36px]">
+      <h3 class="font-display font-medium text-body-lg text-foreground tracking-tight">
         Transaksi
       </h3>
       <p class="mt-[3px] text-body-sm text-muted-foreground">
@@ -27,7 +27,7 @@ export const KpiCards = () => (
         {(card) => (
           <article class="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-card dark:shadow-none">
             <header class="flex items-start justify-between gap-3">
-              <h4 class="pt-1.5 font-medium text-body-sm text-foreground tracking-[-0.42px]">
+              <h4 class="pt-1.5 font-medium text-body-sm text-foreground tracking-tight">
                 {card.name}
               </h4>
               <span

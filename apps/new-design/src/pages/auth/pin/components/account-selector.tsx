@@ -32,7 +32,7 @@ export function AccountSelector(props: AccountSelectorProps) {
             transition={{ duration: 0.22, ease: EASE }}
           >
             <div class="flex flex-col items-center gap-2">
-              <div class="font-bold font-display text-foreground text-heading-sm tracking-[-0.02em]">
+              <div class="font-bold font-display text-foreground text-heading-sm tracking-tight">
                 Pilih Akun
               </div>
               <div class="font-medium text-body-sm text-faint-foreground">

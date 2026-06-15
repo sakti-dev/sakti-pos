@@ -52,7 +52,7 @@ export const buttonVariants = cva(
         sm: "h-9 justify-center px-3 text-xs",
         md: "h-10 justify-center px-4 py-2",
         lg: "h-12 justify-center px-8 font-semibold",
-        xl: "h-[50px] justify-center px-8 font-semibold text-[15px] tracking-[0.02em]",
+        xl: "h-[50px] justify-center px-8 font-semibold text-[15px] tracking-wide",
         icon: "size-10 justify-center",
         "icon-sm": "size-9 justify-center",
         "icon-xs": "size-8 justify-center",

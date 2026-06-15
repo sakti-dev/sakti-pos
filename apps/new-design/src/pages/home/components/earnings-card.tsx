@@ -13,12 +13,12 @@ export const EarningsCard = () => {
       <div class="pointer-events-none absolute -bottom-[40px] left-[35%] h-[100px] w-[100px] rounded-full bg-accent/5" />
 
       <div class="relative z-[1]">
-        <div class="mb-2 font-semibold text-caption-sm text-white/70 uppercase tracking-[0.08em]">
+        <div class="mb-2 font-semibold text-caption-sm text-white/70 uppercase tracking-wider">
           Est. Pendapatan Hari Ini
         </div>
         <Show
           fallback={
-            <div class="flex items-center font-light text-2xl text-white/30 tabular-nums tracking-[0.14em] lg:text-heading">
+            <div class="flex items-center font-light text-2xl text-white/30 tabular-nums tracking-widest lg:text-heading">
               {masked}
             </div>
           }

@@ -64,7 +64,7 @@ export function AuthRightPanel(props: {
                 />
               )}
             </For>
-            <div class="px-2 pb-2 text-center font-semibold text-[9px] text-primary/50 uppercase tracking-[0.04em]">
+            <div class="px-2 pb-2 text-center font-semibold text-[9px] text-primary/50 uppercase tracking-wider">
               {gc.label}
             </div>
           </div>
@@ -80,14 +80,14 @@ export function AuthRightPanel(props: {
           src="/logo.png"
           width={48}
         />
-        <span class="font-bold font-display text-[22px] text-primary tracking-[-0.01em] dark:text-foreground">
+        <span class="font-bold font-display text-[22px] text-primary tracking-snug dark:text-foreground">
           Nata POS
         </span>
       </div>
 
       {/* Form header */}
       <div class="relative z-[1] mb-7 text-center lg:text-left">
-        <h1 class="mb-1.5 font-bold font-display text-[26px] tracking-[-0.01em]">
+        <h1 class="mb-1.5 font-bold font-display text-[26px] tracking-snug">
           {props.title}
         </h1>
         <p class="text-muted-foreground text-sm leading-relaxed">
@@ -100,7 +100,7 @@ export function AuthRightPanel(props: {
       {/* Divider */}
       <div class="relative z-[1] my-6 flex items-center gap-4">
         <div class="h-px flex-1 bg-border" />
-        <span class="text-muted-foreground text-xs uppercase tracking-[0.06em]">
+        <span class="text-muted-foreground text-xs uppercase tracking-wider">
           atau
         </span>
         <div class="h-px flex-1 bg-border" />

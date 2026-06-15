@@ -198,7 +198,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
 
   return (
     <div class="rounded-lg border border-border/50 bg-card px-6 py-5">
-      <div class="mb-4 font-semibold text-body-sm text-muted-foreground uppercase tracking-[0.06em]">
+      <div class="mb-4 font-semibold text-body-sm text-muted-foreground uppercase tracking-wider">
         Metode Pembayaran
       </div>
 
@@ -258,7 +258,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               Rp
             </span>
             <input
-              class="min-w-0 flex-1 bg-transparent text-center font-extrabold text-foreground text-heading tabular-nums tracking-[-0.02em] caret-color-primary placeholder:font-normal placeholder:text-muted-foreground placeholder:text-subheading focus:outline-none dark:text-foreground dark:caret-primary dark:placeholder:text-faint-foreground"
+              class="min-w-0 flex-1 bg-transparent text-center font-extrabold text-foreground text-heading tabular-nums tracking-tight caret-color-primary placeholder:font-normal placeholder:text-muted-foreground placeholder:text-subheading focus:outline-none dark:text-foreground dark:caret-primary dark:placeholder:text-faint-foreground"
               maxLength={15}
               onBlur={() => {
                 const raw = props.cashRaw.replace(/\D/g, "");

@@ -25,7 +25,7 @@ export const OrderSummary = (props: OrderSummaryProps) => (
     {/* header */}
     <div class="shrink-0 border-border/50 border-b px-5 pt-5 pb-4">
       <div class="flex items-center justify-between">
-        <span class="font-semibold text-body-sm text-muted-foreground uppercase tracking-[0.06em]">
+        <span class="font-semibold text-body-sm text-muted-foreground uppercase tracking-wider">
           Pesanan
         </span>
         <span class="rounded-full bg-muted px-2.5 py-[3px] font-medium text-caption text-faint-foreground dark:bg-muted dark:text-faint-foreground">
@@ -88,7 +88,7 @@ export const OrderSummary = (props: OrderSummaryProps) => (
       <div class="my-3 h-px bg-border" />
       <div class="flex items-center justify-between">
         <span class="font-bold text-body text-foreground">Total</span>
-        <span class="font-extrabold text-heading text-primary tabular-nums tracking-[-0.02em] dark:text-accent">
+        <span class="font-extrabold text-heading text-primary tabular-nums tracking-tight dark:text-accent">
           {formatRupiah(props.total)}
         </span>
       </div>

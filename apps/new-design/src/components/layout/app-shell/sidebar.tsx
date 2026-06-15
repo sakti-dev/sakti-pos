@@ -106,7 +106,7 @@ export const Sidebar = (props: SidebarProps) => {
                   </Show>
                   <item.Icon class="h-[22px] w-[22px] shrink-0" />
                   <Show when={props.expanded}>
-                    <span class="whitespace-nowrap font-bold text-[10px] leading-none tracking-[0.06em] transition-opacity duration-150">
+                    <span class="whitespace-nowrap font-bold text-[10px] leading-none tracking-wider transition-opacity duration-150">
                       {item.label}
                     </span>
                   </Show>
@@ -130,7 +130,7 @@ export const Sidebar = (props: SidebarProps) => {
         >
           <LogoutIcon class="h-[22px] w-[22px] shrink-0" />
           <Show when={props.expanded}>
-            <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-[0.06em] transition-opacity duration-150">
+            <span class="whitespace-nowrap font-semibold text-[9px] uppercase leading-none tracking-wider transition-opacity duration-150">
               Keluar
             </span>
           </Show>

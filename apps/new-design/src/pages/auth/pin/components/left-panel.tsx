@@ -35,10 +35,10 @@ export function PinLeftPanel() {
             width={44}
           />
         </div>
-        <div class="font-display font-extrabold text-heading text-white tracking-[-0.02em]">
+        <div class="font-display font-extrabold text-heading text-white tracking-tight">
           Nata POS
         </div>
-        <div class="max-w-[280px] text-center font-medium text-body text-white/55 leading-relaxed tracking-[0.01em]">
+        <div class="max-w-[280px] text-center font-medium text-body text-white/55 leading-relaxed tracking-normal">
           Kelola transaksi, katalog, dan laporan bisnis Anda dalam satu
           platform.
         </div>

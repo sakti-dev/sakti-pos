@@ -8,8 +8,8 @@
 
 | Prefix | Occurrences | Unique values | Status |
 |---|---|---|---|
-| `text-[...]` | 153 | 17 | 🔴 **systemic** — should be a type scale |
-| `max-[...]` (breakpoints) | 97 | 6 | 🔴 **systemic** — ad-hoc breakpoints |
+| `text-[...]` | 4 | 3 | ✅ **resolved** — migrated to semantic type scale; 3 stragglers remain |
+| `max-[...]` (breakpoints) | 0 | 0 | ✅ **resolved** — migrated to mobile-first named min-width variants |
 | `tracking-[...]` | 73 | 10 | 🔴 **systemic** — should be tokens |
 | `h-[...]` | 52 | 16 | 🟡 mostly icons (18px) + layout |
 | `w-[...]` | 43 | 21 | 🟡 mostly icons (18px) + layout |
@@ -28,14 +28,14 @@
 
 ## Biggest offenders worth tokenizing
 
-### 1. Font sizes — 17 distinct px values, no scale 🔴
-`12, 13, 14, 11, 16, 15, 18, 22, 20, 28, 24, 32, 26, 30, 17, 10` plus `0.62em`,
-`-0.36px`, `-0.42px` (tracking mislabeled). `text-[12px]` alone is in **15 files**.
+### 1. Font sizes ✅ resolved
+Migrated to semantic type scale (`text-body`, `text-body-sm`, etc.).
+3 stragglers remain: `text-[13px]` (catalog forms), `text-[15px]` (product-form),
+`text-[0.62em]` (kpi-cards).
 
-### 2. Breakpoints — informal responsive scale 🔴
-`max-[600px]` (7 files), `max-[900px]` (9 files), `max-[1100px]`,
-`max-[800px]`, `max-[1200px]`, `max-[480px]`.
-These are an implicit breakpoint scale — should become named screen variants.
+### 2. Breakpoints ✅ resolved
+All `max-[px]` breakpoints migrated to mobile-first named min-width variants.
+Zero `max-[...]` occurrences remain.
 
 ### 3. Tracking — 10 values, mostly repeating 🟡
 `±0.01em` / `±0.02em` recur across 9 files each.

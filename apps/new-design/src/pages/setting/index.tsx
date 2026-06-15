@@ -36,7 +36,7 @@ export default function SettingPage(props: RouteSectionProps) {
             <h1 class="font-bold font-display text-foreground text-heading-sm">
               Pengaturan
             </h1>
-            <p class="mt-0.5 text-body-sm text-muted-foreground tracking-[0.02em]">
+            <p class="mt-0.5 text-body-sm text-muted-foreground tracking-wide">
               Kelola konfigurasi bisnis dan aplikasi Anda
             </p>
           </FadeIn>

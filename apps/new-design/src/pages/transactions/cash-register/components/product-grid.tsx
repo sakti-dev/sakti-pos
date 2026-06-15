@@ -42,7 +42,7 @@ export const ProductGrid = (props: ProductGridProps) => {
                 <div class="line-clamp-2 font-bold text-body text-white leading-[1.35] [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">
                   {p.name}
                 </div>
-                <div class="font-semibold text-body-sm text-white/90 tabular-nums tracking-[-0.01em] [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
+                <div class="font-semibold text-body-sm text-white/90 tabular-nums tracking-snug [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
                   {formatRupiah(p.price)}
                 </div>
               </div>

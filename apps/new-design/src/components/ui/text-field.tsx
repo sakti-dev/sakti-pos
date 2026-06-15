@@ -64,7 +64,7 @@ const TextFieldInput = <T extends ValidComponent = "input">(
   return (
     <TextFieldPrimitive.Input
       class={cn(
-        "h-12 w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 font-sans text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
+        "h-12 w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 font-sans text-body-sm text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
         "focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10",
         "dark:focus:border-accent",
         "data-[invalid]:border-danger data-[invalid]:ring-2 data-[invalid]:ring-danger/10",
@@ -90,7 +90,7 @@ const TextFieldTextArea = <T extends ValidComponent = "textarea">(
   return (
     <TextFieldPrimitive.TextArea
       class={cn(
-        "min-h-[80px] w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 py-3 font-sans text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
+        "min-h-[80px] w-full rounded-sm border-[1.5px] border-input bg-background px-3.5 py-3 font-sans text-body-sm text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground",
         "focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10",
         "dark:focus:border-accent",
         "data-[invalid]:border-danger data-[invalid]:ring-2 data-[invalid]:ring-danger/10",
@@ -103,7 +103,7 @@ const TextFieldTextArea = <T extends ValidComponent = "textarea">(
 };
 
 const labelVariants = cva(
-  "font-medium text-[13px] text-foreground leading-none tracking-[0.01em] peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+  "font-medium text-body-sm text-foreground leading-none tracking-normal peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
   {
     variants: {
       variant: {

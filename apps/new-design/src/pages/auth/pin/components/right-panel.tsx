@@ -71,7 +71,7 @@ export function PinRightPanel() {
             </div>
 
             {/* Greeting */}
-            <div class="font-medium text-body-sm text-faint-foreground tracking-[0.02em]">
+            <div class="font-medium text-body-sm text-faint-foreground tracking-wide">
               Selamat datang kembali
             </div>
           </div>
@@ -80,7 +80,7 @@ export function PinRightPanel() {
           <UserCard user={currentUser()} />
 
           {/* Title */}
-          <div class="text-center font-medium text-body text-muted-foreground leading-relaxed tracking-[0.01em]">
+          <div class="text-center font-medium text-body text-muted-foreground leading-relaxed tracking-normal">
             Masukkan PIN untuk melanjutkan
           </div>
 

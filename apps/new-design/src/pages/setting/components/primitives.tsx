@@ -17,7 +17,7 @@ export function SectionCard(props: {
 
 export function CardTitle(props: { readonly children: JSX.Element }) {
   return (
-    <h3 class="font-bold font-display text-body text-foreground tracking-[-0.01em]">
+    <h3 class="font-bold font-display text-body text-foreground tracking-snug">
       {props.children}
     </h3>
   );
@@ -52,7 +52,7 @@ export function FormGroup(props: {
 
 export function FormLabel(props: { readonly children: JSX.Element }) {
   return (
-    <span class="font-semibold text-caption text-muted-foreground tracking-[0.04em]">
+    <span class="font-semibold text-caption text-muted-foreground tracking-wider">
       {props.children}
     </span>
   );

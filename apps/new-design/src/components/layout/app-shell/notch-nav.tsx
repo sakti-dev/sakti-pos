@@ -160,7 +160,7 @@ function NavTab(props: {
       tone={isActive() ? "primary" : "neutral"}
     >
       <props.tab.Icon class="h-[22px] w-[22px] shrink-0" />
-      <span class="font-medium text-[10px] tracking-[0.02em]">
+      <span class="font-medium text-[10px] tracking-wide">
         {props.tab.label}
       </span>
     </Button>

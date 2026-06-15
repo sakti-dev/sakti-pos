@@ -16,7 +16,7 @@ export const CartList = (props: CartListProps) => (
       <div class="flex flex-1 flex-col items-center justify-center gap-3 px-5 py-10 text-muted-foreground">
         <CartShoppingIcon class="h-12 w-12 opacity-30" />
         <span class="font-medium text-body-sm">Keranjang kosong</span>
-        <span class="text-caption tracking-[0.02em]">
+        <span class="text-caption tracking-wide">
           Tap menu untuk menambahkan
         </span>
       </div>

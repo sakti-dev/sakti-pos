@@ -35,10 +35,10 @@ export function LoginBannerLeftSide() {
             width={44}
           />
         </div>
-        <div class="font-display font-extrabold text-[32px] text-white tracking-[-0.02em]">
+        <div class="font-display font-extrabold text-[32px] text-white tracking-tight">
           Nata POS
         </div>
-        <div class="max-w-[280px] text-center font-medium text-[15px] text-white/55 leading-relaxed tracking-[0.01em]">
+        <div class="max-w-[280px] text-center font-medium text-[15px] text-white/55 leading-relaxed tracking-normal">
           Kelola transaksi, katalog, dan laporan bisnis Anda dalam satu
           platform.
         </div>
@@ -56,10 +56,10 @@ export function LoginBannerLeftSide() {
                   <f.Icon class="h-[18px] w-[18px] text-accent" />
                 </div>
                 <div>
-                  <div class="font-medium text-[14px] text-white/75 tracking-[0.01em]">
+                  <div class="font-medium text-[14px] text-white/75 tracking-normal">
                     {f.text}
                   </div>
-                  <div class="mt-0.5 text-[12px] text-white/40 tracking-[0.01em]">
+                  <div class="mt-0.5 text-[12px] text-white/40 tracking-normal">
                     {f.label}
                   </div>
                 </div>

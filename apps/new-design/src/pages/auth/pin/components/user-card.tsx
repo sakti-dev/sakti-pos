@@ -11,10 +11,10 @@ export function UserCard(props: UserCardProps) {
         {props.user.initials}
         <span class="absolute right-1 bottom-1 h-4 w-4 rounded-full border-[3px] border-card bg-accent" />
       </div>
-      <div class="font-bold font-display text-foreground text-heading-sm tracking-[-0.02em] sm:text-heading-sm">
+      <div class="font-bold font-display text-foreground text-heading-sm tracking-tight sm:text-heading-sm">
         {props.user.name}
       </div>
-      <div class="-mt-1.5 font-medium text-body-sm text-faint-foreground tracking-[0.02em]">
+      <div class="-mt-1.5 font-medium text-body-sm text-faint-foreground tracking-wide">
         {props.user.role} · {props.user.venue}
       </div>
     </div>

@@ -28,7 +28,7 @@ const TopBarContent = () => {
       <div class="flex items-center gap-3">
         <button
           aria-label="Sinkronisasi"
-          class="inline-flex items-center gap-[7px] rounded-full border border-accent-foreground/15 bg-accent/15 px-3.5 py-1.5 font-medium text-[13px] text-accent-foreground tracking-[0.01em] transition-[background,border-color,transform] duration-200 hover:border-accent-foreground/25 hover:bg-accent/25 active:scale-[0.96] dark:border-accent/30 dark:text-accent dark:hover:border-accent/50"
+          class="inline-flex items-center gap-[7px] rounded-full border border-accent-foreground/15 bg-accent/15 px-3.5 py-1.5 font-medium text-[13px] text-accent-foreground tracking-normal transition-[background,border-color,transform] duration-200 hover:border-accent-foreground/25 hover:bg-accent/25 active:scale-[0.96] dark:border-accent/30 dark:text-accent dark:hover:border-accent/50"
           onClick={handleSync}
           type="button"
         >
@@ -47,7 +47,7 @@ const TopBarContent = () => {
 
         <span class="font-medium text-[14px] text-muted-foreground tabular-nums">
           {clock()}
-          <span class="ml-1 text-[11px] text-faint-foreground tracking-[0.02em]">
+          <span class="ml-1 text-[11px] text-faint-foreground tracking-wide">
             WIB
           </span>
         </span>

@@ -20,7 +20,7 @@ export const ScreenHeader = (props: ScreenHeaderProps) => (
       >
         <ArrowLeftIcon class="h-[18px] w-[18px]" />
       </A>
-      <span class="font-bold font-display text-[17px] text-foreground tracking-[-0.01em]">
+      <span class="font-bold font-display text-[17px] text-foreground tracking-snug">
         {props.title}
       </span>
     </div>

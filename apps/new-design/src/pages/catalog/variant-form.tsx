@@ -91,7 +91,7 @@ export default function VariantFormPage() {
           {/* ── Options & prices ── */}
           <div class="mb-6">
             <div class="mb-2.5 flex items-center justify-between">
-              <span class="font-medium text-[13px] text-foreground leading-none tracking-[0.01em]">
+              <span class="font-medium text-body-sm text-foreground leading-none tracking-normal">
                 Opsi &amp; Harga
               </span>
               <Button
@@ -165,7 +165,7 @@ export default function VariantFormPage() {
           {/* ── Linked products (edit mode only, read-only) ── */}
           <Show when={isEditing()}>
             <div class="mb-7 flex flex-col gap-2">
-              <span class="font-medium text-[13px] text-muted-foreground leading-none tracking-[0.01em]">
+              <span class="font-medium text-body-sm text-muted-foreground leading-none tracking-normal">
                 Produk yang menggunakan varian ini
               </span>
               <div class="flex max-h-50 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-border bg-muted p-2.5">

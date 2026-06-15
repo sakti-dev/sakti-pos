@@ -13,7 +13,7 @@ export function SuccessOverlay(props: SuccessOverlayProps) {
           <div class="grid h-20 w-20 place-items-center rounded-full bg-accent/15 text-accent shadow-card">
             <CheckCircleIcon class="h-9 w-9" />
           </div>
-          <div class="font-bold font-display text-heading-sm text-white tracking-[-0.02em]">
+          <div class="font-bold font-display text-heading-sm text-white tracking-tight">
             Berhasil masuk
           </div>
           <div class="font-medium text-body-sm text-white/55">

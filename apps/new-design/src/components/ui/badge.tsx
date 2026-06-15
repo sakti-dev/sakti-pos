@@ -6,7 +6,7 @@ import { splitProps } from "solid-js";
 import { cn } from "~/lib/utils";
 
 export const badgeVariants = cva(
-  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full font-semibold text-[11px] uppercase tracking-[0.06em]",
+  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full font-semibold text-[11px] uppercase tracking-wider",
   {
     variants: {
       variant: {
