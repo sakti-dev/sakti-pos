@@ -2,7 +2,7 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { SearchBar } from "~/components/search-bar";
 import { FadeIn } from "~/components/ui/fade-in";
-import { TabButton } from "~/components/ui/tab";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { categories, products } from "~/lib/data/catalog";
 import { useOrientation } from "~/lib/use-orientation";
 import { InventoryRow } from "./product-row";
@@ -71,66 +71,81 @@ export default function InventoryPage() {
       </FadeIn>
 
       <FadeIn
-        class="scrollbar-none flex shrink-0 gap-2 overflow-x-auto px-4 pb-3 lg:px-6"
+        class="shrink-0 px-4 pb-3 lg:px-6"
         delay={0.1}
         duration={0.4}
         enable={enable()}
         y={8}
       >
-        <TabButton
-          active={activeCat() === "all"}
-          class="flex items-center gap-1.5"
-          onClick={() => setActiveCat("all")}
-          shape="pill"
-          tone="accent"
+        <Tabs
+          class="scrollbar-none overflow-x-auto"
+          onChange={setActiveCat}
+          value={activeCat()}
         >
-          Semua
-          <span class="text-caption-sm opacity-70">{products.length}</span>
-        </TabButton>
-        <For each={categories}>
-          {(cat) => (
-            <TabButton
-              active={activeCat() === cat.id}
-              class="flex items-center gap-1.5"
-              onClick={() => setActiveCat(cat.id)}
+          <TabsList class="flex gap-2">
+            <TabsTrigger
               shape="pill"
               tone="accent"
+              variant="pill"
+              value="all"
             >
-              {cat.name}
-              <span class="text-caption-sm opacity-70">
-                {products.filter((p) => p.category === cat.id).length}
-              </span>
-            </TabButton>
-          )}
-        </For>
+              Semua
+              <span class="text-caption-sm opacity-70">{products.length}</span>
+            </TabsTrigger>
+            <For each={categories}>
+              {(cat) => (
+                <TabsTrigger
+                  shape="pill"
+                  tone="accent"
+                  variant="pill"
+                  value={cat.id}
+                >
+                  {cat.name}
+                  <span class="text-caption-sm opacity-70">
+                    {products.filter((p) => p.category === cat.id).length}
+                  </span>
+                </TabsTrigger>
+              )}
+            </For>
+          </TabsList>
+        </Tabs>
       </FadeIn>
 
       <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
-        <Show
-          fallback={
-            <div class="flex flex-col items-center justify-center gap-1 py-20 text-center">
-              <p class="text-body-sm text-muted-foreground">
-                Produk tidak ditemukan
-              </p>
-              <p class="text-caption text-faint-foreground">
-                Coba ubah filter atau kata kunci
-              </p>
-            </div>
-          }
-          when={filtered().length > 0}
-        >
+        <Show when={activeCat()} keyed>
+          <Show
+            fallback={
+              <div class="flex flex-col items-center justify-center gap-1 py-20 text-center">
+                <p class="text-body-sm text-muted-foreground">
+                  Produk tidak ditemukan
+                </p>
+                <p class="text-caption text-faint-foreground">
+                  Coba ubah filter atau kata kunci
+                </p>
+              </div>
+            }
+            when={filtered().length > 0}
+          >
           <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
             <For each={filtered()}>
-              {(product) => (
-                <InventoryRow
-                  onAdjustStock={(delta) => adjustStock(product.id, delta)}
-                  onSetStock={(v) => setStock(product.id, v)}
-                  product={product}
-                  stock={effectiveStock(product.id)}
-                />
+              {(product, i) => (
+                <FadeIn
+                  delay={0.1 + i() * 0.03}
+                  duration={0.35}
+                  enable={enable()}
+                  y={12}
+                >
+                  <InventoryRow
+                    onAdjustStock={(delta) => adjustStock(product.id, delta)}
+                    onSetStock={(v) => setStock(product.id, v)}
+                    product={product}
+                    stock={effectiveStock(product.id)}
+                  />
+                </FadeIn>
               )}
             </For>
           </div>
+          </Show>
         </Show>
       </div>
     </div>

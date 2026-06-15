@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "@solidjs/router";
+import { useLocation, useNavigate, useParams } from "@solidjs/router";
 import { createSignal } from "solid-js";
 import { toast } from "solid-sonner";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
@@ -35,7 +35,7 @@ export default function CategoryFormPage() {
   return (
     <SubPageShell
       backHref="/catalog"
-      data-ssgoi-transition="/catalog/category"
+      data-ssgoi-transition={useLocation().pathname}
       title={isEditing() ? "Edit Kategori" : "Tambah Kategori"}
     >
       <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-6 pb-28">

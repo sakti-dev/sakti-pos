@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "@solidjs/router";
+import { useLocation, useNavigate, useParams } from "@solidjs/router";
 import { createSignal, For, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { toast } from "solid-sonner";
@@ -80,7 +80,7 @@ export default function VariantFormPage() {
   return (
     <SubPageShell
       backHref="/catalog"
-      data-ssgoi-transition="/catalog/variant"
+      data-ssgoi-transition={useLocation().pathname}
       title={isEditing() ? "Edit Varian" : "Tambah Varian"}
     >
       <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-6 pb-28">

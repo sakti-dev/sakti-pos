@@ -8,7 +8,7 @@ import {
 } from "~/assets";
 import { Button } from "~/components/ui/button";
 import { Numpad } from "~/components/ui/numpad";
-import { TabButton } from "~/components/ui/tab";
+import { TabButton } from "~/components/ui/tabs";
 import { cn, formatRupiah } from "~/lib/utils";
 
 const RE_ANDROID = /android/i;

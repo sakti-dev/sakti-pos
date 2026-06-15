@@ -1,5 +1,5 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createSignal } from "solid-js";
+import { createSignal, For } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
@@ -11,12 +11,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { cashRegisterProducts as products } from "~/lib/data/transactions";
 import { formatRupiah } from "~/lib/utils";
 import { CartList } from "./components/cart-list";
 import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
-import { type CategoryKey, CategoryTabs } from "./components/category-tabs";
+import { type CategoryKey, categoryTabs } from "./components/category-tabs";
 import { ProductGrid } from "./components/product-grid";
 import type { CartEntry } from "./components/types";
 
@@ -27,13 +28,14 @@ export default function CashRegisterPage() {
   const [cart, setCart] = createSignal<CartEntry[]>([]);
   const [sheetOpen, setSheetOpen] = createSignal(false);
 
-  const filtered = () =>
-    products.filter((p) => {
-      const catOk = p.cat === activeCat();
-      const searchOk =
-        !search() || p.name.toLowerCase().includes(search().toLowerCase());
+  const filteredByCat = (cat: CategoryKey) => {
+    const q = search().toLowerCase();
+    return products.filter((p) => {
+      const catOk = p.cat === cat;
+      const searchOk = !q || p.name.toLowerCase().includes(q);
       return catOk && searchOk;
     });
+  };
 
   const addToCart = (id: number) => {
     setCart((prev) => {
@@ -105,8 +107,38 @@ export default function CashRegisterPage() {
           duration={0.45}
           y={16}
         >
-          <CategoryTabs active={activeCat()} onSelect={setActiveCat} />
-          <ProductGrid onAdd={addToCart} products={filtered()} />
+          <Tabs
+            class="flex min-h-0 flex-1 flex-col gap-3"
+            onChange={(v) => setActiveCat(v as CategoryKey)}
+            value={activeCat()}
+          >
+            <TabsList class="scrollbar-none flex shrink-0 gap-2.5 overflow-x-auto pb-1">
+              <For each={categoryTabs}>
+                {(tab) => (
+                  <TabsTrigger
+                    aria-label={tab.label}
+                    class="px-8 py-4 text-body"
+                    shape="rounded"
+                    value={tab.key}
+                    variant="pill"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                )}
+              </For>
+            </TabsList>
+
+            <For each={categoryTabs}>
+              {(tab) => (
+                <TabsContent class="min-h-0 flex-1" value={tab.key}>
+                  <ProductGrid
+                    onAdd={addToCart}
+                    products={filteredByCat(tab.key)}
+                  />
+                </TabsContent>
+              )}
+            </For>
+          </Tabs>
         </FadeIn>
       </div>
 

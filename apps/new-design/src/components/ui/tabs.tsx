@@ -1,10 +1,13 @@
 import type { PolymorphicProps } from "@kobalte/core/polymorphic";
 import * as TabsPrimitive from "@kobalte/core/tabs";
+import type { VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import {
+  type ComponentProps,
   createContext,
   createEffect,
   createSignal,
-  type ComponentProps,
+  type JSX,
   on,
   splitProps,
   useContext,
@@ -12,6 +15,114 @@ import {
 } from "solid-js";
 
 import { cn } from "~/lib/utils";
+
+/* ════════════════════════════════════════════════════════════════════════
+   Shared variant config — used by both TabButton (plain <button>) and
+   TabsTrigger (Kobalte). Active state is always `data-[selected]:`,
+   so Kobalte sets the attr automatically on triggers, and TabButton
+   sets it manually from the `active` prop.
+   ════════════════════════════════════════════════════════════════════════ */
+
+export const tabVariants = cva(
+  "inline-flex cursor-pointer items-center transition focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
+  {
+    variants: {
+      variant: {
+        underline:
+          "z-10 flex-1 justify-center px-3 py-3 font-medium text-body-sm text-muted-foreground duration-standard ease-standard hover:text-foreground data-[selected]:text-foreground",
+        pill: "shrink-0 border-2 font-semibold text-[13px] duration-150",
+      },
+      tone: {
+        primary: "",
+        accent: "",
+      },
+      shape: {
+        rounded: "",
+        pill: "",
+      },
+    },
+    compoundVariants: [
+      {
+        variant: "pill",
+        shape: "rounded",
+        class: "gap-2 whitespace-nowrap rounded-2xl px-[18px] py-2.5",
+      },
+      {
+        variant: "pill",
+        shape: "pill",
+        class: "rounded-full px-4 py-[7px]",
+      },
+      {
+        variant: "pill",
+        class:
+          "border-border bg-card text-muted-foreground hover:border-primary/20 hover:text-foreground data-[selected]:border-primary data-[selected]:shadow-card",
+      },
+      {
+        variant: "pill",
+        tone: "primary",
+        class:
+          "data-[selected]:bg-primary data-[selected]:text-primary-foreground dark:data-[selected]:bg-accent-soft dark:data-[selected]:text-primary",
+      },
+      {
+        variant: "pill",
+        tone: "accent",
+        class: "data-[selected]:bg-accent-soft data-[selected]:text-primary",
+      },
+    ],
+    defaultVariants: {
+      variant: "underline",
+      tone: "primary",
+      shape: "rounded",
+    },
+  }
+);
+
+/* ════════════════════════════════════════════════════════════════════════
+   TabButton — standalone button (plain `<button>`, not tied to Kobalte).
+   Sets `data-selected` manually from the `active` prop so the same
+   shared `tabVariants` handles the active styling.
+   ════════════════════════════════════════════════════════════════════════ */
+
+export interface TabButtonProps {
+  readonly active?: boolean;
+  readonly "aria-label"?: string;
+  readonly children: JSX.Element;
+  readonly class?: string;
+  readonly onClick: () => void;
+  readonly shape?: VariantProps<typeof tabVariants>["shape"];
+  readonly tone?: VariantProps<typeof tabVariants>["tone"];
+}
+
+export function TabButton(props: TabButtonProps) {
+  const [local, others] = splitProps(props, [
+    "active",
+    "shape",
+    "tone",
+    "class",
+    "children",
+  ]);
+  return (
+    <button
+      class={cn(
+        tabVariants({
+          shape: local.shape,
+          tone: local.tone,
+          variant: "pill",
+        }),
+        local.class
+      )}
+      data-selected={local.active ? "" : undefined}
+      type="button"
+      {...others}
+    >
+      {local.children}
+    </button>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Tabs compound — Kobalte-based with WAAPI directional slide animation
+   ════════════════════════════════════════════════════════════════════════ */
 
 // ── Animation constants (ssgoi snappy X provider inspired) ──
 const SLIDE_PX = 30;
@@ -27,8 +138,7 @@ interface TabsCtx {
 
 const TabsContext = createContext<TabsCtx>();
 
-// ── Tabs Root (wraps Kobalte Root to track slide direction + selection) ──
-function Tabs(props: ComponentProps<typeof TabsPrimitive.Root>) {
+export function Tabs(props: ComponentProps<typeof TabsPrimitive.Root>) {
   const [direction, setDirection] = createSignal(0);
   const [currentSelected, setCurrentSelected] = createSignal(
     props.value ?? props.defaultValue ?? ""
@@ -83,7 +193,7 @@ type TabsListProps<T extends ValidComponent = "div"> =
     class?: string | undefined;
   };
 
-const TabsList = <T extends ValidComponent = "div">(
+export const TabsList = <T extends ValidComponent = "div">(
   props: PolymorphicProps<T, TabsListProps<T>>
 ) => {
   const [local, others] = splitProps(props as TabsListProps, ["class"]);
@@ -95,15 +205,23 @@ const TabsList = <T extends ValidComponent = "div">(
   );
 };
 
-type TabsTriggerProps<T extends ValidComponent = "button"> =
+export type TabsTriggerProps<T extends ValidComponent = "button"> =
   TabsPrimitive.TabsTriggerProps<T> & {
     class?: string | undefined;
+    shape?: VariantProps<typeof tabVariants>["shape"];
+    tone?: VariantProps<typeof tabVariants>["tone"];
+    variant?: VariantProps<typeof tabVariants>["variant"];
   };
 
-const TabsTrigger = <T extends ValidComponent = "button">(
+export const TabsTrigger = <T extends ValidComponent = "button">(
   props: PolymorphicProps<T, TabsTriggerProps<T>>
 ) => {
-  const [local, others] = splitProps(props as TabsTriggerProps, ["class"]);
+  const [local, others] = splitProps(props as TabsTriggerProps, [
+    "class",
+    "shape",
+    "tone",
+    "variant",
+  ]);
   const ctx = useContext(TabsContext);
   if (ctx && props.value) {
     ctx.registerValue(props.value);
@@ -111,7 +229,11 @@ const TabsTrigger = <T extends ValidComponent = "button">(
   return (
     <TabsPrimitive.Trigger
       class={cn(
-        "z-10 inline-flex items-center justify-center whitespace-nowrap px-3 py-3 font-medium text-body-sm text-muted-foreground transition-colors duration-standard ease-standard hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 data-[selected]:text-foreground",
+        tabVariants({
+          shape: local.shape,
+          tone: local.tone,
+          variant: local.variant,
+        }),
         local.class
       )}
       {...others}
@@ -124,17 +246,13 @@ type TabsContentProps<T extends ValidComponent = "div"> =
     class?: string | undefined;
   };
 
-const TabsContent = <T extends ValidComponent = "div">(
+export const TabsContent = <T extends ValidComponent = "div">(
   props: PolymorphicProps<T, TabsContentProps<T>>
 ) => {
   const [local, others] = splitProps(props as TabsContentProps, ["class"]);
   const ctx = useContext(TabsContext);
   const [el, setEl] = createSignal<HTMLElement>();
 
-  // forceMount keeps all panels in DOM (refs fire once on initial render).
-  // createEffect watches ctx.currentSelected() — when THIS panel becomes
-  // active and direction != 0, run WAAPI slide animation.
-  // This bypasses the <Show> node-recycling issue entirely.
   createEffect(
     on(
       () => ctx?.currentSelected(),
@@ -171,7 +289,7 @@ const TabsContent = <T extends ValidComponent = "div">(
 
   return (
     <TabsPrimitive.Content
-      class={cn("hidden outline-none data-[selected]:block", local.class)}
+      class={cn("hidden outline-none data-selected:block", local.class)}
       forceMount
       ref={setEl}
       {...others}
@@ -184,7 +302,7 @@ type TabsIndicatorProps<T extends ValidComponent = "div"> =
     class?: string | undefined;
   };
 
-const TabsIndicator = <T extends ValidComponent = "div">(
+export const TabsIndicator = <T extends ValidComponent = "div">(
   props: PolymorphicProps<T, TabsIndicatorProps<T>>
 ) => {
   const [local, others] = splitProps(props as TabsIndicatorProps, ["class"]);
@@ -198,5 +316,3 @@ const TabsIndicator = <T extends ValidComponent = "div">(
     />
   );
 };
-
-export { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger };

@@ -3,6 +3,7 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
+import { FadeIn } from "~/components/ui/fade-in";
 import { type Category, categories, products } from "~/lib/data/catalog";
 
 export function CategoryTab() {
@@ -50,7 +51,11 @@ export function CategoryTab() {
         >
           <div class="flex flex-col gap-2.5">
             <For each={filtered()}>
-              {(cat) => <CategoryItem category={cat} />}
+              {(cat, i) => (
+                <FadeIn delay={0.1 + i() * 0.03} duration={0.35} y={12}>
+                  <CategoryItem category={cat} />
+                </FadeIn>
+              )}
             </For>
           </div>
         </Show>

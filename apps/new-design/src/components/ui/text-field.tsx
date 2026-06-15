@@ -2,7 +2,7 @@ import type { PolymorphicProps } from "@kobalte/core";
 import * as TextFieldPrimitive from "@kobalte/core/text-field";
 import { cva } from "class-variance-authority";
 import type { ValidComponent } from "solid-js";
-import { mergeProps, splitProps } from "solid-js";
+import { mergeProps, onMount, splitProps } from "solid-js";
 import { cn } from "~/lib/utils";
 
 type TextFieldRootProps<T extends ValidComponent = "div"> =
@@ -60,9 +60,23 @@ const TextFieldInput = <T extends ValidComponent = "input">(
   const [local, others] = splitProps(props as TextFieldInputProps, [
     "type",
     "class",
+    "autofocus",
   ]);
+
+  let ref: HTMLInputElement | undefined;
+
+  // Suppress native autofocus: use rAF + preventScroll so focusing the
+  // input during an ssgoi page transition doesn't trigger scroll-into-view
+  // and jitter the content mid-animation.
+  onMount(() => {
+    if (local.autofocus && ref) {
+      requestAnimationFrame(() => ref?.focus({ preventScroll: true }));
+    }
+  });
+
   return (
     <TextFieldPrimitive.Input
+      ref={ref}
       class={cn(
         "h-12 w-full rounded-sm border-2 border-input bg-background px-3.5 font-sans text-body-sm text-foreground outline-none transition-colors transition-shadow duration-standard ease-standard placeholder:text-muted-foreground",
         "focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10",

@@ -3,6 +3,7 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { LayersIcon, PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
+import { FadeIn } from "~/components/ui/fade-in";
 import {
   formatVariantOptions,
   getVariantProductNames,
@@ -70,7 +71,11 @@ export function VariantTab() {
         >
           <div class="flex flex-col gap-2.5">
             <For each={filtered()}>
-              {(variant) => <VariantItem variant={variant} />}
+              {(variant, i) => (
+                <FadeIn delay={0.1 + i() * 0.03} duration={0.35} y={12}>
+                  <VariantItem variant={variant} />
+                </FadeIn>
+              )}
             </For>
           </div>
         </Show>

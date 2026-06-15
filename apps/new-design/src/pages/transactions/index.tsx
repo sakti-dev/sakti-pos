@@ -8,7 +8,7 @@ import {
 } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { FadeIn } from "~/components/ui/fade-in";
-import { TabButton } from "~/components/ui/tab";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   type FilterKey,
   sampleTransactions,
@@ -148,37 +148,43 @@ export default function Transactions() {
         />
 
         {/* Filter tabs */}
-        <div class="scrollbar-none flex gap-2 overflow-x-auto">
-          <For each={FILTER_TABS}>
-            {(tab) => (
-              <TabButton
-                active={filter() === tab.key}
-                aria-label={tab.label}
-                class="flex items-center gap-2"
-                onClick={() => setFilter(tab.key)}
-                shape="pill"
-                tone="accent"
-              >
-                {tab.label}
-                <span class="text-caption-sm opacity-70">
-                  ({transactionFilterCounts[tab.key]})
-                </span>
-              </TabButton>
-            )}
-          </For>
-        </div>
+        <Tabs
+          class="scrollbar-none overflow-x-auto"
+          onChange={(v) => setFilter(v as FilterKey)}
+          value={filter()}
+        >
+          <TabsList class="flex gap-2">
+            <For each={FILTER_TABS}>
+              {(tab) => (
+                <TabsTrigger
+                  aria-label={tab.label}
+                  shape="pill"
+                  tone="accent"
+                  value={tab.key}
+                  variant="pill"
+                >
+                  {tab.label}
+                  <span class="text-caption-sm opacity-70">
+                    ({transactionFilterCounts[tab.key]})
+                  </span>
+                </TabsTrigger>
+              )}
+            </For>
+          </TabsList>
+        </Tabs>
       </FadeIn>
 
       {/* Transaction list */}
       <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-gutter pb-28 lg:px-6 lg:pb-24">
-        <Show
-          fallback={
-            <div class="flex flex-1 items-center justify-center py-20 text-faint-foreground text-sm">
-              Tidak ada transaksi ditemukan
-            </div>
-          }
-          when={filtered().length > 0}
-        >
+        <Show when={filter()} keyed>
+          <Show
+            fallback={
+              <div class="flex flex-1 items-center justify-center py-20 text-faint-foreground text-sm">
+                Tidak ada transaksi ditemukan
+              </div>
+            }
+            when={filtered().length > 0}
+          >
           <For each={filtered()}>
             {(tx, i) => {
               const meta = STATUS_META[tx.status];
@@ -223,6 +229,7 @@ export default function Transactions() {
               );
             }}
           </For>
+          </Show>
         </Show>
       </div>
     </div>

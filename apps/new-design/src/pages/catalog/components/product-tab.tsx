@@ -4,7 +4,8 @@ import { PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { TabButton } from "~/components/ui/tab";
+import { FadeIn } from "~/components/ui/fade-in";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   categories,
   type Product,
@@ -53,51 +54,65 @@ export function ProductTab() {
 
       {/* Category filter pills */}
       <div class="scrollbar-none flex shrink-0 gap-2 overflow-x-auto px-4 pb-3 lg:px-6">
-        <TabButton
-          active={activeCat() === "all"}
-          class="flex items-center gap-1.5"
-          onClick={() => setActiveCat("all")}
-          shape="pill"
-          tone="accent"
+        <Tabs
+          class="scrollbar-none overflow-x-auto"
+          onChange={setActiveCat}
+          value={activeCat()}
         >
-          Semua
-          <span class="text-caption-sm opacity-70">{products.length}</span>
-        </TabButton>
-        <For each={categories}>
-          {(cat) => (
-            <TabButton
-              active={activeCat() === cat.id}
-              class="flex items-center gap-1.5"
-              onClick={() => setActiveCat(cat.id)}
+          <TabsList class="flex gap-2">
+            <TabsTrigger
               shape="pill"
               tone="accent"
+              variant="pill"
+              value="all"
             >
-              {cat.name}
-              <span class="text-caption-sm opacity-70">
-                {products.filter((p) => p.category === cat.id).length}
-              </span>
-            </TabButton>
-          )}
-        </For>
+              Semua
+              <span class="text-caption-sm opacity-70">{products.length}</span>
+            </TabsTrigger>
+            <For each={categories}>
+              {(cat) => (
+                <TabsTrigger
+                  shape="pill"
+                  tone="accent"
+                  variant="pill"
+                  value={cat.id}
+                >
+                  {cat.name}
+                  <span class="text-caption-sm opacity-70">
+                    {products.filter((p) => p.category === cat.id).length}
+                  </span>
+                </TabsTrigger>
+              )}
+            </For>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Product list — container query so columns adapt to content width,
-          not viewport. 2 cols when container ≥40rem (640px). */}
+          not viewport. 2 cols when container ≥40rem (640px).
+          `keyed` on activeCat forces full remount when switching category,
+          so FadeIn replays on every tab change. */}
       <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
-        <Show
-          fallback={
-            <EmptyState
-              message="Produk tidak ditemukan"
-              subtitle="Coba ubah filter atau kata kunci"
-            />
-          }
-          when={filtered().length > 0}
-        >
-          <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
-            <For each={filtered()}>
-              {(product) => <ProductRow product={product} />}
-            </For>
-          </div>
+        <Show when={activeCat()} keyed>
+          <Show
+            fallback={
+              <EmptyState
+                message="Produk tidak ditemukan"
+                subtitle="Coba ubah filter atau kata kunci"
+              />
+            }
+            when={filtered().length > 0}
+          >
+            <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
+              <For each={filtered()}>
+                {(product, i) => (
+                  <FadeIn delay={0.1 + i() * 0.03} duration={0.35} y={12}>
+                    <ProductRow product={product} />
+                  </FadeIn>
+                )}
+              </For>
+            </div>
+          </Show>
         </Show>
       </div>
     </div>
