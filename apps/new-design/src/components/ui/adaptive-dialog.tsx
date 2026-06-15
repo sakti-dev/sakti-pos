@@ -16,6 +16,8 @@ interface AdaptiveDialogProps {
   children: JSX.Element;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
+  snapPoints?: number[];
+  breakPoints?: (number | null)[];
 }
 
 function AdaptiveDialog(props: AdaptiveDialogProps) {
@@ -25,10 +27,11 @@ function AdaptiveDialog(props: AdaptiveDialogProps) {
     <Show
       fallback={
         <Drawer
+          breakPoints={props.breakPoints}
           onOpenChange={props.onOpenChange}
           open={props.open}
           side="bottom"
-          snapPoints={[0, 1]}
+          snapPoints={props.snapPoints ?? [0, 1]}
         >
           {props.children}
         </Drawer>
@@ -47,7 +50,7 @@ function AdaptiveDialog(props: AdaptiveDialogProps) {
 // (Drawer provides Dialog context internally).
 
 function AdaptiveDialogTrigger(
-  props: ComponentProps<typeof CorvuDialog.Trigger>,
+  props: ComponentProps<typeof CorvuDialog.Trigger>
 ) {
   return <CorvuDialog.Trigger {...props} />;
 }
@@ -70,8 +73,8 @@ function AdaptiveDialogContent(props: AdaptiveDialogContentProps) {
         // ── Sheet mode (Drawer) ──
         <Drawer.Portal>
           <Drawer.Overlay class="fixed inset-0 z-70 bg-background/80 backdrop-blur-sm data-transitioning:transition-opacity data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)]" />
-          <Drawer.Content class="fixed inset-x-0 bottom-0 z-70 flex max-h-[85vh] w-full flex-col rounded-t-lg border-2 border-border bg-card px-3 pb-3 shadow-card data-transitioning:transition-transform data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)] sm:px-6">
-            <div class="mx-auto mt-2.5 mb-2 h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing" />
+          <Drawer.Content class="fixed inset-x-0 bottom-0 z-70 flex max-h-[85dvh] w-full flex-col gap-4 overflow-hidden rounded-t-lg border-2 border-border bg-card px-3 pt-1.5 pb-3 shadow-card data-transitioning:transition-transform data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)] sm:px-6 sm:pb-6">
+            <div class="mx-auto h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing" />
             {props.children}
           </Drawer.Content>
         </Drawer.Portal>
@@ -83,8 +86,8 @@ function AdaptiveDialogContent(props: AdaptiveDialogContentProps) {
         <CorvuDialog.Overlay class="fixed inset-0 z-70 bg-background/80 backdrop-blur-sm transition-opacity duration-standard ease-standard data-[closed]:opacity-0 data-[open]:opacity-100" />
         <CorvuDialog.Content
           class={cn(
-            "fixed top-1/2 left-1/2 z-70 grid max-h-screen w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-lg border-2 border-border bg-background p-6 shadow-card transition-all duration-standard ease-standard data-[closed]:scale-95 data-[open]:scale-100 data-[closed]:opacity-0 data-[open]:opacity-100",
-            props.class,
+            "fixed top-1/2 left-1/2 z-70 grid max-h-dvh w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-lg border-2 border-border bg-background p-6 shadow-card transition-all duration-standard ease-standard data-[closed]:scale-95 data-[open]:scale-100 data-[closed]:opacity-0 data-[open]:opacity-100",
+            props.class
           )}
         >
           {props.children}
@@ -107,7 +110,10 @@ function AdaptiveDialogHeader(props: ComponentProps<"div">) {
   const [, rest] = splitProps(props, ["class"]);
   return (
     <div
-      class={cn("flex flex-col gap-1.5 text-center md:text-left", props.class)}
+      class={cn(
+        "-mt-1.5 flex flex-col gap-1.5 text-center md:text-left",
+        props.class
+      )}
       {...rest}
     />
   );
@@ -121,7 +127,7 @@ function AdaptiveDialogFooter(props: ComponentProps<"div">) {
     <div
       class={cn(
         "flex flex-col-reverse gap-2 md:flex-row md:justify-end",
-        props.class,
+        props.class
       )}
       {...rest}
     />
@@ -132,12 +138,15 @@ function AdaptiveDialogFooter(props: ComponentProps<"div">) {
 // SHARED: Dialog.Label works inside both Dialog and Drawer.
 
 function AdaptiveDialogTitle(
-  props: ComponentProps<(typeof CorvuDialog)["Label"]>,
+  props: ComponentProps<(typeof CorvuDialog)["Label"]>
 ) {
   const [, rest] = splitProps(props, ["class"]);
   return (
     <CorvuDialog.Label
-      class={cn("font-semibold text-foreground text-subheading", props.class)}
+      class={cn(
+        "font-display font-semibold text-foreground text-subheading",
+        props.class
+      )}
       {...rest}
     />
   );
@@ -147,7 +156,7 @@ function AdaptiveDialogTitle(
 // SHARED: Dialog.Description works inside both Dialog and Drawer.
 
 function AdaptiveDialogDescription(
-  props: ComponentProps<(typeof CorvuDialog)["Description"]>,
+  props: ComponentProps<(typeof CorvuDialog)["Description"]>
 ) {
   const [, rest] = splitProps(props, ["class"]);
   return (

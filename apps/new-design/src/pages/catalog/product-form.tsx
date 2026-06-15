@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from "@solidjs/router";
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { UploadIcon, XCloseIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
+import { PickerField } from "~/components/picker-field";
 import { Button } from "~/components/ui/button";
 import {
   NumberField,
@@ -18,8 +19,6 @@ import { categories, products } from "~/lib/data/catalog";
 
 const UNITS = ["cup", "glass", "plate", "pcs", "bowl", "bottle"] as const;
 
-const selectClass =
-  "h-12 w-full cursor-pointer appearance-none rounded-sm border-2 border-input bg-[length:12px_8px] bg-[position:right_14px_center] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2712%27%20height%3D%278%27%20viewBox%3D%270%200%2012%208%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M1%201.5L6%206.5L11%201.5%27%20stroke%3D%27%23737c77%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E')] bg-background bg-no-repeat px-3.5 pr-9 font-sans text-body-sm text-foreground outline-none transition-colors transition-shadow duration-standard ease-standard focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 dark:focus:border-accent";
 const labelClass =
   "font-medium text-body-sm text-foreground leading-none tracking-normal";
 
@@ -49,6 +48,9 @@ export default function ProductFormPage() {
   );
   const [unit, setUnit] = createSignal(existing()?.unit ?? "cup");
   const [photo, setPhoto] = createSignal<string | null>(null);
+  const [categoryOptions, setCategoryOptions] = createSignal(
+    categories.map((c) => ({ value: c.id, label: c.name }))
+  );
 
   const handlePhotoChange = (e: Event) => {
     const input = e.target as HTMLInputElement;
@@ -146,22 +148,22 @@ export default function ProductFormPage() {
           {/* ── Category + Price + Stock + Unit ── */}
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div class="flex flex-col gap-1.5">
-              <label class={labelClass} for="fCategory">
-                Kategori
-              </label>
-              <select
-                class={selectClass}
-                id="fCategory"
-                onChange={(e) => setCategory(e.currentTarget.value)}
+              <span class={labelClass}>Kategori</span>
+              <PickerField
+                onChange={setCategory}
+                onCreate={(query) => {
+                  const id = query.toLowerCase().replace(/\s+/g, "-");
+                  setCategoryOptions((prev) => [
+                    ...prev,
+                    { value: id, label: query },
+                  ]);
+                  return id;
+                }}
+                options={categoryOptions()}
+                placeholder="Pilih kategori"
+                title="Pilih Kategori"
                 value={category()}
-              >
-                <option disabled value="">
-                  Pilih kategori
-                </option>
-                <For each={categories}>
-                  {(cat) => <option value={cat.id}>{cat.name}</option>}
-                </For>
-              </select>
+              />
             </div>
             <NumberField class="gap-1.5">
               <NumberFieldLabel>Harga (Rp)</NumberFieldLabel>
@@ -180,23 +182,17 @@ export default function ProductFormPage() {
               />
             </NumberField>
             <div class="flex flex-col gap-1.5">
-              <label class={labelClass} for="fUnit">
-                Satuan
-              </label>
-              <select
-                class={selectClass}
-                id="fUnit"
-                onChange={(e) => setUnit(e.currentTarget.value)}
+              <span class={labelClass}>Satuan</span>
+              <PickerField
+                onChange={setUnit}
+                options={UNITS.map((u) => ({
+                  value: u,
+                  label: u.charAt(0).toUpperCase() + u.slice(1),
+                }))}
+                placeholder="Pilih satuan"
+                title="Pilih Satuan"
                 value={unit()}
-              >
-                <For each={UNITS}>
-                  {(u) => (
-                    <option value={u}>
-                      {u.charAt(0).toUpperCase() + u.slice(1)}
-                    </option>
-                  )}
-                </For>
-              </select>
+              />
             </div>
           </div>
 
