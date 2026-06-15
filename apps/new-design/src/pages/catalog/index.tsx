@@ -3,6 +3,7 @@ import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell"
 import { Tab } from "~/components/ui/tab";
 import { CategoryTab } from "./components/category-tab";
 import { ProductTab } from "./components/product-tab";
+import { SpeedDialFab } from "./components/speed-dial-fab";
 import { VariantTab } from "./components/variant-tab";
 
 type TabKey = "produk" | "varian" | "kategori";
@@ -37,6 +38,8 @@ export default function CatalogPage() {
           <CategoryTab />
         </Show>
       </div>
+
+      <SpeedDialFab />
     </SubPageShell>
   );
 }

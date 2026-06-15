@@ -39,7 +39,7 @@ export default function CategoryFormPage() {
       title={isEditing() ? "Edit Kategori" : "Tambah Kategori"}
     >
       <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-6 pb-28">
-        <div class="mx-auto w-full max-w-2xl rounded-lg border border-border bg-card p-6">
+        <div class="mx-auto w-full max-w-2xl sm:rounded-lg sm:border sm:border-border sm:bg-card sm:p-6">
           <TextField class="mb-6 gap-1.5" onChange={setName} value={name()}>
             <TextFieldLabel>Nama Kategori</TextFieldLabel>
             <TextFieldInput autofocus placeholder="e.g. Minuman" />

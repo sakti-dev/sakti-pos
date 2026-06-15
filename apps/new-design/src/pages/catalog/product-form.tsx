@@ -5,6 +5,11 @@ import { UploadIcon, XCloseIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
 import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldLabel,
+} from "~/components/ui/number-field";
+import {
   TextField,
   TextFieldInput,
   TextFieldLabel,
@@ -85,12 +90,12 @@ export default function ProductFormPage() {
       title={isEditing() ? "Edit Produk" : "Tambah Produk"}
     >
       <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-6 pb-28">
-        <div class="mx-auto w-full max-w-2xl rounded-lg border border-border bg-card p-6">
+        <div class="mx-auto w-full max-w-2xl sm:rounded-lg sm:border sm:border-border sm:bg-card sm:p-6">
           {/* ── Photo + Name + SKU ── */}
-          <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div class="flex flex-col gap-5 sm:flex-row">
             <div class="flex flex-col gap-1.5">
               <span class={labelClass}>Foto Produk</span>
-              <label class="group relative grid h-[120px] w-[120px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg bg-muted">
+              <label class="group relative grid aspect-square size-[120px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border-2 border-input border-dashed bg-background sm:size-[132px]">
                 <Show when={photo()}>
                   <img
                     alt="Preview"
@@ -158,14 +163,22 @@ export default function ProductFormPage() {
                 </For>
               </select>
             </div>
-            <TextField class="gap-1.5" onChange={setPrice} value={price()}>
-              <TextFieldLabel>Harga (Rp)</TextFieldLabel>
-              <TextFieldInput min="0" placeholder="25000" type="number" />
-            </TextField>
-            <TextField class="gap-1.5" onChange={setStock} value={stock()}>
-              <TextFieldLabel>Stok</TextFieldLabel>
-              <TextFieldInput min="0" placeholder="50" type="number" />
-            </TextField>
+            <NumberField class="gap-1.5">
+              <NumberFieldLabel>Harga (Rp)</NumberFieldLabel>
+              <NumberFieldInput
+                onChange={(v) => setPrice(v > 0 ? String(v) : "")}
+                placeholder="25000"
+                value={price() ? Number.parseInt(price(), 10) : 0}
+              />
+            </NumberField>
+            <NumberField class="gap-1.5">
+              <NumberFieldLabel>Stok</NumberFieldLabel>
+              <NumberFieldInput
+                onChange={(v) => setStock(v > 0 ? String(v) : "")}
+                placeholder="50"
+                value={stock() ? Number.parseInt(stock(), 10) : 0}
+              />
+            </NumberField>
             <div class="flex flex-col gap-1.5">
               <label class={labelClass} for="fUnit">
                 Satuan

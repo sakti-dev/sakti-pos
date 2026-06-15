@@ -5,16 +5,19 @@ import { toast } from "solid-sonner";
 import { PlusIcon, XCloseIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
+import { NumberField, NumberFieldInput } from "~/components/ui/number-field";
 import {
   TextField,
   TextFieldInput,
   TextFieldLabel,
 } from "~/components/ui/text-field";
-import { products, type VariantOption, variants } from "~/lib/data/catalog";
+import { products, variants } from "~/lib/data/catalog";
 import { cn } from "~/lib/utils";
 
-interface OptionRow extends VariantOption {
-  readonly _id: number;
+interface OptionRow {
+  _id: number;
+  label: string;
+  price: number;
 }
 
 let _rowId = 0;
@@ -81,7 +84,7 @@ export default function VariantFormPage() {
       title={isEditing() ? "Edit Varian" : "Tambah Varian"}
     >
       <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-6 pb-28">
-        <div class="mx-auto w-full max-w-2xl rounded-lg border border-border bg-card p-6">
+        <div class="mx-auto w-full max-w-2xl sm:rounded-lg sm:border sm:border-border sm:bg-card sm:p-6">
           {/* ── Name ── */}
           <TextField class="mb-6 gap-1.5" onChange={setName} value={name()}>
             <TextFieldLabel>Nama Varian</TextFieldLabel>
@@ -90,76 +93,77 @@ export default function VariantFormPage() {
 
           {/* ── Options & prices ── */}
           <div class="mb-6">
-            <div class="mb-2.5 flex items-center justify-between">
-              <span class="font-medium text-body-sm text-foreground leading-none tracking-normal">
-                Opsi &amp; Harga
-              </span>
-              <Button
-                look="soft"
-                onClick={addOption}
-                size="xs"
-                tone="primary"
-                type="button"
-              >
-                <PlusIcon class="h-3.5 w-3.5" />
-                Tambah Opsi
-              </Button>
-            </div>
+            <span class="mb-2.5 block font-medium text-body-sm text-foreground leading-none tracking-normal">
+              Opsi Varian
+            </span>
 
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2.5">
               <For each={options}>
                 {(opt) => (
-                  <div class="flex items-center gap-2">
-                    <input
-                      class="h-11 min-w-0 flex-1 rounded-sm border-2 border-input bg-background px-3.5 font-sans text-body-sm text-foreground outline-none transition-colors transition-shadow duration-standard ease-standard placeholder:text-muted-foreground focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 dark:focus:border-accent"
-                      onChange={(e) =>
-                        setOptions(
-                          (o) => o._id === opt._id,
-                          "label",
-                          e.currentTarget.value
-                        )
-                      }
-                      placeholder="Nama opsi"
-                      type="text"
-                      value={opt.label}
-                    />
-                    <div class="flex shrink-0 items-center gap-1">
-                      <span class="text-caption-sm text-faint-foreground">
-                        +Rp
-                      </span>
+                  <div class="rounded-lg border border-border bg-muted/50 p-3">
+                    {/* Mobile: stacked. Tablet+: inline row. */}
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
                       <input
-                        aria-label={`Harga opsi ${opt.label || ""}`}
-                        class="h-11 w-24 rounded-sm border-2 border-input bg-background px-3 text-right font-sans text-body-sm text-foreground tabular-nums outline-none transition-colors transition-shadow duration-standard ease-standard placeholder:text-muted-foreground focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 dark:focus:border-accent"
-                        min="0"
-                        onInput={(e) =>
+                        class="h-11 w-full min-w-0 rounded-sm border-2 border-input bg-background px-3.5 font-sans text-body-sm text-foreground outline-none transition duration-standard ease-standard placeholder:text-muted-foreground focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 sm:flex-1 dark:focus:border-accent"
+                        onChange={(e) =>
                           setOptions(
                             (o) => o._id === opt._id,
-                            "price",
-                            Math.max(
-                              0,
-                              Number.parseInt(e.currentTarget.value, 10) || 0
-                            )
+                            "label",
+                            e.currentTarget.value
                           )
                         }
-                        placeholder="0"
-                        type="number"
-                        value={opt.price}
+                        placeholder="Nama opsi"
+                        type="text"
+                        value={opt.label}
                       />
+                      <div class="flex items-center gap-2">
+                        <NumberField class="flex flex-1 flex-row items-center gap-1.5 sm:flex-none">
+                          <span class="shrink-0 font-medium text-caption text-primary dark:text-accent">
+                            +Rp
+                          </span>
+                          <NumberFieldInput
+                            ariaLabel={`Harga opsi ${opt.label || ""}`}
+                            class="h-11 w-full px-3 text-right font-bold tabular-nums"
+                            onChange={(v) =>
+                              setOptions(
+                                (o) => o._id === opt._id,
+                                "price",
+                                Math.max(0, v)
+                              )
+                            }
+                            placeholder="0"
+                            value={opt.price || 0}
+                          />
+                        </NumberField>
+                        <Button
+                          aria-label="Hapus opsi"
+                          class="size-10 shrink-0 justify-center"
+                          look="outline"
+                          onClick={() => removeOption(opt._id)}
+                          size="none"
+                          tone="danger"
+                          type="button"
+                        >
+                          <XCloseIcon class="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      aria-label="Hapus opsi"
-                      look="ghost"
-                      onClick={() => removeOption(opt._id)}
-                      size="icon-sm"
-                      tone="danger"
-                      type="button"
-                    >
-                      <XCloseIcon class="h-3.5 w-3.5" />
-                    </Button>
                   </div>
                 )}
               </For>
             </div>
+
+            {/* Add button at bottom */}
+            <Button
+              class="mt-2.5 w-full border border-dashed bg-background/20"
+              look="outline"
+              onClick={addOption}
+              tone="neutral"
+              type="button"
+            >
+              <PlusIcon class="h-4 w-4" />
+              Tambah Opsi
+            </Button>
           </div>
 
           {/* ── Linked products (edit mode only, read-only) ── */}

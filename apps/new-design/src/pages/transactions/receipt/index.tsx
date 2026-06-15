@@ -125,8 +125,7 @@ export default function Receipt() {
 
         {/* Receipt card */}
         <div class="relative w-full max-w-[480px] animate-[fadeUp_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.15s_both] rounded-lg border border-border/50 bg-card">
-          {/* Glow */}
-          <div class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-accent-soft opacity-25 blur-[50px]" />
+          <div class="pointer-events-none absolute -top-10 -right-10 hidden h-40 w-40 rounded-full bg-accent-soft opacity-25 blur-[50px] sm:block" />
 
           {/* Header */}
           <div class="flex items-center justify-between border-border border-b border-dashed px-4 pt-5 pb-4 sm:px-6 sm:pt-6 sm:pb-5">

@@ -40,9 +40,14 @@ export function ProductTab() {
           placeholder="Cari produk atau SKU..."
           value={search()}
         />
-        <Button as={A} href="/catalog/product/new" size="sm">
+        <Button
+          as={A}
+          class="hidden sm:inline-flex"
+          href="/catalog/product/new"
+          size="sm"
+        >
           <PlusIcon class="h-4 w-4" />
-          <span class="hidden sm:inline">Tambah Produk</span>
+          Tambah Produk
         </Button>
       </div>
 

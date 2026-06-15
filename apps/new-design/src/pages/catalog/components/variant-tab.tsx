@@ -1,6 +1,6 @@
 import { A } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { LayersIcon, PencilIcon, PlusIcon, TrashIcon } from "~/assets";
+import { LayersIcon, PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import {
@@ -46,9 +46,14 @@ export function VariantTab() {
           placeholder="Cari varian..."
           value={search()}
         />
-        <Button as={A} href="/catalog/variant/new" size="sm">
+        <Button
+          as={A}
+          class="hidden sm:inline-flex"
+          href="/catalog/variant/new"
+          size="sm"
+        >
           <PlusIcon class="h-4 w-4" />
-          <span class="hidden sm:inline">Tambah Varian</span>
+          Tambah Varian
         </Button>
       </div>
 
@@ -76,7 +81,11 @@ export function VariantTab() {
 
 function VariantItem(props: { variant: Variant }) {
   return (
-    <div class="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/20 lg:gap-4 lg:p-4">
+    <A
+      aria-label={`Edit ${props.variant.name}`}
+      class="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 no-underline transition-colors hover:border-primary/20 lg:gap-4 lg:p-4"
+      href={`/catalog/variant/${props.variant.id}`}
+    >
       <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
         <LayersIcon class="h-5 w-5 text-primary" />
       </div>
@@ -94,27 +103,7 @@ function VariantItem(props: { variant: Variant }) {
       <span class="hidden shrink-0 font-medium text-caption text-muted-foreground sm:block">
         {props.variant.productIds.length} produk
       </span>
-      <div class="flex shrink-0 gap-1">
-        <Button
-          aria-label={`Edit ${props.variant.name}`}
-          as={A}
-          href={`/catalog/variant/${props.variant.id}`}
-          look="ghost"
-          size="icon-sm"
-          tone="neutral"
-        >
-          <PencilIcon class="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          aria-label={`Hapus ${props.variant.name}`}
-          look="ghost"
-          size="icon-sm"
-          tone="danger"
-        >
-          <TrashIcon class="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
+    </A>
   );
 }
 

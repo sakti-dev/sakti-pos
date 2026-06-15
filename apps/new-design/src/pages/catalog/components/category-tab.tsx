@@ -1,6 +1,6 @@
 import { A } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { PencilIcon, PlusIcon, TrashIcon } from "~/assets";
+import { PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import { type Category, categories, products } from "~/lib/data/catalog";
@@ -26,9 +26,14 @@ export function CategoryTab() {
           placeholder="Cari kategori..."
           value={search()}
         />
-        <Button as={A} href="/catalog/category/new" size="sm">
+        <Button
+          as={A}
+          class="hidden sm:inline-flex"
+          href="/catalog/category/new"
+          size="sm"
+        >
           <PlusIcon class="h-4 w-4" />
-          <span class="hidden sm:inline">Tambah Kategori</span>
+          Tambah Kategori
         </Button>
       </div>
 
@@ -58,34 +63,18 @@ function CategoryItem(props: { category: Category }) {
   const count = () =>
     products.filter((p) => p.category === props.category.id).length;
   return (
-    <div class="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/20 lg:gap-4 lg:p-4">
+    <A
+      aria-label={`Edit ${props.category.name}`}
+      class="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 no-underline transition-colors hover:border-primary/20 lg:gap-4 lg:p-4"
+      href={`/catalog/category/${props.category.id}`}
+    >
       <div class="min-w-0 flex-1">
         <h3 class="font-semibold text-body-sm text-foreground">
           {props.category.name}
         </h3>
         <p class="text-caption text-muted-foreground">{count()} produk</p>
       </div>
-      <div class="flex shrink-0 gap-1">
-        <Button
-          aria-label={`Edit ${props.category.name}`}
-          as={A}
-          href={`/catalog/category/${props.category.id}`}
-          look="ghost"
-          size="icon-sm"
-          tone="neutral"
-        >
-          <PencilIcon class="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          aria-label={`Hapus ${props.category.name}`}
-          look="ghost"
-          size="icon-sm"
-          tone="danger"
-        >
-          <TrashIcon class="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
+    </A>
   );
 }
 
