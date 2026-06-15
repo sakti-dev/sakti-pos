@@ -32,7 +32,7 @@ export const EarningsCard = () => {
 
       <button
         aria-label="Tampilkan/sembunyikan"
-        class="relative z-[1] grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-md border border-white/10 bg-transparent text-white/65 transition-[background,border-color] duration-150 hover:border-white/25 hover:bg-white/10"
+        class="relative z-[1] grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-md border border-white/10 bg-transparent text-white/65 transition-colors duration-150 hover:border-white/25 hover:bg-white/10"
         onClick={() => setVisible((v) => !v)}
         type="button"
       >

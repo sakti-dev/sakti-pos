@@ -58,7 +58,7 @@ export const Sidebar = (props: SidebarProps) => {
     >
       <nav
         class={cn(
-          "h-full w-[202px] flex-col border-border border-r bg-card px-3 py-5 pb-4 transition-[clip-path,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
+          "h-full w-[202px] flex-col border-border border-r bg-card px-3 py-5 pb-4 transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
           props.expanded
             ? "shadow-2xl [clip-path:inset(0_0_0_0)]"
             : "[clip-path:inset(0_120px_0_0)]"

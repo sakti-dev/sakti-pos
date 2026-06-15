@@ -81,7 +81,7 @@ export function SettingsNavigationMenu() {
                 "size-5 shrink-0",
                 activeKey() === item.key
                   ? "text-primary"
-                  : "opacity-55 transition-[opacity] duration-150 hover:opacity-80 dark:opacity-40"
+                  : "opacity-55 transition-opacity duration-150 hover:opacity-80 dark:opacity-40"
               )}
             />
             {item.label}

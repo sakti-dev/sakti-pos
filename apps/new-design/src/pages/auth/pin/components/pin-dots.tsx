@@ -14,7 +14,7 @@ export function PinDots(props: PinDotsProps) {
     if (i < props.length) {
       return "h-4 w-4 scale-125 rounded-full border-2 border-primary bg-primary ring-4 ring-primary/10 dark:border-accent dark:bg-accent";
     }
-    return "h-[14px] w-[14px] rounded-full border-2 border-border bg-transparent transition-[background,border-color,transform,box-shadow] duration-200 sm:h-4 sm:w-4";
+    return "h-[14px] w-[14px] rounded-full border-2 border-border bg-transparent transition duration-200 sm:h-4 sm:w-4";
   };
 
   return (

@@ -111,7 +111,7 @@ export default function VariantFormPage() {
                 {(opt) => (
                   <div class="flex items-center gap-2">
                     <input
-                      class="h-11 min-w-0 flex-1 rounded-sm border-2 border-input bg-background px-3.5 font-sans text-body-sm text-foreground outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 dark:focus:border-accent"
+                      class="h-11 min-w-0 flex-1 rounded-sm border-2 border-input bg-background px-3.5 font-sans text-body-sm text-foreground outline-none transition-colors transition-shadow duration-standard ease-standard placeholder:text-muted-foreground focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 dark:focus:border-accent"
                       onChange={(e) =>
                         setOptions(
                           (o) => o._id === opt._id,
@@ -129,7 +129,7 @@ export default function VariantFormPage() {
                       </span>
                       <input
                         aria-label={`Harga opsi ${opt.label || ""}`}
-                        class="h-11 w-24 rounded-sm border-2 border-input bg-background px-3 text-right font-sans text-body-sm text-foreground tabular-nums outline-none transition-[border-color,box-shadow] duration-standard ease-standard placeholder:text-muted-foreground focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 dark:focus:border-accent"
+                        class="h-11 w-24 rounded-sm border-2 border-input bg-background px-3 text-right font-sans text-body-sm text-foreground tabular-nums outline-none transition-colors transition-shadow duration-standard ease-standard placeholder:text-muted-foreground focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10 dark:focus:border-accent"
                         min="0"
                         onInput={(e) =>
                           setOptions(

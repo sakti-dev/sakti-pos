@@ -47,7 +47,7 @@ export function PinLeftPanel() {
           <For each={features}>
             {(f, i) => (
               <div
-                class="flex items-center gap-3.5 rounded-lg border border-white/10 bg-white/5 px-5 py-3.5 backdrop-blur-[8px] transition-[background] duration-200 hover:bg-white/10"
+                class="flex items-center gap-3.5 rounded-lg border border-white/10 bg-white/5 px-5 py-3.5 backdrop-blur-[8px] transition-colors duration-200 hover:bg-white/10"
                 style={{
                   animation: `fadeUp 0.4s ease ${0.15 + i() * 0.1}s both`,
                 }}

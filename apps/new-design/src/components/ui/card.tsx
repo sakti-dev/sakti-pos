@@ -6,7 +6,7 @@ import { splitProps } from "solid-js";
 import { cn } from "~/lib/utils";
 
 export const cardVariants = cva(
-  "bg-card text-card-foreground transition-[box-shadow,transform,border-color] duration-standard ease-standard",
+  "bg-card text-card-foreground transition duration-standard ease-standard",
   {
     variants: {
       variant: {

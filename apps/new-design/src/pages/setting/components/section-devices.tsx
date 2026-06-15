@@ -63,7 +63,7 @@ export function SectionDevices() {
                   class="absolute h-0 w-0 opacity-0"
                   type="checkbox"
                 />
-                <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:size-5 before:rounded-full before:bg-white before:shadow-card before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
+                <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-colors duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:size-5 before:rounded-full before:bg-white before:shadow-card before:transition-transform before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
               </label>
             </div>
           )}

@@ -23,7 +23,7 @@ export const ProductGrid = (props: ProductGridProps) => {
           {(p) => (
             <button
               aria-label={`${p.name} ${formatRupiah(p.price)}`}
-              class="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl bg-muted transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97]"
+              class="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl bg-muted transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97]"
               onClick={() => props.onAdd(p.id)}
               type="button"
             >
@@ -48,7 +48,7 @@ export const ProductGrid = (props: ProductGridProps) => {
               </div>
 
               {/* Add badge (hover) */}
-              <div class="absolute top-2.5 right-2.5 z-[3] grid h-8 w-8 scale-50 place-items-center rounded-full bg-white/90 text-primary opacity-0 shadow-card transition-[opacity,transform] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-100 group-hover:opacity-100 dark:bg-accent">
+              <div class="absolute top-2.5 right-2.5 z-[3] grid h-8 w-8 scale-50 place-items-center rounded-full bg-white/90 text-primary opacity-0 shadow-card transition duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-100 group-hover:opacity-100 dark:bg-accent">
                 <PlusIcon class="h-4 w-4" />
               </div>
             </button>

@@ -68,7 +68,7 @@ export function FormInput(props: {
 }) {
   return (
     <input
-      class="h-[42px] rounded-xl border border-border bg-card px-3.5 font-[inherit] text-body-sm text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+      class="h-[42px] rounded-xl border border-border bg-card px-3.5 font-[inherit] text-body-sm text-foreground outline-none transition-colors transition-shadow duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       max={props.max}
       min={props.min}
       placeholder={props.placeholder}
@@ -86,7 +86,7 @@ export function FormTextarea(props: {
 }) {
   return (
     <textarea
-      class="min-h-[80px] resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 font-[inherit] text-body-sm text-foreground leading-relaxed outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+      class="min-h-[80px] resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 font-[inherit] text-body-sm text-foreground leading-relaxed outline-none transition-colors transition-shadow duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       placeholder={props.placeholder}
       rows={props.rows ?? 3}
       value={props.value}
@@ -100,7 +100,7 @@ export function FormSelect(props: {
 }) {
   return (
     <select
-      class="h-[42px] cursor-pointer appearance-none rounded-xl border border-border bg-[length:12px_8px] bg-[position:right_14px_center] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2712%27%20height%3D%278%27%20viewBox%3D%270%200%2012%208%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M1%201.5L6%206.5L11%201.5%27%20stroke%3D%27%23737c77%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E')] bg-card bg-no-repeat px-3.5 pr-9 font-[inherit] text-body-sm text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+      class="h-[42px] cursor-pointer appearance-none rounded-xl border border-border bg-[length:12px_8px] bg-[position:right_14px_center] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2712%27%20height%3D%278%27%20viewBox%3D%270%200%2012%208%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M1%201.5L6%206.5L11%201.5%27%20stroke%3D%27%23737c77%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E')] bg-card bg-no-repeat px-3.5 pr-9 font-[inherit] text-body-sm text-foreground outline-none transition-colors transition-shadow duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
       value={props.value}
     >
       {props.children}
@@ -132,7 +132,7 @@ export function ToggleRow(props: {
           class="absolute h-0 w-0 opacity-0"
           type="checkbox"
         />
-        <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:size-5 before:rounded-full before:bg-white before:shadow-card before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
+        <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-colors duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:size-5 before:rounded-full before:bg-white before:shadow-card before:transition-transform before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
       </label>
     </div>
   );

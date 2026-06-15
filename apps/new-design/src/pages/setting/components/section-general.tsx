@@ -82,7 +82,7 @@ export function SectionGeneral() {
               const active = () => themePref() === opt.value;
               return (
                 <button
-                  class={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 font-medium text-body-sm transition-[border-color,background,color] duration-150 ${
+                  class={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 font-medium text-body-sm transition-colors duration-150 ${
                     active()
                       ? "border-primary bg-accent-soft text-primary"
                       : "border-border bg-card text-muted-foreground hover:border-border"

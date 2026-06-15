@@ -7,7 +7,7 @@ import { splitProps } from "solid-js";
 import { cn } from "~/lib/utils";
 
 export const linkVariants = cva(
-  "underline-o text-primary underline underline-offset-2 transition-[opacity,text-decoration] duration-standard ease-standard focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 dark:text-accent",
+  "underline-o text-primary underline underline-offset-2 transition-all duration-standard ease-standard focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-3 dark:text-accent",
   {
     variants: {
       variant: {

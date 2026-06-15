@@ -75,7 +75,7 @@ export function RightPanel() {
             required
             type="email"
           />
-          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-[height,opacity] duration-standard ease-standard data-[invalid]:h-5 data-[invalid]:opacity-100">
+          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-all duration-standard ease-standard data-[invalid]:h-5 data-[invalid]:opacity-100">
             Format email tidak valid
           </TextFieldErrorMessage>
         </TextField>
@@ -119,7 +119,7 @@ export function RightPanel() {
               </Show>
             </Button>
           </div>
-          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-[height,opacity] duration-standard ease-standard data-[invalid]:h-5 data-[invalid]:opacity-100">
+          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-all duration-standard ease-standard data-[invalid]:h-5 data-[invalid]:opacity-100">
             Password minimal 6 karakter
           </TextFieldErrorMessage>
         </TextField>

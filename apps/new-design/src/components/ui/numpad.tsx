@@ -28,7 +28,7 @@ export const Numpad = (props: NumpadProps) => (
         <button
           aria-label={k.key === "back" ? "Hapus digit" : k.label}
           class={cn(
-            "flex min-h-[48px] select-none items-center justify-center rounded-md border-2 border-border bg-card font-sans font-semibold text-[20px] text-foreground transition-[background,border-color,transform] duration-100 hover:border-primary/10 hover:bg-muted active:scale-[0.96] active:border-primary/20 active:bg-primary/5 dark:active:border-primary",
+            "flex min-h-[48px] select-none items-center justify-center rounded-md border-2 border-border bg-card font-sans font-semibold text-[20px] text-foreground transition duration-100 hover:border-primary/10 hover:bg-muted active:scale-[0.96] active:border-primary/20 active:bg-primary/5 dark:active:border-primary",
             k.key === "back" &&
               "bg-muted text-muted-foreground active:bg-danger/10 active:text-danger",
             k.key === "000" && "tracking-wide"

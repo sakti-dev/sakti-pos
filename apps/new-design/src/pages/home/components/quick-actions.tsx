@@ -37,7 +37,7 @@ export const QuickActions = () => (
         {(qa) => (
           <Dynamic
             aria-label={qa.label}
-            class="group flex min-h-[96px] cursor-pointer flex-col items-center gap-2.5 rounded-lg px-1 pt-[18px] pb-4 text-muted-foreground no-underline transition-[background,border-color,box-shadow,transform,color] duration-200 hover:bg-foreground/5 hover:text-foreground sm:border sm:border-border sm:bg-card sm:shadow-card sm:hover:-translate-y-0.5 sm:hover:border-accent/30 sm:hover:bg-transparent sm:hover:shadow-card-hover dark:sm:shadow-none dark:sm:hover:shadow-none"
+            class="group flex min-h-[96px] cursor-pointer flex-col items-center gap-2.5 rounded-lg px-1 pt-[18px] pb-4 text-muted-foreground no-underline transition duration-200 hover:bg-foreground/5 hover:text-foreground sm:border sm:border-border sm:bg-card sm:shadow-card sm:hover:-translate-y-0.5 sm:hover:border-accent/30 sm:hover:bg-transparent sm:hover:shadow-card-hover dark:sm:shadow-none dark:sm:hover:shadow-none"
             component={qa.href ? A : "button"}
             href={qa.href}
             type={qa.href ? undefined : "button"}

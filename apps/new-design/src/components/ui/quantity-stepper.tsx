@@ -39,7 +39,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
     >
       <button
         aria-label={`Kurangi ${props.ariaLabel ?? "jumlah"}`}
-        class="grid h-9 w-9 place-items-center bg-card text-[16px] text-foreground transition-[background] duration-100 hover:bg-muted active:bg-primary/5"
+        class="grid h-9 w-9 place-items-center bg-card text-[16px] text-foreground transition-colors duration-100 hover:bg-muted active:bg-primary/5"
         onClick={props.onDecrement}
         type="button"
       >
@@ -70,7 +70,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
       </Show>
       <button
         aria-label={`Tambah ${props.ariaLabel ?? "jumlah"}`}
-        class="grid h-9 w-9 place-items-center bg-card text-[16px] text-foreground transition-[background] duration-100 hover:bg-muted active:bg-primary/5"
+        class="grid h-9 w-9 place-items-center bg-card text-[16px] text-foreground transition-colors duration-100 hover:bg-muted active:bg-primary/5"
         onClick={props.onIncrement}
         type="button"
       >

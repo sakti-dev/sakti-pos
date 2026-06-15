@@ -250,7 +250,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
 
           <div
             class={cn(
-              "flex h-[72px] items-center justify-center gap-2 rounded-lg border-2 border-border bg-muted px-5 transition-[border-color,background] duration-150",
+              "flex h-[72px] items-center justify-center gap-2 rounded-lg border-2 border-border bg-muted px-5 transition-colors duration-150",
               cashNum() > 0 && "border-primary bg-card dark:border-accent"
             )}
           >

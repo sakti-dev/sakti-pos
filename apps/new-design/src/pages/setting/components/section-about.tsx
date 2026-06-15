@@ -19,19 +19,19 @@ export function SectionAbout() {
       </p>
       <div class="mt-2 flex gap-3">
         <button
-          class="font-medium text-body-sm text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
+          class="font-medium text-body-sm text-primary transition-opacity duration-150 hover:opacity-75 dark:text-accent"
           type="button"
         >
           Kebijakan Privasi
         </button>
         <button
-          class="font-medium text-body-sm text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
+          class="font-medium text-body-sm text-primary transition-opacity duration-150 hover:opacity-75 dark:text-accent"
           type="button"
         >
           Syarat &amp; Ketentuan
         </button>
         <button
-          class="font-medium text-body-sm text-primary transition-[opacity] duration-150 hover:opacity-75 dark:text-accent"
+          class="font-medium text-body-sm text-primary transition-opacity duration-150 hover:opacity-75 dark:text-accent"
           type="button"
         >
           Bantuan

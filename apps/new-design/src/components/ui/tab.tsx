@@ -16,7 +16,7 @@ import { cn } from "~/lib/utils";
  *   accent  — lime soft fill (canopy-on-lime, ≈10.76:1 both themes)
  */
 export const tabVariants = cva(
-  "flex shrink-0 cursor-pointer items-center border-2 font-semibold text-[13px] transition-[background,border-color,color,box-shadow] duration-150",
+  "flex shrink-0 cursor-pointer items-center border-2 font-semibold text-[13px] transition duration-150",
   {
     variants: {
       variant: {
