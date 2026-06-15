@@ -6,25 +6,28 @@ import {
 import { Route, Router } from "@solidjs/router";
 import { AppShell } from "./components/layout/app-shell";
 import { Toaster } from "./components/ui/toaster";
-import Dashboard from "./pages/dashboard";
-import Inventory from "./pages/inventory";
-import Katalog from "./pages/katalog";
-import Login from "./pages/login";
-import Payment from "./pages/payment";
-import Pengaturan from "./pages/pengaturan";
-import { SectionBisnis } from "./pages/pengaturan/components/section-bisnis";
-import { SectionPajak } from "./pages/pengaturan/components/section-pajak";
-import { SectionPembayaran } from "./pages/pengaturan/components/section-pembayaran";
-import { SectionPerangkat } from "./pages/pengaturan/components/section-perangkat";
-import { SectionStruk } from "./pages/pengaturan/components/section-struk";
-import { SectionTentang } from "./pages/pengaturan/components/section-tentang";
-import { SectionTim } from "./pages/pengaturan/components/section-tim";
-import { SectionUmum } from "./pages/pengaturan/components/section-umum";
-import Pin from "./pages/pin";
-import Receipt from "./pages/receipt";
-import Register from "./pages/register";
-import TransactionNew from "./pages/transaction-new";
+import LoginPage from "./pages/auth/login";
+import PinLoginPage from "./pages/auth/pin";
+import RegisterPage from "./pages/auth/register";
+import CatalogPage from "./pages/catalog";
+import CategoryFormPage from "./pages/catalog/category-form";
+import ProductFormPage from "./pages/catalog/product-form";
+import VariantFormPage from "./pages/catalog/variant-form";
+import HomePage from "./pages/home";
+import InventoryPage from "./pages/inventory";
+import SettingPage from "./pages/setting";
+import { SectionAbout } from "./pages/setting/components/section-about";
+import { SectionBusiness } from "./pages/setting/components/section-business";
+import { SectionDevices } from "./pages/setting/components/section-devices";
+import { SectionGeneral } from "./pages/setting/components/section-general";
+import { SectionPaymentMethods } from "./pages/setting/components/section-payment-methods";
+import { SectionReceipt } from "./pages/setting/components/section-receipt";
+import { SectionTax } from "./pages/setting/components/section-tax";
+import { SectionTeams } from "./pages/setting/components/section-teams";
 import Transactions from "./pages/transactions";
+import CashRegisterPage from "./pages/transactions/cash-register";
+import PaymentPage from "./pages/transactions/payment";
+import Receipt from "./pages/transactions/receipt";
 
 const storageManager = createLocalStorageManager("sakti-theme");
 
@@ -41,27 +44,33 @@ export default function AppRoutes() {
         </>
       )}
     >
-      <Route component={Dashboard} path="/" />
+      <Route component={HomePage} path="/" />
       <Route component={Transactions} path="/transactions" />
-      <Route component={Pengaturan} path="/pengaturan">
-        <Route component={SectionBisnis} path="/" />
-        <Route component={SectionBisnis} path="/bisnis" />
-        <Route component={SectionUmum} path="/umum" />
-        <Route component={SectionPajak} path="/pajak" />
-        <Route component={SectionPembayaran} path="/pembayaran" />
-        <Route component={SectionStruk} path="/struk" />
-        <Route component={SectionTim} path="/tim" />
-        <Route component={SectionPerangkat} path="/perangkat" />
-        <Route component={SectionTentang} path="/tentang" />
+      <Route component={SettingPage} path="/setting">
+        <Route component={SectionBusiness} path="/" />
+        <Route component={SectionBusiness} path="/business" />
+        <Route component={SectionGeneral} path="/general" />
+        <Route component={SectionTax} path="/tax" />
+        <Route component={SectionPaymentMethods} path="/payment-methods" />
+        <Route component={SectionReceipt} path="/receipt" />
+        <Route component={SectionTeams} path="/teams" />
+        <Route component={SectionDevices} path="/devices" />
+        <Route component={SectionAbout} path="/about" />
       </Route>
-      <Route component={Katalog} path="/katalog" />
-      <Route component={Inventory} path="/inventory" />
-      <Route component={TransactionNew} path="/transaction-new" />
-      <Route component={Payment} path="/payment" />
-      <Route component={Receipt} path="/receipt" />
-      <Route component={Login} path="/login" />
-      <Route component={Register} path="/register" />
-      <Route component={Pin} path="/pin" />
+      <Route component={CatalogPage} path="/catalog" />
+      <Route component={CategoryFormPage} path="/catalog/category/new" />
+      <Route component={CategoryFormPage} path="/catalog/category/:id" />
+      <Route component={VariantFormPage} path="/catalog/variant/new" />
+      <Route component={VariantFormPage} path="/catalog/variant/:id" />
+      <Route component={ProductFormPage} path="/catalog/product/new" />
+      <Route component={ProductFormPage} path="/catalog/product/:id" />
+      <Route component={InventoryPage} path="/inventory" />
+      <Route component={CashRegisterPage} path="/transactions/cash-register" />
+      <Route component={PaymentPage} path="/transactions/payment" />
+      <Route component={Receipt} path="/transactions/receipt" />
+      <Route component={LoginPage} path="/auth/login" />
+      <Route component={RegisterPage} path="/auth/register" />
+      <Route component={PinLoginPage} path="/auth/pin" />
     </Router>
   );
 }

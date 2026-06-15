@@ -18,18 +18,19 @@ type Zone = "shell" | "flow" | "auth";
 const ZONE_MAP: Record<string, Zone> = {
   "/": "shell",
   "/transactions": "shell",
-  "/katalog": "shell",
+  "/catalog": "flow",
   "/inventory": "shell",
-  "/pengaturan": "shell",
-  "/transaction-new": "flow",
-  "/payment": "flow",
-  "/receipt": "flow",
-  "/login": "auth",
-  "/register": "auth",
-  "/pin": "auth",
+  "/setting": "shell",
+  "/transactions/cash-register": "flow",
+  "/transactions/payment": "flow",
+  "/transactions/receipt": "flow",
+  "/auth/login": "auth",
+  "/auth/register": "auth",
+  "/auth/pin": "auth",
 };
 
-const SECTION_ROUTE_RE = /^\/pengaturan\/.+$/;
+const SECTION_ROUTE_RE = /^\/setting\/.+$/;
+const CATALOG_FORM_RE = /^\/catalog\/(product|variant|category)\//;
 
 const navFromPath = (pathname: string): NavKey => {
   if (pathname === "/") {
@@ -41,7 +42,7 @@ const navFromPath = (pathname: string): NavKey => {
   if (pathname === "/inventory") {
     return "inventory";
   }
-  if (pathname.startsWith("/pengaturan")) {
+  if (pathname.startsWith("/setting")) {
     return "settings";
   }
   return "home";
@@ -54,6 +55,9 @@ export const AppShell = (props: RouteSectionProps) => {
   const isPortrait = useOrientation();
   const isWide = useIsWide();
   const zone = (): Zone => {
+    if (CATALOG_FORM_RE.test(pathname())) {
+      return "flow";
+    }
     const base = ZONE_MAP[pathname()] ?? "shell";
     // Pengaturan section sub-pages are full-screen drill-in screens below lg
     if (base === "shell" && !isWide() && SECTION_ROUTE_RE.test(pathname())) {
@@ -114,7 +118,7 @@ export const AppShell = (props: RouteSectionProps) => {
       </main>
 
       {/* ── Shell-only chrome ── */}
-      <Show when={isShell() && !pathname().startsWith("/pengaturan")}>
+      <Show when={isShell() && !pathname().startsWith("/setting")}>
         <Fab />
       </Show>
       <Show when={isShell()}>

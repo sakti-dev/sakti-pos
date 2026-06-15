@@ -46,6 +46,7 @@ export { default as StoreIcon } from "./store.svg";
 export { default as SunIcon } from "./sun.svg";
 export { default as TrashIcon } from "./trash.svg";
 export { default as TruckIcon } from "./truck.svg";
+export { default as UploadIcon } from "./upload.svg";
 export { default as UsersIcon } from "./users.svg";
 export { default as UtensilsIcon } from "./utensils.svg";
 export { default as WalletIcon } from "./wallet.svg";

@@ -6,7 +6,7 @@ export const Fab = () => (
     <A
       aria-label="Buat Transaksi"
       class="group relative inline-flex h-14 overflow-hidden rounded-[10px] p-[2px] shadow-card transition-[transform,box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:translate-y-[-3px] hover:scale-[1.03] hover:shadow-card-hover active:translate-y-0 active:scale-[0.98] active:shadow-card active:duration-100"
-      href="/transaction-new"
+      href="/transactions/cash-register"
     >
       {/* Rotating gradient ring — built from theme tokens so it adapts to dark/light */}
       <span class="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,var(--color-accent)_0%,var(--color-primary)_50%,var(--color-accent)_100%)]" />

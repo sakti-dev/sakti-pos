@@ -35,7 +35,7 @@ const navItems: readonly {
     key: "settings",
     Icon: SettingsIcon,
     label: "Pengaturan",
-    href: "/pengaturan",
+    href: "/setting",
   },
 ] as const;
 

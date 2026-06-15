@@ -7,7 +7,7 @@ import { categories, products } from "~/lib/data/catalog";
 import { useOrientation } from "~/lib/use-orientation";
 import { InventoryRow } from "./product-row";
 
-export default function Inventory() {
+export default function InventoryPage() {
   const isPortrait = useOrientation();
   const enable = () => !isPortrait();
   const [search, setSearch] = createSignal("");

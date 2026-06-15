@@ -78,7 +78,7 @@ const rightTabs = [
     key: "settings" as NavKey,
     Icon: SettingsIcon,
     label: "Setting",
-    href: "/pengaturan",
+    href: "/setting",
   },
 ];
 
@@ -124,7 +124,7 @@ export const NotchNav = (props: NotchNavProps) => {
       <A
         aria-label="Buat Transaksi"
         class="absolute left-1/2 -translate-x-1/2 overflow-hidden rounded-full p-[2px] shadow-[0_4px_14px_rgba(0,0,0,0.18)] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 active:scale-95 active:duration-75"
-        href="/transaction-new"
+        href="/transactions/cash-register"
         style={{
           width: `${BUTTON_SIZE}px`,
           height: `${BUTTON_SIZE}px`,

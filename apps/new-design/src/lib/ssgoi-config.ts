@@ -3,14 +3,8 @@ import { axis, drill, fade } from "@ssgoi/solid/view-transitions";
 
 /* ── Path groups ─────────────────────────────────────────────────── */
 
-const SHELL_PATHS = [
-  "/",
-  "/transactions",
-  "/katalog",
-  "/inventory",
-  "/pengaturan",
-] as const;
-const AUTH_PATHS = ["/login", "/register", "/pin"] as const;
+const SHELL_PATHS = ["/", "/transactions", "/inventory", "/setting"] as const;
+const AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/pin"] as const;
 
 /* ── Root config factory ───────────────────────────────────────────
    Pure: takes the current orientation so the caller can drive it
@@ -29,37 +23,64 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
       ...shellSlides,
 
       // Flow → Flow: drill parallax
-      drill({ enter: "/payment", exit: "/transaction-new", type: "parallax" }),
-      drill({ enter: "/receipt", exit: "/payment", type: "parallax" }),
+      drill({
+        enter: "/transactions/payment",
+        exit: "/transactions/cash-register",
+        type: "parallax",
+      }),
+      drill({
+        enter: "/transactions/receipt",
+        exit: "/transactions/payment",
+        type: "parallax",
+      }),
 
       // Auth ↔ Auth: fade
       fade({ paths: [...AUTH_PATHS] }),
 
-      // Shell → Flow: drill in (any shell page → transaction-new)
-      drill({ enter: "/transaction-new", exit: "/", type: "parallax" }),
+      // Shell → Flow: drill in (any shell page → cash-register)
       drill({
-        enter: "/transaction-new",
+        enter: "/transactions/cash-register",
+        exit: "/",
+        type: "parallax",
+      }),
+      drill({
+        enter: "/transactions/cash-register",
         exit: "/transactions",
         type: "parallax",
       }),
       drill({
-        enter: "/transaction-new",
-        exit: "/pengaturan",
+        enter: "/transactions/cash-register",
+        exit: "/setting",
         type: "parallax",
       }),
       drill({
-        enter: "/transaction-new",
-        exit: "/katalog",
-        type: "parallax",
-      }),
-      drill({
-        enter: "/transaction-new",
+        enter: "/transactions/cash-register",
         exit: "/inventory",
         type: "parallax",
       }),
 
-      // Pengaturan → section sub-pages (mobile drill-in, like iOS Settings)
-      drill({ enter: "/pengaturan/*", exit: "/pengaturan", type: "parallax" }),
+      // Shell → Catalog (drill in from dashboard)
+      drill({ enter: "/catalog", exit: "/", type: "parallax" }),
+
+      // Setting → section sub-pages (mobile drill-in, like iOS Settings)
+      drill({ enter: "/setting/*", exit: "/setting", type: "parallax" }),
+
+      // Catalog → form sub-pages (full-screen drill-in)
+      drill({
+        enter: "/catalog/category/*",
+        exit: "/catalog",
+        type: "parallax",
+      }),
+      drill({
+        enter: "/catalog/variant/*",
+        exit: "/catalog",
+        type: "parallax",
+      }),
+      drill({
+        enter: "/catalog/product/*",
+        exit: "/catalog",
+        type: "parallax",
+      }),
     ],
   };
 }
