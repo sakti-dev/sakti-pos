@@ -37,12 +37,12 @@ export const QuickActions = () => (
         {(qa) => (
           <Dynamic
             aria-label={qa.label}
-            class="group flex min-h-[96px] cursor-pointer flex-col items-center gap-2.5 rounded-lg px-1 pt-[18px] pb-4 text-muted-foreground no-underline transition duration-200 hover:bg-foreground/5 hover:text-foreground sm:border sm:border-border sm:bg-card sm:shadow-card sm:hover:-translate-y-0.5 sm:hover:border-accent/30 sm:hover:bg-transparent sm:hover:shadow-card-hover dark:sm:shadow-none dark:sm:hover:shadow-none"
+            class="group flex min-h-[96px] cursor-pointer flex-col items-center gap-2.5 rounded-lg px-1 pt-[18px] pb-4 text-muted-foreground no-underline transition duration-200 hover:bg-transparent hover:text-foreground sm:border sm:border-border sm:bg-card sm:shadow-card sm:hover:-translate-y-0.5 sm:hover:border-accent/30 sm:hover:bg-accent/5 sm:hover:shadow-card-hover dark:sm:shadow-none dark:sm:hover:shadow-none"
             component={qa.href ? A : "button"}
             href={qa.href}
             type={qa.href ? undefined : "button"}
           >
-            <div class="grid h-12 w-12 place-items-center rounded-full border border-border bg-muted text-muted-foreground transition-colors duration-200 group-hover:border-accent/50 group-hover:bg-accent/10 group-hover:text-foreground">
+            <div class="grid h-12 w-12 place-items-center rounded-full border-2 border-primary bg-primary/80 text-primary-foreground transition-colors duration-200 group-hover:border-primary-hover group-hover:bg-primary-hover">
               <qa.Icon class="h-5 w-5" />
             </div>
             <span class="max-w-[80px] text-center font-medium text-caption-sm text-muted-foreground leading-tight">
