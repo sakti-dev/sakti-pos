@@ -1,9 +1,9 @@
 import { A } from "@solidjs/router";
 import { For } from "solid-js";
 import {
+  BoxPackageIcon,
   CashRegisterIcon,
   FileIcon,
-  GridIcon,
   HomeIcon,
   SettingsIcon,
 } from "~/assets";
@@ -69,10 +69,10 @@ const leftTabs = [
 
 const rightTabs = [
   {
-    key: "katalog" as NavKey,
-    Icon: GridIcon,
-    label: "Katalog",
-    href: "/katalog",
+    key: "inventory" as NavKey,
+    Icon: BoxPackageIcon,
+    label: "Stok",
+    href: "/inventory",
   },
   {
     key: "settings" as NavKey,
