@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@corvu/dialog": "^0.2.4",
     "@corvu/drawer": "^0.2.4",
     "@kobalte/core": "^0.13.11",
+    "@solid-primitives/media": "^2.3.5",
     "@solidjs/router": "^0.16.1",
     "@ssgoi/solid": "^6.4.0",
     "class-variance-authority": "^0.7.1",

@@ -13,6 +13,7 @@ import CatalogPage from "./pages/catalog";
 import CategoryFormPage from "./pages/catalog/category-form";
 import ProductFormPage from "./pages/catalog/product-form";
 import VariantFormPage from "./pages/catalog/variant-form";
+import ExperimentPage from "./pages/experiment";
 import HomePage from "./pages/home";
 import InventoryPage from "./pages/inventory";
 import SettingPage from "./pages/setting";
@@ -45,6 +46,7 @@ export default function AppRoutes() {
       )}
     >
       <Route component={HomePage} path="/" />
+      <Route component={ExperimentPage} path="/experiment" />
       <Route component={Transactions} path="/transactions" />
       <Route component={SettingPage} path="/setting">
         <Route component={SectionBusiness} path="/" />

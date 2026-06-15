@@ -8,6 +8,7 @@
 @theme {
   /* ── Breakpoints (mobile-first) ── */
   --breakpoint-sm: 37.5rem;  /*  600px — phone → tablet          */
+  --breakpoint-md: 48rem;    /*  768px — large phone → small tablet (AdaptiveDialog mode switch) */
   --breakpoint-lg: 56.25rem; /*  900px — tablet → desktop        */
   --breakpoint-xl: 75rem;    /* 1200px — desktop → large desktop */
 
