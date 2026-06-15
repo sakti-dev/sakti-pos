@@ -19,6 +19,7 @@ const ZONE_MAP: Record<string, Zone> = {
   "/": "shell",
   "/transactions": "shell",
   "/katalog": "shell",
+  "/inventory": "shell",
   "/pengaturan": "shell",
   "/transaction-new": "flow",
   "/payment": "flow",
@@ -37,8 +38,8 @@ const navFromPath = (pathname: string): NavKey => {
   if (pathname === "/transactions") {
     return "transactions";
   }
-  if (pathname === "/katalog") {
-    return "katalog";
+  if (pathname === "/inventory") {
+    return "inventory";
   }
   if (pathname.startsWith("/pengaturan")) {
     return "settings";

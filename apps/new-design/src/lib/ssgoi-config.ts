@@ -3,7 +3,13 @@ import { axis, drill, fade } from "@ssgoi/solid/view-transitions";
 
 /* ── Path groups ─────────────────────────────────────────────────── */
 
-const SHELL_PATHS = ["/", "/transactions", "/katalog", "/pengaturan"] as const;
+const SHELL_PATHS = [
+  "/",
+  "/transactions",
+  "/katalog",
+  "/inventory",
+  "/pengaturan",
+] as const;
 const AUTH_PATHS = ["/login", "/register", "/pin"] as const;
 
 /* ── Root config factory ───────────────────────────────────────────
@@ -44,6 +50,11 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
       drill({
         enter: "/transaction-new",
         exit: "/katalog",
+        type: "parallax",
+      }),
+      drill({
+        enter: "/transaction-new",
+        exit: "/inventory",
         type: "parallax",
       }),
 

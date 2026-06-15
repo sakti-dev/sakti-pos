@@ -7,6 +7,7 @@ import { Route, Router } from "@solidjs/router";
 import { AppShell } from "./components/layout/app-shell";
 import { Toaster } from "./components/ui/toaster";
 import Dashboard from "./pages/dashboard";
+import Inventory from "./pages/inventory";
 import Katalog from "./pages/katalog";
 import Login from "./pages/login";
 import Payment from "./pages/payment";
@@ -54,6 +55,7 @@ export default function AppRoutes() {
         <Route component={SectionTentang} path="/tentang" />
       </Route>
       <Route component={Katalog} path="/katalog" />
+      <Route component={Inventory} path="/inventory" />
       <Route component={TransactionNew} path="/transaction-new" />
       <Route component={Payment} path="/payment" />
       <Route component={Receipt} path="/receipt" />
