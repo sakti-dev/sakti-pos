@@ -371,7 +371,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
         <div class="mt-5 flex flex-col items-center py-6">
           <div class="relative mb-4 grid h-[200px] w-[200px] place-items-center overflow-hidden rounded-md border-2 border-border bg-card">
             <div class="absolute inset-0 opacity-10 [background:repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_0_0/16px_16px,repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_80px_80px/16px_16px]" />
-            <QrCodeIcon class="relative z-[1] h-16 w-16 text-faint-foreground dark:text-faint-foreground" />
+            <QrCodeIcon class="relative z-10 h-16 w-16 text-faint-foreground dark:text-faint-foreground" />
             <div class="absolute grid h-11 w-11 place-items-center rounded-md border-2 border-border bg-card">
               <QrCodeIcon class="h-6 w-6 text-primary" />
             </div>

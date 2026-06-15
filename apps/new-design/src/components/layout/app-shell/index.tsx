@@ -110,7 +110,8 @@ export const AppShell = (props: RouteSectionProps) => {
       <main
         class={cn(
           "relative flex flex-1 flex-col overflow-hidden bg-background",
-          isShell() && "mt-[54px] h-[calc(100vh-54px)] lg:ml-[80px]",
+          isShell() &&
+            "mt-header h-[calc(100vh-var(--spacing-header))] lg:ml-sidebar-rail",
           !isShell() && "h-screen"
         )}
         onPointerDown={closeSidebar}

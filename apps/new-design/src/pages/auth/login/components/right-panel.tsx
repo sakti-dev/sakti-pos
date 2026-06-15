@@ -56,7 +56,7 @@ export function RightPanel() {
       subtitle="Masukkan email dan password untuk melanjutkan ke dashboard."
       title="Masuk ke akun Anda"
     >
-      <form class="relative z-[1]" novalidate onSubmit={handleSubmit}>
+      <form class="relative z-10" novalidate onSubmit={handleSubmit}>
         {/* Email */}
         <TextField
           class="mb-[18px]"

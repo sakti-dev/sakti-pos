@@ -86,7 +86,7 @@ export const NotchNav = (props: NotchNavProps) => {
   return (
     <nav
       aria-label="Mobile navigation"
-      class="fixed right-0 bottom-0 left-0 z-[100] lg:hidden"
+      class="fixed right-0 bottom-0 left-0 z-60 lg:hidden"
     >
       {/* Bar shape: left wing + center notch SVG + right wing */}
       <div

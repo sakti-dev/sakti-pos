@@ -86,7 +86,7 @@ export function AuthRightPanel(props: {
       </div>
 
       {/* Form header */}
-      <div class="relative z-[1] mb-7 text-center lg:text-left">
+      <div class="relative z-10 mb-7 text-center lg:text-left">
         <h1 class="mb-1.5 font-bold font-display text-[26px] tracking-snug">
           {props.title}
         </h1>
@@ -98,7 +98,7 @@ export function AuthRightPanel(props: {
       {props.children}
 
       {/* Divider */}
-      <div class="relative z-[1] my-6 flex items-center gap-4">
+      <div class="relative z-10 my-6 flex items-center gap-4">
         <div class="h-px flex-1 bg-border" />
         <span class="text-muted-foreground text-xs uppercase tracking-wider">
           atau
@@ -107,7 +107,7 @@ export function AuthRightPanel(props: {
       </div>
 
       <Button
-        class="relative z-[1] w-full"
+        class="relative z-10 w-full"
         look="outline"
         onClick={() => toast.success("Menghubungkan ke Google...")}
         size="lg"
@@ -118,7 +118,7 @@ export function AuthRightPanel(props: {
       </Button>
 
       {/* Footer */}
-      <div class="relative z-[1] mt-7 text-center text-[13px] text-muted-foreground">
+      <div class="relative z-10 mt-7 text-center text-[13px] text-muted-foreground">
         {props.footer}
       </div>
     </main>

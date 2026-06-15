@@ -122,7 +122,7 @@ export default function Transactions() {
     >
       {/* Header bar */}
       <FadeIn
-        class="flex shrink-0 items-center gap-3 px-[18px] pt-5 pb-3 lg:px-6"
+        class="flex shrink-0 items-center gap-3 px-gutter pt-5 pb-3 lg:px-6"
         duration={0.35}
         enable={enable()}
         y={-8}
@@ -134,7 +134,7 @@ export default function Transactions() {
 
       {/* Search + filter row */}
       <FadeIn
-        class="flex shrink-0 flex-col gap-3 px-[18px] pb-3 lg:px-6"
+        class="flex shrink-0 flex-col gap-3 px-gutter pb-3 lg:px-6"
         delay={0.05}
         duration={0.4}
         enable={enable()}
@@ -170,7 +170,7 @@ export default function Transactions() {
       </FadeIn>
 
       {/* Transaction list */}
-      <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-[18px] pb-28 lg:px-6 lg:pb-24">
+      <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-gutter pb-28 lg:px-6 lg:pb-24">
         <Show
           fallback={
             <div class="flex flex-1 items-center justify-center py-20 text-faint-foreground text-sm">

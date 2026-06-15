@@ -19,7 +19,7 @@ export function AccountSelector(props: AccountSelectorProps) {
       <Show when={props.open}>
         <motion.div
           animate={{ opacity: 1 }}
-          class="fixed inset-0 z-[1000] flex items-center justify-center bg-background p-6"
+          class="fixed inset-0 z-80 flex items-center justify-center bg-background p-6"
           exit={{ opacity: 0 }}
           initial={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: EASE }}

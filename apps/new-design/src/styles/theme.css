@@ -11,8 +11,11 @@
   --breakpoint-lg: 56.25rem; /*  900px — tablet → desktop        */
   --breakpoint-xl: 75rem;    /* 1200px — desktop → large desktop */
 
-  /* ── Custom spacing / height ── */
-  --spacing-header: 56px;
+  /* ── App chrome spacing ── */
+  --spacing-header: 54px;
+  --spacing-sidebar-rail: 80px;
+  --spacing-sidebar-expanded: 202px;
+  --spacing-gutter: 18px;
 
   /* ── Seed primitives (source spine) ── */
   --color-canopy: oklch(0.3146 0.0734 139.03);

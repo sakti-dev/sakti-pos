@@ -137,7 +137,7 @@ export default function CashRegisterPage() {
         trigger={
           <SheetTrigger
             aria-label="Buka keranjang"
-            class="fixed right-4 bottom-5 left-4 z-[90] flex h-14 items-center justify-between rounded-2xl bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-wide shadow-card transition duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] lg:hidden"
+            class="fixed right-4 bottom-5 left-4 z-40 flex h-14 items-center justify-between rounded-2xl bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-wide shadow-card transition duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] lg:hidden"
           >
             <div class="flex items-center gap-2.5">
               <CartShoppingIcon class="h-5 w-5" />

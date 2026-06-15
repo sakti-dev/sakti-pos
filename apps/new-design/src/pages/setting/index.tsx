@@ -29,7 +29,7 @@ export default function SettingPage(props: RouteSectionProps) {
       fallback={
         /* ── Index route (mobile) or two-column layout (desktop) ── */
         <div
-          class="scrollbar-none flex flex-1 flex-col gap-4 overflow-y-auto px-[18px] pt-6 pb-28 lg:gap-5 lg:px-7 lg:pb-24"
+          class="scrollbar-none flex flex-1 flex-col gap-4 overflow-y-auto px-gutter pt-6 pb-28 lg:gap-5 lg:px-7 lg:pb-24"
           data-ssgoi-transition="/setting"
         >
           <FadeIn duration={0.35} enable={enable()} y={-8}>

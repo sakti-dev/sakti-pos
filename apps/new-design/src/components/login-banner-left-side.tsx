@@ -25,7 +25,7 @@ export function LoginBannerLeftSide() {
       <div class="pointer-events-none absolute -top-[120px] -right-[120px] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-accent)_15%,transparent)_0%,transparent_70%)]" />
       <div class="pointer-events-none absolute -bottom-[100px] -left-[80px] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-accent)_10%,transparent)_0%,transparent_70%)]" />
 
-      <div class="relative z-[1] flex animate-fade-in flex-col items-center gap-5">
+      <div class="relative z-10 flex animate-fade-in flex-col items-center gap-5">
         <div class="grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg bg-white/10 p-3.5 backdrop-blur-[10px]">
           <img
             alt="Nata POS"

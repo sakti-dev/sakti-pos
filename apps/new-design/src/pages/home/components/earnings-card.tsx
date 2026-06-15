@@ -12,7 +12,7 @@ export const EarningsCard = () => {
       <div class="pointer-events-none absolute -top-[50px] -right-[30px] h-[140px] w-[140px] rounded-full bg-accent/5" />
       <div class="pointer-events-none absolute -bottom-[40px] left-[35%] h-[100px] w-[100px] rounded-full bg-accent/5" />
 
-      <div class="relative z-[1]">
+      <div class="relative z-10">
         <div class="mb-2 font-semibold text-caption-sm text-white/70 uppercase tracking-wider">
           Est. Pendapatan Hari Ini
         </div>
@@ -32,7 +32,7 @@ export const EarningsCard = () => {
 
       <button
         aria-label="Tampilkan/sembunyikan"
-        class="relative z-[1] grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-md border border-white/10 bg-transparent text-white/65 transition-colors duration-150 hover:border-white/25 hover:bg-white/10"
+        class="relative z-10 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-md border border-white/10 bg-transparent text-white/65 transition-colors duration-150 hover:border-white/25 hover:bg-white/10"
         onClick={() => setVisible((v) => !v)}
         type="button"
       >

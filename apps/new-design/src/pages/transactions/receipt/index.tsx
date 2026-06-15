@@ -312,7 +312,7 @@ export default function Receipt() {
       </div>
 
       {/* Fixed bottom action bar */}
-      <div class="fixed inset-x-0 bottom-0 z-[100] mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] flex-col gap-2.5 border-border border-t bg-muted p-4 sm:flex-row sm:gap-2.5 sm:p-3">
+      <div class="fixed inset-x-0 bottom-0 z-60 mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] flex-col gap-2.5 border-border border-t bg-muted p-4 sm:flex-row sm:gap-2.5 sm:p-3">
         <div class="grid grid-cols-2 gap-2.5 sm:flex">
           <Button
             class={secondaryActionClass}

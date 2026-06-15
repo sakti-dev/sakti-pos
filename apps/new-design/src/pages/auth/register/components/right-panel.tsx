@@ -66,7 +66,7 @@ export const RegisterRightPanel = () => {
       subtitle="Daftar untuk mulai mengelola bisnis Anda dengan Nata POS."
       title="Buat akun baru"
     >
-      <form class="relative z-[1]" novalidate onSubmit={handleSubmit}>
+      <form class="relative z-10" novalidate onSubmit={handleSubmit}>
         {/* Name */}
         <TextField
           class="mb-[18px]"

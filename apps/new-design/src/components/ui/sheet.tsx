@@ -40,14 +40,14 @@ export const Sheet = (props: SheetProps) => {
           {props.trigger}
           <Drawer.Portal>
             <Drawer.Overlay
-              class="fixed inset-0 z-[200] data-transitioning:transition-colors data-transitioning:duration-300 data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)]"
+              class="fixed inset-0 z-70 data-transitioning:transition-colors data-transitioning:duration-300 data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)]"
               style={{
                 "background-color": `rgb(0 0 0 / ${0.4 * api.openPercentage})`,
               }}
             />
             <Drawer.Content
               class={cn(
-                "fixed z-[200] flex flex-col bg-card shadow-card data-transitioning:transition-transform data-transitioning:duration-300 data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)]",
+                "fixed z-70 flex flex-col bg-card shadow-card data-transitioning:transition-transform data-transitioning:duration-300 data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)]",
                 sidePosition[props.side ?? "bottom"],
                 props.class
               )}
