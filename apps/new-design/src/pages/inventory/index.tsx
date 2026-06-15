@@ -14,7 +14,7 @@ export default function InventoryPage() {
   const [activeCat, setActiveCat] = createSignal("all");
 
   const [stockMap, setStockMap] = createStore<Record<number, number>>(
-    Object.fromEntries(products.map((p) => [p.id, p.stock])),
+    Object.fromEntries(products.map((p) => [p.id, p.stock]))
   );
 
   const effectiveStock = (id: number) => stockMap[id] ?? 0;

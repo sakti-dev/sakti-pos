@@ -13,11 +13,11 @@ import { cn } from "~/lib/utils";
 // work inside both.
 
 interface AdaptiveDialogProps {
+  breakPoints?: (number | null)[];
   children: JSX.Element;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
   snapPoints?: number[];
-  breakPoints?: (number | null)[];
 }
 
 function AdaptiveDialog(props: AdaptiveDialogProps) {

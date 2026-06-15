@@ -41,7 +41,7 @@ export default function VariantFormPage() {
   const [options, setOptions] = createStore<OptionRow[]>(
     existing()
       ? existing()!.options.map((o) => ({ ...o, _id: _rowId++ }))
-      : [{ _id: _rowId++, label: "", price: 0 }],
+      : [{ _id: _rowId++, label: "", price: 0 }]
   );
 
   const addOption = () =>
@@ -109,7 +109,7 @@ export default function VariantFormPage() {
                           setOptions(
                             (o) => o._id === opt._id,
                             "label",
-                            e.currentTarget.value,
+                            e.currentTarget.value
                           )
                         }
                         placeholder="Nama opsi"
@@ -128,7 +128,7 @@ export default function VariantFormPage() {
                               setOptions(
                                 (o) => o._id === opt._id,
                                 "price",
-                                Math.max(0, v),
+                                Math.max(0, v)
                               )
                             }
                             placeholder="0"
@@ -185,7 +185,7 @@ export default function VariantFormPage() {
                     {(p) => (
                       <span
                         class={cn(
-                          "inline-flex items-center whitespace-nowrap rounded-full border border-primary px-3 py-1 font-medium text-caption-sm text-primary",
+                          "inline-flex items-center whitespace-nowrap rounded-full border border-primary px-3 py-1 font-medium text-caption-sm text-primary"
                         )}
                       >
                         {p}

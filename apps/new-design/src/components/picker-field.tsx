@@ -69,7 +69,11 @@ export function PickerField(props: PickerFieldProps) {
   };
 
   return (
-    <AdaptiveDialog onOpenChange={setOpen} open={open()} snapPoints={[0, 0.6, 1]}>
+    <AdaptiveDialog
+      onOpenChange={setOpen}
+      open={open()}
+      snapPoints={[0, 0.6, 1]}
+    >
       <button
         class={cn(
           "flex h-12 w-full items-center justify-between rounded-sm border-2 border-input bg-background px-3.5 font-sans text-body-sm outline-none transition-colors duration-standard ease-standard",

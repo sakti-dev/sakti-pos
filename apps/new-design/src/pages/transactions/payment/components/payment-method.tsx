@@ -129,7 +129,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
   /** Map a cursor position in formatted text → position in raw digit string. */
   const formattedToRawPos = (
     formatted: string,
-    formatRupiahPos: number,
+    formatRupiahPos: number
   ): number => {
     let digits = 0;
     for (let i = 0; i < formatRupiahPos && i < formatted.length; i++) {
@@ -251,7 +251,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
           <div
             class={cn(
               "flex h-[72px] items-center justify-center gap-2 rounded-lg border-2 border-border bg-muted px-5 transition-colors duration-150",
-              cashNum() > 0 && "border-primary bg-card dark:border-accent",
+              cashNum() > 0 && "border-primary bg-card dark:border-accent"
             )}
           >
             <span class="shrink-0 font-semibold text-body text-muted-foreground dark:text-faint-foreground">
@@ -341,14 +341,14 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
                 "mt-3 flex items-center justify-between rounded-lg border px-4 py-3",
                 change() >= 0
                   ? "border-border bg-muted/40"
-                  : "border-danger/20 bg-danger/5",
+                  : "border-danger/20 bg-danger/5"
               )}
             >
               <span class="flex items-center gap-2 font-medium text-body-sm text-muted-foreground">
                 <span
                   class={cn(
                     "size-1.5 rounded-full",
-                    change() >= 0 ? "bg-accent" : "bg-danger",
+                    change() >= 0 ? "bg-accent" : "bg-danger"
                   )}
                 />
                 {change() >= 0 ? "Kembalian" : "Kurang"}
@@ -356,7 +356,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
               <span
                 class={cn(
                   "font-bold text-body-lg tabular-nums",
-                  change() >= 0 ? "text-foreground" : "text-danger",
+                  change() >= 0 ? "text-foreground" : "text-danger"
                 )}
               >
                 {formatRupiah(Math.abs(change()))}

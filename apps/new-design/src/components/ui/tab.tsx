@@ -51,7 +51,7 @@ export const tabVariants = cva(
       tone: "primary",
       shape: "rounded",
     },
-  },
+  }
 );
 
 export interface TabButtonProps {
@@ -80,7 +80,7 @@ export const TabButton = (props: TabButtonProps) => {
           shape: local.shape,
           tone: local.tone,
         }),
-        local.class,
+        local.class
       )}
       type="button"
       {...others}
