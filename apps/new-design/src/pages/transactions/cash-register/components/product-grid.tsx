@@ -23,7 +23,7 @@ export const ProductGrid = (props: ProductGridProps) => {
           {(p) => (
             <button
               aria-label={`${p.name} ${formatRupiah(p.price)}`}
-              class="group relative aspect-square cursor-pointer overflow-hidden rounded-[14px] bg-muted transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97]"
+              class="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl bg-muted transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97]"
               onClick={() => props.onAdd(p.id)}
               type="button"
             >

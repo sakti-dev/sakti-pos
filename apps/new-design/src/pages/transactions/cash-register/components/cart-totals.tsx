@@ -22,18 +22,18 @@ export const CartTotals = (props: CartTotalsProps) => (
     <div class="flex flex-col gap-2">
       <Button
         aria-label="Bayar"
-        class="rounded-[14px] shadow-card hover:shadow-card-hover active:scale-[0.98] active:shadow-card disabled:opacity-40 disabled:shadow-none"
+        class="rounded-2xl shadow-card hover:shadow-card-hover active:scale-[0.98] active:shadow-card disabled:opacity-40 disabled:shadow-none"
         disabled={props.disabled}
         onClick={props.onPay}
         size="lg"
         type="button"
       >
-        <CreditCardIcon class="h-[18px] w-[18px]" />
+        <CreditCardIcon class="size-5" />
         Bayar Sekarang
       </Button>
       <Button
         aria-label="Proses"
-        class="rounded-[14px] disabled:opacity-40"
+        class="rounded-2xl disabled:opacity-40"
         disabled={props.disabled}
         look="outline"
         onClick={props.onProcess}

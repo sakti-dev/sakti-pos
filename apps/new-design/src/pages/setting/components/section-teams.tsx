@@ -29,7 +29,7 @@ export function SectionTeams() {
       <div class="flex flex-col gap-2">
         <For each={staffMembers}>
           {(s) => (
-            <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-muted px-4 py-3.5">
+            <div class="flex items-center gap-3.5 rounded-xl border border-border bg-muted px-4 py-3.5">
               <div class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-accent-soft font-bold font-display text-body-sm text-primary">
                 {s.initials}
               </div>

@@ -300,7 +300,7 @@ export default function Receipt() {
                 {(w) => (
                   <div
                     class={cn(
-                      "h-8 rounded-[1px] bg-foreground dark:bg-foreground dark:opacity-50",
+                      "h-8 rounded-sm bg-foreground dark:bg-foreground dark:opacity-50",
                       w > 1 ? "w-[2px]" : "w-px"
                     )}
                   />
@@ -321,7 +321,7 @@ export default function Receipt() {
             tone="neutral"
             type="button"
           >
-            <PrinterIcon class="h-[18px] w-[18px]" />
+            <PrinterIcon class="size-5" />
             Cetak
           </Button>
           <Button
@@ -331,7 +331,7 @@ export default function Receipt() {
             tone="neutral"
             type="button"
           >
-            <ShareIcon class="h-[18px] w-[18px]" />
+            <ShareIcon class="size-5" />
             Bagikan
           </Button>
         </div>
@@ -340,7 +340,7 @@ export default function Receipt() {
           onClick={() => navigate("/", { replace: true })}
           type="button"
         >
-          <HomeIcon class="h-[18px] w-[18px]" />
+          <HomeIcon class="size-5" />
           Beranda
         </Button>
       </div>

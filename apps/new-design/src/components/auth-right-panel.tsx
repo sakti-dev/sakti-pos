@@ -48,7 +48,7 @@ export function AuthRightPanel(props: {
         {(gc) => (
           <div
             class={cn(
-              "pointer-events-none absolute z-0 flex flex-col items-center rounded-lg border-[1.5px] border-primary/10 bg-primary/5",
+              "pointer-events-none absolute z-0 flex flex-col items-center rounded-lg border-2 border-primary/10 bg-primary/5",
               gc.class,
               gc.anim
             )}

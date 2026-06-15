@@ -36,7 +36,7 @@ export const KpiCards = () => (
                   TONE_CHIP[card.tone]
                 )}
               >
-                <card.ActionIcon class="h-[18px] w-[18px]" />
+                <card.ActionIcon class="size-5" />
               </span>
             </header>
 

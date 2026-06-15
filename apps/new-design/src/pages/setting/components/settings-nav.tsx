@@ -61,7 +61,7 @@ export function SettingsNavigationMenu() {
         {(item) => (
           <Button
             aria-label={item.label}
-            class="flex w-full items-center gap-2.5 whitespace-nowrap rounded-[10px] px-4 py-3 text-left font-semibold text-body-sm lg:w-auto lg:px-3.5 lg:py-2.5"
+            class="flex w-full items-center gap-2.5 whitespace-nowrap rounded-xl px-4 py-3 text-left font-semibold text-body-sm lg:w-auto lg:px-3.5 lg:py-2.5"
             look={activeKey() === item.key ? "soft" : "ghost"}
             onClick={() =>
               navigate(
@@ -78,7 +78,7 @@ export function SettingsNavigationMenu() {
           >
             <item.Icon
               class={cn(
-                "h-[18px] w-[18px] shrink-0",
+                "size-5 shrink-0",
                 activeKey() === item.key
                   ? "text-primary"
                   : "opacity-55 transition-[opacity] duration-150 hover:opacity-80 dark:opacity-40"

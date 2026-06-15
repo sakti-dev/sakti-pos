@@ -16,7 +16,7 @@ import { cn } from "~/lib/utils";
  *   accent  — lime soft fill (canopy-on-lime, ≈10.76:1 both themes)
  */
 export const tabVariants = cva(
-  "flex shrink-0 cursor-pointer items-center border-[1.5px] font-semibold text-[13px] transition-[background,border-color,color,box-shadow] duration-150",
+  "flex shrink-0 cursor-pointer items-center border-2 font-semibold text-[13px] transition-[background,border-color,color,box-shadow] duration-150",
   {
     variants: {
       variant: {
@@ -29,7 +29,7 @@ export const tabVariants = cva(
         accent: "",
       },
       shape: {
-        rounded: "gap-2 whitespace-nowrap rounded-[14px] px-[18px] py-2.5",
+        rounded: "gap-2 whitespace-nowrap rounded-2xl px-[18px] py-2.5",
         pill: "rounded-full px-4 py-[7px]",
       },
     },

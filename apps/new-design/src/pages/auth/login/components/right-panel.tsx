@@ -75,7 +75,7 @@ export function RightPanel() {
             required
             type="email"
           />
-          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-[height,opacity] duration-standard ease-standard data-[invalid]:h-[18px] data-[invalid]:opacity-100">
+          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-[height,opacity] duration-standard ease-standard data-[invalid]:h-5 data-[invalid]:opacity-100">
             Format email tidak valid
           </TextFieldErrorMessage>
         </TextField>
@@ -112,14 +112,14 @@ export function RightPanel() {
               type="button"
             >
               <Show
-                fallback={<EyeClosedIcon class="h-[18px] w-[18px]" />}
+                fallback={<EyeClosedIcon class="size-5" />}
                 when={!showPassword()}
               >
-                <EyeOpenIcon class="h-[18px] w-[18px]" />
+                <EyeOpenIcon class="size-5" />
               </Show>
             </Button>
           </div>
-          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-[height,opacity] duration-standard ease-standard data-[invalid]:h-[18px] data-[invalid]:opacity-100">
+          <TextFieldErrorMessage class="mt-[5px] h-0 overflow-hidden opacity-0 transition-[height,opacity] duration-standard ease-standard data-[invalid]:h-5 data-[invalid]:opacity-100">
             Password minimal 6 karakter
           </TextFieldErrorMessage>
         </TextField>
@@ -140,7 +140,7 @@ export function RightPanel() {
         >
           <Show
             fallback={
-              <div class="h-[18px] w-[18px] animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <div class="size-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             }
             when={!loading()}
           >

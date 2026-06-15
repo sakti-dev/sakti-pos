@@ -38,7 +38,7 @@ const TopBarContent = () => {
             ) : (
               <>
                 <CloudIcon class="h-4 w-4" />
-                <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-[1.5px] border-primary bg-accent dark:border-accent/40" />
+                <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-2 border-primary bg-accent dark:border-accent/40" />
               </>
             )}
           </span>
@@ -58,7 +58,7 @@ const TopBarContent = () => {
         class="grid h-[38px] w-[38px] place-items-center rounded-[8px] border border-border bg-card text-muted-foreground transition-[background,border-color,box-shadow] duration-150 hover:border-primary/15 hover:bg-muted hover:shadow-card-hover"
         type="button"
       >
-        <BellIcon class="h-[18px] w-[18px]" />
+        <BellIcon class="size-5" />
       </button>
     </>
   );

@@ -4,7 +4,7 @@ import { SectionCard } from "./primitives";
 export function SectionAbout() {
   return (
     <SectionCard class="items-center text-center">
-      <div class="grid h-16 w-16 place-items-center rounded-[18px] border border-border bg-muted">
+      <div class="grid h-16 w-16 place-items-center rounded-2xl border border-border bg-muted">
         <InfoIcon class="h-8 w-8 text-faint-foreground" />
       </div>
       <div class="font-bold font-display text-foreground text-subheading">

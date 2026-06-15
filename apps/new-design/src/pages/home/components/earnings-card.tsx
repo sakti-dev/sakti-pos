@@ -36,11 +36,8 @@ export const EarningsCard = () => {
         onClick={() => setVisible((v) => !v)}
         type="button"
       >
-        <Show
-          fallback={<EyeClosedIcon class="h-[18px] w-[18px]" />}
-          when={visible()}
-        >
-          <EyeOpenIcon class="h-[18px] w-[18px]" />
+        <Show fallback={<EyeClosedIcon class="size-5" />} when={visible()}>
+          <EyeOpenIcon class="size-5" />
         </Show>
       </button>
     </div>

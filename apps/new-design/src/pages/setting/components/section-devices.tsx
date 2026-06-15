@@ -32,9 +32,9 @@ export function SectionDevices() {
       <div class="flex flex-col gap-2">
         <For each={connectedDevices}>
           {(d) => (
-            <div class="flex items-center gap-3.5 rounded-[10px] border border-border bg-muted p-4">
+            <div class="flex items-center gap-3.5 rounded-xl border border-border bg-muted p-4">
               <div
-                class={`grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[10px] ${
+                class={`grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl ${
                   d.kind === "printer"
                     ? "bg-accent/10 text-primary dark:text-accent"
                     : "bg-status-warning/15 text-status-warning dark:bg-status-warning dark:text-status-warning-foreground"
@@ -63,7 +63,7 @@ export function SectionDevices() {
                   class="absolute h-0 w-0 opacity-0"
                   type="checkbox"
                 />
-                <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:h-[18px] before:w-[18px] before:rounded-full before:bg-white before:shadow-card before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
+                <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-[background] duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:size-5 before:rounded-full before:bg-white before:shadow-card before:transition-[transform] before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
               </label>
             </div>
           )}

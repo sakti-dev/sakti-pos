@@ -53,7 +53,7 @@ export function PinLeftPanel() {
                 }}
               >
                 <div class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-accent/15">
-                  <f.Icon class="h-[18px] w-[18px] text-accent" />
+                  <f.Icon class="size-5 text-accent" />
                 </div>
                 <div>
                   <div class="font-medium text-body-sm text-white/75">

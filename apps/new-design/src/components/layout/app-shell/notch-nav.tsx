@@ -152,7 +152,7 @@ function NavTab(props: {
   return (
     <Button
       as={A}
-      class="pointer-events-auto h-[52px] w-[56px] flex-col justify-center gap-1 whitespace-normal rounded-[14px] p-0"
+      class="pointer-events-auto h-[52px] w-[56px] flex-col justify-center gap-1 whitespace-normal rounded-2xl p-0"
       end={props.tab.key === "home"}
       href={props.tab.href}
       look={isActive() ? "soft" : "ghost"}

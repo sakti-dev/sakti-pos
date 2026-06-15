@@ -45,7 +45,7 @@ export function AccountSelector(props: AccountSelectorProps) {
                 {(user, i) => (
                   <button
                     aria-label={`${user.name}, ${user.role}`}
-                    class="flex animate-stagger-in flex-col items-center gap-2.5 rounded-lg border-[1.5px] border-border bg-card px-3 py-6 transition-[border-color,background,transform,box-shadow] duration-200 hover:border-accent hover:bg-accent-soft hover:shadow-card active:scale-[0.97]"
+                    class="flex animate-stagger-in flex-col items-center gap-2.5 rounded-lg border-2 border-border bg-card px-3 py-6 transition-[border-color,background,transform,box-shadow] duration-200 hover:border-accent hover:bg-accent-soft hover:shadow-card active:scale-[0.97]"
                     onClick={() => props.onSelect(user)}
                     style={{ "animation-delay": `${i() * 0.08}s` }}
                     type="button"

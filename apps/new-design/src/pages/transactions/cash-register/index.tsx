@@ -82,10 +82,10 @@ export default function CashRegisterPage() {
           <div class="flex shrink-0 items-center gap-3.5">
             <A
               aria-label="Kembali"
-              class="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-border bg-card text-foreground transition-[background,border-color] duration-150 hover:border-primary/20 hover:bg-primary/5"
+              class="grid h-[38px] w-[38px] place-items-center rounded-xl border border-border bg-card text-foreground transition-[background,border-color] duration-150 hover:border-primary/20 hover:bg-primary/5"
               href="/"
             >
-              <ArrowLeftIcon class="h-[18px] w-[18px]" />
+              <ArrowLeftIcon class="size-5" />
             </A>
             <span class="hidden font-bold font-display text-body-lg text-foreground sm:block">
               Transaksi Baru
@@ -137,7 +137,7 @@ export default function CashRegisterPage() {
         trigger={
           <SheetTrigger
             aria-label="Buka keranjang"
-            class="fixed right-4 bottom-5 left-4 z-[90] flex h-14 items-center justify-between rounded-[14px] bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-wide shadow-card transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] lg:hidden"
+            class="fixed right-4 bottom-5 left-4 z-[90] flex h-14 items-center justify-between rounded-2xl bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-wide shadow-card transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] lg:hidden"
           >
             <div class="flex items-center gap-2.5">
               <CartShoppingIcon class="h-5 w-5" />

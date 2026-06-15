@@ -67,7 +67,7 @@ export const Sidebar = (props: SidebarProps) => {
       >
         {/* Brand */}
         <div class="mb-7 flex h-12 shrink-0 items-center gap-2.5">
-          <div class="grid h-12 w-12 shrink-0 place-items-center rounded-[14px]">
+          <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl">
             <img
               alt="Nata POS"
               class="h-full w-full object-contain"
@@ -89,7 +89,7 @@ export const Sidebar = (props: SidebarProps) => {
                   aria-label={item.label}
                   as={A}
                   class={cn(
-                    "relative flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
+                    "relative flex h-[58px] items-center justify-start gap-[7px] rounded-2xl [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
                     props.expanded ? "w-full px-3" : "w-[52px] px-[15px]"
                   )}
                   end={item.key === "home"}
@@ -120,7 +120,7 @@ export const Sidebar = (props: SidebarProps) => {
         <Button
           aria-label="Keluar"
           class={cn(
-            "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
+            "flex h-[58px] items-center justify-start gap-[7px] rounded-2xl [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
             props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
           )}
           look="ghost"

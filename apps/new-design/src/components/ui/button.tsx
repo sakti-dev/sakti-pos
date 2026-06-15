@@ -38,7 +38,7 @@ export const buttonVariants = cva(
       look: {
         solid: "border-none",
         soft: "border-none",
-        outline: "border-[1.5px]",
+        outline: "border-2",
         ghost: "border-none bg-transparent",
         link: "border-none bg-transparent",
       },
