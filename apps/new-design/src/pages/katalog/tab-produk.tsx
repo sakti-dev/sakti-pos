@@ -1,10 +1,8 @@
 import { A } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { createStore } from "solid-js/store";
 import { PlusIcon, SearchIcon } from "~/assets";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { Tab } from "~/components/ui/tab";
 import {
   categories,
@@ -17,18 +15,6 @@ import { formatRupiah } from "~/lib/utils";
 export function TabProduk() {
   const [search, setSearch] = createSignal("");
   const [activeCat, setActiveCat] = createSignal("all");
-
-  // Mutable stock overlay so inline steppers work without touching
-  // the immutable sample data. stockMap[id] → current stock value.
-  const [stockMap, setStockMap] = createStore<Record<number, number>>(
-    Object.fromEntries(products.map((p) => [p.id, p.stock]))
-  );
-
-  const effectiveStock = (id: number) => stockMap[id] ?? 0;
-  const adjustStock = (id: number, delta: number) =>
-    setStockMap(id, (prev) => Math.max(0, (prev ?? 0) + delta));
-  const setStock = (id: number, value: number) =>
-    setStockMap(id, Math.max(0, value));
 
   const filtered = createMemo(() => {
     const q = search().toLowerCase();
@@ -107,14 +93,7 @@ export function TabProduk() {
         >
           <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
             <For each={filtered()}>
-              {(product) => (
-                <ProductRow
-                  onAdjustStock={(delta) => adjustStock(product.id, delta)}
-                  onSetStock={(v) => setStock(product.id, v)}
-                  product={product}
-                  stock={effectiveStock(product.id)}
-                />
-              )}
+              {(product) => <ProductRow product={product} />}
             </For>
           </div>
         </Show>
@@ -123,46 +102,31 @@ export function TabProduk() {
   );
 }
 
-function ProductRow(props: {
-  onAdjustStock: (delta: number) => void;
-  onSetStock: (value: number) => void;
-  product: Product;
-  stock: number;
-}) {
-  const s = () => stockStatus(props.stock);
+function ProductRow(props: { product: Product }) {
+  const s = () => stockStatus(props.product.stock);
   return (
-    <div class="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/20 lg:gap-4">
-      {/* Left: tap to edit form */}
-      <A
-        aria-label={`Edit ${props.product.name}`}
-        class="min-w-0 flex-1 no-underline"
-        href="#"
-      >
+    <A
+      aria-label={`Edit ${props.product.name}`}
+      class="flex items-center gap-3 rounded-xl border border-border bg-card p-3 no-underline transition-colors hover:border-primary/20 lg:gap-4"
+      href="#"
+    >
+      <div class="min-w-0 flex-1">
         <h3 class="truncate font-semibold text-body-sm text-foreground">
           {props.product.name}
         </h3>
         <p class="mt-0.5 truncate text-caption-sm text-faint-foreground">
           {props.product.sku} · {formatRupiah(props.product.price)}
         </p>
-        <Badge class="mt-1" size="sm" variant={s().badge}>
+      </div>
+      <div class="flex shrink-0 flex-col items-end gap-1">
+        <span class="font-bold text-body-sm text-foreground tabular-nums">
+          {props.product.stock}
+        </span>
+        <Badge size="sm" variant={s().badge}>
           {s().label}
         </Badge>
-      </A>
-      {/* Right: inline stock stepper */}
-      <div class="flex shrink-0 flex-col items-center gap-1">
-        <QuantityStepper
-          ariaLabel={`Stok ${props.product.name}`}
-          editable
-          onDecrement={() => props.onAdjustStock(-1)}
-          onIncrement={() => props.onAdjustStock(1)}
-          onInput={(v) => props.onSetStock(v)}
-          value={props.stock}
-        />
-        <span class="font-medium text-caption-sm text-faint-foreground">
-          {props.product.unit}
-        </span>
       </div>
-    </div>
+    </A>
   );
 }
 
