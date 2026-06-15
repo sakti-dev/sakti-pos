@@ -52,8 +52,8 @@ export const Sidebar = (props: SidebarProps) => {
     <div
       class={cn(
         "fixed top-0 left-0 z-[100] h-screen w-[80px] bg-card after:absolute after:top-0 after:right-0 after:bottom-0 after:z-[1] after:w-px after:bg-border after:transition-opacity after:duration-200 after:ease-[cubic-bezier(0.22,1,0.36,1)]",
-        props.isShell ? "lg:block" : "hidden",
-        props.expanded ? "after:opacity-0" : "after:opacity-100",
+        props.isShell ? "hidden lg:block" : "hidden",
+        props.expanded ? "after:opacity-0" : "after:opacity-100"
       )}
     >
       <nav
@@ -61,7 +61,7 @@ export const Sidebar = (props: SidebarProps) => {
           "h-full w-[202px] flex-col border-border border-r bg-card px-3 py-5 pb-4 transition-[clip-path,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
           props.expanded
             ? "shadow-2xl [clip-path:inset(0_0_0_0)]"
-            : "[clip-path:inset(0_120px_0_0)]",
+            : "[clip-path:inset(0_120px_0_0)]"
         )}
         onClick={props.onTouch}
       >
@@ -90,7 +90,7 @@ export const Sidebar = (props: SidebarProps) => {
                   as={A}
                   class={cn(
                     "relative flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-108",
-                    props.expanded ? "w-full px-3" : "w-[52px] px-[15px]",
+                    props.expanded ? "w-full px-3" : "w-[52px] px-[15px]"
                   )}
                   end={item.key === "home"}
                   href={item.href}
@@ -121,7 +121,7 @@ export const Sidebar = (props: SidebarProps) => {
           aria-label="Keluar"
           class={cn(
             "flex h-[58px] items-center justify-start gap-[7px] rounded-[14px] [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
-            props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]",
+            props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
           )}
           look="ghost"
           size="none"

@@ -7,7 +7,7 @@ import {
   HomeIcon,
   SettingsIcon,
 } from "~/assets";
-import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
 import type { NavKey } from "./sidebar";
 
 /* ── Design parameters ───────────────────────────────────────────── */
@@ -77,7 +77,7 @@ const rightTabs = [
   {
     key: "settings" as NavKey,
     Icon: SettingsIcon,
-    label: "Pengaturan",
+    label: "Setting",
     href: "/pengaturan",
   },
 ];
@@ -150,25 +150,19 @@ function NavTab(props: {
 }) {
   const isActive = () => props.active === props.tab.key;
   return (
-    <A
-      class="pointer-events-auto flex w-[56px] flex-col items-center justify-center gap-1 no-underline"
+    <Button
+      as={A}
+      class="pointer-events-auto h-[52px] w-[56px] flex-col justify-center gap-1 whitespace-normal rounded-[14px] p-0"
       end={props.tab.key === "home"}
       href={props.tab.href}
+      look={isActive() ? "soft" : "ghost"}
+      size="none"
+      tone={isActive() ? "primary" : "neutral"}
     >
-      <props.tab.Icon
-        class={cn(
-          "h-[22px] w-[22px] transition-colors duration-200",
-          isActive() ? "text-primary dark:text-accent" : "text-faint-foreground"
-        )}
-      />
-      <span
-        class={cn(
-          "font-medium text-[10px] tracking-[0.02em] transition-colors duration-200",
-          isActive() ? "text-foreground" : "text-faint-foreground"
-        )}
-      >
+      <props.tab.Icon class="h-[22px] w-[22px] shrink-0" />
+      <span class="font-medium text-[10px] tracking-[0.02em]">
         {props.tab.label}
       </span>
-    </A>
+    </Button>
   );
 }
