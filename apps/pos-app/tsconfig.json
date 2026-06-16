@@ -3,7 +3,7 @@
   "compilerOptions": {
     "skipLibCheck": true,
     "paths": {
-      "~/*": ["./src/*"],
+      "~/*": ["src-old/*"],
       "@sync-contract/local-synced-schema": [
         "../../packages/sync-contract/src/local-synced-schema.ts"
       ],
@@ -23,7 +23,7 @@
     },
     "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
   },
-  "include": ["src"],
+  "include": ["src-old"],
   "exclude": ["docs/external"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
