@@ -112,7 +112,7 @@ export default function PaymentPage() {
       </div>
 
       {/* Mobile: fixed bottom button */}
-      <div class="fixed inset-x-0 bottom-0 z-60 border-border border-t bg-card p-3 pb-3 sm:block lg:hidden lg:p-4 lg:pb-4">
+      <div class="safe-pb fixed inset-x-0 bottom-0 z-60 border-border border-t bg-card p-3 pb-3 sm:block lg:hidden lg:p-4 lg:pb-4">
         <Button
           class="h-14 w-full rounded-md font-bold text-body shadow-card disabled:opacity-40 dark:disabled:shadow-none"
           disabled={!canConfirm()}

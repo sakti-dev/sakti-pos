@@ -1,14 +1,14 @@
+import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { PinLeftPanel } from "./components/left-panel";
 import { PinRightPanel } from "./components/right-panel";
 
 export default function PinLoginPage() {
   return (
-    <main
-      class="flex min-h-screen overflow-x-hidden bg-background font-sans text-foreground antialiased"
-      data-ssgoi-transition="/auth/pin"
-    >
-      <PinLeftPanel />
-      <PinRightPanel />
-    </main>
+    <SafeAreaShell class="bg-background" data-ssgoi-transition="/auth/pin">
+      <div class="flex h-full overflow-x-hidden">
+        <PinLeftPanel />
+        <PinRightPanel />
+      </div>
+    </SafeAreaShell>
   );
 }

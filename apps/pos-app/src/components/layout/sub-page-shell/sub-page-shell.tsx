@@ -1,4 +1,5 @@
 import type { JSX } from "solid-js";
+import { SafeAreaShell } from "../safe-area-shell";
 import { ScreenHeader } from "./screen-header";
 
 interface SubPageShellProps {
@@ -12,12 +13,9 @@ interface SubPageShellProps {
 export const SubPageShell = (props: SubPageShellProps) => {
   const { backHref, backLabel, children, title, ...rest } = props;
   return (
-    <div
-      {...rest}
-      class="flex h-screen flex-col bg-muted font-sans text-foreground antialiased"
-    >
+    <SafeAreaShell {...rest} class="bg-muted">
       <ScreenHeader backHref={backHref} backLabel={backLabel} title={title} />
       {children}
-    </div>
+    </SafeAreaShell>
   );
 };

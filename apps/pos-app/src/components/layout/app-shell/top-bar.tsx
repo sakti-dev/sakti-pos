@@ -72,11 +72,17 @@ interface TopBarProps {
 export const TopBar = (props: TopBarProps) => (
   <header
     class={cn(
-      "fixed top-0 right-0 left-0 z-50 flex h-header shrink-0 items-center justify-between border-border border-b bg-card px-gutter lg:left-sidebar-rail lg:px-7",
+      "fixed top-0 right-0 left-0 z-50 flex flex-col bg-card lg:left-sidebar-rail",
       props.isShell ? "" : "hidden"
     )}
     onPointerDown={props.onClose}
   >
-    <TopBarContent />
+    <div
+      class="shrink-0 bg-card"
+      style={{ height: "env(safe-area-inset-top, 0px)" }}
+    />
+    <div class="flex h-header shrink-0 items-center justify-between border-border border-t border-b px-gutter lg:px-7">
+      <TopBarContent />
+    </div>
   </header>
 );

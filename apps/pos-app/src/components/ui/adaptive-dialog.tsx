@@ -73,7 +73,7 @@ function AdaptiveDialogContent(props: AdaptiveDialogContentProps) {
         // ── Sheet mode (Drawer) ──
         <Drawer.Portal>
           <Drawer.Overlay class="fixed inset-0 z-70 bg-background/80 backdrop-blur-sm data-transitioning:transition-opacity data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)]" />
-          <Drawer.Content class="fixed inset-x-0 bottom-0 z-70 flex max-h-[85dvh] w-full flex-col gap-4 overflow-hidden rounded-t-lg border-2 border-border bg-card px-3 pt-1.5 pb-3 shadow-card data-transitioning:transition-transform data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)] sm:px-6 sm:pb-6">
+          <Drawer.Content class="safe-pb fixed inset-x-0 bottom-0 z-70 flex max-h-[85dvh] w-full flex-col gap-4 overflow-hidden rounded-t-lg border-2 border-border bg-card px-3 pt-1.5 pb-3 shadow-card data-transitioning:transition-transform data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)] sm:px-6 sm:pb-6">
             <div class="mx-auto h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing" />
             {props.children}
           </Drawer.Content>

@@ -11,6 +11,7 @@ import {
   ShareIcon,
   WalletIcon,
 } from "~/assets";
+import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
 import { sampleReceiptItems } from "~/lib/data/transactions";
 import { cn, formatRupiah } from "~/lib/utils";
@@ -103,8 +104,8 @@ export default function Receipt() {
 
   const meta = METHOD_META[method] ?? METHOD_META.cash;
   return (
-    <div
-      class="flex min-h-screen flex-col bg-muted font-sans text-foreground antialiased"
+    <SafeAreaShell
+      class="bg-muted"
       data-ssgoi-transition="/transactions/receipt"
     >
       {/* Scrollable receipt content */}
@@ -311,7 +312,7 @@ export default function Receipt() {
       </div>
 
       {/* Fixed bottom action bar */}
-      <div class="fixed inset-x-0 bottom-0 z-60 mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] flex-col gap-2.5 border-border border-t bg-muted p-4 sm:flex-row sm:gap-2.5 sm:p-3">
+      <div class="safe-pb fixed inset-x-0 bottom-0 z-60 mx-auto flex max-w-[520px] animate-[fadeUp_0.5s_cubic-bezier(0.34,1.56,0.64,1)_0.4s_both] flex-col gap-2.5 border-border border-t bg-muted p-4 sm:flex-row sm:gap-2.5 sm:p-3">
         <div class="grid grid-cols-2 gap-2.5 sm:flex">
           <Button
             class={secondaryActionClass}
@@ -343,6 +344,6 @@ export default function Receipt() {
           Beranda
         </Button>
       </div>
-    </div>
+    </SafeAreaShell>
   );
 }
