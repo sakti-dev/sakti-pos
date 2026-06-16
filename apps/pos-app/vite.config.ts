@@ -1,24 +1,34 @@
 import path from "node:path";
-import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import solid from "vite-plugin-solid";
+import solidSVG from "vite-plugin-solid-svg";
+import { defineConfig } from "vitest/config";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
-  plugins: [solid()],
+export default defineConfig({
+  plugins: [tailwindcss(), solid(), solidSVG()],
+
   resolve: {
     alias: {
       "~": path.resolve(import.meta.dirname, "./src"),
     },
-    tsconfigPaths: true,
+    conditions: ["development", "browser"],
   },
 
   build: {
     minify: "esbuild",
     sourcemap: false,
     target: "esnext",
+  },
+
+  test: {
+    environment: "jsdom",
+    globals: true,
+    include: ["src/**/__test__/**/*.{test,spec}.{ts,tsx}"],
+    css: false,
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
@@ -42,4 +52,4 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
-}));
+});

@@ -6,10 +6,6 @@
       "apps/pos-app/src/**",
       "apps/pos-app/vite.config.ts",
       "apps/pos-app/drizzle.config.ts",
-      "apps/pos-app/tailwind.config.js",
-      "apps/pos-app/postcss.config.js",
-      "apps/new-design/src/**",
-      "apps/new-design/vite.config.ts",
       "packages/sync-contract/src/**",
       "!!packages/protobuf/src",
       "*.json",
@@ -50,7 +46,7 @@
   },
   "overrides": [
     {
-      "includes": ["apps/new-design/src/components/layout/app-shell/sidebar.tsx"],
+      "includes": ["apps/pos-app/src/components/layout/app-shell/sidebar.tsx"],
       "linter": {
         "rules": {
           "a11y": {

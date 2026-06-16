@@ -2,8 +2,10 @@
   "extends": "@repo/typescript-config/solid.json",
   "compilerOptions": {
     "skipLibCheck": true,
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "paths": {
-      "~/*": ["src-old/*"],
+      "~/*": ["./src/*"],
       "@sync-contract/local-synced-schema": [
         "../../packages/sync-contract/src/local-synced-schema.ts"
       ],
@@ -21,9 +23,15 @@
       ],
       "@repo/api": ["../../apps/api/src/app.ts"]
     },
-    "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom",
+      "node",
+      "vite-plugin-solid-svg/types-component-solid",
+      "vite/client"
+    ]
   },
-  "include": ["src-old"],
+  "include": ["src"],
   "exclude": ["docs/external"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

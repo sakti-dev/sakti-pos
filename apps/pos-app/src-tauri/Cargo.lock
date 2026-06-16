@@ -356,7 +356,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "baresync-core"
-version = "0.4.5"
+version = "0.4.6"
 dependencies = [
  "log",
  "reqwest 0.12.28",
@@ -5367,7 +5367,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-baresync"
-version = "0.4.5"
+version = "0.4.6"
 dependencies = [
  "baresync-core",
  "chrono",

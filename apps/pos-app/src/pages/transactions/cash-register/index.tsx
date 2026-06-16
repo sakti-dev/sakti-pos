@@ -89,7 +89,7 @@ export default function CashRegisterPage() {
             >
               <ArrowLeftIcon class="size-5" />
             </A>
-            <span class="font-bold font-display text-foreground text-body-lg">
+            <span class="font-bold font-display text-body-lg text-foreground">
               Transaksi Baru
             </span>
           </div>

@@ -112,7 +112,7 @@ export function SettingsNavigationMenu() {
                   // own sub-route. Desktop: business uses the bare index route.
                   item.key === "business" && isWide()
                     ? "/setting"
-                    : `/setting/${item.key}`,
+                    : `/setting/${item.key}`
                 )
               }
               size="none"
@@ -124,7 +124,7 @@ export function SettingsNavigationMenu() {
                   "size-5 shrink-0",
                   activeKey() === item.key
                     ? "text-primary"
-                    : "opacity-55 transition-opacity duration-150 hover:opacity-80 dark:opacity-40",
+                    : "opacity-55 transition-opacity duration-150 hover:opacity-80 dark:opacity-40"
                 )}
               />
               <span class="flex min-w-0 flex-col gap-0.5">

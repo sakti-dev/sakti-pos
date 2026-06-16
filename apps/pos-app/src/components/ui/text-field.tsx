@@ -48,6 +48,7 @@ type TextFieldInputProps<T extends ValidComponent = "input"> =
       | "time"
       | "url"
       | "week";
+    autofocus?: boolean | undefined;
   };
 
 const TextFieldInput = <T extends ValidComponent = "input">(
@@ -63,6 +64,7 @@ const TextFieldInput = <T extends ValidComponent = "input">(
     "autofocus",
   ]);
 
+  // biome-ignore lint/suspicious/noUnassignedVariables: Assigned by SolidJS compiler transform
   let ref: HTMLInputElement | undefined;
 
   // Suppress native autofocus: use rAF + preventScroll so focusing the
