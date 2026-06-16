@@ -20,6 +20,7 @@ import ExperimentPage from "./pages/experiment";
 import HomePage from "./pages/home";
 import InventoryPage from "./pages/inventory";
 import InventoryOpnameNewPage from "./pages/inventory/pages/opname-new";
+import InventoryTerimaNewPage from "./pages/inventory/pages/terima-new";
 import SettingPage from "./pages/setting";
 import { SectionAbout } from "./pages/setting/components/section-about";
 import { SectionBusiness } from "./pages/setting/components/section-business";
@@ -90,6 +91,7 @@ export default function AppRoutes() {
       <Route component={ProductFormPage} path="/catalog/product/:id" />
       <Route component={InventoryPage} path="/inventory" />
       <Route component={InventoryOpnameNewPage} path="/inventory/opname/new" />
+      <Route component={InventoryTerimaNewPage} path="/inventory/terima/new" />
       <Route component={CashRegisterPage} path="/transactions/cash-register" />
       <Route component={PaymentPage} path="/transactions/payment" />
       <Route component={Receipt} path="/transactions/receipt" />
