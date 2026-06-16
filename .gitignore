@@ -53,6 +53,7 @@ docs/external/
 
 .turso
 .db
+.agents/
 .codex/
 .omp/
 .commandcode/
