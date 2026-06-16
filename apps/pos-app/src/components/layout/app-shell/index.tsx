@@ -31,6 +31,7 @@ const ZONE_MAP: Record<string, Zone> = {
 
 const SECTION_ROUTE_RE = /^\/setting\/.+$/;
 const CATALOG_FORM_RE = /^\/catalog\/(product|variant|category)\//;
+const INVENTORY_FORM_RE = /^\/inventory\/(opname|terima)\//;
 const FAB_PATHS = ["/", "/transactions"];
 
 const navFromPath = (pathname: string): NavKey => {
@@ -57,7 +58,10 @@ export const AppShell = (props: RouteSectionProps) => {
   const bp = useBreakpoints();
   const isWide = () => bp.lg;
   const zone = (): Zone => {
-    if (CATALOG_FORM_RE.test(pathname())) {
+    if (
+      CATALOG_FORM_RE.test(pathname()) ||
+      INVENTORY_FORM_RE.test(pathname())
+    ) {
       return "flow";
     }
     const base = ZONE_MAP[pathname()] ?? "shell";

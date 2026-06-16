@@ -59,10 +59,7 @@ export function currentStock(productId: number): number {
 }
 
 function assertValid(input: MovementInput) {
-  if (
-    (input.type === "adjustment" || input.type === "stocktake") &&
-    !input.reason
-  ) {
+  if (input.type === "adjustment" && !input.reason) {
     throw new Error(
       `recordMovement: reason is required for type "${input.type}"`
     );
