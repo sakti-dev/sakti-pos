@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, useParams } from "@solidjs/router";
+import { A, useLocation, useNavigate, useParams } from "@solidjs/router";
 import { createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { UploadIcon, XCloseIcon } from "~/assets";
@@ -43,9 +43,7 @@ export default function ProductFormPage() {
   const [price, setPrice] = createSignal(
     existing() ? String(existing()!.price) : ""
   );
-  const [stock, setStock] = createSignal(
-    existing() ? String(existing()!.stock) : ""
-  );
+  const [initialStock, setInitialStock] = createSignal("");
   const [unit, setUnit] = createSignal(existing()?.unit ?? "cup");
   const [photo, setPhoto] = createSignal<string | null>(null);
   const [categoryOptions, setCategoryOptions] = createSignal(
@@ -173,14 +171,32 @@ export default function ProductFormPage() {
                 value={price() ? Number.parseInt(price(), 10) : 0}
               />
             </NumberField>
-            <NumberField class="gap-1.5">
-              <NumberFieldLabel>Stok</NumberFieldLabel>
-              <NumberFieldInput
-                onChange={(v) => setStock(v > 0 ? String(v) : "")}
-                placeholder="50"
-                value={stock() ? Number.parseInt(stock(), 10) : 0}
-              />
-            </NumberField>
+            <Show
+              fallback={
+                <div class="flex flex-col gap-1.5">
+                  <span class={labelClass}>Stok</span>
+                  <p class="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-body-sm text-muted-foreground">
+                    Stok dikelola di menu{" "}
+                    <A class="font-medium text-primary" href="/inventory">
+                      Stok
+                    </A>
+                    .
+                  </p>
+                </div>
+              }
+              when={!isEditing()}
+            >
+              <NumberField class="gap-1.5">
+                <NumberFieldLabel>Stok Awal</NumberFieldLabel>
+                <NumberFieldInput
+                  onChange={(v) => setInitialStock(v > 0 ? String(v) : "")}
+                  placeholder="50"
+                  value={
+                    initialStock() ? Number.parseInt(initialStock(), 10) : 0
+                  }
+                />
+              </NumberField>
+            </Show>
             <div class="flex flex-col gap-1.5">
               <span class={labelClass}>Satuan</span>
               <PickerField
