@@ -176,7 +176,7 @@ export default function Transactions() {
 
       {/* Transaction list */}
       <div class="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-gutter pb-28 lg:px-6 lg:pb-24">
-        <Show when={filter()} keyed>
+        <Show keyed when={filter()}>
           <Show
             fallback={
               <div class="flex flex-1 items-center justify-center py-20 text-faint-foreground text-sm">
@@ -185,50 +185,50 @@ export default function Transactions() {
             }
             when={filtered().length > 0}
           >
-          <For each={filtered()}>
-            {(tx, i) => {
-              const meta = STATUS_META[tx.status];
-              const pill = STATUS_PILL[tx.status];
-              return (
-                <FadeIn
-                  class="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-card"
-                  delay={0.1 + i() * 0.03}
-                  duration={0.35}
-                  enable={enable()}
-                  y={12}
-                >
-                  {/* Icon */}
-                  <div
-                    class={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${meta.bg}`}
+            <For each={filtered()}>
+              {(tx, i) => {
+                const meta = STATUS_META[tx.status];
+                const pill = STATUS_PILL[tx.status];
+                return (
+                  <FadeIn
+                    class="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-card"
+                    delay={0.1 + i() * 0.03}
+                    duration={0.35}
+                    enable={enable()}
+                    y={12}
                   >
-                    <meta.Icon class={`h-5 w-5 ${meta.color}`} />
-                  </div>
+                    {/* Icon */}
+                    <div
+                      class={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${meta.bg}`}
+                    >
+                      <meta.Icon class={`h-5 w-5 ${meta.color}`} />
+                    </div>
 
-                  {/* Body */}
-                  <div class="flex min-w-0 flex-1 flex-col gap-1">
-                    <div class="flex items-center justify-between gap-2">
-                      <span class="truncate font-semibold text-foreground text-sm">
-                        {tx.customer}
-                      </span>
-                      <span class="shrink-0 font-semibold text-foreground text-sm">
-                        {formatRupiah(tx.total)}
-                      </span>
+                    {/* Body */}
+                    <div class="flex min-w-0 flex-1 flex-col gap-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="truncate font-semibold text-foreground text-sm">
+                          {tx.customer}
+                        </span>
+                        <span class="shrink-0 font-semibold text-foreground text-sm">
+                          {formatRupiah(tx.total)}
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-faint-foreground text-xs">
+                          {formatItems(tx.items)} · {tx.time}
+                        </span>
+                        <span
+                          class={`shrink-0 rounded-full px-2.5 py-0.5 font-medium text-caption-sm ${pill.bg} ${pill.color}`}
+                        >
+                          {meta.label}
+                        </span>
+                      </div>
                     </div>
-                    <div class="flex items-center justify-between gap-2">
-                      <span class="text-faint-foreground text-xs">
-                        {formatItems(tx.items)} · {tx.time}
-                      </span>
-                      <span
-                        class={`shrink-0 rounded-full px-2.5 py-0.5 font-medium text-caption-sm ${pill.bg} ${pill.color}`}
-                      >
-                        {meta.label}
-                      </span>
-                    </div>
-                  </div>
-                </FadeIn>
-              );
-            }}
-          </For>
+                  </FadeIn>
+                );
+              }}
+            </For>
           </Show>
         </Show>
       </div>

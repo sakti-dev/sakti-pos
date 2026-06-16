@@ -289,7 +289,7 @@ export const TabsContent = <T extends ValidComponent = "div">(
 
   return (
     <TabsPrimitive.Content
-      class={cn("hidden outline-none data-selected:block", local.class)}
+      class={cn("hidden outline-none data-selected:flex data-selected:flex-col", local.class)}
       forceMount
       ref={setEl}
       {...others}

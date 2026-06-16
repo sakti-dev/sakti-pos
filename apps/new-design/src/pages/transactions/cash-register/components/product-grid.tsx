@@ -10,7 +10,7 @@ interface ProductGridProps {
 
 export const ProductGrid = (props: ProductGridProps) => {
   return (
-    <div class="scrollbar-none grid min-h-0 flex-1 grid-cols-2 content-start items-start gap-3.5 overflow-y-auto [grid-auto-rows:min-content] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
+    <div class="grid min-h-0 flex-1 grid-cols-2 content-start items-start gap-3.5 [grid-auto-rows:min-content] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
       <Show
         fallback={
           <div class="col-[1/-1] py-16 text-center font-medium text-body-sm text-muted-foreground">

@@ -83,12 +83,7 @@ export default function InventoryPage() {
           value={activeCat()}
         >
           <TabsList class="flex gap-2">
-            <TabsTrigger
-              shape="pill"
-              tone="accent"
-              variant="pill"
-              value="all"
-            >
+            <TabsTrigger shape="pill" tone="accent" value="all" variant="pill">
               Semua
               <span class="text-caption-sm opacity-70">
                 ({products.length})
@@ -99,8 +94,8 @@ export default function InventoryPage() {
                 <TabsTrigger
                   shape="pill"
                   tone="accent"
-                  variant="pill"
                   value={cat.id}
+                  variant="pill"
                 >
                   {cat.name}
                   <span class="text-caption-sm opacity-70">
@@ -114,7 +109,7 @@ export default function InventoryPage() {
       </FadeIn>
 
       <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
-        <Show when={activeCat()} keyed>
+        <Show keyed when={activeCat()}>
           <Show
             fallback={
               <div class="flex flex-col items-center justify-center gap-1 py-20 text-center">
@@ -128,25 +123,25 @@ export default function InventoryPage() {
             }
             when={filtered().length > 0}
           >
-          <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
-            <For each={filtered()}>
-              {(product, i) => (
-                <FadeIn
-                  delay={0.1 + i() * 0.03}
-                  duration={0.35}
-                  enable={enable()}
-                  y={12}
-                >
-                  <InventoryRow
-                    onAdjustStock={(delta) => adjustStock(product.id, delta)}
-                    onSetStock={(v) => setStock(product.id, v)}
-                    product={product}
-                    stock={effectiveStock(product.id)}
-                  />
-                </FadeIn>
-              )}
-            </For>
-          </div>
+            <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
+              <For each={filtered()}>
+                {(product, i) => (
+                  <FadeIn
+                    delay={0.1 + i() * 0.03}
+                    duration={0.35}
+                    enable={enable()}
+                    y={12}
+                  >
+                    <InventoryRow
+                      onAdjustStock={(delta) => adjustStock(product.id, delta)}
+                      onSetStock={(v) => setStock(product.id, v)}
+                      product={product}
+                      stock={effectiveStock(product.id)}
+                    />
+                  </FadeIn>
+                )}
+              </For>
+            </div>
           </Show>
         </Show>
       </div>

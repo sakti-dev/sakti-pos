@@ -76,7 +76,6 @@ const TextFieldInput = <T extends ValidComponent = "input">(
 
   return (
     <TextFieldPrimitive.Input
-      ref={ref}
       class={cn(
         "h-12 w-full rounded-sm border-2 border-input bg-background px-3.5 font-sans text-body-sm text-foreground outline-none transition-colors transition-shadow duration-standard ease-standard placeholder:text-muted-foreground",
         "focus:border-primary focus:outline-2 focus:outline-ring focus:outline-offset-1 focus:ring-2 focus:ring-primary/10",
@@ -86,6 +85,7 @@ const TextFieldInput = <T extends ValidComponent = "input">(
         "file:border-0 file:bg-transparent file:font-medium file:text-sm",
         local.class
       )}
+      ref={ref}
       type={local.type}
       {...others}
     />

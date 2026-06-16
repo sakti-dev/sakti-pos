@@ -89,20 +89,21 @@ export default function CashRegisterPage() {
             >
               <ArrowLeftIcon class="size-5" />
             </A>
-            <span class="hidden font-bold font-display text-body-lg text-foreground sm:block">
+            <span class="font-bold font-display text-foreground text-body-lg">
               Transaksi Baru
             </span>
           </div>
           <SearchBar
-            class="w-40 sm:w-56 lg:w-72"
+            class="hidden w-72 lg:flex"
             mode="compact"
             onInput={setSearch}
+            placeholder="Cari menu..."
             value={search()}
           />
         </FadeIn>
 
         <FadeIn
-          class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3.5 pb-20 lg:gap-4 lg:p-5"
+          class="flex min-h-0 flex-1 flex-col overflow-hidden p-3.5 pb-20 lg:gap-4 lg:p-5"
           delay={0.08}
           duration={0.45}
           y={16}
@@ -112,25 +113,37 @@ export default function CashRegisterPage() {
             onChange={(v) => setActiveCat(v as CategoryKey)}
             value={activeCat()}
           >
-            <TabsList class="scrollbar-none flex shrink-0 gap-2.5 overflow-x-auto pb-1">
-              <For each={categoryTabs}>
-                {(tab) => (
-                  <TabsTrigger
-                    aria-label={tab.label}
-                    class="px-8 py-4 text-body"
-                    shape="rounded"
-                    value={tab.key}
-                    variant="pill"
-                  >
-                    {tab.label}
-                  </TabsTrigger>
-                )}
-              </For>
-            </TabsList>
+            <div class="shrink-0">
+              <TabsList class="scrollbar-none flex gap-2.5 overflow-x-auto pb-1">
+                <For each={categoryTabs}>
+                  {(tab) => (
+                    <TabsTrigger
+                      aria-label={tab.label}
+                      class="px-8 py-4 text-body"
+                      shape="rounded"
+                      value={tab.key}
+                      variant="pill"
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  )}
+                </For>
+              </TabsList>
+            </div>
 
             <For each={categoryTabs}>
               {(tab) => (
-                <TabsContent class="min-h-0 flex-1" value={tab.key}>
+                <TabsContent
+                  class="scrollbar-none min-h-0 flex-1 gap-3 overflow-y-auto px-0.5 py-1"
+                  value={tab.key}
+                >
+                  {/* Mobile search — scrolls with content */}
+                  <SearchBar
+                    class="mb-3 lg:hidden"
+                    onInput={setSearch}
+                    placeholder="Cari menu..."
+                    value={search()}
+                  />
                   <ProductGrid
                     onAdd={addToCart}
                     products={filteredByCat(tab.key)}

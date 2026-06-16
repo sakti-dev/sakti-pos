@@ -1,8 +1,8 @@
 import type { RouteSectionProps } from "@solidjs/router";
 import { Ssgoi } from "@ssgoi/solid";
 import { createMemo, createSignal, onCleanup, Show } from "solid-js";
+import { useBreakpoints } from "~/lib/breakpoints";
 import { createRootConfig } from "~/lib/ssgoi-config";
-import { useIsWide } from "~/lib/use-is-wide";
 import { useOrientation } from "~/lib/use-orientation";
 import { cn } from "~/lib/utils";
 import { Fab } from "./fab";
@@ -54,7 +54,8 @@ const navFromPath = (pathname: string): NavKey => {
 export const AppShell = (props: RouteSectionProps) => {
   const pathname = () => props.location.pathname;
   const isPortrait = useOrientation();
-  const isWide = useIsWide();
+  const bp = useBreakpoints();
+  const isWide = () => bp.lg;
   const zone = (): Zone => {
     if (CATALOG_FORM_RE.test(pathname())) {
       return "flow";

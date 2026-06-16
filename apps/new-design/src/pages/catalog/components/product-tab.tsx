@@ -60,12 +60,7 @@ export function ProductTab() {
           value={activeCat()}
         >
           <TabsList class="flex gap-2">
-            <TabsTrigger
-              shape="pill"
-              tone="accent"
-              variant="pill"
-              value="all"
-            >
+            <TabsTrigger shape="pill" tone="accent" value="all" variant="pill">
               Semua
               <span class="text-caption-sm opacity-70">
                 ({products.length})
@@ -76,8 +71,8 @@ export function ProductTab() {
                 <TabsTrigger
                   shape="pill"
                   tone="accent"
-                  variant="pill"
                   value={cat.id}
+                  variant="pill"
                 >
                   {cat.name}
                   <span class="text-caption-sm opacity-70">
@@ -95,7 +90,7 @@ export function ProductTab() {
           `keyed` on activeCat forces full remount when switching category,
           so FadeIn replays on every tab change. */}
       <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
-        <Show when={activeCat()} keyed>
+        <Show keyed when={activeCat()}>
           <Show
             fallback={
               <EmptyState
