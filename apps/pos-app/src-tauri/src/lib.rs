@@ -3,6 +3,7 @@ mod auth;
 mod db;
 mod hardware;
 mod logging;
+mod theme;
 
 use tauri_plugin_baresync::builder::Builder as BaresyncBuilder;
 use tauri_plugin_log::{Target, TargetKind};
@@ -33,6 +34,7 @@ pub fn run() {
         .plugin(tauri_plugin_image_pipeline::init())
         .plugin(auth::init())
         .plugin(hardware::printer::init())
+        .plugin(theme::init())
         .plugin(
             BaresyncBuilder::new()
                 .api_base_url("http://192.168.1.2:3001/api/sync/v1")
@@ -56,6 +58,7 @@ pub fn run() {
             hardware::printer::test_thermal_printer,
             hardware::printer::print_thermal_receipt,
             hardware::printer::request_bluetooth_permission,
+            theme::sync_status_bar_color,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,8 +2,11 @@ import {
   ColorModeProvider,
   ColorModeScript,
   createLocalStorageManager,
+  useColorMode,
 } from "@kobalte/core";
 import { Route, Router } from "@solidjs/router";
+import { invoke } from "@tauri-apps/api/core";
+import { createEffect } from "solid-js";
 import { AppShell } from "./components/layout/app-shell";
 import { Toaster } from "./components/ui/toaster";
 import LoginPage from "./pages/auth/login";
@@ -32,6 +35,23 @@ import Receipt from "./pages/transactions/receipt";
 
 const storageManager = createLocalStorageManager("sakti-theme");
 
+const THEME_COLORS = {
+  light: "#f9f8f2",
+  dark: "#1a1a1a",
+} as const;
+
+function NativeThemeSync() {
+  const { colorMode } = useColorMode();
+
+  createEffect(() => {
+    const isDark = colorMode() === "dark";
+    const color = isDark ? THEME_COLORS.dark : THEME_COLORS.light;
+    invoke("sync_status_bar_color", { color, isDark }).catch(() => {});
+  });
+
+  return null;
+}
+
 export default function AppRoutes() {
   return (
     <Router
@@ -41,6 +61,7 @@ export default function AppRoutes() {
           <ColorModeProvider storageManager={storageManager}>
             <AppShell {...props} />
             <Toaster />
+            <NativeThemeSync />
           </ColorModeProvider>
         </>
       )}

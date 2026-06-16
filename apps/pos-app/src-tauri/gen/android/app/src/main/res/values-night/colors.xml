@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Content view background. Fills the status bar strip natively.
+         Dark: oklch(19.574% 0.00002 271.152) ≈ #1a1a1a -->
+    <color name="app_background">#FF1A1A1A</color>
+</resources>

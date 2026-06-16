@@ -9,18 +9,17 @@ interface SafeAreaShellProps {
 
 /**
  * Full-screen shell for pages without the app chrome (TopBar/Sidebar/NotchNav).
- * Provides a safe-area-top spacer with a border line at the boundary,
- * and a flex-1 content container.
+ * Status bar inset is handled natively by MainActivity (content view padding),
+ * so no DOM spacer is needed — just a flex container with border-t.
  */
 export const SafeAreaShell = (props: SafeAreaShellProps) => (
   <div
     {...props}
     class={cn(
-      "flex h-[100dvh] flex-col font-sans text-foreground antialiased",
+      "flex h-[100dvh] w-full flex-col overflow-hidden font-sans text-foreground antialiased",
       props.class
     )}
   >
-    <div class="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden border-border border-t">
       {props.children}
     </div>

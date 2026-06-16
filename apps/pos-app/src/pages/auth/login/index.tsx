@@ -5,7 +5,7 @@ import { RightPanel } from "./components/right-panel";
 export default function LoginPage() {
   return (
     <SafeAreaShell class="bg-background" data-ssgoi-transition="/auth/login">
-      <div class="flex h-full">
+      <div class="flex min-h-0 flex-1">
         <LoginBannerLeftSide />
         <RightPanel />
       </div>

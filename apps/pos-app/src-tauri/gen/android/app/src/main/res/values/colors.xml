@@ -7,4 +7,7 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- Content view background. Fills the status bar strip natively.
+         Light: parchment oklch(0.9897 0.0066 106.52) ≈ #f9f8f2 -->
+    <color name="app_background">#FFF9F8F2</color>
 </resources>

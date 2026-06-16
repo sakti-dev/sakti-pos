@@ -5,7 +5,7 @@ import { RegisterRightPanel } from "./components/right-panel";
 export default function RegisterPage() {
   return (
     <SafeAreaShell class="bg-background" data-ssgoi-transition="/auth/register">
-      <div class="flex h-full">
+      <div class="flex min-h-0 flex-1">
         <LoginBannerLeftSide />
         <RegisterRightPanel />
       </div>
