@@ -4,6 +4,14 @@ import type { Movement } from "./types";
 
 export type StockStatusKind = "available" | "low" | "out";
 
+/** Threshold-based low-stock check for stat cards. */
+export function isLowStock(
+  qty: number,
+  type: "ingredient" | "retail"
+): boolean {
+  return type === "retail" ? qty <= 5 : qty <= 3;
+}
+
 export interface StockStatusInfo {
   readonly badge: "success" | "warning" | "danger";
   readonly label: string;

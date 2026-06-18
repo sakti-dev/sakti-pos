@@ -1,13 +1,13 @@
-import { FiPackage, FiPlus, FiSearch, FiTrash2, FiX } from "solid-icons/fi";
+import { FiPackage, FiPlus, FiSearch, FiTrash2 } from "solid-icons/fi";
 import { For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
+import { DrawerRoot } from "~/components/ui/drawer";
 import {
   NumberField,
   NumberFieldInput,
   NumberFieldLabel,
 } from "~/components/ui/number-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
-import { Sheet } from "~/components/ui/sheet";
 import { cn, formatRupiah } from "~/lib/utils";
 import { currentStock } from "../components/lib/store";
 import { displaySubtotal, nextReceiptNumber, receiptRef } from "./receipts";
@@ -235,8 +235,8 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
         </div>
       </div>
 
-      {/* ── Product picker sheet ── */}
-      <Sheet
+      {/* ── Product picker drawer ── */}
+      <DrawerRoot
         onOpenChange={(open) => {
           form.setPickerOpen(open);
           if (!open) {
@@ -252,15 +252,8 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
             <Show
               fallback={
                 <>
-                  <div class="flex items-center gap-3 border-border border-b px-4 py-3">
-                    <button
-                      class="shrink-0 text-muted-foreground hover:text-foreground"
-                      onClick={() => form.setPickerOpen(false)}
-                      type="button"
-                    >
-                      <FiX class="h-5 w-5" />
-                    </button>
-                    <h3 class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
+                  <div class="border-border border-b px-4 py-3">
+                    <h3 class="min-w-0 font-semibold text-body-sm text-foreground">
                       Pilih Bahan atau Produk
                     </h3>
                   </div>
@@ -350,15 +343,8 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
               }
               when={form.showCreateForm()}
             >
-              <div class="flex items-center gap-3 border-border border-b px-4 py-3">
-                <button
-                  class="shrink-0 text-muted-foreground hover:text-foreground"
-                  onClick={() => form.setShowCreateForm(false)}
-                  type="button"
-                >
-                  <FiX class="h-5 w-5" />
-                </button>
-                <h3 class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
+              <div class="border-border border-b px-4 py-3">
+                <h3 class="font-semibold text-body-sm text-foreground">
                   Bahan Baku Baru
                 </h3>
               </div>
@@ -438,7 +424,7 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
             </Show>
           </div>
         )}
-      </Sheet>
+      </DrawerRoot>
     </div>
   );
 }

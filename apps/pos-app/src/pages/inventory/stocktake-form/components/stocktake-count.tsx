@@ -1,6 +1,7 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { categories, products } from "~/lib/data/catalog";
+import { products } from "~/lib/data/catalog";
 import { cn, formatRupiah } from "~/lib/utils";
+import { ingredients } from "../../components/lib/ingredients";
 import { currentStock } from "../../components/lib/store";
 import {
   nextStocktakeNumber,
@@ -8,7 +9,7 @@ import {
   type VarianceRow,
   varianceRows,
   varianceValue,
-} from "../../components/stocktake-tab/stocktake";
+} from "../lib/stocktake";
 
 export interface StocktakeCountProps {
   readonly onCancel: () => void;
@@ -17,6 +18,7 @@ export interface StocktakeCountProps {
     reason: string,
     rows: VarianceRow[]
   ) => void;
+  readonly scope: "bahan" | "jualan";
 }
 
 type DiffState = "pending" | "match" | "small" | "big";
@@ -74,10 +76,32 @@ export function StocktakeCount(props: StocktakeCountProps) {
   const totalValue = createMemo(() => varianceValue(rows()));
   const withVariance = createMemo(() => rows().filter((r) => r.diff !== 0));
 
+  const scopeItems = createMemo(() =>
+    props.scope === "bahan"
+      ? ingredients.map((i) => ({
+          id: i.id,
+          name: i.name,
+          sku: i.sku,
+          unit: i.unit,
+          category: i.category ?? "",
+          price: 0,
+        }))
+      : products
+          .filter((p) => p.isRetail)
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            sku: p.sku,
+            unit: p.unit,
+            category: p.category,
+            price: p.price,
+          }))
+  );
+
   const inCat = () =>
     activeCat() === "all"
-      ? products
-      : products.filter((p) => p.category === activeCat());
+      ? scopeItems()
+      : scopeItems().filter((p) => p.category === activeCat());
 
   const progress = createMemo(() => {
     const list = inCat();
@@ -88,9 +112,21 @@ export function StocktakeCount(props: StocktakeCountProps) {
   });
 
   const catProgress = (catId: string) => {
-    const list = products.filter((p) => p.category === catId);
+    const list = scopeItems().filter((p) => p.category === catId);
     return `${list.filter((p) => counts()[p.id] != null).length}/${list.length}`;
   };
+
+  const uniqueCats = createMemo(() => {
+    const seen = new Set<string>();
+    const result: { id: string; name: string }[] = [];
+    for (const item of scopeItems()) {
+      if (item.category && !seen.has(item.category)) {
+        seen.add(item.category);
+        result.push({ id: item.category, name: item.category });
+      }
+    }
+    return result;
+  });
 
   const canConfirm = createMemo(
     () => reason().trim().length > 0 && countedList().length > 0
@@ -131,7 +167,7 @@ export function StocktakeCount(props: StocktakeCountProps) {
         >
           Semua {progress().done}/{progress().total}
         </button>
-        <For each={categories}>
+        <For each={uniqueCats()}>
           {(c) => (
             <button
               class={cn(

@@ -5,6 +5,8 @@ import { createStore, produce } from "solid-js/store";
 export interface Ingredient {
   readonly category?: string;
   readonly id: number;
+  /** Latest per-unit purchase cost from the most recent restock. */
+  readonly latestCostPrice: number;
   readonly name: string;
   readonly sku: string;
   readonly unit: string;
@@ -31,9 +33,21 @@ export function addIngredient(input: {
     sku: input.sku ?? `RAW-${String(id).slice(-3)}`,
     unit: input.unit,
     category: input.category,
+    latestCostPrice: 0,
   };
   setIngredients(ingredients.length, ingredient);
   return ingredient;
+}
+
+export function updateLatestCostPrice(id: number, costPrice: number) {
+  const idx = ingredients.findIndex((i) => i.id === id);
+  if (idx >= 0) {
+    (setIngredients as (idx: number, key: string, val: number) => void)(
+      idx,
+      "latestCostPrice",
+      costPrice
+    );
+  }
 }
 
 export function removeIngredient(id: number) {

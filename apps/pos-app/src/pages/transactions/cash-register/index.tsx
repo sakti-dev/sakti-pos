@@ -4,14 +4,14 @@ import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { SearchBar } from "~/components/search-bar";
-import { FadeIn } from "~/components/ui/fade-in";
 import {
-  Sheet,
-  SheetBody,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "~/components/ui/sheet";
+  DrawerBody,
+  DrawerHeader,
+  DrawerRoot,
+  DrawerTitle,
+  DrawerTrigger,
+} from "~/components/ui/drawer";
+import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { cashRegisterProducts as products } from "~/lib/data/transactions";
 import { formatRupiah } from "~/lib/utils";
@@ -178,11 +178,11 @@ export default function CashRegisterPage() {
         </FadeIn>
 
         {/* Mobile cart drawer */}
-        <Sheet
+        <DrawerRoot
           onOpenChange={setSheetOpen}
           open={sheetOpen()}
           trigger={
-            <SheetTrigger
+            <DrawerTrigger
               aria-label="Buka keranjang"
               class="fixed right-4 bottom-5 left-4 z-40 flex h-14 items-center justify-between rounded-2xl bg-primary px-5 font-semibold text-body-sm text-primary-foreground tracking-wide shadow-card transition duration-150 hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98] lg:hidden"
             >
@@ -196,23 +196,23 @@ export default function CashRegisterPage() {
               <span class="font-bold text-body tabular-nums">
                 {formatRupiah(cartTotal())}
               </span>
-            </SheetTrigger>
+            </DrawerTrigger>
           }
         >
           {({ close }) => (
             <>
-              <SheetHeader>
-                <SheetTitle>Keranjang</SheetTitle>
-              </SheetHeader>
+              <DrawerHeader>
+                <DrawerTitle>Keranjang</DrawerTitle>
+              </DrawerHeader>
 
-              <SheetBody>
+              <DrawerBody>
                 <CartList
                   cart={cart()}
                   onDecrement={decrement}
                   onIncrement={increment}
                   products={products}
                 />
-              </SheetBody>
+              </DrawerBody>
 
               <CartTotals
                 disabled={cart().length === 0}
@@ -229,7 +229,7 @@ export default function CashRegisterPage() {
               />
             </>
           )}
-        </Sheet>
+        </DrawerRoot>
       </div>
     </SafeAreaShell>
   );

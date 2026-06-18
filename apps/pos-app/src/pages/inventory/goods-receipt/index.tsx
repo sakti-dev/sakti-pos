@@ -1,6 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { toast } from "solid-sonner";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
+import { updateLatestCostPrice } from "../components/lib/ingredients";
 import { recordMovements } from "../components/lib/store";
 import { GoodsReceiptForm } from "./goods-receipt-form";
 
@@ -8,12 +9,12 @@ export default function GoodsReceiptPage() {
   const navigate = useNavigate();
   return (
     <SubPageShell
-      backHref="/inventory?tab=goods-receipt"
+      backHref="/inventory?pillar=bahan"
       data-ssgoi-transition="/inventory/goods-receipt/new"
       title="Penerimaan Barang Baru"
     >
       <GoodsReceiptForm
-        onCancel={() => navigate("/inventory?tab=goods-receipt")}
+        onCancel={() => navigate("/inventory?pillar=bahan")}
         onConfirm={({ ref, supplier, note, items }) => {
           recordMovements(
             items.map((i) => ({
@@ -27,7 +28,13 @@ export default function GoodsReceiptPage() {
             }))
           );
           toast.success(`${ref} tersimpan`);
-          navigate("/inventory?tab=goods-receipt");
+          // Update latestCostPrice for ingredient items
+          for (const i of items) {
+            if (i.costPrice > 0) {
+              updateLatestCostPrice(i.productId, i.costPrice);
+            }
+          }
+          navigate("/inventory?pillar=bahan");
         }}
       />
     </SubPageShell>

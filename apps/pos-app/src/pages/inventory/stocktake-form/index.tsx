@@ -1,4 +1,4 @@
-import { useNavigate } from "@solidjs/router";
+import { useNavigate, useSearchParams } from "@solidjs/router";
 import { toast } from "solid-sonner";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { recordMovements } from "../components/lib/store";
@@ -6,16 +6,28 @@ import { StocktakeCount } from "./components/stocktake-count";
 
 export default function StocktakePage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const scope = () => (params.scope as "bahan" | "jualan") ?? "bahan";
+
+  const title = () =>
+    scope() === "bahan"
+      ? "Catat Sisa Stok Dapur"
+      : "Catat Sisa Stok Toko (Ritel)";
+
+  const backHref = () => {
+    const tab = scope() === "bahan" ? "bahan" : "jualan";
+    return `/inventory?pillar=${tab}`;
+  };
+
   return (
     <SubPageShell
-      backHref="/inventory?tab=stocktake"
+      backHref={backHref()}
       data-ssgoi-transition="/inventory/stocktake/new"
-      title="Stock Opname"
+      title={title()}
     >
       <StocktakeCount
-        onCancel={() => navigate("/inventory?tab=stocktake")}
+        onCancel={() => navigate(backHref())}
         onConfirm={(ref, reason, rows) => {
-          // Only items with non-zero variance produce movements.
           const meaningful = rows.filter((r) => r.diff !== 0);
           if (meaningful.length > 0) {
             recordMovements(
@@ -29,8 +41,9 @@ export default function StocktakePage() {
             );
           }
           toast.success(`${ref} tersimpan`);
-          navigate("/inventory?tab=stocktake");
+          navigate(backHref());
         }}
+        scope={scope()}
       />
     </SubPageShell>
   );

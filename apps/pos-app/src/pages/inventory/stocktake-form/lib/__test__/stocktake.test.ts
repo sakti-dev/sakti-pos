@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { recordMovements, resetInventoryStore } from "../../lib/store";
+import {
+  recordMovements,
+  resetInventoryStore,
+} from "../../../components/lib/store";
 import {
   listStocktakes,
   nextStocktakeNumber,

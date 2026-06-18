@@ -1,6 +1,6 @@
 import { products } from "~/lib/data/catalog";
-import { currentStock, getMovements } from "../lib/store";
-import type { Movement } from "../lib/types";
+import { currentStock, getMovements } from "../../components/lib/store";
+import type { Movement } from "../../components/lib/types";
 
 const OPN_RE = /^OPN-(\d+)$/;
 
