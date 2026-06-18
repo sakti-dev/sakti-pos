@@ -1,4 +1,5 @@
 import { products } from "~/lib/data/catalog";
+import { ingredients } from "../../components/lib/ingredients";
 import { currentStock, getMovements } from "../../components/lib/store";
 import type { Movement } from "../../components/lib/types";
 
@@ -79,12 +80,14 @@ export function varianceRows(
   });
 }
 
-/** Value of a set of variances (diff * product price). */
+/** Value of a set of variances (diff * product/ingredient price). */
 export function varianceValue(rows: readonly VarianceRow[]): number {
   let sum = 0;
   for (const r of rows) {
     const p = products.find((x) => x.id === r.productId);
-    sum += (p?.price ?? 0) * r.diff;
+    const ing = p ? undefined : ingredients.find((x) => x.id === r.productId);
+    const unitPrice = p?.price ?? ing?.latestCostPrice ?? 0;
+    sum += unitPrice * r.diff;
   }
   return sum;
 }

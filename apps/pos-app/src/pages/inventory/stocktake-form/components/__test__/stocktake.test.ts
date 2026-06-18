@@ -8,7 +8,7 @@ import {
   nextStocktakeNumber,
   stocktakeRef,
   varianceRows,
-} from "../stocktake";
+} from "../utils";
 
 describe("stocktake helpers", () => {
   it("nextStocktakeNumber is 1 with no prior stocktakes", () => {

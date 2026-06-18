@@ -7,17 +7,15 @@ import { StocktakeCount } from "./components/stocktake-count";
 export default function StocktakePage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const scope = () => (params.scope as "bahan" | "jualan") ?? "bahan";
+  const scope = () =>
+    params.scope === "ingredient" || params.scope === "retail"
+      ? params.scope
+      : "ingredient";
 
   const title = () =>
-    scope() === "bahan"
-      ? "Catat Sisa Stok Dapur"
-      : "Catat Sisa Stok Toko (Ritel)";
+    scope() === "ingredient" ? "Opname Bahan Baku" : "Opname Barang Jadi";
 
-  const backHref = () => {
-    const tab = scope() === "bahan" ? "bahan" : "jualan";
-    return `/inventory?pillar=${tab}`;
-  };
+  const backHref = () => `/inventory?tab=${scope()}`;
 
   return (
     <SubPageShell

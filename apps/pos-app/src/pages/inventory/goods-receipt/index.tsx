@@ -9,12 +9,12 @@ export default function GoodsReceiptPage() {
   const navigate = useNavigate();
   return (
     <SubPageShell
-      backHref="/inventory?pillar=bahan"
+      backHref="/inventory?tab=ingredient"
       data-ssgoi-transition="/inventory/goods-receipt/new"
       title="Penerimaan Barang Baru"
     >
       <GoodsReceiptForm
-        onCancel={() => navigate("/inventory?pillar=bahan")}
+        onCancel={() => navigate("/inventory?tab=ingredient")}
         onConfirm={({ ref, supplier, note, items }) => {
           recordMovements(
             items.map((i) => ({
@@ -34,7 +34,7 @@ export default function GoodsReceiptPage() {
               updateLatestCostPrice(i.productId, i.costPrice);
             }
           }
-          navigate("/inventory?pillar=bahan");
+          navigate("/inventory?tab=ingredient");
         }}
       />
     </SubPageShell>

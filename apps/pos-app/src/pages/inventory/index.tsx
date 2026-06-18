@@ -1,6 +1,6 @@
-import { useNavigate } from "@solidjs/router";
+import { useNavigate, useSearchParams } from "@solidjs/router";
 import { FiFileText, FiPackage, FiShoppingBag } from "solid-icons/fi";
-import { createSignal } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { IngredientFormDialog } from "./components/ingredient-form-dialog";
@@ -14,8 +14,21 @@ const SUBTITLES: Record<string, string> = {
 
 export default function InventoryPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = createSignal("retail");
+  const [params, setParams] = useSearchParams();
+  const tab = () =>
+    params.tab === "ingredient" || params.tab === "retail"
+      ? params.tab
+      : "retail";
   const [createOpen, setCreateOpen] = createSignal(false);
+
+  // Open the ingredient form when arriving via ?action=new (e.g. from the
+  // stocktake empty state's "Tambah Bahan Baku" CTA). Clear after opening.
+  createEffect(() => {
+    if (params.action === "new") {
+      setCreateOpen(true);
+      setParams({ action: undefined }, { replace: true });
+    }
+  });
 
   return (
     <div
@@ -43,7 +56,7 @@ export default function InventoryPage() {
 
       <Tabs
         class="flex flex-1 flex-col overflow-hidden"
-        onChange={setTab}
+        onChange={(v) => setParams({ tab: v }, { replace: true })}
         value={tab()}
       >
         <div class="shrink-0 px-4 lg:px-6">

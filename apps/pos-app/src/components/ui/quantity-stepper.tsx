@@ -9,14 +9,16 @@ interface QuantityStepperProps {
   readonly onIncrement: () => void;
   readonly onInput?: (value: number) => void;
   readonly placeholder?: string;
-  readonly value: number;
+  readonly value?: number;
 }
 
 export const QuantityStepper = (props: QuantityStepperProps) => {
-  const [text, setText] = createSignal(String(props.value));
+  const [text, setText] = createSignal(
+    props.value === undefined ? "" : String(props.value)
+  );
 
   createEffect(() => {
-    setText(String(props.value));
+    setText(props.value === undefined ? "" : String(props.value));
   });
 
   const commit = (raw: string) => {
@@ -24,7 +26,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
     if (!Number.isNaN(n) && n >= 0) {
       props.onInput?.(n);
     } else {
-      setText(String(props.value));
+      setText(props.value === undefined ? "" : String(props.value));
     }
   };
 
@@ -46,7 +48,9 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
       <Show
         fallback={
           <span class="grid h-9 min-w-0 flex-1 place-items-center border-border border-x bg-muted px-1 text-center font-semibold text-[13px] text-faint-foreground tabular-nums">
-            {props.placeholder ?? String(props.value)}
+            {props.value === undefined
+              ? (props.placeholder ?? "")
+              : String(props.value)}
           </span>
         }
         when={props.editable}
@@ -62,6 +66,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
               e.currentTarget.blur();
             }
           }}
+          placeholder={props.placeholder}
           type="number"
           value={text()}
         />

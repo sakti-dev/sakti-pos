@@ -81,7 +81,7 @@ export function IngredientTab(props: IngredientTabProps) {
         <Button
           class="justify-center rounded-xl"
           look="outline"
-          onClick={() => navigate("/inventory/stocktake/new?scope=bahan")}
+          onClick={() => navigate("/inventory/stocktake/new?scope=ingredient")}
           size="sm"
           tone="primary"
         >

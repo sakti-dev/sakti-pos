@@ -59,7 +59,7 @@ export function RetailTab() {
           <Button
             class="shrink-0 justify-center rounded-xl"
             look="outline"
-            onClick={() => navigate("/inventory/stocktake/new?scope=jualan")}
+            onClick={() => navigate("/inventory/stocktake/new?scope=retail")}
             size="sm"
             tone="primary"
           >

@@ -17,7 +17,7 @@ const AUTH_ROUTES: RegExp[] = [/^\/auth\//];
 const FLOW_ROUTES: RegExp[] = [
   /^\/catalog$/,
   /^\/catalog\/(product|variant|category)\//,
-  /^\/inventory\/(stocktake|goods-receipt)\//,
+  /^\/inventory\/(stocktake|goods-receipt|history)\//,
   /^\/transactions\/cash-register/,
   /^\/transactions\/payment/,
   /^\/transactions\/receipt/,
