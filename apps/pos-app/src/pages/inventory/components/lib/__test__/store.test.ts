@@ -15,7 +15,7 @@ describe("inventory store", () => {
   it("seeds an opening movement per product so balances reconcile", () => {
     resetInventoryStore();
     expect(getMovements().filter((m) => m.type === "opening")).toHaveLength(
-      products.length
+      products.length + 25
     );
   });
 

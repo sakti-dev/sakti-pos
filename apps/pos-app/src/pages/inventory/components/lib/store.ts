@@ -18,7 +18,7 @@ const DEFAULT_USER = "Andi";
 function seedMovements(): Movement[] {
   // 2 days before "now", at 08:00 local, so it groups cleanly in history.
   const seedAt = Date.now() - 2 * 86_400_000;
-  return products.map((p) => ({
+  const productMovements = products.map((p) => ({
     id: genId(),
     productId: p.id,
     type: "opening" as const,
@@ -30,6 +30,48 @@ function seedMovements(): Movement[] {
     user: "Sistem",
     createdAt: seedAt,
   }));
+  const ingredientStocks: Record<number, number> = {
+    90001: 5,
+    90002: 3,
+    90003: 2,
+    90004: 1,
+    90005: 4,
+    90006: 1.5,
+    90007: 3,
+    90008: 10,
+    90009: 5,
+    90010: 2,
+    90011: 2,
+    90012: 0.5,
+    90013: 1,
+    90014: 3,
+    90015: 25,
+    90016: 2,
+    90017: 1,
+    90018: 1,
+    90019: 0.5,
+    90020: 0.5,
+    90021: 100,
+    90022: 80,
+    90023: 10,
+    90024: 5,
+    90025: 3,
+  };
+  const ingredientMovements = Object.entries(ingredientStocks).map(
+    ([pid, stock]) => ({
+      id: genId(),
+      productId: Number(pid),
+      type: "opening" as const,
+      delta: stock,
+      qtyBefore: 0,
+      qtyAfter: stock,
+      reason: undefined,
+      note: "Saldo awal",
+      user: "Sistem",
+      createdAt: seedAt,
+    })
+  );
+  return [...productMovements, ...ingredientMovements];
 }
 
 /* Module-scope singleton store. Shared across the whole app while the

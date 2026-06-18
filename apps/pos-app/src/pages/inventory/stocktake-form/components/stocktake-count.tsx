@@ -1,4 +1,7 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
+import { SearchBar } from "~/components/search-bar";
+import { Button } from "~/components/ui/button";
+import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { products } from "~/lib/data/catalog";
 import { cn, formatRupiah } from "~/lib/utils";
 import { ingredients } from "../../components/lib/ingredients";
@@ -21,54 +24,33 @@ export interface StocktakeCountProps {
   readonly scope: "bahan" | "jualan";
 }
 
-type DiffState = "pending" | "match" | "small" | "big";
-
-const diffState = (diff: number | null): DiffState => {
-  if (diff === null) {
-    return "pending";
-  }
-  if (diff === 0) {
-    return "match";
-  }
-  if (Math.abs(diff) <= 2) {
-    return "small";
-  }
-  return "big";
-};
-
-/** Focus the next empty counted input in DOM order (keyboard counting). */
-function focusNextInput(current: HTMLInputElement) {
-  const all = Array.from(
-    document.querySelectorAll<HTMLInputElement>(
-      'input[aria-label^="Dihitung "]'
-    )
-  );
-  const idx = all.indexOf(current);
-  const next = all.slice(idx + 1).find((el) => el.value === "");
-  (next ?? all[idx + 1])?.focus();
-}
-
 export function StocktakeCount(props: StocktakeCountProps) {
   const opnum = nextStocktakeNumber();
   const ref = stocktakeRef(opnum);
 
-  const [activeCat, setActiveCat] = createSignal<string>("all");
-  const [counts, setCounts] = createSignal<Record<number, number | null>>({});
+  const [counts, setCounts] = createSignal<Record<number, number>>({});
+  const [touched, setTouched] = createSignal<Set<number>>(new Set());
   const [reason, setReason] = createSignal("");
+  const [search, setSearch] = createSignal("");
 
-  const setCount = (id: number, raw: string) => {
-    const parsed = raw === "" ? null : Number.parseInt(raw, 10);
-    setCounts((prev) => ({
-      ...prev,
-      [id]:
-        parsed !== null && Number.isFinite(parsed) ? Math.max(0, parsed) : null,
-    }));
+  const increment = (id: number) => {
+    const current = counts()[id] ?? 0;
+    const next = current + 1;
+    setCounts((prev) => ({ ...prev, [id]: next }));
+    setTouched((prev) => new Set(prev).add(id));
+  };
+
+  const decrement = (id: number) => {
+    const current = counts()[id] ?? 0;
+    const next = Math.max(0, current - 1);
+    setCounts((prev) => ({ ...prev, [id]: next }));
+    setTouched((prev) => new Set(prev).add(id));
   };
 
   const countedList = createMemo(() =>
     Object.entries(counts())
-      .filter(([, c]) => c !== null)
-      .map(([id, c]) => ({ productId: Number(id), counted: c ?? 0 }))
+      .filter(([id]) => touched().has(Number(id)))
+      .map(([id, c]) => ({ productId: Number(id), counted: c }))
   );
 
   const rows = createMemo(() => varianceRows(countedList()));
@@ -98,34 +80,21 @@ export function StocktakeCount(props: StocktakeCountProps) {
           }))
   );
 
-  const inCat = () =>
-    activeCat() === "all"
-      ? scopeItems()
-      : scopeItems().filter((p) => p.category === activeCat());
-
-  const progress = createMemo(() => {
-    const list = inCat();
-    const done = list.filter(
-      (p) => counts()[p.id] !== null && counts()[p.id] !== undefined
-    ).length;
-    return { done, total: list.length };
+  const filteredItems = createMemo(() => {
+    const q = search().toLowerCase().trim();
+    const items = scopeItems();
+    if (!q) {
+      return items;
+    }
+    return items.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+    );
   });
 
-  const catProgress = (catId: string) => {
-    const list = scopeItems().filter((p) => p.category === catId);
-    return `${list.filter((p) => counts()[p.id] != null).length}/${list.length}`;
-  };
-
-  const uniqueCats = createMemo(() => {
-    const seen = new Set<string>();
-    const result: { id: string; name: string }[] = [];
-    for (const item of scopeItems()) {
-      if (item.category && !seen.has(item.category)) {
-        seen.add(item.category);
-        result.push({ id: item.category, name: item.category });
-      }
-    }
-    return result;
+  const progress = createMemo(() => {
+    const total = scopeItems().length;
+    const done = touched().size;
+    return { done, total };
   });
 
   const canConfirm = createMemo(
@@ -134,167 +103,286 @@ export function StocktakeCount(props: StocktakeCountProps) {
 
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
-      {/* Header */}
-      <div class="flex shrink-0 items-center justify-between border-border border-b px-4 py-3 lg:px-6">
-        <div class="flex items-center gap-3">
-          <button
-            class="font-medium text-body-sm text-muted-foreground"
-            onClick={props.onCancel}
-            type="button"
-          >
-            ✕
-          </button>
-          <span class="font-semibold text-body-sm text-foreground">
-            Stock Opname {ref}
-          </span>
-        </div>
-        <span class="font-medium text-caption-sm text-muted-foreground">
-          {progress().done} / {progress().total} telah dihitung
-        </span>
+      {/* Description */}
+      <div class="px-4 pt-3 lg:px-6">
+        <p class="text-body-sm text-muted-foreground">
+          {props.scope === "jualan"
+            ? "Hitung jumlah fisik barang jualan jadi yang ada di etalase depan."
+            : "Hitung jumlah fisik bahan baku yang ada di gudang dapur."}
+        </p>
       </div>
 
-      {/* Category pills w/ progress */}
-      <div class="scrollbar-none flex shrink-0 gap-2 overflow-x-auto px-4 py-2 lg:px-6">
-        <button
-          class={cn(
-            "rounded-full border-2 px-3 py-1.5 text-[13px]",
-            activeCat() === "all"
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-card text-muted-foreground"
-          )}
-          onClick={() => setActiveCat("all")}
-          type="button"
-        >
-          Semua {progress().done}/{progress().total}
-        </button>
-        <For each={uniqueCats()}>
-          {(c) => (
-            <button
-              class={cn(
-                "rounded-full border-2 px-3 py-1.5 text-[13px]",
-                activeCat() === c.id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card text-muted-foreground"
-              )}
-              onClick={() => setActiveCat(c.id)}
-              type="button"
-            >
-              {c.name} {catProgress(c.id)}
-            </button>
-          )}
-        </For>
+      {/* Search */}
+      <div class="mt-3 px-4 lg:px-6">
+        <SearchBar
+          onInput={setSearch}
+          placeholder="Cari nama barang atau SKU..."
+          value={search()}
+        />
       </div>
 
-      {/* Counting grid */}
-      <div class="scrollbar-none flex-1 overflow-y-auto px-4 py-2 lg:px-6">
-        <div class="mb-2 grid grid-cols-[1fr_64px_80px_64px] gap-2 px-2 font-medium text-caption-sm text-muted-foreground">
-          <span>Produk</span>
-          <span class="text-center">Sistem</span>
-          <span class="text-center">Dihitung</span>
-          <span class="text-center">Selisih</span>
-        </div>
-        <div class="overflow-hidden rounded-xl border border-border">
-          <For each={inCat()}>
-            {(p) => {
-              const system = () => currentStock(p.id);
-              const counted = () => counts()[p.id] ?? null;
-              const diff = () =>
-                counted() === null ? null : (counted() ?? 0) - system();
-              const st = () => diffState(diff());
-              return (
-                <div class="grid grid-cols-[1fr_64px_80px_64px] items-center gap-2 border-border border-b p-2.5 last:border-b-0">
-                  <div class="min-w-0">
-                    <p class="truncate font-semibold text-body-sm text-foreground">
-                      {p.name}
-                    </p>
-                    <p class="text-caption-sm text-faint-foreground">{p.sku}</p>
-                  </div>
-                  <span class="text-center font-medium text-body-sm text-muted-foreground tabular-nums">
-                    {system()}
-                  </span>
-                  <input
-                    aria-label={`Dihitung ${p.name}`}
-                    class="h-9 w-full rounded-md border border-border bg-muted text-center font-semibold text-[13px] text-foreground tabular-nums outline-none focus:border-primary"
-                    inputMode="numeric"
-                    onInput={(e) => setCount(p.id, e.currentTarget.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        focusNextInput(e.currentTarget);
-                      }
-                    }}
-                    type="number"
-                    value={counted() ?? ""}
-                  />
-                  <Show
-                    fallback={
-                      <span class="text-center text-caption-sm text-faint-foreground">
-                        ⏳
-                      </span>
-                    }
-                    when={counted() !== null}
+      {/* ── Desktop Table ─────────────────────────────────── */}
+      <div class="scrollbar-none hidden flex-1 overflow-y-auto px-4 pt-3 md:block lg:px-6">
+        <div class="@container overflow-hidden rounded-lg border border-border">
+          <table class="w-full table-fixed">
+            <colgroup>
+              <col />
+              <col class="@[1024px]:w-36 @[1280px]:w-40 @[800px]:w-32 w-28" />
+              <col class="@[1024px]:w-36 @[1280px]:w-40 @[800px]:w-32 w-28" />
+              <col class="@[1024px]:w-36 @[1280px]:w-40 @[800px]:w-32 w-28" />
+            </colgroup>
+            <thead>
+              <tr class="bg-muted/50 text-left">
+                <th class="px-4 py-2 font-medium text-caption-sm text-muted-foreground uppercase tracking-wide">
+                  Nama Barang
+                </th>
+                <th class="px-3 py-2 text-center font-medium text-caption-sm text-muted-foreground uppercase tracking-wide">
+                  Stok Tercatat
+                </th>
+                <th class="px-3 py-2 text-center font-medium text-caption-sm text-muted-foreground uppercase tracking-wide">
+                  Hasil Hitung
+                </th>
+                <th class="px-3 py-2 text-center font-medium text-caption-sm text-muted-foreground uppercase tracking-wide">
+                  Selisih
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <For each={filteredItems()}>
+                {(p) => {
+                  const system = () => currentStock(p.id);
+                  const counted = () => counts()[p.id] ?? 0;
+                  const wasTouched = () => touched().has(p.id);
+                  const diff = () =>
+                    wasTouched() ? counted() - system() : null;
+
+                  return (
+                    <tr class="border-border border-b last:border-b-0">
+                      <td class="px-4 py-2.5">
+                        <p class="truncate font-medium text-body-sm text-foreground">
+                          {p.name}
+                        </p>
+                        <p class="text-caption-sm text-faint-foreground">
+                          {p.sku}
+                        </p>
+                      </td>
+                      <td class="px-3 py-2.5 text-center font-medium text-body-sm text-muted-foreground tabular-nums">
+                        {system()}{" "}
+                        <span class="text-caption text-faint-foreground">
+                          {p.unit}
+                        </span>
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <div class="flex items-center gap-1.5">
+                          <QuantityStepper
+                            ariaLabel={p.name}
+                            editable
+                            onDecrement={() => decrement(p.id)}
+                            onIncrement={() => increment(p.id)}
+                            onInput={(v) => {
+                              setCounts((prev) => ({ ...prev, [p.id]: v }));
+                            }}
+                            placeholder="—"
+                            value={counted()}
+                          />
+                          <span class="shrink-0 text-caption text-faint-foreground">
+                            {p.unit}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <DeltaBadge diff={diff()} unit={p.unit} />
+                      </td>
+                    </tr>
+                  );
+                }}
+              </For>
+              <Show when={filteredItems().length === 0}>
+                <tr>
+                  <td
+                    class="px-4 py-8 text-center text-body-sm text-faint-foreground"
+                    colspan={4}
                   >
-                    <span
-                      class={cn(
-                        "text-center font-semibold text-body-sm tabular-nums",
-                        st() === "match" && "text-success",
-                        st() === "small" && "text-warning",
-                        st() === "big" && "text-danger"
-                      )}
-                    >
-                      {diff()! > 0 ? "+" : ""}
-                      {diff()}
-                    </span>
-                  </Show>
-                </div>
-              );
-            }}
-          </For>
+                    {search()
+                      ? "Tidak ada barang yang cocok."
+                      : "Belum ada data."}
+                  </td>
+                </tr>
+              </Show>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Summary + actions */}
-      <div class="shrink-0 space-y-2 border-border border-t px-4 py-3 lg:px-6">
-        <div class="flex items-center justify-between font-medium text-body-sm">
-          <span class="text-muted-foreground">
-            {countedList().length} dihitung · {withVariance().length} ada
-            selisih
+      {/* ── Mobile List ────────────────────────────────────── */}
+      <div class="scrollbar-none block flex-1 overflow-y-auto px-4 pt-3 md:hidden">
+        <For each={filteredItems()}>
+          {(p) => {
+            const system = () => currentStock(p.id);
+            const counted = () => counts()[p.id] ?? 0;
+            const wasTouched = () => touched().has(p.id);
+            const diff = () => (wasTouched() ? counted() - system() : null);
+
+            return (
+              <div class="flex items-start gap-3 border-border border-b py-3">
+                {/* Left: name + meta */}
+                <div class="min-w-0 flex-1 pt-0.5">
+                  <p class="truncate font-medium text-body-sm text-foreground">
+                    {p.name}
+                  </p>
+                  <div class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-body-sm text-muted-foreground">
+                    <span>
+                      Stok Tercatat: {system()} {p.unit}
+                    </span>
+                    <Show when={wasTouched()}>
+                      <span>· </span>
+                      <DeltaInline diff={diff()} unit={p.unit} />
+                    </Show>
+                  </div>
+                </div>
+
+                {/* Right: stepper */}
+                <div class="w-32 shrink-0">
+                  <QuantityStepper
+                    ariaLabel={p.name}
+                    editable
+                    onDecrement={() => decrement(p.id)}
+                    onIncrement={() => increment(p.id)}
+                    onInput={(v) => {
+                      setCounts((prev) => ({ ...prev, [p.id]: v }));
+                    }}
+                    placeholder="—"
+                    value={counted()}
+                  />
+                </div>
+              </div>
+            );
+          }}
+        </For>
+
+        <Show when={filteredItems().length === 0}>
+          <div class="py-8 text-center text-body-sm text-faint-foreground">
+            {search() ? "Tidak ada barang yang cocok." : "Belum ada data."}
+          </div>
+        </Show>
+      </div>
+
+      {/* ── Sticky Footer ──────────────────────────────────── */}
+      <div class="shrink-0 space-y-2.5 border-border border-t bg-card px-4 py-3 lg:px-6">
+        {/* Progress */}
+        <div class="flex items-center justify-between text-caption-sm text-muted-foreground">
+          <span>
+            {progress().done} / {progress().total} dihitung
           </span>
-          <span class="text-foreground tabular-nums">
-            Total selisih:{" "}
-            <span class={totalDiff() < 0 ? "text-danger" : "text-foreground"}>
-              {totalDiff() > 0 ? "+" : ""}
-              {totalDiff()} ({formatRupiah(totalValue())})
+          <Show when={withVariance().length > 0}>
+            <span>
+              {withVariance().length} ada selisih ·{" "}
+              <span
+                class={cn("font-semibold tabular-nums", diffColor(totalDiff()))}
+              >
+                {formatRupiah(totalValue())}
+              </span>
             </span>
-          </span>
+          </Show>
         </div>
+
+        {/* Reason */}
         <input
-          class="h-10 w-full rounded-md border border-border bg-card px-3 text-body-sm outline-none focus:border-primary"
+          class="h-10 w-full rounded-md border border-border bg-muted px-3 text-body-sm outline-none transition-colors duration-150 focus:border-primary"
           onInput={(e) => setReason(e.currentTarget.value)}
           placeholder="Alasan opname (wajib)..."
           type="text"
+          value={reason()}
         />
+
+        {/* Warning */}
         <p class="text-caption-sm text-faint-foreground">
-          ⚠ Tindakan ini akan menyesuaikan stok & tidak bisa dibatalkan. Setiap
-          selisih direkam sebagai penyesuaian.
+          Stok akan disesuaikan berdasarkan hasil hitung fisik. Tindakan ini
+          tidak bisa dibatalkan.
         </p>
+
+        {/* Actions */}
         <div class="flex justify-end gap-2">
-          <button
-            class="rounded-md px-4 py-2 font-medium text-body-sm text-muted-foreground"
+          <Button
+            look="ghost"
             onClick={props.onCancel}
+            tone="neutral"
             type="button"
           >
             Batal
-          </button>
-          <button
-            class="rounded-md bg-primary px-4 py-2 font-semibold text-body-sm text-primary-foreground disabled:opacity-40"
+          </Button>
+          <Button
             disabled={!canConfirm()}
+            look="solid"
             onClick={() => props.onConfirm(ref, reason().trim(), rows())}
+            tone="primary"
             type="button"
           >
-            Selesai & Simpan
-          </button>
+            Simpan
+          </Button>
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── Sub-components ───────────────────────────────────────── */
+
+function diffColor(diff: number): string {
+  if (diff < 0) {
+    return "text-status-danger";
+  }
+  if (diff > 0) {
+    return "text-status-success";
+  }
+  return "text-faint-foreground";
+}
+
+function diffBadgeColor(diff: number): string {
+  if (diff < 0) {
+    return "bg-status-danger/10 text-status-danger";
+  }
+  if (diff > 0) {
+    return "bg-status-success/10 text-status-success";
+  }
+  return "text-faint-foreground";
+}
+
+function formatCount(value: number): string {
+  return value % 1 === 0 ? String(value) : value.toFixed(1);
+}
+
+function DeltaBadge(props: { diff: number | null; unit: string }) {
+  return (
+    <div class="flex items-center justify-center">
+      <Show
+        fallback={<span class="text-caption-sm text-faint-foreground">—</span>}
+        when={props.diff !== null}
+      >
+        <span
+          class={cn(
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-semibold text-caption-sm normal-case tabular-nums",
+            diffBadgeColor(props.diff!)
+          )}
+        >
+          {props.diff! === 0
+            ? "—"
+            : `${props.diff! > 0 ? "+" : ""}${formatCount(props.diff!)} ${props.unit}`}
+        </span>
+      </Show>
+    </div>
+  );
+}
+
+function DeltaInline(props: { diff: number | null; unit: string }) {
+  return (
+    <Show fallback={<span>· Selisih: —</span>} when={props.diff !== null}>
+      <span class={cn("tabular-nums", diffColor(props.diff!))}>
+        Selisih:{" "}
+        {props.diff! === 0
+          ? "—"
+          : `${props.diff! > 0 ? "+" : ""}${formatCount(props.diff!)} ${props.unit}`}
+      </span>
+    </Show>
   );
 }
