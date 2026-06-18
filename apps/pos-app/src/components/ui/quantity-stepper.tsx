@@ -55,7 +55,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
       >
         <input
           aria-label={props.ariaLabel}
-          class="grid h-9 w-9 place-items-center border-border border-x bg-muted text-center font-semibold text-[13px] text-foreground tabular-nums outline-none focus:bg-primary/5"
+          class="h-9 min-w-0 flex-1 border-border border-x bg-muted text-center font-semibold text-[13px] text-foreground tabular-nums outline-none focus:bg-primary/5"
           onBlur={(e) => commit(e.currentTarget.value)}
           onFocus={(e) => e.currentTarget.select()}
           onInput={(e) => setText(e.currentTarget.value)}

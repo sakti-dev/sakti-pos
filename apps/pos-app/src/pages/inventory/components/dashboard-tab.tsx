@@ -1,196 +1,440 @@
 import { useNavigate } from "@solidjs/router";
 import { createMemo, createSignal, For, Show } from "solid-js";
+import { BoxPackageIcon, PencilIcon, UtensilsIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
+import { Badge } from "~/components/ui/badge";
 import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { categories, products } from "~/lib/data/catalog";
-import {
-  computeStockValue,
-  countByStatus,
-  stockStatus,
-} from "~/lib/inventory/stats";
+import { stockStatus } from "~/lib/inventory/stats";
 import { currentStock } from "~/lib/inventory/store";
 import { useOrientation } from "~/lib/use-orientation";
-import { InventoryRow } from "../product-row";
-import { AdjustmentSheet } from "./adjustment-sheet";
+import { formatRupiah } from "~/lib/utils";
 import { StatCards } from "./stat-cards";
 
-type StatusFilter = "all" | "low" | "out";
+// ── Inline ingredient data (UI-only, no real table yet) ──
+interface Ingredient {
+  readonly category: string;
+  readonly id: number;
+  readonly name: string;
+  readonly sku: string;
+  readonly stock: number;
+  readonly unit: string;
+}
+
+const ingredientCategories = [
+  { id: "bumbu-curah", name: "Bumbu Curah" },
+  { id: "sachet-mentah", name: "Sachet Mentah" },
+] as const;
+
+const ingredients: readonly Ingredient[] = [
+  {
+    id: 1001,
+    name: "Bawang Putih",
+    sku: "RAW-01",
+    stock: 12,
+    unit: "Kg",
+    category: "bumbu-curah",
+  },
+  {
+    id: 1002,
+    name: "Cabai Rawit Merah",
+    sku: "RAW-02",
+    stock: 0.5,
+    unit: "Kg",
+    category: "bumbu-curah",
+  },
+  {
+    id: 1003,
+    name: "Garam Dapur",
+    sku: "RAW-03",
+    stock: 3,
+    unit: "Kg",
+    category: "bumbu-curah",
+  },
+  {
+    id: 1004,
+    name: "Minyak Goreng",
+    sku: "RAW-04",
+    stock: 8,
+    unit: "Liter",
+    category: "bumbu-curah",
+  },
+  {
+    id: 1005,
+    name: "Nutrisari Jeruk (Sachet)",
+    sku: "SCH-08",
+    stock: 120,
+    unit: "Pcs",
+    category: "sachet-mentah",
+  },
+  {
+    id: 1006,
+    name: "Kopi Arabika Biji",
+    sku: "SCH-09",
+    stock: 0,
+    unit: "Kg",
+    category: "sachet-mentah",
+  },
+  {
+    id: 1007,
+    name: "Gula Pasir",
+    sku: "SCH-10",
+    stock: 5,
+    unit: "Kg",
+    category: "bumbu-curah",
+  },
+] as const;
+
+type SubTab = "jualan" | "bahan";
+
+// ── Shared stock row (used by both products and ingredients) ──
+interface StockRowData {
+  readonly badge: "danger" | "success" | "warning";
+  readonly detail: string;
+  readonly name: string;
+  readonly sku: string;
+  readonly statusLabel: string;
+  readonly stock: number;
+  readonly unit: string;
+}
+
+function StockRow(props: { readonly data: StockRowData }) {
+  return (
+    <div class="flex items-center gap-3 rounded-xl border border-border bg-card p-3 lg:gap-4">
+      <div class="min-w-0 flex-1">
+        <h3 class="truncate font-semibold text-body-sm text-foreground">
+          {props.data.name}
+        </h3>
+        <p class="mt-0.5 truncate text-caption-sm text-faint-foreground">
+          {props.data.sku} · {props.data.detail}
+        </p>
+        <div class="mt-1">
+          <Badge
+            class="px-2 py-0.5 normal-case"
+            size="sm"
+            variant={props.data.badge}
+          >
+            {props.data.statusLabel}
+          </Badge>
+        </div>
+      </div>
+      <div class="shrink-0 text-right">
+        <span class="font-bold text-body text-foreground">
+          {props.data.stock}
+        </span>
+        <span class="ml-1 text-caption-sm text-faint-foreground">
+          {props.data.unit}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function DashboardTab() {
   const navigate = useNavigate();
   const isPortrait = useOrientation();
   const enable = () => !isPortrait();
 
+  const [subTab, setSubTab] = createSignal<SubTab>("jualan");
   const [search, setSearch] = createSignal("");
   const [activeCat, setActiveCat] = createSignal("all");
-  const [statusFilter, setStatusFilter] = createSignal<StatusFilter>("all");
 
-  // Adjustment sheet state.
-  const [adjustProductId, setAdjustProductId] = createSignal<number | null>(
-    null
+  // Computed counts for StatCards (all items)
+  const allStock = createMemo(() => {
+    const items = [
+      ...products.map((p) => currentStock(p.id)),
+      ...ingredients.map((i) => i.stock),
+    ];
+    return items;
+  });
+  const totalCount = createMemo(() => allStock().length);
+  const lowCount = createMemo(
+    () => allStock().filter((s) => stockStatus(s).status === "low").length
   );
-  const adjustProduct = () =>
-    products.find((p) => p.id === adjustProductId()) ?? null;
+  const outCount = createMemo(
+    () => allStock().filter((s) => stockStatus(s).status === "out").length
+  );
+  const totalValue = createMemo(() =>
+    products.reduce((acc, p) => acc + p.price * currentStock(p.id), 0)
+  );
 
-  const openSheet = (productId: number) => setAdjustProductId(productId);
+  // Pre-computed category counts
+  const productCatCounts = createMemo(() =>
+    Object.fromEntries(
+      categories.map((c) => [
+        c.id,
+        products.filter((p) => p.category === c.id).length,
+      ])
+    )
+  );
+  const ingredientCatCounts = createMemo(() =>
+    Object.fromEntries(
+      ingredientCategories.map((c) => [
+        c.id,
+        ingredients.filter((i) => i.category === c.id).length,
+      ])
+    )
+  );
 
-  const counts = createMemo(() => countByStatus());
-  const value = createMemo(() => computeStockValue());
-
-  const filtered = createMemo(() => {
+  // Filtered products
+  const filteredProducts = createMemo(() => {
     const q = search().toLowerCase();
     const cat = activeCat();
-    const sf = statusFilter();
     return products.filter((p) => {
       const matchCat = cat === "all" || p.category === cat;
       const matchQ =
         !q ||
         p.name.toLowerCase().includes(q) ||
         p.sku.toLowerCase().includes(q);
-      if (!(matchCat && matchQ)) {
-        return false;
-      }
-      if (sf !== "all") {
-        return stockStatus(currentStock(p.id)).status === sf;
-      }
-      return true;
+      return matchCat && matchQ;
     });
   });
 
+  // Filtered ingredients
+  const filteredIngredients = createMemo(() => {
+    const q = search().toLowerCase();
+    const cat = activeCat();
+    return ingredients.filter((i) => {
+      const matchCat = cat === "all" || i.category === cat;
+      const matchQ =
+        !q ||
+        i.name.toLowerCase().includes(q) ||
+        i.sku.toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+  });
+
+  const onEditBanyakStok = () => {
+    const mode = subTab() === "jualan" ? "jualan" : "bahan";
+    navigate(`/inventory/bulk-adjust?mode=${mode}`);
+  };
+
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
-      <div class="shrink-0 space-y-3 px-4 pt-4 lg:px-6">
+      <div class="shrink-0 space-y-3 px-4 pt-4 pb-3 lg:px-6 lg:pb-4">
+        {/* StatCards */}
         <StatCards
-          low={counts().low}
-          onLow={() => setStatusFilter("low")}
-          onOut={() => setStatusFilter("out")}
-          out={counts().out}
-          total={products.length}
-          value={value()}
+          low={lowCount()}
+          out={outCount()}
+          total={totalCount()}
+          value={totalValue()}
         />
 
-        {/* Primary action tiles */}
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            class="flex flex-col gap-0.5 rounded-xl border-2 border-border bg-card p-3 text-left transition-colors hover:border-primary/30"
-            onClick={() => navigate("/inventory/terima/new")}
-            type="button"
-          >
-            <span class="font-semibold text-body-sm text-foreground">
-              ➕ Terima Barang
-            </span>
-            <span class="text-caption-sm text-muted-foreground">
-              Restock dari supplier
-            </span>
-          </button>
-          <button
-            class="flex flex-col gap-0.5 rounded-xl border-2 border-border bg-card p-3 text-left transition-colors hover:border-primary/30"
-            onClick={() => navigate("/inventory/opname/new")}
-            type="button"
-          >
-            <span class="font-semibold text-body-sm text-foreground">
-              📋 Mulai Stock Opname
-            </span>
-            <span class="text-caption-sm text-muted-foreground">
-              Hitung stok fisik
-            </span>
-          </button>
-        </div>
+        {/* Sub-tab: Menu Jualan vs Bahan Baku */}
+        <Tabs
+          class="w-full"
+          onChange={(v) => {
+            setSubTab(v as SubTab);
+            setActiveCat("all");
+            setSearch("");
+          }}
+          value={subTab()}
+        >
+          <TabsList class="flex w-full gap-2">
+            <TabsTrigger
+              class="flex-1 justify-center py-3 text-body-sm"
+              shape="rounded"
+              tone="primary"
+              value="jualan"
+              variant="pill"
+            >
+              <UtensilsIcon class="h-5 w-5" /> Menu Jualan
+            </TabsTrigger>
+            <TabsTrigger
+              class="flex-1 justify-center py-3 text-body-sm"
+              shape="rounded"
+              tone="primary"
+              value="bahan"
+              variant="pill"
+            >
+              <BoxPackageIcon class="h-5 w-5" /> Bahan Baku
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
+        {/* Search + Edit Banyak Stok */}
         <div class="flex items-center gap-2">
           <SearchBar
             class="flex-1"
             onInput={setSearch}
-            placeholder="Cari produk atau SKU..."
+            placeholder={
+              subTab() === "jualan"
+                ? "Cari nama menu jualan..."
+                : "Cari nama bahan baku..."
+            }
             value={search()}
           />
-          <Show when={statusFilter() !== "all"}>
-            <button
-              class="font-medium text-caption-sm text-primary"
-              onClick={() => setStatusFilter("all")}
-              type="button"
-            >
-              ✕ Reset filter
-            </button>
-          </Show>
+          <button
+            class="flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 font-semibold text-body-sm text-primary-foreground transition-colors hover:bg-primary/90"
+            disabled
+            onClick={onEditBanyakStok}
+            type="button"
+          >
+            <PencilIcon class="h-4 w-4" /> Edit Stok
+          </button>
         </div>
 
-        <Tabs
-          class="scrollbar-none overflow-x-auto"
-          onChange={setActiveCat}
-          value={activeCat()}
-        >
-          <TabsList class="flex gap-2">
-            <TabsTrigger shape="pill" tone="accent" value="all" variant="pill">
-              Semua{" "}
-              <span class="text-caption-sm opacity-70">
-                ({products.length})
-              </span>
-            </TabsTrigger>
-            <For each={categories}>
-              {(cat) => (
-                <TabsTrigger
-                  shape="pill"
-                  tone="accent"
-                  value={cat.id}
-                  variant="pill"
-                >
-                  {cat.name}
-                  <span class="text-caption-sm opacity-70">
-                    ({products.filter((p) => p.category === cat.id).length})
-                  </span>
-                </TabsTrigger>
-              )}
-            </For>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pt-2 pb-28 lg:px-6 lg:pb-6">
-        <Show
-          fallback={
-            <div class="flex flex-col items-center justify-center gap-1 py-20 text-center">
-              <p class="text-body-sm text-muted-foreground">
-                Produk tidak ditemukan
-              </p>
-              <p class="text-caption text-faint-foreground">
-                Coba ubah filter atau kata kunci
-              </p>
-            </div>
-          }
-          when={filtered().length > 0}
-        >
-          <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
-            <For each={filtered()}>
-              {(product, i) => (
-                <FadeIn
-                  delay={0.1 + i() * 0.03}
-                  duration={0.35}
-                  enable={enable()}
-                  y={12}
-                >
-                  <InventoryRow
-                    onAdjust={() => openSheet(product.id)}
-                    product={product}
-                  />
-                </FadeIn>
-              )}
-            </For>
-          </div>
+        {/* Category pills */}
+        <Show when={subTab() === "jualan"}>
+          <Tabs
+            class="scrollbar-none overflow-x-auto"
+            onChange={setActiveCat}
+            value={activeCat()}
+          >
+            <TabsList class="flex gap-2">
+              <TabsTrigger
+                shape="pill"
+                tone="accent"
+                value="all"
+                variant="pill"
+              >
+                Semua{" "}
+                <span class="text-caption-sm opacity-70">
+                  ({products.length})
+                </span>
+              </TabsTrigger>
+              <For each={categories}>
+                {(cat) => (
+                  <TabsTrigger
+                    shape="pill"
+                    tone="accent"
+                    value={cat.id}
+                    variant="pill"
+                  >
+                    {cat.name}
+                    <span class="text-caption-sm opacity-70">
+                      ({productCatCounts()[cat.id] ?? 0})
+                    </span>
+                  </TabsTrigger>
+                )}
+              </For>
+            </TabsList>
+          </Tabs>
+        </Show>
+        <Show when={subTab() === "bahan"}>
+          <Tabs
+            class="scrollbar-none overflow-x-auto"
+            onChange={setActiveCat}
+            value={activeCat()}
+          >
+            <TabsList class="flex gap-2">
+              <TabsTrigger
+                shape="pill"
+                tone="accent"
+                value="all"
+                variant="pill"
+              >
+                Semua{" "}
+                <span class="text-caption-sm opacity-70">
+                  ({ingredients.length})
+                </span>
+              </TabsTrigger>
+              <For each={ingredientCategories}>
+                {(cat) => (
+                  <TabsTrigger
+                    shape="pill"
+                    tone="accent"
+                    value={cat.id}
+                    variant="pill"
+                  >
+                    {cat.name}
+                    <span class="text-caption-sm opacity-70">
+                      ({ingredientCatCounts()[cat.id] ?? 0})
+                    </span>
+                  </TabsTrigger>
+                )}
+              </For>
+            </TabsList>
+          </Tabs>
         </Show>
       </div>
 
-      {/* The adjustment overlay */}
-      <Show when={adjustProduct()}>
-        {(p) => (
-          <AdjustmentSheet
-            onOpenChange={(o) => !o && setAdjustProductId(null)}
-            open={adjustProductId() !== null}
-            product={p()}
-          />
-        )}
-      </Show>
+      {/* Product / Ingredient list */}
+      <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pt-2 pb-28 lg:px-6 lg:pb-6">
+        <Show when={subTab() === "jualan"}>
+          <Show
+            fallback={
+              <div class="flex flex-col items-center justify-center gap-1 py-20 text-center">
+                <p class="text-body-sm text-muted-foreground">
+                  Produk tidak ditemukan
+                </p>
+                <p class="text-caption text-faint-foreground">
+                  Coba ubah filter atau kata kunci
+                </p>
+              </div>
+            }
+            when={filteredProducts().length > 0}
+          >
+            <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
+              <For each={filteredProducts()}>
+                {(product, i) => (
+                  <FadeIn
+                    delay={0.1 + i() * 0.03}
+                    duration={0.35}
+                    enable={enable()}
+                    y={12}
+                  >
+                    <StockRow
+                      data={{
+                        badge: stockStatus(currentStock(product.id)).badge,
+                        detail: formatRupiah(product.price),
+                        name: product.name,
+                        sku: product.sku,
+                        statusLabel: stockStatus(currentStock(product.id))
+                          .label,
+                        stock: currentStock(product.id),
+                        unit: product.unit,
+                      }}
+                    />
+                  </FadeIn>
+                )}
+              </For>
+            </div>
+          </Show>
+        </Show>
+
+        <Show when={subTab() === "bahan"}>
+          <Show
+            fallback={
+              <div class="flex flex-col items-center justify-center gap-1 py-20 text-center">
+                <p class="text-body-sm text-muted-foreground">
+                  Bahan baku tidak ditemukan
+                </p>
+                <p class="text-caption text-faint-foreground">
+                  Coba ubah filter atau kata kunci
+                </p>
+              </div>
+            }
+            when={filteredIngredients().length > 0}
+          >
+            <div class="grid @2xl:grid-cols-2 grid-cols-1 gap-2">
+              <For each={filteredIngredients()}>
+                {(ingredient, i) => (
+                  <FadeIn
+                    delay={0.1 + i() * 0.03}
+                    duration={0.35}
+                    enable={enable()}
+                    y={12}
+                  >
+                    <StockRow
+                      data={{
+                        badge: stockStatus(ingredient.stock).badge,
+                        detail: `Satuan: ${ingredient.unit}`,
+                        name: ingredient.name,
+                        sku: ingredient.sku,
+                        statusLabel: stockStatus(ingredient.stock).label,
+                        stock: ingredient.stock,
+                        unit: ingredient.unit,
+                      }}
+                    />
+                  </FadeIn>
+                )}
+              </For>
+            </div>
+          </Show>
+        </Show>
+      </div>
     </div>
   );
 }

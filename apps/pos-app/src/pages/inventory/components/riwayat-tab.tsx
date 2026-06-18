@@ -50,7 +50,7 @@ export function RiwayatTab() {
 
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
-      <div class="shrink-0 space-y-2 px-4 pt-4 lg:px-6">
+      <div class="shrink-0 space-y-2 px-4 pt-4 pb-3 lg:px-6 lg:pb-4">
         <SearchBar onInput={setQ} placeholder="Cari produk..." value={q()} />
         <div class="scrollbar-none flex gap-2 overflow-x-auto">
           <For each={FILTERS}>

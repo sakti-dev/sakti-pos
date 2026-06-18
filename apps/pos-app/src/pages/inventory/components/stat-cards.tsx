@@ -49,7 +49,7 @@ export function StatCards(props: StatCardsProps) {
   ];
 
   return (
-    <div class="grid grid-cols-4 gap-2">
+    <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
       <For each={items()}>
         {(it) => (
           <Show
@@ -81,10 +81,11 @@ function StatValue(props: { value: string; dot?: "warning" | "danger" }) {
     <div class="flex items-center gap-1.5">
       <Show when={props.dot}>
         <span
+          aria-hidden="true"
           class={cn(
             "inline-block size-1.5 rounded-full",
-            props.dot === "warning" && "bg-warning",
-            props.dot === "danger" && "bg-danger"
+            props.dot === "warning" && "bg-status-warning",
+            props.dot === "danger" && "bg-status-danger"
           )}
         />
       </Show>

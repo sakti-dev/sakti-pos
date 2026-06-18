@@ -10,7 +10,7 @@ export default function InventoryTerimaNewPage() {
     <SubPageShell
       backHref="/inventory?tab=terima"
       data-ssgoi-transition="/inventory/terima/new"
-      title="Terima Barang"
+      title="Penerimaan Barang Baru"
     >
       <TerimaReceive
         onCancel={() => navigate("/inventory?tab=terima")}

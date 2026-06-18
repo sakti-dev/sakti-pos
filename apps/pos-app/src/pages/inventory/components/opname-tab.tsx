@@ -16,7 +16,7 @@ export function OpnameTab() {
 
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
-      <div class="shrink-0 px-4 pt-4 lg:px-6">
+      <div class="shrink-0 px-4 pt-4 pb-3 lg:px-6 lg:pb-4">
         <Button
           class="w-full"
           look="solid"

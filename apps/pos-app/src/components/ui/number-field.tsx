@@ -1,6 +1,6 @@
 /* biome-ignore-all lint/a11y/noLabelWithoutControl: compound component label */
 import { cva } from "class-variance-authority";
-import { createEffect, type JSX, splitProps } from "solid-js";
+import { createEffect, type JSX, on, splitProps } from "solid-js";
 import { cn } from "~/lib/utils";
 
 const formatter = new Intl.NumberFormat("id-ID", {
@@ -40,7 +40,7 @@ interface NumberFieldProps {
 }
 
 /** Wrapper — mirrors TextField's flex-col gap layout. */
-const NumberField = (props: NumberFieldProps) => (
+export const NumberField = (props: NumberFieldProps) => (
   <div class={cn("flex flex-col gap-1", props.class)}>{props.children}</div>
 );
 
@@ -55,7 +55,7 @@ interface NumberFieldInputProps {
   value?: number;
 }
 
-const NumberFieldInput = (props: NumberFieldInputProps) => {
+export const NumberFieldInput = (props: NumberFieldInputProps) => {
   let ref: HTMLInputElement | undefined;
 
   const handleInput = (e: InputEvent) => {
@@ -75,15 +75,26 @@ const NumberFieldInput = (props: NumberFieldInputProps) => {
     props.onChange?.(num);
   };
 
-  createEffect(() => {
-    if (!ref) {
-      return;
-    }
-    const formatted = formatNum(props.value ?? 0);
-    if (ref.value !== formatted) {
-      ref.value = formatted;
-    }
-  });
+  // Anchor dependency on props.value UNCONDITIONALLY via on(), so early returns
+  // inside the handler can never tombstone the effect out of the reactive graph.
+  createEffect(
+    on(
+      () => props.value,
+      (value) => {
+        if (!ref) {
+          return;
+        }
+        if (document.activeElement === ref) {
+          return;
+        }
+        const formatted = formatNum(value ?? 0);
+        if (ref.value !== formatted) {
+          ref.value = formatted;
+          ref.setSelectionRange(formatted.length, formatted.length);
+        }
+      }
+    )
+  );
 
   return (
     <input
@@ -128,7 +139,7 @@ interface NumberFieldLabelProps {
   class?: string;
 }
 
-const NumberFieldLabel = (props: NumberFieldLabelProps) => {
+export const NumberFieldLabel = (props: NumberFieldLabelProps) => {
   const [local, others] = splitProps(props, ["class", "children"]);
   return (
     <label class={cn(labelVariants(), local.class)} {...others}>
@@ -136,5 +147,3 @@ const NumberFieldLabel = (props: NumberFieldLabelProps) => {
     </label>
   );
 };
-
-export { NumberField, NumberFieldInput, NumberFieldLabel };
