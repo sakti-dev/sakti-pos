@@ -23,6 +23,7 @@ export { default as EyeClosedIcon } from "./eye-closed.svg";
 export { default as EyeOpenIcon } from "./eye-open.svg";
 export { default as FileIcon } from "./file.svg";
 export { default as GoogleIcon } from "./google.svg";
+export { default as GreenFluxBackground } from "./green-flux.svg";
 export { default as GridIcon } from "./grid.svg";
 export { default as GridDetailIcon } from "./grid-detail.svg";
 export { default as HomeIcon } from "./home.svg";

@@ -1,3 +1,4 @@
+import { GreenFluxBackground } from "~/assets";
 import { FadeIn } from "~/components/ui/fade-in";
 import { useOrientation } from "~/lib/use-orientation";
 import { EarningsCard } from "./components/earnings-card";
@@ -16,8 +17,11 @@ export default function HomePage() {
       class="scrollbar-none relative flex flex-1 flex-col overflow-y-auto bg-banner-to"
       data-ssgoi-transition="/"
     >
+      {/* Background */}
+      <GreenFluxBackground class="pointer-events-none absolute inset-0 h-full w-full" />
+
       {/* Banner zone */}
-      <div class="relative flex shrink-0 flex-col gap-3 px-gutter pt-3.5 pb-10 lg:px-6 lg:pt-4 lg:pb-24">
+      <div class="relative z-1 flex shrink-0 flex-col gap-3 px-gutter pt-3.5 pb-10 lg:px-6 lg:pt-4 lg:pb-24">
         <FadeIn delay={STAGGER * 0} duration={0.45} enable={enable()} y={12}>
           <VenueCard />
         </FadeIn>
