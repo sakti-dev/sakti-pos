@@ -37,27 +37,29 @@ export function RetailTab() {
   });
 
   return (
-    <div class="mt-4 flex flex-1 flex-col overflow-hidden">
-      <div class="grid shrink-0 grid-cols-1 gap-2 px-4 sm:grid-cols-2 lg:px-6">
-        <StatCard
-          dot="warning"
-          icon={<FiAlertTriangle class="h-4 w-4" />}
-          label="Produk Mau Habis"
-          value={String(lowRetailCount())}
-          valueSuffix="Item"
-        />
-        <StatCard
-          icon={<FiInbox class="h-4 w-4" />}
-          label="Total Menu Aktif"
-          value={String(totalActive())}
-          valueSuffix="Menu"
-        />
-      </div>
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="scrollbar-none min-h-0 flex-1 overflow-y-auto">
+        {/* KPI cards — scroll away, giving the list full height once past */}
+        <div class="grid grid-cols-2 gap-2 px-4 py-3 lg:px-6">
+          <StatCard
+            dot="warning"
+            icon={<FiAlertTriangle class="h-4 w-4" />}
+            label="Produk Mau Habis"
+            value={String(lowRetailCount())}
+            valueSuffix="Item"
+          />
+          <StatCard
+            icon={<FiInbox class="h-4 w-4" />}
+            label="Total Produk Aktif"
+            value={String(totalActive())}
+            valueSuffix="Menu"
+          />
+        </div>
 
-      <div class="mt-3 shrink-0 space-y-2 px-4 lg:px-6">
-        <div class="flex flex-wrap justify-end gap-2">
+        {/* Actions — scroll away too */}
+        <div class="flex flex-wrap justify-end gap-2 px-4 lg:px-6">
           <Button
-            class="shrink-0 justify-center rounded-xl"
+            class="justify-center rounded-xl"
             look="outline"
             onClick={() => navigate("/inventory/stocktake/new?scope=retail")}
             size="sm"
@@ -66,33 +68,40 @@ export function RetailTab() {
             <FiClipboard class="h-4 w-4" /> Stock Opname
           </Button>
         </div>
-        <SearchBar
-          onInput={setSearch}
-          placeholder="Cari menu jualan..."
-          value={search()}
-        />
-      </div>
 
-      <div class="scrollbar-none mt-2 flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
-        <For
-          each={filtered()}
-          fallback={
-            <div class="flex flex-col items-center gap-1 py-20 text-center">
-              <p class="text-body-sm text-muted-foreground">
-                Menu tidak ditemukan
-              </p>
-              <p class="text-caption text-faint-foreground">
-                Coba ubah kata kunci pencarian
-              </p>
-            </div>
-          }
-        >
-          {(p, i) => (
-            <FadeIn delay={0.05 + i() * 0.02} duration={0.3} y={8}>
-              <ProductRow product={p} />
-            </FadeIn>
-          )}
-        </For>
+        {/* Search — sticks while the cards above scroll away.
+            bg-background matches the page so no visible band; covers the
+            parchment-darker rows scrolling behind it. */}
+        <div class="sticky top-0 z-10 mt-2 bg-background px-4 py-2 lg:px-6">
+          <SearchBar
+            onInput={setSearch}
+            placeholder="Cari menu jualan..."
+            value={search()}
+          />
+        </div>
+
+        {/* List */}
+        <div class="px-4 pb-28 lg:px-6 lg:pb-6">
+          <For
+            each={filtered()}
+            fallback={
+              <div class="flex flex-col items-center gap-1 py-20 text-center">
+                <p class="text-body-sm text-muted-foreground">
+                  Menu tidak ditemukan
+                </p>
+                <p class="text-caption text-faint-foreground">
+                  Coba ubah kata kunci pencarian
+                </p>
+              </div>
+            }
+          >
+            {(p, i) => (
+              <FadeIn delay={0.05 + i() * 0.02} duration={0.3} y={8}>
+                <ProductRow product={p} />
+              </FadeIn>
+            )}
+          </For>
+        </div>
       </div>
     </div>
   );

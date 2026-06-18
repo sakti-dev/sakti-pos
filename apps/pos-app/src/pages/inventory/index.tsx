@@ -2,14 +2,20 @@ import { useNavigate, useSearchParams } from "@solidjs/router";
 import { FiFileText, FiPackage, FiShoppingBag } from "solid-icons/fi";
 import { createEffect, createSignal } from "solid-js";
 import { Button } from "~/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsIndicator,
+  TabsList,
+  TabsTrigger,
+} from "~/components/ui/tabs";
 import { IngredientFormDialog } from "./components/ingredient-form-dialog";
 import { IngredientTab } from "./components/ingredient-tab";
 import { RetailTab } from "./components/retail-tab";
 
 const SUBTITLES: Record<string, string> = {
-  retail: "Menu untuk mengelola makanan & barang di etalase kasir",
-  ingredient: "Menu untuk memantau stok dan bumbu di dapur mentah",
+  retail: "Pantau dan atur stok semua produk yang Anda jual",
+  ingredient: "Pantau dan atur stok semua bahan yang Anda pakai",
 };
 
 export default function InventoryPage() {
@@ -32,7 +38,7 @@ export default function InventoryPage() {
 
   return (
     <div
-      class="flex flex-1 flex-col overflow-hidden"
+      class="flex min-h-0 flex-1 flex-col overflow-hidden"
       data-ssgoi-transition="/inventory"
     >
       <header class="shrink-0 px-4 pt-5 pb-3 lg:px-6 lg:pb-4">
@@ -55,37 +61,34 @@ export default function InventoryPage() {
       </header>
 
       <Tabs
-        class="flex flex-1 flex-col overflow-hidden"
+        class="flex min-h-0 flex-1 flex-col overflow-hidden"
         onChange={(v) => setParams({ tab: v }, { replace: true })}
         value={tab()}
       >
-        <div class="shrink-0 px-4 lg:px-6">
-          <TabsList class="relative grid grid-cols-2 gap-2">
+        <div class="shrink-0 border-border border-b">
+          <TabsList class="relative grid grid-cols-2">
+            <TabsIndicator class="bg-primary data-[orientation=horizontal]:h-0.5" />
             <TabsTrigger
-              class="justify-center py-2.5"
-              shape="rounded"
-              tone="primary"
+              class="justify-center gap-2 px-4 py-2.5 lg:px-6"
               value="retail"
-              variant="pill"
+              variant="underline"
             >
               <FiShoppingBag class="h-4 w-4" /> Menu Jualan
             </TabsTrigger>
             <TabsTrigger
-              class="justify-center py-2.5"
-              shape="rounded"
-              tone="primary"
+              class="justify-center gap-2 px-4 py-2.5 lg:px-6"
               value="ingredient"
-              variant="pill"
+              variant="underline"
             >
               <FiPackage class="h-4 w-4" /> Bahan Baku
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent class="flex-1 overflow-hidden" value="retail">
+        <TabsContent class="min-h-0 flex-1 overflow-hidden" value="retail">
           <RetailTab />
         </TabsContent>
-        <TabsContent class="flex-1 overflow-hidden" value="ingredient">
+        <TabsContent class="min-h-0 flex-1 overflow-hidden" value="ingredient">
           <IngredientTab onCreateIngredient={() => setCreateOpen(true)} />
         </TabsContent>
       </Tabs>

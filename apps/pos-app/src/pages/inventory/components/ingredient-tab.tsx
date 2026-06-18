@@ -51,81 +51,91 @@ export function IngredientTab(props: IngredientTabProps) {
   });
 
   return (
-    <div class="mt-4 flex flex-1 flex-col overflow-hidden">
-      <div class="grid shrink-0 grid-cols-1 gap-2 px-4 sm:grid-cols-2 lg:px-6">
-        <StatCard
-          dot="danger"
-          icon={<FiAlertTriangle class="h-4 w-4" />}
-          label="Bahan Kritis / Habis"
-          value={String(lowIngredientCount())}
-          valueSuffix="Bahan"
-        />
-        <StatCard
-          icon={<FiPackage class="h-4 w-4" />}
-          label="Estimasi Modal Gudang"
-          value={formatRupiah(estimatedCapital())}
-          valueSuffix=""
-        />
-      </div>
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="scrollbar-none min-h-0 flex-1 overflow-y-auto">
+        {/* KPI cards — scroll away, giving the list full height once past */}
+        <div class="grid grid-cols-2 gap-2 px-4 py-3 lg:px-6">
+          <StatCard
+            dot="danger"
+            icon={<FiAlertTriangle class="h-4 w-4" />}
+            label="Bahan Kritis / Habis"
+            value={String(lowIngredientCount())}
+            valueSuffix="Bahan"
+          />
+          <StatCard
+            icon={<FiPackage class="h-4 w-4" />}
+            label="Estimasi Modal Gudang"
+            value={formatRupiah(estimatedCapital())}
+            valueSuffix=""
+          />
+        </div>
 
-      <div class="mt-3 flex shrink-0 flex-wrap justify-end gap-2 px-4 lg:px-6">
-        <Button
-          class="justify-center rounded-xl"
-          look="outline"
-          onClick={() => navigate("/inventory/goods-receipt/new")}
-          size="sm"
-          tone="primary"
-        >
-          <FiTruck class="h-4 w-4" /> Terima Barang
-        </Button>
-        <Button
-          class="justify-center rounded-xl"
-          look="outline"
-          onClick={() => navigate("/inventory/stocktake/new?scope=ingredient")}
-          size="sm"
-          tone="primary"
-        >
-          <FiClipboard class="h-4 w-4" /> Stock Opname
-        </Button>
-        <Button
-          class="justify-center rounded-xl"
-          look="outline"
-          onClick={props.onCreateIngredient}
-          size="sm"
-          tone="primary"
-        >
-          <FiPlus class="h-4 w-4" /> Bahan Baru
-        </Button>
-      </div>
+        {/* Actions — scroll away too */}
+        <div class="flex flex-wrap justify-end gap-2 px-4 lg:px-6">
+          <Button
+            class="justify-center rounded-xl"
+            look="outline"
+            onClick={() => navigate("/inventory/goods-receipt/new")}
+            size="sm"
+            tone="primary"
+          >
+            <FiTruck class="h-4 w-4" /> Terima Barang
+          </Button>
+          <Button
+            class="justify-center rounded-xl"
+            look="outline"
+            onClick={() =>
+              navigate("/inventory/stocktake/new?scope=ingredient")
+            }
+            size="sm"
+            tone="primary"
+          >
+            <FiClipboard class="h-4 w-4" /> Stock Opname
+          </Button>
+          <Button
+            class="justify-center rounded-xl"
+            look="outline"
+            onClick={props.onCreateIngredient}
+            size="sm"
+            tone="primary"
+          >
+            <FiPlus class="h-4 w-4" /> Bahan Baru
+          </Button>
+        </div>
 
-      <div class="mt-2 shrink-0 px-4 lg:px-6">
-        <SearchBar
-          onInput={setSearch}
-          placeholder="Cari bahan baku..."
-          value={search()}
-        />
-      </div>
+        {/* Search — sticks while the cards above scroll away.
+            bg-background matches the page so no visible band; covers the
+            parchment-darker rows scrolling behind it. */}
+        <div class="sticky top-0 z-10 mt-2 bg-background px-4 py-2 lg:px-6">
+          <SearchBar
+            onInput={setSearch}
+            placeholder="Cari bahan baku..."
+            value={search()}
+          />
+        </div>
 
-      <div class="scrollbar-none mt-2 flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
-        <For
-          each={filtered()}
-          fallback={
-            <div class="flex flex-col items-center gap-1 py-20 text-center">
-              <p class="text-body-sm text-muted-foreground">
-                Belum ada bahan baku dapur
-              </p>
-              <p class="text-caption text-faint-foreground">
-                Ketuk tombol di atas untuk mulai mengelola stok gudang
-              </p>
-            </div>
-          }
-        >
-          {(ing, i) => (
-            <FadeIn delay={0.05 + i() * 0.02} duration={0.3} y={8}>
-              <IngredientRow ingredient={ing} />
-            </FadeIn>
-          )}
-        </For>
+        {/* List */}
+        <div class="px-4 pb-28 lg:px-6 lg:pb-6">
+          <For
+            each={filtered()}
+            fallback={
+              <div class="flex flex-col items-center gap-1 py-20 text-center">
+                <p class="text-body-sm text-muted-foreground">
+                  Belum ada bahan baku dapur
+                </p>
+                <p class="text-caption text-faint-foreground">
+                  Ketuk tombol di atas untuk mulai mengelola stok gudang
+                </p>
+              </div>
+            }
+          >
+            {(ing, i) => (
+              <FadeIn delay={0.05 + i() * 0.02} duration={0.3} y={8}>
+                <IngredientRow ingredient={ing} />
+              </FadeIn>
+            )}
+          </For>
+        </div>
       </div>
     </div>
   );
