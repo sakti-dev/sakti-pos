@@ -1,7 +1,8 @@
 import { useSearchParams } from "@solidjs/router";
-import { createMemo, For, Show } from "solid-js";
+import { createMemo, For } from "solid-js";
 import {
   Tabs,
+  TabsContent,
   TabsIndicator,
   TabsList,
   TabsTrigger,
@@ -11,7 +12,7 @@ import { GoodsReceiptTab } from "./components/goods-receipt-tab";
 import { HistoryTab } from "./components/history-tab";
 import { StocktakeTab } from "./components/stocktake-tab";
 
-type TabKey = "dashboard" | "stocktake" | "goods-receipt" | "history";
+type TabKey = "dashboard" | "goods-receipt" | "history" | "stocktake";
 
 const TABS: { label: string; value: TabKey }[] = [
   { label: "Daftar Stok", value: "dashboard" },
@@ -32,12 +33,12 @@ export default function InventoryPage() {
       class="flex flex-1 flex-col overflow-hidden"
       data-ssgoi-transition="/inventory"
     >
-      <div class="relative shrink-0 border-border border-b">
-        <Tabs
-          class="flex flex-1 flex-col overflow-hidden"
-          onChange={(v) => setParams({ tab: v })}
-          value={active()}
-        >
+      <Tabs
+        class="flex flex-1 flex-col overflow-hidden"
+        onChange={(v) => setParams({ tab: v })}
+        value={active()}
+      >
+        <div class="relative shrink-0 border-border border-b">
           <TabsList class="relative flex w-full">
             <For each={TABS}>
               {(t) => (
@@ -48,21 +49,21 @@ export default function InventoryPage() {
             </For>
             <TabsIndicator class="bg-primary" />
           </TabsList>
-        </Tabs>
-      </div>
+        </div>
 
-      <Show when={active() === "dashboard"}>
-        <DashboardTab />
-      </Show>
-      <Show when={active() === "stocktake"}>
-        <StocktakeTab />
-      </Show>
-      <Show when={active() === "goods-receipt"}>
-        <GoodsReceiptTab />
-      </Show>
-      <Show when={active() === "history"}>
-        <HistoryTab />
-      </Show>
+        <TabsContent class="flex-1 overflow-hidden" value="dashboard">
+          <DashboardTab />
+        </TabsContent>
+        <TabsContent class="flex-1 overflow-hidden" value="stocktake">
+          <StocktakeTab />
+        </TabsContent>
+        <TabsContent class="flex-1 overflow-hidden" value="goods-receipt">
+          <GoodsReceiptTab />
+        </TabsContent>
+        <TabsContent class="flex-1 overflow-hidden" value="history">
+          <HistoryTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
