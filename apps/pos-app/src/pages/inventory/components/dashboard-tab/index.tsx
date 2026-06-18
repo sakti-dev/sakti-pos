@@ -6,10 +6,10 @@ import { Badge } from "~/components/ui/badge";
 import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { categories, products } from "~/lib/data/catalog";
-import { stockStatus } from "~/lib/inventory/stats";
-import { currentStock } from "~/lib/inventory/store";
 import { useOrientation } from "~/lib/use-orientation";
 import { formatRupiah } from "~/lib/utils";
+import { stockStatus } from "../lib/stats";
+import { currentStock } from "../lib/store";
 import { StatCards } from "./stat-cards";
 
 // ── Inline ingredient data (UI-only, no real table yet) ──

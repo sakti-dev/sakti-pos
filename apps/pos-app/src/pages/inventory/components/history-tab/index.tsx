@@ -2,8 +2,8 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { SearchBar } from "~/components/search-bar";
 import { TabButton } from "~/components/ui/tabs";
 import { products } from "~/lib/data/catalog";
-import { groupMovementsByDay } from "~/lib/inventory/stats";
-import { MOVEMENT_TYPE_META, type MovementType } from "~/lib/inventory/types";
+import { groupMovementsByDay } from "../lib/stats";
+import { MOVEMENT_TYPE_META, type MovementType } from "../lib/types";
 
 const FILTERS: { label: string; value: "all" | MovementType }[] = [
   { label: "Semua", value: "all" },
@@ -22,7 +22,7 @@ function timeOf(ts: number): string {
   return TIME_FMT.format(new Date(ts));
 }
 
-export function RiwayatTab() {
+export function HistoryTab() {
   const [q, setQ] = createSignal("");
   const [typeFilter, setTypeFilter] = createSignal<"all" | MovementType>("all");
 

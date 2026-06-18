@@ -6,7 +6,7 @@ import {
   onQtyChange,
   onSubtotalChange,
   type SyncableItem,
-} from "../item-sync";
+} from "../receipts";
 
 const blank = (id = 1): SyncableItem => createBlankItem(id);
 

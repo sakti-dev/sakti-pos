@@ -2,53 +2,14 @@ import type { RouteSectionProps } from "@solidjs/router";
 import { Ssgoi } from "@ssgoi/solid";
 import { createMemo, createSignal, onCleanup, Show } from "solid-js";
 import { useBreakpoints } from "~/lib/breakpoints";
+import { FAB_PATHS, getNavKey, getZone } from "~/lib/shell-config";
 import { createRootConfig } from "~/lib/ssgoi-config";
 import { useOrientation } from "~/lib/use-orientation";
 import { cn } from "~/lib/utils";
 import { Fab } from "./fab";
 import { NotchNav } from "./notch-nav";
-import type { NavKey } from "./sidebar";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
-
-/* ── Zone detection ──────────────────────────────────────────────── */
-
-type Zone = "shell" | "flow" | "auth";
-
-const ZONE_MAP: Record<string, Zone> = {
-  "/": "shell",
-  "/transactions": "shell",
-  "/catalog": "flow",
-  "/inventory": "shell",
-  "/setting": "shell",
-  "/transactions/cash-register": "flow",
-  "/transactions/payment": "flow",
-  "/transactions/receipt": "flow",
-  "/auth/login": "auth",
-  "/auth/register": "auth",
-  "/auth/pin": "auth",
-};
-
-const SECTION_ROUTE_RE = /^\/setting\/.+$/;
-const CATALOG_FORM_RE = /^\/catalog\/(product|variant|category)\//;
-const INVENTORY_FORM_RE = /^\/inventory\/(opname|terima)\//;
-const FAB_PATHS = ["/", "/transactions"];
-
-const navFromPath = (pathname: string): NavKey => {
-  if (pathname === "/") {
-    return "home";
-  }
-  if (pathname === "/transactions") {
-    return "transactions";
-  }
-  if (pathname === "/inventory") {
-    return "inventory";
-  }
-  if (pathname.startsWith("/setting")) {
-    return "settings";
-  }
-  return "home";
-};
 
 /* ── AppShell ────────────────────────────────────────────────────── */
 
@@ -57,22 +18,8 @@ export const AppShell = (props: RouteSectionProps) => {
   const isPortrait = useOrientation();
   const bp = useBreakpoints();
   const isWide = () => bp.lg;
-  const zone = (): Zone => {
-    if (
-      CATALOG_FORM_RE.test(pathname()) ||
-      INVENTORY_FORM_RE.test(pathname())
-    ) {
-      return "flow";
-    }
-    const base = ZONE_MAP[pathname()] ?? "shell";
-    // Pengaturan section sub-pages are full-screen drill-in screens below lg
-    if (base === "shell" && !isWide() && SECTION_ROUTE_RE.test(pathname())) {
-      return "flow";
-    }
-    return base;
-  };
-  const isShell = () => zone() === "shell";
-  const activeNav = () => navFromPath(pathname());
+  const isShell = () => getZone(pathname(), isWide()) === "shell";
+  const activeNav = () => getNavKey(pathname());
 
   /* ── Expandable sidebar ── */
   const [expanded, setExpanded] = createSignal(false);
@@ -125,7 +72,11 @@ export const AppShell = (props: RouteSectionProps) => {
       </main>
 
       {/* ── Shell-only chrome ── */}
-      <Show when={isShell() && FAB_PATHS.includes(pathname())}>
+      <Show
+        when={
+          isShell() && (FAB_PATHS as readonly string[]).includes(pathname())
+        }
+      >
         <Fab />
       </Show>
       <Show when={isShell()}>

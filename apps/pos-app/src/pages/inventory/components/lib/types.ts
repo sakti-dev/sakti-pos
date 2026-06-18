@@ -27,7 +27,7 @@ export const ADJUSTMENT_REASON_LABELS: Record<AdjustmentReason, string> = {
   lainnya: "Lainnya",
 };
 
-/** Human labels + emoji for MovementType, used in Riwayat. */
+/** Human labels + emoji for MovementType, used in History. */
 export const MOVEMENT_TYPE_META: Record<
   MovementType,
   { label: string; emoji: string }

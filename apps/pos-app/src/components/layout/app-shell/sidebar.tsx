@@ -8,9 +8,8 @@ import {
   SettingsIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
+import type { NavKey } from "~/lib/shell-config";
 import { cn } from "~/lib/utils";
-
-export type NavKey = "home" | "transactions" | "inventory" | "settings";
 
 const navItems: readonly {
   key: NavKey;

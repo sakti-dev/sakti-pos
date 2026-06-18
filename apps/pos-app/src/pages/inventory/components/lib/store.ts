@@ -12,7 +12,7 @@ const DEFAULT_USER = "Andi";
 
 /**
  * Seed the ledger with one `opening` movement per product so balances
- * reconcile from day 1. Seeded in the past so Riwayat shows them under a
+ * reconcile from day 1. Seeded in the past so History shows them under a
  * "Saldo Awal" date, separate from today's live ops.
  */
 function seedMovements(): Movement[] {
@@ -102,7 +102,7 @@ export function recordMovement(input: MovementInput): Movement {
 
 /**
  * Append many movements atomically. `qtyBefore` chains correctly even when
- * the same product appears multiple times. Use for opname + restock.
+ * the same product appears multiple times. Use for stocktake + restock.
  */
 export function recordMovements(inputs: readonly MovementInput[]): Movement[] {
   // Balance lookup that reads the local working array so a batch chains.

@@ -7,17 +7,17 @@ import {
   TabsTrigger,
 } from "~/components/ui/tabs";
 import { DashboardTab } from "./components/dashboard-tab";
-import { OpnameTab } from "./components/opname-tab";
-import { RiwayatTab } from "./components/riwayat-tab";
-import { TerimaTab } from "./components/terima-tab";
+import { GoodsReceiptTab } from "./components/goods-receipt-tab";
+import { HistoryTab } from "./components/history-tab";
+import { StocktakeTab } from "./components/stocktake-tab";
 
-type TabKey = "dashboard" | "opname" | "terima" | "riwayat";
+type TabKey = "dashboard" | "stocktake" | "goods-receipt" | "history";
 
 const TABS: { label: string; value: TabKey }[] = [
   { label: "Daftar Stok", value: "dashboard" },
-  { label: "Opname", value: "opname" },
-  { label: "Terima Barang", value: "terima" },
-  { label: "Riwayat", value: "riwayat" },
+  { label: "Stock Opname", value: "stocktake" },
+  { label: "Penerimaan Barang", value: "goods-receipt" },
+  { label: "Riwayat", value: "history" },
 ];
 
 export default function InventoryPage() {
@@ -54,14 +54,14 @@ export default function InventoryPage() {
       <Show when={active() === "dashboard"}>
         <DashboardTab />
       </Show>
-      <Show when={active() === "opname"}>
-        <OpnameTab />
+      <Show when={active() === "stocktake"}>
+        <StocktakeTab />
       </Show>
-      <Show when={active() === "terima"}>
-        <TerimaTab />
+      <Show when={active() === "goods-receipt"}>
+        <GoodsReceiptTab />
       </Show>
-      <Show when={active() === "riwayat"}>
-        <RiwayatTab />
+      <Show when={active() === "history"}>
+        <HistoryTab />
       </Show>
     </div>
   );

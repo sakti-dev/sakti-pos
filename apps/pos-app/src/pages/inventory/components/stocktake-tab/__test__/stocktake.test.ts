@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
+import { recordMovements, resetInventoryStore } from "../../lib/store";
 import {
-  listOpnames,
-  nextOpnameNumber,
-  opnameRef,
+  listStocktakes,
+  nextStocktakeNumber,
+  stocktakeRef,
   varianceRows,
-} from "../opname";
-import { recordMovements, resetInventoryStore } from "../store";
+} from "../stocktake";
 
-describe("opname helpers", () => {
-  it("nextOpnameNumber is 1 with no prior opnames", () => {
+describe("stocktake helpers", () => {
+  it("nextStocktakeNumber is 1 with no prior stocktakes", () => {
     resetInventoryStore();
-    expect(nextOpnameNumber()).toBe(1);
+    expect(nextStocktakeNumber()).toBe(1);
   });
 
-  it("opnameRef pads to 3 digits", () => {
-    expect(opnameRef(1)).toBe("OPN-001");
-    expect(opnameRef(42)).toBe("OPN-042");
+  it("stocktakeRef pads to 3 digits", () => {
+    expect(stocktakeRef(1)).toBe("OPN-001");
+    expect(stocktakeRef(42)).toBe("OPN-042");
   });
 
-  it("lists opnames grouped by ref with net delta", () => {
+  it("lists stocktakes grouped by ref with net delta", () => {
     resetInventoryStore();
     recordMovements([
       {
@@ -43,7 +43,7 @@ describe("opname helpers", () => {
         ref: "OPN-002",
       },
     ]);
-    const list = listOpnames();
+    const list = listStocktakes();
     expect(list).toHaveLength(2);
     // newest-first
     expect(list[0].ref).toBe("OPN-002");

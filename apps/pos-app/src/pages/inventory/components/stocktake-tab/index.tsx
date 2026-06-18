@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { createMemo, For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
-import { listOpnames } from "~/lib/inventory/opname";
+import { listStocktakes } from "./stocktake";
 
 const DATE_FMT = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
@@ -10,9 +10,9 @@ const DATE_FMT = new Intl.DateTimeFormat("id-ID", {
   month: "short",
 });
 
-export function OpnameTab() {
+export function StocktakeTab() {
   const navigate = useNavigate();
-  const opnames = createMemo(() => listOpnames());
+  const stocktakes = createMemo(() => listStocktakes());
 
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
@@ -20,7 +20,7 @@ export function OpnameTab() {
         <Button
           class="w-full"
           look="solid"
-          onClick={() => navigate("/inventory/opname/new")}
+          onClick={() => navigate("/inventory/stocktake/new")}
           tone="primary"
           type="button"
         >
@@ -30,18 +30,18 @@ export function OpnameTab() {
 
       <div class="scrollbar-none flex-1 overflow-y-auto px-4 py-3 lg:px-6">
         <p class="mb-2 font-semibold text-caption-sm text-muted-foreground">
-          Riwayat Opname
+          Stocktake History
         </p>
         <Show
           fallback={
             <p class="py-16 text-center text-body-sm text-muted-foreground">
-              Belum ada opname
+              Belum ada stocktake
             </p>
           }
-          when={opnames().length > 0}
+          when={stocktakes().length > 0}
         >
           <div class="overflow-hidden rounded-xl border border-border">
-            <For each={opnames()}>
+            <For each={stocktakes()}>
               {(o) => (
                 <div class="flex items-center gap-3 border-border border-b p-3 last:border-b-0">
                   <span class="text-lg">📋</span>

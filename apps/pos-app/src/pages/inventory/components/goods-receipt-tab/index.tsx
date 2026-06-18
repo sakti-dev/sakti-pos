@@ -65,7 +65,7 @@ function isToday(d: Date): boolean {
   );
 }
 
-export function TerimaTab() {
+export function GoodsReceiptTab() {
   const navigate = useNavigate();
   const isPortrait = useOrientation();
   const enable = () => !isPortrait();
@@ -81,7 +81,7 @@ export function TerimaTab() {
         <Button
           class="w-full rounded-xl"
           look="solid"
-          onClick={() => navigate("/inventory/terima/new")}
+          onClick={() => navigate("/inventory/goods-receipt/new")}
           size="lg"
           tone="primary"
         >
@@ -89,9 +89,7 @@ export function TerimaTab() {
         </Button>
         <h2 class="flex items-center gap-1.5 text-muted-foreground">
           <FiPackage class="h-4 w-4 shrink-0" />
-          <span class="font-semibold text-body-sm">
-            Riwayat Nota Penerimaan
-          </span>
+          <span class="font-semibold text-body-sm">Receipt History</span>
         </h2>
       </div>
 
@@ -184,7 +182,7 @@ export function TerimaTab() {
                           look="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/inventory/terima/${receipt.ref}`);
+                            navigate(`/inventory/goods-receipt/${receipt.ref}`);
                           }}
                           size="sm"
                           tone="primary"

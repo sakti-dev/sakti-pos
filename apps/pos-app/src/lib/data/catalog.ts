@@ -5,6 +5,8 @@ export type StockStatus = "available" | "low" | "out";
 export interface Product {
   readonly category: string;
   readonly id: number;
+  /** If true, this is a buy-and-resell retail product (e.g. Aqua Botol). If false, it's a house-made menu item. */
+  readonly isRetail: boolean;
   readonly name: string;
   readonly price: number;
   readonly sku: string;
@@ -40,6 +42,7 @@ export const categories: readonly Category[] = [
 export const products: readonly Product[] = [
   {
     id: 1,
+    isRetail: false,
     name: "Es Kopi Susu",
     sku: "KPI-001",
     category: "kopi",
@@ -49,6 +52,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 2,
+    isRetail: false,
     name: "Kopi Hitam",
     sku: "KPI-002",
     category: "kopi",
@@ -58,6 +62,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 3,
+    isRetail: false,
     name: "Cappuccino",
     sku: "KPI-003",
     category: "kopi",
@@ -67,6 +72,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 4,
+    isRetail: false,
     name: "Affogato",
     sku: "KPI-004",
     category: "kopi",
@@ -76,6 +82,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 5,
+    isRetail: false,
     name: "Vietnam Drip",
     sku: "KPI-005",
     category: "kopi",
@@ -85,6 +92,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 6,
+    isRetail: false,
     name: "Matcha Latte",
     sku: "NKP-001",
     category: "non-kopi",
@@ -94,6 +102,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 7,
+    isRetail: false,
     name: "Teh Tarik",
     sku: "NKP-002",
     category: "non-kopi",
@@ -103,6 +112,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 8,
+    isRetail: false,
     name: "Chocolate Milk",
     sku: "NKP-003",
     category: "non-kopi",
@@ -112,6 +122,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 9,
+    isRetail: false,
     name: "Lemon Tea",
     sku: "NKP-004",
     category: "non-kopi",
@@ -121,6 +132,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 10,
+    isRetail: false,
     name: "Red Velvet Latte",
     sku: "NKP-005",
     category: "non-kopi",
@@ -130,6 +142,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 11,
+    isRetail: false,
     name: "Nasi Goreng Spesial",
     sku: "MKN-001",
     category: "makanan",
@@ -139,6 +152,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 12,
+    isRetail: false,
     name: "Mie Goreng",
     sku: "MKN-002",
     category: "makanan",
@@ -148,6 +162,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 13,
+    isRetail: false,
     name: "Roti Bakar",
     sku: "MKN-003",
     category: "makanan",
@@ -157,6 +172,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 14,
+    isRetail: false,
     name: "Indomie Rebus",
     sku: "MKN-004",
     category: "makanan",
@@ -166,6 +182,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 15,
+    isRetail: false,
     name: "Kentang Goreng",
     sku: "SNK-001",
     category: "snack",
@@ -175,6 +192,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 16,
+    isRetail: false,
     name: "Pisang Goreng",
     sku: "SNK-002",
     category: "snack",
@@ -184,6 +202,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 17,
+    isRetail: false,
     name: "Tahu Crispy",
     sku: "SNK-003",
     category: "snack",
@@ -193,6 +212,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 18,
+    isRetail: false,
     name: "Dimsum Ayam",
     sku: "SNK-004",
     category: "snack",
@@ -202,6 +222,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 19,
+    isRetail: false,
     name: "Brownies",
     sku: "DSR-001",
     category: "dessert",
@@ -211,6 +232,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 20,
+    isRetail: false,
     name: "Pancake",
     sku: "DSR-002",
     category: "dessert",
@@ -220,6 +242,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 21,
+    isRetail: false,
     name: "Es Krim Sundae",
     sku: "DSR-003",
     category: "dessert",
@@ -229,6 +252,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 22,
+    isRetail: false,
     name: "Cheesecake",
     sku: "DSR-004",
     category: "dessert",
@@ -238,6 +262,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 23,
+    isRetail: false,
     name: "American Pie",
     sku: "DSR-005",
     category: "dessert",
@@ -247,6 +272,7 @@ export const products: readonly Product[] = [
   },
   {
     id: 24,
+    isRetail: false,
     name: "Latte Art Special",
     sku: "KPI-006",
     category: "kopi",

@@ -1,6 +1,5 @@
 import { FiPackage, FiPlus, FiSearch, FiTrash2, FiX } from "solid-icons/fi";
-import { createMemo, createSignal, For, Show } from "solid-js";
-import { createStore, produce } from "solid-js/store";
+import { For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import {
   NumberField,
@@ -9,214 +8,24 @@ import {
 } from "~/components/ui/number-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { Sheet } from "~/components/ui/sheet";
-import { products } from "~/lib/data/catalog";
-import {
-  createBlankItem,
-  displaySubtotal,
-  type SyncableItem,
-} from "~/lib/inventory/item-sync";
-import { currentStock } from "~/lib/inventory/store";
-import { nextReceiptNumber, receiptRef } from "~/lib/inventory/terima";
 import { cn, formatRupiah } from "~/lib/utils";
-
-// ── Types ──
-
-type LineItem = SyncableItem;
+import { currentStock } from "../components/lib/store";
+import { displaySubtotal, nextReceiptNumber, receiptRef } from "./receipts";
+import {
+  type GoodsReceiptConfirmInput,
+  useGoodsReceipt,
+} from "./use-goods-receipt";
 
 const UNIT_OPTIONS = ["Pcs/Sachet", "Kg", "Gram", "Liter"] as const;
 
-interface CustomProduct {
-  readonly category: string;
-  readonly id: number;
-  readonly name: string;
-  readonly sku: string;
-  readonly unit: string;
-}
-
-export interface TerimaConfirmInput {
-  readonly items: { costPrice: number; productId: number; qty: number }[];
-  readonly note?: string;
-  readonly ref: string;
-  readonly supplier?: string;
-}
-
-export interface TerimaReceiveProps {
+interface GoodsReceiptFormProps {
   readonly onCancel: () => void;
-  readonly onConfirm: (input: TerimaConfirmInput) => void;
+  readonly onConfirm: (input: GoodsReceiptConfirmInput) => void;
 }
 
-// ── Component ──
-
-export function TerimaReceive(props: TerimaReceiveProps) {
+export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
   const ref = receiptRef(nextReceiptNumber());
-  const [supplier, setSupplier] = createSignal("");
-  const [po, setPo] = createSignal("");
-  const [items, setItems] = createStore<LineItem[]>([]);
-  const findIndex = (productId: number) =>
-    items.findIndex((i) => i.productId === productId);
-  const [pickerOpen, setPickerOpen] = createSignal(false);
-  const [pickerSearch, setPickerSearch] = createSignal("");
-  const [showCreateForm, setShowCreateForm] = createSignal(false);
-  const [customProducts, setCustomProducts] = createSignal<CustomProduct[]>([]);
-  const [newName, setNewName] = createSignal("");
-  const [newUnit, setNewUnit] = createSignal("Pcs/Sachet");
-  const [newCategory, setNewCategory] = createSignal("Bumbu & Bahan Dapur");
-  let nextCustomId = 90_001;
-
-  // ── Item CRUD ──
-
-  const addProduct = (productId: number) => {
-    if (findIndex(productId) >= 0) {
-      return;
-    }
-    setItems(items.length, createBlankItem(productId));
-    setPickerOpen(false);
-    setPickerSearch("");
-    setShowCreateForm(false);
-  };
-
-  const patchItem = (productId: number, patch: Partial<LineItem>) => {
-    const idx = findIndex(productId);
-    if (idx < 0) {
-      return;
-    }
-    setItems(idx, patch);
-  };
-
-  const removeItem = (productId: number) => {
-    const idx = findIndex(productId);
-    if (idx < 0) {
-      return;
-    }
-    setItems(
-      produce((arr) => {
-        arr.splice(idx, 1);
-      })
-    );
-  };
-
-  // ── Derived state ──
-
-  const totalQty = createMemo(() => items.reduce((s, i) => s + i.qty, 0));
-
-  const totalCost = createMemo(() =>
-    items.reduce((s, i) => s + i.qty * i.costPrice, 0)
-  );
-
-  const canSave = createMemo(
-    () => items.length > 0 && supplier().trim().length > 0
-  );
-
-  // ── Bidirectional price ↔ subtotal sync ──
-  // Pass only CHANGED fields so SolidJS merges into existing proxy (not replace)
-  const handleCostPriceChange = (productId: number, value: number) => {
-    patchItem(productId, {
-      costPrice: value,
-      sourceField: "costPrice",
-      subtotalValue: 0,
-    });
-  };
-
-  const handleSubtotalChange = (productId: number, value: number) => {
-    const idx = findIndex(productId);
-    if (idx < 0) {
-      return;
-    }
-    const it = items[idx];
-    if (it.qty === 0) {
-      return;
-    }
-    patchItem(productId, {
-      costPrice: Math.round(value / it.qty),
-      sourceField: "subtotal",
-      subtotalValue: value,
-    });
-  };
-
-  const handleQtyChange = (productId: number, newQty: number) => {
-    const idx = findIndex(productId);
-    if (idx < 0) {
-      return;
-    }
-    const it = items[idx];
-    const patch: Partial<LineItem> = { qty: newQty };
-    if (it.sourceField === "subtotal" && newQty > 0) {
-      patch.costPrice = Math.round(it.subtotalValue / newQty);
-    }
-    patchItem(productId, patch);
-  };
-
-  // ── Product lookups ──
-
-  const findProduct = (id: number) =>
-    products.find((p) => p.id === id) ??
-    customProducts().find((p) => p.id === id);
-
-  const productName = (id: number) => findProduct(id)?.name ?? "—";
-  const productSku = (id: number) => findProduct(id)?.sku ?? "";
-  const productUnit = (id: number) => findProduct(id)?.unit ?? "";
-
-  // ── Picker filtering ──
-
-  const allProducts = () => [...products, ...customProducts()];
-
-  const isNotFound = createMemo(() => {
-    const q = pickerSearch().trim();
-    if (q.length === 0) {
-      return false;
-    }
-    const ql = q.toLowerCase();
-    return allProducts().every(
-      (p) =>
-        !(p.name.toLowerCase().includes(ql) || p.sku.toLowerCase().includes(ql))
-    );
-  });
-
-  const available = () => {
-    const q = pickerSearch().toLowerCase().trim();
-    return allProducts().filter(
-      (p) =>
-        !items.some((i) => i.productId === p.id) &&
-        (q.length === 0 ||
-          p.name.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q))
-    );
-  };
-
-  // ── Create bahan baku ──
-
-  const canCreate = createMemo(() => newName().trim().length > 0);
-
-  const handleCreate = () => {
-    const name = newName().trim();
-    if (!name) {
-      return;
-    }
-    const id = nextCustomId++;
-    const sku = `RAW-${String(id).slice(-3)}`;
-    setCustomProducts((prev) => [
-      ...prev,
-      { id, name, sku, unit: newUnit(), category: newCategory() },
-    ]);
-    addProduct(id);
-    setNewName("");
-    setNewUnit("Pcs/Sachet");
-    setNewCategory("Bumbu & Bahan Dapur");
-  };
-
-  // ── Save handler ──
-
-  const handleSave = () =>
-    props.onConfirm({
-      ref,
-      supplier: supplier().trim() || undefined,
-      note: po().trim() || undefined,
-      items: items.map((i) => ({
-        productId: i.productId,
-        qty: i.qty,
-        costPrice: i.costPrice,
-      })),
-    });
+  const form = useGoodsReceipt(ref);
 
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
@@ -235,7 +44,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
               </span>
               <input
                 class="h-10 rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-                onInput={(e) => setSupplier(e.currentTarget.value)}
+                onInput={(e) => form.setSupplier(e.currentTarget.value)}
                 placeholder="Toko Grosir Jaya"
                 type="text"
               />
@@ -247,7 +56,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
               </span>
               <input
                 class="h-10 rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-                onInput={(e) => setPo(e.currentTarget.value)}
+                onInput={(e) => form.setPo(e.currentTarget.value)}
                 placeholder="PO-2026-06-017"
                 type="text"
               />
@@ -264,7 +73,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
 
           <div class="space-y-2">
             <For
-              each={items}
+              each={form.items}
               fallback={
                 <div class="flex flex-col items-center gap-1 rounded-xl border border-border border-dashed py-12 text-center">
                   <p class="text-body-sm text-muted-foreground">
@@ -282,16 +91,17 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
                       <p class="font-semibold text-body-sm text-foreground">
-                        {productName(it.productId)}
+                        {form.productName(it.productId)}
                       </p>
                       <p class="mt-0.5 text-caption text-faint-foreground">
-                        {productSku(it.productId)} · Stok Sekarang:{" "}
-                        {currentStock(it.productId)} {productUnit(it.productId)}
+                        {form.productSku(it.productId)} · Stok Sekarang:{" "}
+                        {currentStock(it.productId)}{" "}
+                        {form.productUnit(it.productId)}
                       </p>
                     </div>
                     <button
                       class="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-caption text-danger transition-colors hover:bg-danger/10"
-                      onClick={() => removeItem(it.productId)}
+                      onClick={() => form.removeItem(it.productId)}
                       type="button"
                     >
                       <FiTrash2 class="h-3.5 w-3.5" />
@@ -301,28 +111,29 @@ export function TerimaReceive(props: TerimaReceiveProps) {
 
                   {/* Row 2: Qty + Price + Subtotal */}
                   <div class="mt-3 grid grid-cols-[130px_1fr_1fr] items-end gap-3">
-                    {/* Quantity stepper */}
                     <div class="flex flex-col gap-1">
                       <span class="font-medium text-caption text-muted-foreground">
                         Qty Beli
                       </span>
                       <QuantityStepper
-                        ariaLabel={`Qty ${productName(it.productId)}`}
+                        ariaLabel={`Qty ${form.productName(it.productId)}`}
                         editable
                         onDecrement={() =>
-                          handleQtyChange(it.productId, Math.max(1, it.qty - 1))
+                          form.handleQtyChange(
+                            it.productId,
+                            Math.max(1, it.qty - 1)
+                          )
                         }
                         onIncrement={() =>
-                          handleQtyChange(it.productId, it.qty + 1)
+                          form.handleQtyChange(it.productId, it.qty + 1)
                         }
                         onInput={(v) =>
-                          handleQtyChange(it.productId, Math.max(1, v))
+                          form.handleQtyChange(it.productId, Math.max(1, v))
                         }
                         value={it.qty}
                       />
                     </div>
 
-                    {/* Price input */}
                     <NumberField>
                       <NumberFieldLabel class="font-medium text-caption text-muted-foreground">
                         Harga Beli
@@ -332,10 +143,10 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                           Rp
                         </span>
                         <NumberFieldInput
-                          ariaLabel={`Harga beli ${productName(it.productId)}`}
+                          ariaLabel={`Harga beli ${form.productName(it.productId)}`}
                           class="h-9 w-full rounded-md border border-input bg-background pr-3 pl-8 text-right font-sans text-body-sm text-foreground tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
                           onChange={(v) =>
-                            handleCostPriceChange(it.productId, v)
+                            form.handleCostPriceChange(it.productId, v)
                           }
                           placeholder="0"
                           value={it.costPrice}
@@ -343,8 +154,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                       </div>
                     </NumberField>
 
-                    {/* Subtotal */}
-                    <NumberField class="items-end">
+                    <NumberField>
                       <NumberFieldLabel class="font-medium text-caption text-muted-foreground">
                         Subtotal
                       </NumberFieldLabel>
@@ -353,7 +163,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                           Rp
                         </span>
                         <NumberFieldInput
-                          ariaLabel={`Subtotal ${productName(it.productId)}`}
+                          ariaLabel={`Subtotal ${form.productName(it.productId)}`}
                           class={cn(
                             "h-9 w-full rounded-md border border-input bg-background pr-3 pl-8 text-right font-sans text-body-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus:border-primary",
                             displaySubtotal(it) > 0
@@ -361,7 +171,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                               : "text-faint-foreground"
                           )}
                           onChange={(v) =>
-                            handleSubtotalChange(it.productId, v)
+                            form.handleSubtotalChange(it.productId, v)
                           }
                           placeholder="0"
                           value={displaySubtotal(it)}
@@ -374,10 +184,9 @@ export function TerimaReceive(props: TerimaReceiveProps) {
             </For>
           </div>
 
-          {/* Add item button */}
           <button
             class="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-border border-dashed py-3 font-medium text-body-sm text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
-            onClick={() => setPickerOpen(true)}
+            onClick={() => form.setPickerOpen(true)}
             type="button"
           >
             <FiPlus class="h-4 w-4" />
@@ -394,13 +203,13 @@ export function TerimaReceive(props: TerimaReceiveProps) {
               <FiPackage class="h-3.5 w-3.5" />
               Total Kuantitas:{" "}
               <span class="font-semibold text-foreground">
-                {totalQty()} item
+                {form.totalQty()} item
               </span>
             </p>
             <p class="flex items-center gap-1 text-caption text-muted-foreground">
               <span>💰</span>Total Nilai Nota:{" "}
               <span class="font-semibold text-foreground tabular-nums">
-                {formatRupiah(totalCost())}
+                {formatRupiah(form.totalCost())}
               </span>
             </p>
           </div>
@@ -414,9 +223,9 @@ export function TerimaReceive(props: TerimaReceiveProps) {
               Batal
             </Button>
             <Button
-              disabled={!canSave()}
+              disabled={!form.canSave()}
               look="solid"
-              onClick={handleSave}
+              onClick={() => props.onConfirm(form.buildConfirmInput())}
               tone="primary"
               type="button"
             >
@@ -429,13 +238,13 @@ export function TerimaReceive(props: TerimaReceiveProps) {
       {/* ── Product picker sheet ── */}
       <Sheet
         onOpenChange={(open) => {
-          setPickerOpen(open);
+          form.setPickerOpen(open);
           if (!open) {
-            setShowCreateForm(false);
-            setPickerSearch("");
+            form.setShowCreateForm(false);
+            form.setPickerSearch("");
           }
         }}
-        open={pickerOpen()}
+        open={form.pickerOpen()}
         side="bottom"
       >
         {() => (
@@ -446,7 +255,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                   <div class="flex items-center gap-3 border-border border-b px-4 py-3">
                     <button
                       class="shrink-0 text-muted-foreground hover:text-foreground"
-                      onClick={() => setPickerOpen(false)}
+                      onClick={() => form.setPickerOpen(false)}
                       type="button"
                     >
                       <FiX class="h-5 w-5" />
@@ -460,7 +269,9 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                       <FiSearch class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <input
                         class="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-body-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
-                        onInput={(e) => setPickerSearch(e.currentTarget.value)}
+                        onInput={(e) =>
+                          form.setPickerSearch(e.currentTarget.value)
+                        }
                         placeholder="Cari nama atau SKU..."
                         type="text"
                       />
@@ -469,64 +280,80 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                   <div class="max-h-[50vh] overflow-y-auto">
                     <Show
                       fallback={
-                        <For
-                          each={available()}
-                          fallback={
-                            <p class="px-4 py-8 text-center text-body-sm text-muted-foreground">
-                              Semua produk sudah ditambahkan
-                            </p>
-                          }
-                        >
-                          {(p) => {
-                            const isCustom = () =>
-                              customProducts().some((c) => c.id === p.id);
-                            return (
+                        <div class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+                          <p class="text-body-sm text-muted-foreground">
+                            Belum ada bahan baku atau produk retail.
+                          </p>
+                          <Button
+                            look="solid"
+                            onClick={() => form.setShowCreateForm(true)}
+                            tone="primary"
+                            type="button"
+                          >
+                            <FiPlus class="h-4 w-4" /> Tambah Bahan Baku Baru
+                          </Button>
+                        </div>
+                      }
+                      when={form.hasPickableItems()}
+                    >
+                      <Show
+                        fallback={
+                          <For
+                            each={form.available()}
+                            fallback={
+                              <p class="px-4 py-8 text-center text-body-sm text-muted-foreground">
+                                Semua bahan sudah ditambahkan
+                              </p>
+                            }
+                          >
+                            {(p) => (
                               <button
                                 class="flex w-full items-center justify-between border-border border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted"
-                                onClick={() => addProduct(p.id)}
+                                onClick={() => form.addProduct(p.id)}
                                 type="button"
                               >
                                 <p class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
-                                  {isCustom() ? "🥕" : "🛒"} {p.name}{" "}
+                                  {p.isIngredient ? "🥕" : "🛒"} {p.name}{" "}
                                   <span class="text-faint-foreground">
                                     ({p.sku})
                                   </span>
                                 </p>
                                 <FiPlus class="ml-3 h-5 w-5 shrink-0 text-primary" />
                               </button>
-                            );
-                          }}
-                        </For>
-                      }
-                      when={isNotFound()}
-                    >
-                      <div class="flex flex-col items-center gap-3 px-4 py-8 text-center">
-                        <p class="text-body-sm text-muted-foreground">
-                          ⚠️ &ldquo;{pickerSearch().trim()}&rdquo; belum ada di
-                          database Inventory Anda.
-                        </p>
-                        <button
-                          class="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 font-medium text-body-sm text-primary-foreground transition-colors hover:bg-primary-hover"
-                          onClick={() => {
-                            setNewName(pickerSearch().trim());
-                            setShowCreateForm(true);
-                          }}
-                          type="button"
-                        >
-                          <FiPlus class="h-4 w-4" /> Daftarkan sebagai Bahan
-                          Baku Baru
-                        </button>
-                      </div>
+                            )}
+                          </For>
+                        }
+                        when={form.isNotFound()}
+                      >
+                        <div class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+                          <p class="text-body-sm text-muted-foreground">
+                            ⚠️ &ldquo;{form.pickerSearch().trim()}&rdquo; belum
+                            ada di database Inventory Anda.
+                          </p>
+                          <Button
+                            look="solid"
+                            onClick={() => {
+                              form.setNewName(form.pickerSearch().trim());
+                              form.setShowCreateForm(true);
+                            }}
+                            tone="primary"
+                            type="button"
+                          >
+                            <FiPlus class="h-4 w-4" /> Daftarkan sebagai Bahan
+                            Baku Baru
+                          </Button>
+                        </div>
+                      </Show>
                     </Show>
                   </div>
                 </>
               }
-              when={showCreateForm()}
+              when={form.showCreateForm()}
             >
               <div class="flex items-center gap-3 border-border border-b px-4 py-3">
                 <button
                   class="shrink-0 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => form.setShowCreateForm(false)}
                   type="button"
                 >
                   <FiX class="h-5 w-5" />
@@ -542,10 +369,10 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                   </span>
                   <input
                     class="h-10 rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-                    onInput={(e) => setNewName(e.currentTarget.value)}
+                    onInput={(e) => form.setNewName(e.currentTarget.value)}
                     placeholder="Contoh: Nescafe Sachet / Cabai Rawit"
                     type="text"
-                    value={newName()}
+                    value={form.newName()}
                   />
                 </label>
                 <div class="flex flex-col gap-1">
@@ -558,11 +385,11 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                         <button
                           class={cn(
                             "rounded-full px-3 py-1.5 font-medium text-caption transition-colors",
-                            newUnit() === u
+                            form.newUnit() === u
                               ? "bg-primary text-primary-foreground"
                               : "border border-border text-muted-foreground hover:border-primary/50"
                           )}
-                          onClick={() => setNewUnit(u)}
+                          onClick={() => form.setNewUnit(u)}
                           type="button"
                         >
                           {u}
@@ -578,7 +405,7 @@ export function TerimaReceive(props: TerimaReceiveProps) {
                   </span>
                   <select
                     class="h-10 rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors focus:border-primary"
-                    onInput={(e) => setNewCategory(e.currentTarget.value)}
+                    onInput={(e) => form.setNewCategory(e.currentTarget.value)}
                   >
                     <option value="Bumbu & Bahan Dapur">
                       Bumbu & Bahan Dapur
@@ -592,16 +419,16 @@ export function TerimaReceive(props: TerimaReceiveProps) {
               <div class="flex items-center justify-end gap-2 border-border border-t px-4 py-3">
                 <Button
                   look="ghost"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => form.setShowCreateForm(false)}
                   tone="neutral"
                   type="button"
                 >
                   Batal
                 </Button>
                 <Button
-                  disabled={!canCreate()}
+                  disabled={!form.canCreate()}
                   look="solid"
-                  onClick={handleCreate}
+                  onClick={form.handleCreate}
                   tone="primary"
                   type="button"
                 >

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { recordMovements, resetInventoryStore } from "../store";
-import { listReceipts, nextReceiptNumber, receiptRef } from "../terima";
+import {
+  recordMovements,
+  resetInventoryStore,
+} from "../../components/lib/store";
+import { listReceipts, nextReceiptNumber, receiptRef } from "../receipts";
 
 describe("terima helpers", () => {
   it("receiptRef pads to 4 digits", () => {

@@ -1,16 +1,16 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { categories, products } from "~/lib/data/catalog";
+import { cn, formatRupiah } from "~/lib/utils";
+import { currentStock } from "../../components/lib/store";
 import {
-  nextOpnameNumber,
-  opnameRef,
+  nextStocktakeNumber,
+  stocktakeRef,
   type VarianceRow,
   varianceRows,
   varianceValue,
-} from "~/lib/inventory/opname";
-import { currentStock } from "~/lib/inventory/store";
-import { cn, formatRupiah } from "~/lib/utils";
+} from "../../components/stocktake-tab/stocktake";
 
-export interface OpnameCountProps {
+export interface StocktakeCountProps {
   readonly onCancel: () => void;
   readonly onConfirm: (
     ref: string,
@@ -46,9 +46,9 @@ function focusNextInput(current: HTMLInputElement) {
   (next ?? all[idx + 1])?.focus();
 }
 
-export function OpnameCount(props: OpnameCountProps) {
-  const opnum = nextOpnameNumber();
-  const ref = opnameRef(opnum);
+export function StocktakeCount(props: StocktakeCountProps) {
+  const opnum = nextStocktakeNumber();
+  const ref = stocktakeRef(opnum);
 
   const [activeCat, setActiveCat] = createSignal<string>("all");
   const [counts, setCounts] = createSignal<Record<number, number | null>>({});

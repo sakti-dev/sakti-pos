@@ -81,6 +81,18 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
         exit: "/catalog",
         type: "parallax",
       }),
+
+      // Inventory → form sub-pages (full-screen drill-in)
+      drill({
+        enter: "/inventory/stocktake/*",
+        exit: "/inventory",
+        type: "parallax",
+      }),
+      drill({
+        enter: "/inventory/goods-receipt/*",
+        exit: "/inventory",
+        type: "parallax",
+      }),
     ],
   };
 }

@@ -8,7 +8,7 @@ import {
   SettingsIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
-import type { NavKey } from "./sidebar";
+import type { NavKey } from "~/lib/shell-config";
 
 /* ── Design parameters ───────────────────────────────────────────── */
 const BAR_HEIGHT = 64;

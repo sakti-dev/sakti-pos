@@ -1,11 +1,11 @@
 import { products } from "~/lib/data/catalog";
-import { currentStock, getMovements } from "./store";
-import type { Movement } from "./types";
+import { currentStock, getMovements } from "../lib/store";
+import type { Movement } from "../lib/types";
 
 const OPN_RE = /^OPN-(\d+)$/;
 
-/** Next opname sequence number, derived from existing refs. */
-export function nextOpnameNumber(): number {
+/** Next stocktake sequence number, derived from existing refs. */
+export function nextStocktakeNumber(): number {
   let max = 0;
   for (const m of getMovements()) {
     const match = m.ref?.match(OPN_RE);
@@ -16,11 +16,11 @@ export function nextOpnameNumber(): number {
   return max + 1;
 }
 
-export function opnameRef(n: number): string {
+export function stocktakeRef(n: number): string {
   return `OPN-${String(n).padStart(3, "0")}`;
 }
 
-export interface OpnameSummary {
+export interface StocktakeSummary {
   readonly createdAt: number;
   readonly itemCount: number; // distinct products counted
   readonly movements: Movement[];
@@ -28,8 +28,8 @@ export interface OpnameSummary {
   readonly ref: string;
 }
 
-/** Past opnames, newest-first, grouped by OPN-### ref. */
-export function listOpnames(): OpnameSummary[] {
+/** Past stocktakes, newest-first, grouped by OPN-### ref. */
+export function listStocktakes(): StocktakeSummary[] {
   const map = new Map<string, Movement[]>();
   for (const m of getMovements()) {
     if (m.type !== "stocktake" || !m.ref) {

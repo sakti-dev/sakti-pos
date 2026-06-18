@@ -1,19 +1,19 @@
 import { useNavigate } from "@solidjs/router";
 import { toast } from "solid-sonner";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
-import { recordMovements } from "~/lib/inventory/store";
-import { OpnameCount } from "../components/opname-count";
+import { recordMovements } from "../components/lib/store";
+import { StocktakeCount } from "./components/stocktake-count";
 
-export default function InventoryOpnameNewPage() {
+export default function StocktakePage() {
   const navigate = useNavigate();
   return (
     <SubPageShell
-      backHref="/inventory?tab=opname"
-      data-ssgoi-transition="/inventory/opname/new"
+      backHref="/inventory?tab=stocktake"
+      data-ssgoi-transition="/inventory/stocktake/new"
       title="Stock Opname"
     >
-      <OpnameCount
-        onCancel={() => navigate("/inventory?tab=opname")}
+      <StocktakeCount
+        onCancel={() => navigate("/inventory?tab=stocktake")}
         onConfirm={(ref, reason, rows) => {
           // Only items with non-zero variance produce movements.
           const meaningful = rows.filter((r) => r.diff !== 0);
@@ -29,7 +29,7 @@ export default function InventoryOpnameNewPage() {
             );
           }
           toast.success(`${ref} tersimpan`);
-          navigate("/inventory?tab=opname");
+          navigate("/inventory?tab=stocktake");
         }}
       />
     </SubPageShell>

@@ -1,19 +1,19 @@
 import { useNavigate } from "@solidjs/router";
 import { toast } from "solid-sonner";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
-import { recordMovements } from "~/lib/inventory/store";
-import { TerimaReceive } from "../components/terima-receive";
+import { recordMovements } from "../components/lib/store";
+import { GoodsReceiptForm } from "./goods-receipt-form";
 
-export default function InventoryTerimaNewPage() {
+export default function GoodsReceiptPage() {
   const navigate = useNavigate();
   return (
     <SubPageShell
-      backHref="/inventory?tab=terima"
-      data-ssgoi-transition="/inventory/terima/new"
+      backHref="/inventory?tab=goods-receipt"
+      data-ssgoi-transition="/inventory/goods-receipt/new"
       title="Penerimaan Barang Baru"
     >
-      <TerimaReceive
-        onCancel={() => navigate("/inventory?tab=terima")}
+      <GoodsReceiptForm
+        onCancel={() => navigate("/inventory?tab=goods-receipt")}
         onConfirm={({ ref, supplier, note, items }) => {
           recordMovements(
             items.map((i) => ({
@@ -27,7 +27,7 @@ export default function InventoryTerimaNewPage() {
             }))
           );
           toast.success(`${ref} tersimpan`);
-          navigate("/inventory?tab=terima");
+          navigate("/inventory?tab=goods-receipt");
         }}
       />
     </SubPageShell>
