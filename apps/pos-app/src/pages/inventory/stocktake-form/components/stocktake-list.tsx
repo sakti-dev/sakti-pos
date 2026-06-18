@@ -9,7 +9,7 @@ export function StocktakeList(props: { state: StocktakeState }) {
   const s = () => props.state;
 
   return (
-    <div class="scrollbar-none block h-full overflow-y-auto md:hidden">
+    <div class="block px-4 md:hidden">
       <For each={s().filteredItems()}>
         {(p) => {
           const system = () => currentStock(p.id);

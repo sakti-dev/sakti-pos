@@ -10,7 +10,7 @@ export function StocktakeTable(props: { state: StocktakeState }) {
   const s = () => props.state;
 
   return (
-    <div class="@container scrollbar-none hidden h-full overflow-y-auto rounded-lg border border-border md:block">
+    <div class="@container scrollbar-none hidden md:block">
       <table class="w-full table-fixed border-separate border-spacing-0">
         <colgroup>
           <col />
@@ -20,16 +20,16 @@ export function StocktakeTable(props: { state: StocktakeState }) {
         </colgroup>
         <thead>
           <tr class="sticky top-0 z-10">
-            <th class="border-sage border-b-2 bg-card px-4 py-2.5 text-left font-semibold text-body-sm text-foreground">
+            <th class="border-sage border-b-2 bg-card px-4 pt-3 pb-2.5 text-left font-semibold text-body-sm text-foreground">
               Nama Barang
             </th>
-            <th class="border-sage border-b-2 bg-card px-3 py-2.5 text-center font-semibold text-body-sm text-foreground">
+            <th class="border-sage border-b-2 bg-card px-3 pt-3 pb-2.5 text-center font-semibold text-body-sm text-foreground">
               Stok Tercatat
             </th>
-            <th class="border-sage border-b-2 bg-card px-3 py-2.5 text-center font-semibold text-body-sm text-foreground">
+            <th class="border-sage border-b-2 bg-card px-3 pt-3 pb-2.5 text-center font-semibold text-body-sm text-foreground">
               Hasil Hitung
             </th>
-            <th class="border-sage border-b-2 bg-card px-3 py-2.5 text-center font-semibold text-body-sm text-foreground">
+            <th class="border-sage border-b-2 bg-card px-3 pt-3 pb-2.5 text-center font-semibold text-body-sm text-foreground">
               Selisih
             </th>
           </tr>
