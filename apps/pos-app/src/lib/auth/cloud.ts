@@ -149,6 +149,15 @@ export function getGoogleOAuthUrl(): string {
   return `${API_URL}/api/auth/google`;
 }
 
+export async function exchangeGoogleOAuthCode(
+  code: string
+): Promise<{ sessionToken: string; user: ApiUser }> {
+  const result = throwIfError(
+    await eden.api.auth.google.exchange.post({ code })
+  );
+  return result as { sessionToken: string; user: ApiUser };
+}
+
 export async function getMerchants(): Promise<SessionMerchant[]> {
   const result = throwIfError(await eden.api.merchants.list.post());
   return result.merchants;

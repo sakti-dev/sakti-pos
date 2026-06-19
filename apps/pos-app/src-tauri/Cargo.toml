@@ -21,6 +21,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
 tauri-plugin-deep-link = "2.0.0"
+tauri-plugin-single-instance = "2"
 tauri-plugin-image-pipeline = { path = "../../../vendor/tauri-plugin-image-pipeline" }
 tauri-plugin-dialog = { path = "../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog" }
 serde = { version = "1", features = ["derive"] }

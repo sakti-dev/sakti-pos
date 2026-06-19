@@ -42,6 +42,14 @@ export const userSessions = sqliteTable("user_sessions", {
 
 export const syncBatchRequests = createSyncBatchRequestsTable();
 
+export const tempOAuthCodes = sqliteTable("temp_oauth_codes", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  payload: text("payload").notNull(),
+  createdAt: integer("created_at").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});
+
 /* biome-ignore lint/performance/noBarrelFile: keep API synced schema exports centralized for generator imports */
 export {
   assets,

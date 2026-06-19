@@ -1,6 +1,11 @@
-import { merchants, userMerchants, users } from "@sync-contract/api-schema";
+import {
+  merchants,
+  tempOAuthCodes,
+  userMerchants,
+  users,
+} from "@sync-contract/api-schema";
 import type { OAuth2Tokens } from "arctic";
-import { eq } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { narvik } from "../lib/auth";
@@ -18,7 +23,11 @@ import {
   requireEmail,
   requireNonEmptyString,
 } from "../lib/validation";
-import { AuthLoginRequest, AuthRegisterRequest } from "./auth.model";
+import {
+  AuthLoginRequest,
+  AuthRegisterRequest,
+  GoogleExchangeRequest,
+} from "./auth.model";
 
 const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_HASH_LENGTH = 256;
@@ -29,6 +38,15 @@ const DUMMY_HASH =
 
 const GOOGLE_STATE_COOKIE = "google_oauth_state";
 const GOOGLE_CODE_VERIFIER_COOKIE = "google_oauth_code_verifier";
+const OAUTH_CODE_TTL_SECONDS = 60;
+const DEEP_LINK_SCHEME = "sakti-pos-dev";
+
+function generateOpaqueCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -346,15 +364,66 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
     const { token } = await narvik.createSession(userId);
     setCookies(set, [
-      createSessionCookie(token),
       createDeleteCookieString(GOOGLE_STATE_COOKIE),
       createDeleteCookieString(GOOGLE_CODE_VERIFIER_COOKIE),
     ]);
 
-    return new Response(
-      `<!DOCTYPE html><html><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:system-ui;margin:0"><div style="text-align:center"><h2>Login berhasil</h2><p>Anda bisa menutup halaman ini dan kembali ke aplikasi.</p></div></body></html>`,
-      {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
+    const opaqueCode = generateOpaqueCode();
+    const now = Math.floor(Date.now() / 1000);
+    await db.insert(tempOAuthCodes).values({
+      id: opaqueCode,
+      userId,
+      payload: JSON.stringify({
+        sessionToken: token,
+        user: { id: userId, email: googleEmail, name: googleName },
+      }),
+      createdAt: now,
+      expiresAt: now + OAUTH_CODE_TTL_SECONDS,
+    });
+
+    const deepLinkUrl = `${DEEP_LINK_SCHEME}://auth?code=${opaqueCode}`;
+    set.headers["content-type"] = "text/html; charset=utf-8";
+
+    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Menghubungkan ke Sakti POS</title></head><body style="margin:0;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-align:center;"><div style="background-color:#ffffff;padding:32px;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.1);max-width:360px;width:100%;border:1px solid #f3f4f6;"><h2 style="margin:0 0 8px 0;font-size:20px;font-weight:700;color:#111827;">Login Berhasil!</h2><p style="margin:0 0 24px 0;font-size:14px;color:#6b7280;line-height:1.5;">Mengalihkan kembali ke aplikasi kasir...</p><a href="${deepLinkUrl}" style="display:inline-block;box-sizing:border-box;width:100%;padding:14px;background-color:#2563eb;color:#ffffff;font-weight:500;border-radius:12px;text-decoration:none;">Hubungkan ke Aplikasi Kasir</a></div><script>window.location.href="${deepLinkUrl}";setTimeout(function(){window.close()},5000)</script></body></html>`;
+  })
+  .post(
+    "/google/exchange",
+    async ({ body, set }) => {
+      const code = body.code;
+      if (!code || typeof code !== "string") {
+        set.status = 400;
+        return { error: "Missing code" };
       }
-    );
-  });
+
+      const now = Math.floor(Date.now() / 1000);
+      await db
+        .delete(tempOAuthCodes)
+        .where(lt(tempOAuthCodes.expiresAt, now))
+        .execute();
+
+      const [row] = await db
+        .select()
+        .from(tempOAuthCodes)
+        .where(eq(tempOAuthCodes.id, code))
+        .limit(1);
+
+      if (!row || row.expiresAt < now) {
+        set.status = 401;
+        return { error: "Invalid or expired authorization code" };
+      }
+
+      await db
+        .delete(tempOAuthCodes)
+        .where(eq(tempOAuthCodes.id, code))
+        .execute();
+
+      const payload = JSON.parse(row.payload);
+      return {
+        sessionToken: payload.sessionToken,
+        user: payload.user,
+      };
+    },
+    {
+      body: GoogleExchangeRequest,
+    }
+  );

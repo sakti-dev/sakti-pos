@@ -1,4 +1,5 @@
 import { useNavigate } from "@solidjs/router";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { createSignal } from "solid-js";
 import {
   type CurrentCloudStaff,
@@ -153,7 +154,7 @@ export function useCloudAuthFlow() {
   };
 
   const handleGoogle = () => {
-    window.open(getGoogleOAuthUrl(), "_blank", "noopener");
+    openUrl(getGoogleOAuthUrl());
   };
 
   return {

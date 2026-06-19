@@ -38,6 +38,10 @@ export const LogoutResponse = t.Object({
   success: t.Boolean(),
 });
 
+export const GoogleExchangeRequest = t.Object({
+  code: t.String(),
+});
+
 export type ApiUser = typeof ApiUser.static;
 export type SessionMerchant = typeof SessionMerchant.static;
 export type AuthRegisterRequest = typeof AuthRegisterRequest.static;
