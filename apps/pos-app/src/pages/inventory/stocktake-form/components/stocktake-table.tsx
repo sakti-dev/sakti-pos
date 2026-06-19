@@ -72,6 +72,7 @@ export function StocktakeTable(props: { state: StocktakeState }) {
                     <div class="flex items-center gap-1.5">
                       <QuantityStepper
                         ariaLabel={p.name}
+                        class="w-full"
                         editable
                         onDecrement={() => s().decrement(p.id)}
                         onIncrement={() => s().increment(p.id)}

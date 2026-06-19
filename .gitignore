@@ -57,6 +57,7 @@ docs/external/
 .codex/
 .omp/
 .pi/
+.codeep/
 .commandcode/
 graphify-out
 .graphifyignore

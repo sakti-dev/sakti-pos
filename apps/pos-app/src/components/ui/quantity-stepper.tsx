@@ -33,7 +33,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
   return (
     <div
       class={cn(
-        "flex w-full shrink-0 items-center overflow-hidden rounded-md border border-border",
+        "flex shrink-0 items-center overflow-hidden rounded-md border border-border",
         props.class
       )}
     >
@@ -47,7 +47,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
       </button>
       <Show
         fallback={
-          <span class="grid h-9 min-w-0 flex-1 place-items-center border-border border-x bg-muted px-1 text-center font-semibold text-[13px] text-faint-foreground tabular-nums">
+          <span class="grid h-9 min-w-7 flex-1 place-items-center border-border border-x bg-muted px-1 text-center font-semibold text-[13px] text-faint-foreground tabular-nums">
             {props.value === undefined
               ? (props.placeholder ?? "")
               : String(props.value)}
@@ -57,7 +57,7 @@ export const QuantityStepper = (props: QuantityStepperProps) => {
       >
         <input
           aria-label={props.ariaLabel}
-          class="h-9 min-w-0 flex-1 border-border border-x bg-muted text-center font-semibold text-[13px] text-foreground tabular-nums outline-none focus:bg-primary/5"
+          class="h-9 min-w-7 flex-1 border-border border-x bg-muted text-center font-semibold text-[13px] text-foreground tabular-nums outline-none focus:bg-primary/5"
           onBlur={(e) => commit(e.currentTarget.value)}
           onFocus={(e) => e.currentTarget.select()}
           onInput={(e) => setText(e.currentTarget.value)}

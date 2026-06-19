@@ -117,6 +117,7 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                       </span>
                       <QuantityStepper
                         ariaLabel={`Qty ${form.productName(it.productId)}`}
+                        class="w-full"
                         editable
                         onDecrement={() =>
                           form.handleQtyChange(
