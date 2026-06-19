@@ -1,7 +1,3 @@
-# Agent Instructions
-
-Detailed project instructions live in `.agents/instructions/`. This file is the compact root summary.
-
 ## Code Standards
 
 - Use Ultracite/Biome for formatting and linting:
@@ -21,7 +17,7 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 - TypeScript logs must use `apps/pos-app/src/lib/logger.ts`.
 - Rust logs should use the `log` crate routed through `tauri-plugin-log`; use the project Rust helper/macro when available.
 - Use stable `[ORIGIN] [DOMAIN:ACTION]` prefixes and include matching `adb logcat` commands when adding investigation logs.
-- Before suggesting log filters or investigation commands, read `docs/knowledge/APP-LOGGING-DOCS.md` so the prefixes match the documented app logs for the issue being investigated.
+- Before suggesting log filters or investigation commands, read `openspec/APP-LOGGING-DOCS.md` so the prefixes match the documented app logs for the issue being investigated.
 - Prefer PID-scoped logcat for app debugging. The useful boundary is the app process, not Android tags; JS logs often appear under a blank tag and Rust logs may appear under module tags, so grep the structured message prefix.
 - For Android log investigations, use `logs/capture-adb-logcat.sh` by default. It clears `adb logcat` first and writes the filtered capture to `logs/app.log`.
 - When a fix or feature implementation is finished, it is MANDATORY to update `LOG_FILTER` in `logs/capture-adb-logcat.sh` for that exact path before handing the change to the user for testing.
@@ -30,38 +26,9 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 - Use two standard patterns:
   - Normal app investigation: `PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -v brief --pid="$PID" | grep --line-buffered -iE '\[(JS|RUST)\] \[(PHOTO|ASSET|SYNC|DB|UI|PRINTER|AUTH|POS|SETTINGS):|pending_asset_preview|enqueue_asset_processing|product_image_link|resolve_cached_image'`
   - Crash or native investigation: add `AndroidRuntime|libc|fatal|exception|crash` to the same PID-scoped command.
-- When implementing a feature or fix that adds a new log prefix, update `docs/knowledge/APP-LOGGING-DOCS.md` in the same change so future investigations can find it.
-- Current prefix taxonomy: `docs/knowledge/APP-LOGGING-DOCS.md`.
+- When implementing a feature or fix that adds a new log prefix, update `openspec/APP-LOGGING-DOCS.md` in the same change so future investigations can find it.
+- Current prefix taxonomy: `openspec/APP-LOGGING-DOCS.md`.
 - Throw descriptive `Error` objects, do not catch only to rethrow, and prefer early returns over nested error handling.
-
-## ADR Rules
-
-- Architecture decisions live in `docs/adr/` as a flat chronological list. Do not create domain folders for ADRs.
-- When instructed to write an ADR, check `docs/adr/` for the next available number and create `000N-short-kebab-title.md`.
-- Every ADR must include Markdown frontmatter with `id`, `title`, `date`, `status`, and `domains`.
-- Use the standard sections: `Context`, `Decision`, and `Consequences`.
-- Use `status: accepted` for active decisions unless the user says otherwise. Do not delete old ADRs; mark them `deprecated` or `superseded`.
-- Keep operational references such as log prefix inventories in `docs/knowledge/`, and link them from ADRs when relevant.
-
-## Sync Schema
-
-- Before adding or updating Drizzle schema fields that may sync between API and POS app, read `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
-- Do not hand-edit sync protobuf runtime artifacts for durable changes. Update the Drizzle schema, sync manifest, or generator writers, then run `bun run generate:sync-proto:write`.
-- Money fields must use explicit `MinorUnits` Drizzle property names and `_minor_units` SQLite columns. Do not keep aliases for hidden-unit names once the schema is cut over.
-- Sync now uses the published `baresync` plugin (npm + crates.io). All sync logic flows through `baresync/server/drizzle`, `baresync/server`, `baresync/tauri`, and `baresync/db`.
-- API validation uses TypeBox (`t`) schemas in `*.model.ts` files. Client uses Eden Treaty for fully typed API calls.
-- For synced column/table changes, run `bun run sync-proto:check` and the focused API/Rust sync tests listed in `docs/knowledge/SYNC-TYPED-PROTOBUF-GENERATOR.md`.
-
-## Cloudflare Workers
-
-- For Workers, KV, R2, D1, Durable Objects, Queues, Vectorize, Workers AI, or Agents SDK work, fetch current Cloudflare docs first. Local knowledge may be stale.
-- Use product-specific docs and `/platform/limits/` pages for limits and quotas.
-- Common commands:
-  - `npx wrangler dev`
-  - `npx wrangler deploy`
-  - `npx wrangler types`
-- Run `wrangler types` after changing bindings in `wrangler.jsonc`.
-- For CPU/memory errors such as 1102, verify current limits from Cloudflare docs.
 
 ## Git Safety
 
@@ -75,7 +42,7 @@ Detailed project instructions live in `.agents/instructions/`. This file is the 
 When completing a feature, bug fix, or refactor, include a concise Verification Guide with:
 
 - Manual UI steps: exact screens and actions to exercise the change.
-- Log checks: exact `adb logcat` or `grep` commands for relevant `[DOMAIN:ACTION]` prefixes from `docs/DOCUMENTED-LOG-PREFIX.md`.
+- Log checks: exact `adb logcat` or `grep` commands for relevant `[DOMAIN:ACTION]` prefixes from `openspec/DOCUMENTED-LOG-PREFIX.md`.
 - State/database checks: SQLite, Turso, or MCP commands when state changes.
 - Automated tests: specific scoped `bun test`, `cargo test`, or other commands for touched behavior.
 - Edge cases: one or two realistic production failure modes and how to simulate them locally.
