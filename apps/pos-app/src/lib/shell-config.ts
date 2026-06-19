@@ -18,6 +18,7 @@ const FLOW_ROUTES: RegExp[] = [
   /^\/catalog$/,
   /^\/catalog\/(product|variant|category)\//,
   /^\/inventory\/(stocktake|goods-receipt|history)(?:\/.*)?$/,
+  /^\/onboarding(?:\/.*)?$/,
   /^\/transactions\/cash-register/,
   /^\/transactions\/payment/,
   /^\/transactions\/receipt/,

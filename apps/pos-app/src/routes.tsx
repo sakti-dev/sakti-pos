@@ -22,6 +22,7 @@ import InventoryPage from "./pages/inventory";
 import GoodsReceiptPage from "./pages/inventory/goods-receipt";
 import HistoryPage from "./pages/inventory/history";
 import StocktakePage from "./pages/inventory/stocktake-form";
+import OnboardingPage from "./pages/onboarding";
 import SettingPage from "./pages/setting";
 import { SectionAbout } from "./pages/setting/components/section-about";
 import { SectionBusiness } from "./pages/setting/components/section-business";
@@ -100,6 +101,7 @@ export default function AppRoutes() {
       <Route component={LoginPage} path="/auth/login" />
       <Route component={RegisterPage} path="/auth/register" />
       <Route component={PinLoginPage} path="/auth/pin" />
+      <Route component={OnboardingPage} path="/onboarding" />
     </Router>
   );
 }

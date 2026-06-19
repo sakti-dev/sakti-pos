@@ -37,6 +37,20 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
       // Auth ↔ Auth: fade
       fade({ paths: [...AUTH_PATHS] }),
 
+      // Register → Onboarding: drill in as the next step of signup
+      drill({
+        enter: "/onboarding",
+        exit: "/auth/register",
+        type: "parallax",
+      }),
+
+      // Onboarding → Home: completing onboarding reveals the app shell
+      drill({
+        enter: "/",
+        exit: "/onboarding",
+        type: "parallax",
+      }),
+
       // Shell → Flow: drill in (any shell page → cash-register)
       drill({
         enter: "/transactions/cash-register",

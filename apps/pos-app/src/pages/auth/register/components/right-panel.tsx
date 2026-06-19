@@ -1,3 +1,4 @@
+import { useNavigate } from "@solidjs/router";
 import { createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { EyeClosedIcon, EyeOpenIcon } from "~/assets";
@@ -15,6 +16,7 @@ import { cn } from "~/lib/utils";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const RegisterRightPanel = () => {
+  const navigate = useNavigate();
   const [name, setName] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
@@ -49,6 +51,7 @@ export const RegisterRightPanel = () => {
     setTimeout(() => {
       setLoading(false);
       toast.success("Registrasi berhasil! Mengalihkan...");
+      navigate("/onboarding");
     }, 1800);
   }
 
