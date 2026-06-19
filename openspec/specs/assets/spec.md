@@ -8,93 +8,59 @@ The Assets domain manages the lifecycle of binary files (currently product photo
 
 ### R1: Asset Metadata Schema
 
-The system SHALL maintain an `assets` table with the following columns: `id`, `merchantId`, `objectKey`, `originalFilename`, `contentType`, `byteSize`, `contentHash`, `kind`, `width`, `height`, `status` (enum: `pending_upload`, `ready`, `failed`), and `createdByUserId`. The `assets` table SHALL be included in baresync between API and POS.
+The system SHALL maintain an `assets` table with the following columns: `id`, `merchantId`, `jobId`, `objectKey`, `originalFilename`, `contentType`, `byteSize`, `contentHash`, `kind`, `width`, `height`, `status` (enum: `pending`, `compressed`, `ready`, `failed`), and `createdByUserId`. The `assets` table SHALL be included in baresync between API and POS. The client owns the asset-row lifecycle; the API SHALL NOT insert, update, or otherwise write to the `assets` table.
 
 **WHEN** a new asset is created locally
-**THEN** it SHALL be inserted into the local `assets` table with `status = 'pending_upload'` and a corresponding outbox entry SHALL be created for sync.
+**THEN** the client SHALL insert the row into the local `assets` table with `status = 'pending'` and a corresponding outbox entry SHALL be created for sync.
+
+**WHEN** the plugin emits `image_pipeline://job_completed` for an asset
+**THEN** the client SHALL transition the row to `status = 'compressed'` (recording `contentHash`, `byteSize`, `width`, `height`) via a baresync `writeTransaction` with an enqueued change.
+
+**WHEN** the client has successfully PUT the compressed asset to object storage
+**THEN** the client SHALL transition the row to `status = 'ready'` (recording `objectKey`) via a baresync `writeTransaction` with an enqueued change.
 
 **WHEN** an asset row is synced from the API
 **THEN** the POS local database SHALL upsert the row by `id` without transferring binary file bytes.
 
-### R2: Asset Object Key and Deduplication
+### R2: Asset Object Key
 
-The system SHALL derive the `objectKey` from `{merchantId}/assets/{contentHash}`. The `contentHash` SHALL be the SHA-256 hex digest of the processed WebP bytes.
+The system SHALL derive the `objectKey` from `{merchantId}/assets/{assetId}`, where `{assetId}` is a UUIDv7. The client SHALL request a presigned PUT URL from the API for this key. The system SHALL NOT deduplicate assets on the API side.
 
-**WHEN** an asset with the same `merchantId` and `objectKey` already exists on the API
-**THEN** the API SHALL return the existing asset row without creating a duplicate, provided metadata matches.
+**WHEN** the client requests a presigned upload URL
+**THEN** the API SHALL derive the `objectKey` as `{merchantId}/assets/{assetId}` (using a UUIDv7 when the client does not supply an `assetId`).
 
-**WHEN** an asset with the same `objectKey` but conflicting metadata is requested
-**THEN** the API SHALL return HTTP 409.
+**WHEN** the API returns the presigned URL
+**THEN** the API SHALL NOT consult or write the `assets` table; object-key generation is collision-resistant by construction (UUIDv7) and requires no guard.
 
 ### R3: Image Picking
 
-The system SHALL provide a plugin-owned `pick_image` command through `tauri-plugin-image-pipeline`. It SHALL return a `PickImageResponse` containing `jobId`, `previewPath`, `previewMimeType`, and `status`.
+The system SHALL provide image picking through the vendored plugin `vendor/tauri-plugin-image-pipeline`. The plugin SHALL expose a `pick_image` command (plugin name `image-pipeline`) accepting a `PickImageRequest` (`{ compression: { maxLongEdge, previewMaxLongEdge, quality }, pickerMode }`) and returning a `PickImageResponse` (`{ jobId, previewPath, previewMimeType, stagedSourcePath }`).
 
-**WHEN** the user picks an image
-**THEN** the plugin SHALL open the native picker on the current platform, stage the selection into its own cache, and return a cache-local `previewPath` that the host app can render with `convertFileSrc()`.
+**WHEN** the client invokes `pick_image`
+**THEN** the plugin SHALL open the native picker on the current platform, stage the source file, generate a preview, and return the `jobId`, `previewPath`, `previewMimeType`, and `stagedSourcePath`. The plugin SHALL NOT compress the asset at pick time.
 
-**WHEN** the picker completes successfully
-**THEN** the plugin SHALL start background compression and emit `image_pipeline://job_completed` when the final asset is ready.
+**WHEN** the client needs to render the picked image before compression completes
+**THEN** the client SHALL convert `previewPath` via `convertFileSrc()` and render it.
 
-**WHEN** the picker or compression fails
-**THEN** the plugin SHALL emit `image_pipeline://job_failed` with diagnostic fields.
+The detailed behavior of the native picker, preview generation, and source staging is an internal concern of the plugin and is opaque to the application. The application depends only on the request/response contract above.
 
 ### R4: Image Processing
 
-The system SHALL process source images entirely in Rust using the `image` crate and `zenwebp`.
+The system SHALL process source images through the vendored plugin `vendor/tauri-plugin-image-pipeline`. The plugin SHALL expose a `compress_asset` command accepting a `CompressAssetRequest` (`{ assetId, jobId, stagedSourcePath, maxLongEdge, quality }`) and returning a `CompressAssetResponse` (`{ jobId }`). Upon success the plugin SHALL write the compressed file to its cache, emit `image_pipeline://job_completed` with `{ jobId, contentHash, byteSize, width, height, contentType, originalFilename }`, and delete the staged source and preview files.
 
-**WHEN** a source image is processed
-**THEN** the system SHALL:
-1. Read and decode the source bytes.
-2. Apply EXIF orientation correction for all 8 standard orientations.
-3. Resize the image so the longest edge is at most 400px (`MAX_LONG_EDGE`), using `FilterType::Triangle`. If the image already fits, no resize occurs.
-4. Encode to WebP at quality 75, method 6.
-5. Compute `contentHash` as SHA-256 of the WebP bytes.
-6. Return `width`, `height`, `byte_size`, `content_hash`, `content_type = "image/webp"`, and `data_base64`.
+**WHEN** the client invokes `compress_asset` for a staged source
+**THEN** the plugin SHALL compress the image, compute `contentHash`, and emit `image_pipeline://job_completed` with the resulting metadata.
 
-**WHEN** a pending preview is needed for immediate UI feedback
-**THEN** the system SHALL generate a JPEG preview at max 320px long edge, quality 75, and store it at `{source_dir}/pending_preview_{jobId}.jpg`.
+**WHEN** compression succeeds
+**THEN** the plugin SHALL write the compressed file (resolvable later via `get_asset_path`) and clean up the staged source and preview files.
 
-### R5: Pending Asset Processing Jobs
+**WHEN** the client needs to resolve a cached asset to a renderable URL
+**THEN** the client SHALL invoke `get_asset_path(assetId, jobId?)`, which returns `{ localPath, contentType }` for the compressed file if present, otherwise the preview, otherwise `null`; the client SHALL convert `localPath` via `convertFileSrc()`.
 
-The system SHALL maintain a `pending_asset_processing_jobs` table with columns: `id`, `merchantId`, `sourcePath`, `originalFilename`, `sourceMimeType`, `processingKind`, `entityType`, `entityId`, `attachmentField`, `previewPath`, `previewMimeType`, `status` (`pending` | `processing` | `failed`), `attempts`, `lastError`.
+**WHEN** the client needs to delete a cached asset file
+**THEN** the client SHALL invoke `delete_asset({ assetPath })`, which is idempotent.
 
-**WHEN** `enqueue_asset_processing` is called with a valid target and source path
-**THEN** the system SHALL insert a row into `pending_asset_processing_jobs` with `status = 'pending'`, generate a JPEG preview, and return the `jobId`.
-
-**WHEN** the source path is not under `product_photo_inputs`
-**THEN** the system SHALL reject the request with a `non_photo_input_path` error.
-
-**WHEN** the target is not in the supported allowlist
-**THEN** the system SHALL reject the request with an `Unsupported asset attachment target` error.
-
-**WHEN** `process_pending_asset_jobs` is called
-**THEN** the system SHALL claim up to `limit` jobs (default 20) with `status IN ('pending', 'failed')`, ordered by `created_at ASC`, and for each:
-1. Set `status = 'processing'` and increment `attempts`.
-2. Run `prepare_local_image_asset_from_path_inner` to process the image, write the cached file, insert the asset row, and insert the cache row.
-3. Link the asset to the target entity via `link_asset_to_attachment_target`.
-4. Delete the source file and preview file if they are in a deletable path.
-5. Delete the job row.
-6. Emit `asset-cache-ready` and `asset-attachment-ready` Tauri events.
-
-**WHEN** processing fails at any stage
-**THEN** the system SHALL set `status = 'failed'`, record `last_error`, and continue with the next job.
-
-**WHEN** the app starts
-**THEN** the system SHALL reset any jobs stuck in `processing` status back to `pending`.
-
-### R6: Local Asset Cache
-
-The system SHALL maintain a `local_asset_cache` table with columns: `assetId` (PK), `merchantId`, `objectKey`, `localPath`, `contentHash`, `status`, `uploadAttempts`, `downloadAttempts`, `lastError`, `cachedAt`.
-
-**WHEN** a local image asset is prepared
-**THEN** the system SHALL write the WebP bytes to a file under the app cache directory keyed by `objectKey`, and insert or update the `local_asset_cache` row.
-
-**WHEN** `get_cached_asset_path(assetId)` is called
-**THEN** the system SHALL query `local_asset_cache` joined with `assets` for `local_path` and `content_type`, verify the file exists on disk, and return the path or `null`.
-
-**WHEN** the file does not exist on disk despite a cache row existing
-**THEN** the system SHALL return `null`.
+The exact pipeline (decode, EXIF orientation, resize filter, WebP encoding parameters) is an internal concern of the plugin and is opaque to the application. The application depends only on the command contract and the completion event.
 
 ### R7: Image URL Resolution (Frontend)
 
@@ -118,42 +84,28 @@ The system SHALL maintain a static allowlist of supported attachment targets. Cu
 The system SHALL provide a `createAssetAdapter(config)` factory that creates a reactive adapter for a specific entity type and field.
 
 **WHEN** `startEventListeners` is called
-**THEN** the adapter SHALL subscribe to Tauri events `asset-cache-ready` and `asset-attachment-ready`, and increment the appropriate SolidJS store version counters.
+**THEN** the adapter SHALL subscribe to the baresync data-change event and increment the appropriate SolidJS store version counters.
 
 **WHEN** `useImageUrl(assetId, entityId)` is called
 **THEN** the adapter SHALL return a reactive accessor that resolves the cached image URL, falling back to a pending preview URL if available, and `null` otherwise.
 
-**WHEN** the adapter receives an `asset-attachment-ready` event
-**THEN** the adapter SHALL increment the domain catalog version for the entity type, triggering UI re-renders.
+**WHEN** the adapter receives a data-change invalidation for the entity type
+**THEN** the adapter SHALL increment the domain catalog version, triggering UI re-renders.
 
 ### R10: API Presign Upload
 
-The system SHALL expose `POST /api/assets/presign-upload` that accepts `merchantId`, `kind`, `contentType`, `contentHash`, `byteSize`, and optional `assetId`, `objectKey`, `originalFilename`, `width`, `height`.
+The system SHALL expose `POST /api/assets/presign-upload` that accepts `merchantId`, `contentType`, and optional `assetId`, `objectKey`. The endpoint is a pure presign service: it SHALL NOT read from or write to the `assets` table.
 
 **WHEN** the request is valid and the user has merchant access
-**THEN** the API SHALL:
-1. If an asset with the same `merchantId` + `objectKey` exists and is `ready`, return it with an empty `uploadUrl`.
-2. If an asset exists but is not `ready`, update it and return a presigned PUT URL.
-3. Otherwise, insert a new asset row with `status = 'pending_upload'` and return a presigned PUT URL.
-
-**WHEN** `byteSize <= 0`
-**THEN** the API SHALL return a `BadRequestError`.
+**THEN** the API SHALL derive the `objectKey` as `{merchantId}/assets/{assetId}` (using a UUIDv7 when `assetId` is absent), presign a PUT URL for that key, and return `{ uploadUrl, objectKey, requiredHeaders: [{ name: "Content-Type", value: contentType }] }`.
 
 **WHEN** the user lacks merchant access
 **THEN** the API SHALL return HTTP 403.
 
-### R11: API Complete Upload
-
-The system SHALL expose `POST /api/assets/complete-upload` that accepts `assetId`, `objectKey`, `contentHash`, and `byteSize`.
-
-**WHEN** the asset exists, metadata matches, and the user has merchant access
-**THEN** the API SHALL update the asset `status` to `ready` and return the updated asset.
-
-**WHEN** metadata does not match
+**WHEN** `merchantId` or `contentType` is missing or empty
 **THEN** the API SHALL return HTTP 400.
 
-**WHEN** the asset is not found
-**THEN** the API SHALL return HTTP 404.
+The endpoint SHALL NOT insert, update, deduplicate, or otherwise transition asset state. Asset-row lifecycle is owned by the client (see Asset Metadata Schema).
 
 ### R12: API Presign Download
 
@@ -165,29 +117,32 @@ The system SHALL expose `POST /api/assets/presign-download` that accepts `assetI
 **WHEN** the asset is not found
 **THEN** the API SHALL return HTTP 404.
 
-### R13: Upload Queue (Rust)
+### R13: Upload Queue
 
-The system SHALL provide an `upload_pending_assets` command that loads assets with `status = 'pending_upload'` for a merchant, uploads each to the presigned URL, and marks them `ready`.
+The system SHALL perform asset upload client-side. The client SHALL own the flow: request a presigned PUT URL from `/api/assets/presign-upload`, PUT the compressed bytes (resolved via `get_asset_path`) to the presigned URL, and transition the `assets` row to `status = 'ready'` via a baresync `writeTransaction` with an enqueued change.
 
-**WHEN** upload succeeds for an asset
-**THEN** the system SHALL call `complete-upload` on the API and update the local `assets` and `local_asset_cache` rows to `status = 'ready'`.
+**WHEN** the client runs the upload queue for a merchant
+**THEN** the client SHALL select rows with `status = 'compressed'` for that merchant and, for each, request a presigned URL, PUT the bytes to object storage, and mark the row `ready`.
 
-**WHEN** upload fails
-**THEN** the system SHALL increment `uploadAttempts` in `local_asset_cache`, record `lastError`, and leave the asset as `pending_upload` for retry.
+**WHEN** a presign request or the PUT fails
+**THEN** the client SHALL leave the row as `compressed` for retry and continue with the next asset.
 
-**NOTE:** The upload queue is currently stubbed out, returning an error message, pending baresync cutover.
+**WHEN** the client starts up with rows stuck at `status = 'pending'` (staged source already cleaned up, re-compression impossible)
+**THEN** the client SHALL transition them to `status = 'failed'` via a baresync `writeTransaction`.
 
-### R14: Asset Hydration (Rust)
+There SHALL be no Rust-side `upload_pending_assets` command; upload is a client responsibility.
 
-The system SHALL provide a `hydrate_missing_assets` command that downloads assets present in the synced `assets` table but missing from `local_asset_cache`.
+### R14: Asset Hydration
+
+The system SHALL hydrate missing local assets after sync completes.
 
 **WHEN** hydration is triggered (after sync completes)
-**THEN** the system SHALL for each missing asset: call `presign-download` on the API, download the file, write it to the local cache, and insert the `local_asset_cache` row.
+**THEN** the system SHALL, for each asset present in the synced `assets` table but missing from the local cache, download it from object storage via a presigned GET URL and resolve it through the plugin's cache.
 
 **WHEN** download fails
-**THEN** the system SHALL increment `downloadAttempts`, record `lastError`, and skip to the next asset.
+**THEN** the system SHALL record the error and skip to the next asset.
 
-**NOTE:** Hydration is currently stubbed out, returning an error message, pending baresync cutover.
+**NOTE:** Hydration is currently stubbed out (`Promise.resolve(0)`) in the client, pending implementation.
 
 ### R15: Sync Pipeline Order
 
@@ -218,16 +173,15 @@ The system SHALL provide a `createImageUpload(options)` factory that manages the
 
 ### R17: Asset Events
 
-The system SHALL emit Tauri events to notify the frontend of asset lifecycle changes.
+The system SHALL emit a single Tauri event from the plugin to notify the client of image-processing completion.
 
-**WHEN** an asset is cached locally
-**THEN** the system SHALL emit `asset-cache-ready` with `{ asset_id }`.
+**WHEN** `compress_asset` completes
+**THEN** the plugin SHALL emit `image_pipeline://job_completed` with `{ jobId, contentHash, byteSize, width, height, contentType, originalFilename }`.
 
-**WHEN** an asset is linked to an entity
-**THEN** the system SHALL emit `asset-attachment-ready` with `{ asset_id, entity_id, entity_type, field }`.
+**WHEN** the client receives `image_pipeline://job_completed`
+**THEN** the client SHALL update the matching `assets` row to `compressed` and trigger upload.
 
-**WHEN** the frontend receives these events
-**THEN** the adapter SHALL increment the appropriate version counters to trigger reactive re-renders.
+The system SHALL NOT emit `asset-cache-ready` or `asset-attachment-ready` events. UI re-render after an asset becomes available is driven by the existing baresync data-change invalidation path, not by dedicated asset events.
 
 ### R18: Presigned URL Security
 
