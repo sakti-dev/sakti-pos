@@ -32,6 +32,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_image_pipeline::init())
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             if let Some(url) = args.get(1) {
                 app::startup::route_deep_link(app, url);

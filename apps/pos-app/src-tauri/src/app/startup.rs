@@ -1,7 +1,7 @@
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use std::str::FromStr;
 use std::time::Duration;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 const DEEP_LINK_SCHEME: &str = "sakti-pos-dev";
 
@@ -9,7 +9,6 @@ pub fn route_deep_link(app: &tauri::AppHandle, url: &str) {
     if url.contains("sakti-pos-dev://auth") {
         if let Some(main_window) = app.get_webview_window("main") {
             let _ = main_window.emit("google-oauth-callback", url);
-            let _ = main_window.set_focus();
         }
     } else {
         // Route snapshot and other URLs to existing handlers
@@ -53,7 +52,6 @@ pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
                 .await
                 .map_err(|e| format!("Failed to connect to DB: {}", e))?;
 
-            let pool_for_jobs = pool.clone();
             handle.manage(crate::app::state::AppState { db_pool: pool });
 
             use tauri_plugin_deep_link::DeepLinkExt;
