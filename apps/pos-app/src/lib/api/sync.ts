@@ -1,6 +1,8 @@
 import type { SyncClient } from "baresync/tauri";
 import { createSignal } from "solid-js";
 import { API_URL } from "~/lib/api/eden";
+import { recoverAssets } from "~/lib/assets/recovery";
+import { uploadPendingAssets } from "~/lib/assets/upload";
 import { currentMerchantId, currentOutletId } from "~/lib/auth/session";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger, describeError } from "~/lib/utils";
@@ -66,19 +68,13 @@ export function formatSyncSuccessMessage(result: SyncNowResult): string {
   return `Sinkronisasi berhasil (${rows} diterima, ${sentTables} tabel dikirim, ${result.purged} dibersihkan)`;
 }
 
-// --- Asset pipeline (TODO: port lib/assets/* in a separate change) ---
-
-function uploadPendingAssets(
-  _merchantId: string,
-  _sessionToken: string
-): Promise<number> {
-  return Promise.resolve(0);
-}
+// --- Asset pipeline ---
+// `uploadPendingAssets` is imported from `~/lib/assets/upload`.
+// `recoverAssets` is imported from `~/lib/assets/recovery`.
+// `hydrateMissingAssets` stays stubbed until cloud→local image hydration is built
+// (no real implementation exists in src-old either).
 function hydrateMissingAssets(): Promise<number> {
   return Promise.resolve(0);
-}
-function recoverAssets(): Promise<void> {
-  return Promise.resolve();
 }
 
 async function uploadPendingProductImages(

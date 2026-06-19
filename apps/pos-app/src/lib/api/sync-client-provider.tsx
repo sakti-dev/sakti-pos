@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { createSyncClient } from "baresync/tauri";
 import { createEffect, onCleanup, type ParentComponent } from "solid-js";
 import { setSyncClient, setSyncStatus } from "~/lib/api/sync";
+import { startAssetLifecycleListener } from "~/lib/assets/lifecycle";
 import { scopeId } from "~/lib/auth/session";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger } from "~/lib/utils";
@@ -76,15 +77,25 @@ export const SyncClientProvider: ParentComponent = (props) => {
           syncProviderLogger.error("status_get_state_failed", err, {});
         }
       }),
+      // Asset lifecycle: transition assets to 'compressed' on
+      // image_pipeline://job_completed, then kick off upload.
+      startAssetLifecycleListener(),
     ]);
 
     pending.catch(() => undefined);
 
     onCleanup(async () => {
-      pending.then(([unlistenDataChanged, unlistenStatusChanged]) => {
-        unlistenDataChanged();
-        unlistenStatusChanged();
-      });
+      pending.then(
+        ([
+          unlistenDataChanged,
+          unlistenStatusChanged,
+          unlistenAssetLifecycle,
+        ]) => {
+          unlistenDataChanged();
+          unlistenStatusChanged();
+          unlistenAssetLifecycle();
+        }
+      );
       await newClient.stopPolling().catch(() => {});
     });
   });
