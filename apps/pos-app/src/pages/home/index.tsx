@@ -1,6 +1,6 @@
 import { GreenFluxBackground } from "~/assets";
 import { FadeIn } from "~/components/ui/fade-in";
-import { useOrientation } from "~/lib/use-orientation";
+import { useOrientation } from "~/lib/ui/use-orientation";
 import { AttentionList } from "./components/attention-list";
 import { MenuNav } from "./components/menu-nav";
 import { MoneyHero } from "./components/money-hero";

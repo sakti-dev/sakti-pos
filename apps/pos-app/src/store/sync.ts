@@ -15,10 +15,9 @@ function recoverAssets(): Promise<void> {
 }
 
 import { API_URL } from "~/lib/api/eden";
+import { getSyncClient } from "~/lib/api/sync";
 import { AuthStorage } from "~/lib/auth/storage";
-import { createLogger } from "~/lib/logger";
-import { getSyncClient } from "~/lib/sync";
-import { describeError } from "~/lib/utils";
+import { createLogger, describeError } from "~/lib/utils";
 import { currentMerchantId, currentOutletId } from "./outlet";
 
 export type SyncStatus = "idle" | "syncing" | "error" | "offline";

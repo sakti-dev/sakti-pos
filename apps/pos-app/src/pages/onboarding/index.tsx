@@ -12,7 +12,7 @@ import {
   getCurrentCloudStaff,
 } from "~/lib/auth/cloud";
 import type { Region } from "~/lib/data/regions";
-import { createLogger } from "~/lib/logger";
+import { createLogger } from "~/lib/utils";
 import { setScope } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";

@@ -11,7 +11,7 @@ import {
   UsersIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
-import { useBreakpoints } from "~/lib/breakpoints";
+import { useBreakpoints } from "~/lib/ui/breakpoints";
 import { cn } from "~/lib/utils";
 
 export type SectionKey =

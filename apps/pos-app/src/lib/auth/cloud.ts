@@ -1,5 +1,5 @@
 import { API_URL, eden } from "~/lib/api/eden";
-import { createLogger } from "~/lib/logger";
+import { createLogger } from "~/lib/utils";
 import { AuthStorage } from "./storage";
 
 const cloudAuthLogger = createLogger({

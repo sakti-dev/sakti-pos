@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { createLogger } from "~/lib/logger";
+import { createLogger } from "~/lib/utils";
 
 const storageLogger = createLogger({
   domain: "AUTH",

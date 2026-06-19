@@ -15,7 +15,7 @@ import {
   type TxStatus,
   transactionFilterCounts,
 } from "~/lib/data/transactions";
-import { useOrientation } from "~/lib/use-orientation";
+import { useOrientation } from "~/lib/ui/use-orientation";
 
 /* ── constants ────────────────────────────────────────────────── */
 

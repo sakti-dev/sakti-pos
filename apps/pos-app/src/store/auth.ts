@@ -3,7 +3,7 @@ import { createSignal } from "solid-js";
 import { db, TABLE } from "~/db";
 import type { AuthUser } from "~/lib/auth/provider";
 import { changePin, verifyPin } from "~/lib/auth/provider";
-import { createLogger } from "~/lib/logger";
+import { createLogger } from "~/lib/utils";
 
 const authLogger = createLogger({ domain: "AUTH", module: "auth" });
 

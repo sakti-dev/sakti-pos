@@ -3,8 +3,8 @@ import { useLocation } from "@solidjs/router";
 import { Show } from "solid-js";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { FadeIn } from "~/components/ui/fade-in";
-import { useBreakpoints } from "~/lib/breakpoints";
-import { useOrientation } from "~/lib/use-orientation";
+import { useBreakpoints } from "~/lib/ui/breakpoints";
+import { useOrientation } from "~/lib/ui/use-orientation";
 import { NAV_ITEMS, SettingsNavigationMenu } from "./components/settings-nav";
 
 export default function SettingPage(props: RouteSectionProps) {

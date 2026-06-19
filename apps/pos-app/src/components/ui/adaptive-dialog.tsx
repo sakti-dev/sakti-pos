@@ -4,8 +4,8 @@ import type { ComponentProps, JSX } from "solid-js";
 import { createMemo, Show, splitProps } from "solid-js";
 
 import { XCloseIcon } from "~/assets";
-import { useBreakpoints } from "~/lib/breakpoints";
-import { useDismissibleVisibility } from "~/lib/dismissible-stack";
+import { useBreakpoints } from "~/lib/ui/breakpoints";
+import { useDismissibleVisibility } from "~/lib/ui/dismissible-stack";
 import { cn } from "~/lib/utils";
 
 // ── Root ─────────────────────────────────────────────────────────

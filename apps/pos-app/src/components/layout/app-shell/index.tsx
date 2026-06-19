@@ -1,10 +1,10 @@
 import type { RouteSectionProps } from "@solidjs/router";
 import { Ssgoi } from "@ssgoi/solid";
 import { createMemo, createSignal, onCleanup, Show } from "solid-js";
-import { useBreakpoints } from "~/lib/breakpoints";
-import { FAB_PATHS, getNavKey, getZone } from "~/lib/shell-config";
-import { createRootConfig } from "~/lib/ssgoi-config";
-import { useOrientation } from "~/lib/use-orientation";
+import { useBreakpoints } from "~/lib/ui/breakpoints";
+import { FAB_PATHS, getNavKey, getZone } from "~/lib/ui/shell-config";
+import { createRootConfig } from "~/lib/ui/ssgoi-config";
+import { useOrientation } from "~/lib/ui/use-orientation";
 import { cn } from "~/lib/utils";
 import { Fab } from "./fab";
 import { NotchNav } from "./notch-nav";

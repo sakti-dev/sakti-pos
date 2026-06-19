@@ -3,7 +3,7 @@ import type { ComponentProps, JSX } from "solid-js";
 import { createMemo, splitProps } from "solid-js";
 
 import { XCloseIcon } from "~/assets";
-import { useDismissibleVisibility } from "~/lib/dismissible-stack";
+import { useDismissibleVisibility } from "~/lib/ui/dismissible-stack";
 import { cn } from "~/lib/utils";
 
 // ── Root ─────────────────────────────────────────────────────────

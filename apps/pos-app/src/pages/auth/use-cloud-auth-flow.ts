@@ -9,8 +9,7 @@ import {
   type Outlet,
   type SessionMerchant,
 } from "~/lib/auth/cloud";
-import { createLogger } from "~/lib/logger";
-import { describeError } from "~/lib/utils";
+import { createLogger, describeError } from "~/lib/utils";
 import { getActiveStaff, loginWithCloudStaff, setScope } from "~/store/auth";
 import { setOutletContext } from "~/store/outlet";
 import { syncNow } from "~/store/sync";

@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
-import { getSyncClient } from "~/lib/sync";
+import { getSyncClient } from "~/lib/api/sync";
 import { currentMerchantId } from "~/store/outlet";
 import { db, TABLE } from "./index";
 

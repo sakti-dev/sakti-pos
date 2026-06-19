@@ -3,7 +3,7 @@ import * as localSchema from "@sync-contract/local-schema";
 import * as localSyncedSchema from "@sync-contract/local-synced-schema";
 import { invoke } from "@tauri-apps/api/core";
 import { createTauriDrizzleDatabase } from "baresync/db";
-import { createLogger } from "~/lib/logger";
+import { createLogger } from "~/lib/utils";
 
 export const TABLE = {
   ...localSchema,

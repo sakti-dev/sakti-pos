@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { DEFAULT_BUSINESS_TIMEZONE } from "~/lib/date-time";
+import { DEFAULT_BUSINESS_TIMEZONE } from "~/lib/utils";
 
 const [currentOutletId, setCurrentOutletId] = createSignal<string | null>(null);
 const [currentOutletTimezone, setCurrentOutletTimezone] = createSignal<string>(
