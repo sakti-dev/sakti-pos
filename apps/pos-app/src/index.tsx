@@ -1,6 +1,10 @@
 /* @refresh reload */
+import { QueryClientProvider } from "@tanstack/solid-query";
 import { render } from "solid-js/web";
-import { AuthProvider } from "./providers/AuthProvider";
+import {
+  queryClient,
+  SyncClientProvider,
+} from "./providers/sync-client-provider";
 import "./styles/index.css";
 import AppRoutes from "./routes.tsx";
 
@@ -8,9 +12,11 @@ const root = document.getElementById("root");
 
 render(
   () => (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <SyncClientProvider>
+        <AppRoutes />
+      </SyncClientProvider>
+    </QueryClientProvider>
   ),
   root!
 );

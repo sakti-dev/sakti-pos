@@ -1,4 +1,4 @@
-import { useNavigate } from "@solidjs/router";
+import { useLocation, useNavigate } from "@solidjs/router";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrent } from "@tauri-apps/plugin-deep-link";
 import { onCleanup, onMount, type ParentComponent } from "solid-js";
@@ -9,8 +9,16 @@ import { createLogger, describeError } from "~/lib/utils";
 
 const logger = createLogger({
   domain: "AUTH",
-  module: "google-oauth-provider",
+  module: "auth-provider",
 });
+
+const PUBLIC_PATHS = new Set([
+  "/auth/login",
+  "/auth/register",
+  "/auth/pin",
+  "/onboarding",
+  "/experiment",
+]);
 
 async function handleOAuthUrl(
   url: string,
@@ -47,6 +55,7 @@ async function handleOAuthUrl(
 
 export const AuthProvider: ParentComponent = (props) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   onMount(async () => {
     // Check for cold-start URLs (arrived before JS listener was ready)
@@ -54,10 +63,9 @@ export const AuthProvider: ParentComponent = (props) => {
       const currentUrls = await getCurrent();
       if (currentUrls) {
         for (const url of currentUrls) {
-          const urlStr = typeof url === "string" ? url : url.toString();
-          if (urlStr.includes("sakti-pos-dev://auth")) {
-            logger.info("cold_start_url", { url: urlStr });
-            handleOAuthUrl(urlStr, navigate);
+          if (url.includes("sakti-pos-dev://auth")) {
+            logger.info("cold_start_url", { url });
+            handleOAuthUrl(url, navigate);
           }
         }
       }
@@ -71,6 +79,16 @@ export const AuthProvider: ParentComponent = (props) => {
     });
 
     onCleanup(() => unlisten());
+
+    // Auth guard: redirect to login if no session on protected routes
+    const token = await AuthStorage.getToken();
+    const path = location.pathname;
+    const isPublic = PUBLIC_PATHS.has(path) || path.startsWith("/auth/");
+
+    if (!(token || isPublic)) {
+      logger.info("redirect_unauthenticated", { path });
+      navigate("/auth/login", { replace: true });
+    }
   });
 
   return props.children;

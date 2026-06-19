@@ -1,9 +1,12 @@
 import { useNavigate, useSearchParams } from "@solidjs/router";
+import { invoke } from "@tauri-apps/api/core";
+import { createSyncClient } from "baresync/tauri";
 import { createMemo, createSignal, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { toast } from "solid-sonner";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Numpad, PinDots } from "~/components/pin";
+import { setSyncClient } from "~/lib/api/sync";
 import {
   ApiError,
   createMerchant,
@@ -11,6 +14,7 @@ import {
   createStaff as createStaffApi,
   getCurrentCloudStaff,
 } from "~/lib/auth/cloud";
+import { AuthStorage } from "~/lib/auth/storage";
 import type { Region } from "~/lib/data/regions";
 import { createLogger } from "~/lib/utils";
 import { setScope } from "~/store/auth";
@@ -285,6 +289,19 @@ export default function OnboardingPage() {
       // Save preferences to localStorage (pending future DB schema)
       savePreferences({ ...form });
 
+      // Set scope early so SyncClientProvider initializes the sync client
+      setScope(merchantId);
+
+      // Initialize sync client imperatively (createEffect is async, we need it now)
+      const syncClient = createSyncClient({ scopeId: merchantId, invoke });
+      setSyncClient(syncClient);
+      const sessionToken = await AuthStorage.getToken();
+      if (sessionToken) {
+        await syncClient.setHeaders({
+          Authorization: `Bearer ${sessionToken}`,
+        });
+      }
+
       // If PIN was set, create staff
       if (pin().length === 6 && pin() === pinConfirm()) {
         const session = await (await import("~/lib/auth/cloud")).getSession();
@@ -308,7 +325,6 @@ export default function OnboardingPage() {
         });
       }
 
-      setScope(merchantId);
       await syncNow();
       onboardingLogger.info("onboarding_complete", {
         merchantId,

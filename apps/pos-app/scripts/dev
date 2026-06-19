@@ -15,10 +15,11 @@ if [[ "$CHOICE" == "2" ]]; then
 fi
 
 export RUST_LOG="${RUST_LOG:-debug}"
+export TAURI_DEV_HOST="${TAURI_DEV_HOST:-192.168.1.2}"
 
 echo "🧹 Cleaning up existing dev servers..."
 fuser -k 1420/tcp 1421/tcp 2>/dev/null
 echo "Starting tauri android development..."
 echo "Using RUST_LOG=$RUST_LOG"
 cd "$PROJECT_ROOT"
-bun tauri android dev --no-watch
+bun tauri android dev --no-watch --host 192.168.1.2

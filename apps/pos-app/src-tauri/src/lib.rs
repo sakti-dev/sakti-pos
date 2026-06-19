@@ -8,6 +8,22 @@ mod theme;
 use tauri_plugin_baresync::builder::Builder as BaresyncBuilder;
 use tauri_plugin_log::{Target, TargetKind};
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+fn single_instance_plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
+    tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if let Some(url) = args.get(1) {
+            app::startup::route_deep_link(app, url);
+        }
+    })
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+fn single_instance_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    // tauri-plugin-single-instance is not available on mobile.
+    // Deep links are handled via on_open_url in the existing deep-link setup.
+    tauri::plugin::Builder::new("single-instance").build()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -32,12 +48,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_image_pipeline::init())
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            if let Some(url) = args.get(1) {
-                app::startup::route_deep_link(app, url);
-            }
-        }))
+        .plugin(single_instance_plugin())
         .plugin(auth::init())
         .plugin(hardware::printer::init())
         .plugin(theme::init())

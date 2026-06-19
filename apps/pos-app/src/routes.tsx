@@ -7,6 +7,7 @@ import {
 import { Route, Router } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
 import { createEffect } from "solid-js";
+import { AuthProvider } from "~/lib/auth/provider";
 import { AppShell } from "./components/layout/app-shell";
 import { Toaster } from "./components/ui/toaster";
 import LoginPage from "./pages/auth/login";
@@ -63,9 +64,11 @@ export default function AppRoutes() {
         <>
           <ColorModeScript storageType={storageManager.type} />
           <ColorModeProvider storageManager={storageManager}>
-            <AppShell {...props} />
-            <Toaster />
-            <NativeThemeSync />
+            <AuthProvider>
+              <AppShell {...props} />
+              <Toaster />
+              <NativeThemeSync />
+            </AuthProvider>
           </ColorModeProvider>
         </>
       )}

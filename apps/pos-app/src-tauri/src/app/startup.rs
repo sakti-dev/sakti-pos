@@ -3,8 +3,6 @@ use std::str::FromStr;
 use std::time::Duration;
 use tauri::{Emitter, Manager};
 
-const DEEP_LINK_SCHEME: &str = "sakti-pos-dev";
-
 pub fn route_deep_link(app: &tauri::AppHandle, url: &str) {
     if url.contains("sakti-pos-dev://auth") {
         if let Some(main_window) = app.get_webview_window("main") {

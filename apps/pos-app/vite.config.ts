@@ -14,6 +14,26 @@ export default defineConfig({
   resolve: {
     alias: {
       "~": path.resolve(import.meta.dirname, "./src"),
+      "@sync-contract/local-schema": path.resolve(
+        import.meta.dirname,
+        "../../packages/sync-contract/src/local-schema.ts"
+      ),
+      "@sync-contract/local-synced-schema": path.resolve(
+        import.meta.dirname,
+        "../../packages/sync-contract/src/local-synced-schema.ts"
+      ),
+      "@sync-contract/api-schema": path.resolve(
+        import.meta.dirname,
+        "../../packages/sync-contract/src/api-schema.ts"
+      ),
+      "@sync-contract/api-synced-schema": path.resolve(
+        import.meta.dirname,
+        "../../packages/sync-contract/src/api-synced-schema.ts"
+      ),
+      "@sync-contract/generated": path.resolve(
+        import.meta.dirname,
+        "../../packages/sync-contract/generated"
+      ),
     },
     conditions: ["development", "browser"],
   },

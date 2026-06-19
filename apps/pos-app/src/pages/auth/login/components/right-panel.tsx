@@ -1,5 +1,6 @@
+import { FiChevronLeft } from "solid-icons/fi";
 import { createSignal, For, Show } from "solid-js";
-import { ChevronLeftIcon, EyeClosedIcon, EyeOpenIcon } from "~/assets";
+import { EyeClosedIcon, EyeOpenIcon } from "~/assets";
 import { AuthRightPanel } from "~/components/auth-right-panel";
 import { Button } from "~/components/ui/button";
 import { Link } from "~/components/ui/link";
@@ -275,7 +276,7 @@ function PickerView(props: {
               onClick={props.onBack}
               tone="neutral"
             >
-              <ChevronLeftIcon class="size-4" />
+              <FiChevronLeft class="size-4" />
               Kembali ke pilih bisnis
             </Button>
           </div>

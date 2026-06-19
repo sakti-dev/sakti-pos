@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { type Accessor, createSignal, onCleanup } from "solid-js";
 import { toast } from "solid-sonner";
-import { verifyPin } from "~/lib/auth/provider";
+import { verifyPin } from "~/lib/auth/pin";
 import type { AuthUser } from "~/store/auth";
 import { LOCK_DURATION_MS, MAX_ATTEMPTS, MAX_PIN, type PinUser } from "./types";
 
