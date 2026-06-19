@@ -4,7 +4,7 @@ import { render } from "solid-js/web";
 import {
   queryClient,
   SyncClientProvider,
-} from "./providers/sync-client-provider";
+} from "./lib/api/sync-client-provider.tsx";
 import "./styles/index.css";
 import AppRoutes from "./routes.tsx";
 

@@ -1,9 +1,5 @@
 import { createQuery } from "@tanstack/solid-query";
-import { type Accessor, createSignal } from "solid-js";
-
-const [syncDataVersion, setSyncDataVersion] = createSignal(0);
-
-export { setSyncDataVersion };
+import type { Accessor } from "solid-js";
 
 type Fetcher<T> = () => Promise<T>;
 
@@ -34,10 +30,7 @@ export function useDrizzleQuery<T, S>(
   const isSource = typeof keyOrSource === "function";
 
   const query = createQuery(() => {
-    const version = syncDataVersion();
-    const queryKey = isSource
-      ? ["drizzle", keyOrSource(), version]
-      : [...keyOrSource, version];
+    const queryKey = isSource ? ["drizzle", keyOrSource()] : [...keyOrSource];
 
     return {
       queryKey,

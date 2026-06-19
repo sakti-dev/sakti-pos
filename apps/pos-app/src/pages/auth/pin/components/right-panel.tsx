@@ -3,8 +3,8 @@ import { toast } from "solid-sonner";
 import { UsersIcon } from "~/assets";
 import { Numpad, PinDots, SuccessOverlay, UserCard } from "~/components/pin";
 import { Button } from "~/components/ui/button";
+import { getActiveStaff } from "~/lib/auth/session";
 import { cn } from "~/lib/utils";
-import { getActiveStaff } from "~/store/auth";
 import { DIGIT_RE, MAX_PIN, type PinUser } from "../types";
 import { usePinAuth } from "../use-pin-auth";
 import { AccountSelector } from "./account-selector";
@@ -31,7 +31,7 @@ export function PinRightPanel() {
   const [showSuccess, setShowSuccess] = createSignal(false);
 
   const auth = usePinAuth({
-    user: currentUser!,
+    user: () => currentUser()!,
     onSuccess: () => setShowSuccess(true),
   });
 

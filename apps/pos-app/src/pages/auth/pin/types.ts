@@ -1,10 +1,4 @@
-export interface PinUser {
-  readonly id: string;
-  readonly initials: string;
-  readonly name: string;
-  readonly role: string;
-  readonly venue: string;
-}
+export type { PinUser } from "~/components/pin/types";
 
 export const MAX_PIN = 6;
 export const MAX_ATTEMPTS = 5;

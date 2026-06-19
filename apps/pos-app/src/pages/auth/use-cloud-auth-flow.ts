@@ -1,6 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { createSignal } from "solid-js";
+import { syncNow } from "~/lib/api/sync";
 import {
   type CurrentCloudStaff,
   getCurrentCloudStaff,
@@ -10,10 +11,13 @@ import {
   type Outlet,
   type SessionMerchant,
 } from "~/lib/auth/cloud";
+import {
+  getActiveStaff,
+  loginWithCloudStaff,
+  setOutletContext,
+  setScope,
+} from "~/lib/auth/session";
 import { createLogger, describeError } from "~/lib/utils";
-import { getActiveStaff, loginWithCloudStaff, setScope } from "~/store/auth";
-import { setOutletContext } from "~/store/outlet";
-import { syncNow } from "~/store/sync";
 
 const cloudAuthLogger = createLogger({
   domain: "AUTH",

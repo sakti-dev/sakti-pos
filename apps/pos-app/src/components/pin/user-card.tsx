@@ -1,4 +1,4 @@
-import type { PinUser } from "../types";
+import type { PinUser } from "./types";
 
 interface UserCardProps {
   readonly user: PinUser;

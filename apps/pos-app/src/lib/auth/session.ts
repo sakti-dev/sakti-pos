@@ -3,9 +3,13 @@ import { createSignal } from "solid-js";
 import { db, TABLE } from "~/db";
 import type { AuthUser } from "~/lib/auth/pin";
 import { changePin, verifyPin } from "~/lib/auth/pin";
-import { createLogger } from "~/lib/utils";
+import { createLogger, DEFAULT_BUSINESS_TIMEZONE } from "~/lib/utils";
 
-const authLogger = createLogger({ domain: "AUTH", module: "auth" });
+const sessionLogger = createLogger({
+  domain: "AUTH",
+  module: "auth",
+  scope: "session",
+});
 
 export type { StaffRole } from "~/lib/auth/pin";
 export type { AuthUser };
@@ -55,7 +59,7 @@ export const login = async (
 export const loginWithCloudStaff = async (
   staffId: string
 ): Promise<AuthUser> => {
-  authLogger.info("login_with_cloud_staff:request", { staffId });
+  sessionLogger.info("login_with_cloud_staff:request", { staffId });
   const rows = await db
     .select({
       id: TABLE.staff.id,
@@ -67,7 +71,7 @@ export const loginWithCloudStaff = async (
     .where(eq(TABLE.staff.id, staffId));
 
   const row = rows[0];
-  authLogger.info("login_with_cloud_staff:result", {
+  sessionLogger.info("login_with_cloud_staff:result", {
     found: !!row,
     isActive: row?.isActive,
     role: row?.role,
@@ -84,7 +88,7 @@ export const loginWithCloudStaff = async (
       })
       .from(TABLE.staff)
       .limit(10);
-    authLogger.info("login_with_cloud_staff:local_sample", {
+    sessionLogger.info("login_with_cloud_staff:local_sample", {
       count: localStaff.length,
       rows: localStaff,
       staffId,
@@ -129,3 +133,84 @@ export const getActiveStaff = async (): Promise<AuthUser[]> => {
     .where(eq(TABLE.staff.isActive, true));
   return rows.map((r) => ({ ...r, role: r.role as AuthUser["role"] }));
 };
+
+// --- Device / terminal context (merchant, outlet, register, timezone) ---
+
+const [currentOutletId, setCurrentOutletId] = createSignal<string | null>(null);
+const [currentOutletTimezone, setCurrentOutletTimezone] = createSignal<string>(
+  DEFAULT_BUSINESS_TIMEZONE
+);
+const [currentMerchantId, setCurrentMerchantId] = createSignal<string | null>(
+  null
+);
+const [currentRegisterId, setCurrentRegisterId] = createSignal<string | null>(
+  null
+);
+
+export {
+  currentMerchantId,
+  currentOutletId,
+  currentOutletTimezone,
+  currentRegisterId,
+  setCurrentOutletId,
+  setCurrentOutletTimezone,
+};
+
+export const OUTLET_STORAGE_KEY = "sakti-pos:current-outlet-id";
+export const OUTLET_TIMEZONE_STORAGE_KEY = "sakti-pos:current-outlet-timezone";
+export const MERCHANT_STORAGE_KEY = "sakti-pos:current-merchant-id";
+export const REGISTER_STORAGE_KEY = "sakti-pos:current-register-id";
+
+export function loadOutletContext() {
+  const outletId = localStorage.getItem(OUTLET_STORAGE_KEY);
+  const outletTimezone = localStorage.getItem(OUTLET_TIMEZONE_STORAGE_KEY);
+  const merchantId = localStorage.getItem(MERCHANT_STORAGE_KEY);
+  const registerId = localStorage.getItem(REGISTER_STORAGE_KEY);
+  if (outletId) {
+    setCurrentOutletId(outletId);
+  }
+  if (outletTimezone) {
+    setCurrentOutletTimezone(outletTimezone);
+  }
+  if (merchantId) {
+    setCurrentMerchantId(merchantId);
+  }
+  if (registerId) {
+    setCurrentRegisterId(registerId);
+  }
+}
+
+export function setOutletContext(
+  outletId: string,
+  merchantId: string,
+  registerId?: string,
+  timezone = DEFAULT_BUSINESS_TIMEZONE
+) {
+  setCurrentOutletId(outletId);
+  setOutletTimezone(timezone);
+  setCurrentMerchantId(merchantId);
+  localStorage.setItem(OUTLET_STORAGE_KEY, outletId);
+  localStorage.setItem(MERCHANT_STORAGE_KEY, merchantId);
+  if (registerId) {
+    setCurrentRegisterId(registerId);
+    localStorage.setItem(REGISTER_STORAGE_KEY, registerId);
+  }
+}
+
+export const isDevicePaired = (): boolean => currentOutletId() !== null;
+
+export function setOutletTimezone(timezone: string) {
+  setCurrentOutletTimezone(timezone);
+  localStorage.setItem(OUTLET_TIMEZONE_STORAGE_KEY, timezone);
+}
+
+export function clearOutletContext() {
+  setCurrentOutletId(null);
+  setCurrentOutletTimezone(DEFAULT_BUSINESS_TIMEZONE);
+  setCurrentMerchantId(null);
+  setCurrentRegisterId(null);
+  localStorage.removeItem(OUTLET_STORAGE_KEY);
+  localStorage.removeItem(OUTLET_TIMEZONE_STORAGE_KEY);
+  localStorage.removeItem(MERCHANT_STORAGE_KEY);
+  localStorage.removeItem(REGISTER_STORAGE_KEY);
+}

@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { and, count, eq, inArray } from "drizzle-orm";
 import { getSyncClient } from "~/lib/api/sync";
-import { currentMerchantId } from "~/store/outlet";
+import { currentMerchantId } from "~/lib/auth/session";
 import { db, TABLE } from "./index";
 
 type StaffMember = typeof TABLE.staff.$inferSelect;

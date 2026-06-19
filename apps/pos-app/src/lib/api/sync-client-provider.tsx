@@ -1,21 +1,12 @@
 import { QueryClient, useQueryClient } from "@tanstack/solid-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { createSyncClient, type SyncClient } from "baresync/tauri";
-import {
-  createContext,
-  createEffect,
-  createSignal,
-  onCleanup,
-  type ParentComponent,
-  useContext,
-} from "solid-js";
-import { setSyncClient } from "~/lib/api/sync";
+import { createSyncClient } from "baresync/tauri";
+import { createEffect, onCleanup, type ParentComponent } from "solid-js";
+import { setSyncClient, setSyncStatus } from "~/lib/api/sync";
+import { scopeId } from "~/lib/auth/session";
 import { AuthStorage } from "~/lib/auth/storage";
-import { setSyncDataVersion } from "~/lib/use-drizzle-query";
 import { createLogger } from "~/lib/utils";
-import { scopeId } from "~/store/auth";
-import { setSyncStatus } from "~/store/sync";
 
 const syncProviderLogger = createLogger({
   domain: "SYNC",
@@ -31,11 +22,8 @@ export const queryClient = new QueryClient({
   },
 });
 
-const SyncClientContext = createContext<SyncClient>();
-
 export const SyncClientProvider: ParentComponent = (props) => {
   const queryClient = useQueryClient();
-  const [client, setClient] = createSignal<SyncClient | null>(null);
 
   createEffect(() => {
     const scope = scopeId();
@@ -45,7 +33,6 @@ export const SyncClientProvider: ParentComponent = (props) => {
 
     const newClient = createSyncClient({ scopeId: scope, invoke });
     setSyncClient(newClient);
-    setClient(newClient);
 
     AuthStorage.getToken().then((token) => {
       if (token) {
@@ -71,7 +58,6 @@ export const SyncClientProvider: ParentComponent = (props) => {
 
     const pending = Promise.all([
       listen("baresync://data-changed", async () => {
-        setSyncDataVersion((v) => v + 1);
         await queryClient.invalidateQueries({ queryKey: ["drizzle"] });
       }),
       listen("baresync://sync-status-changed", async () => {
@@ -100,21 +86,8 @@ export const SyncClientProvider: ParentComponent = (props) => {
         unlistenStatusChanged();
       });
       await newClient.stopPolling().catch(() => {});
-      setClient(null);
     });
   });
 
-  return (
-    <SyncClientContext.Provider value={client()!}>
-      {props.children}
-    </SyncClientContext.Provider>
-  );
+  return props.children;
 };
-
-export function useSyncClient(): SyncClient {
-  const client = useContext(SyncClientContext);
-  if (!client) {
-    throw new Error("useSyncClient must be used within SyncClientProvider");
-  }
-  return client;
-}

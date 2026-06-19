@@ -6,7 +6,7 @@ import { createStore } from "solid-js/store";
 import { toast } from "solid-sonner";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Numpad, PinDots } from "~/components/pin";
-import { setSyncClient } from "~/lib/api/sync";
+import { setSyncClient, syncNow } from "~/lib/api/sync";
 import {
   ApiError,
   createMerchant,
@@ -14,12 +14,10 @@ import {
   createStaff as createStaffApi,
   getCurrentCloudStaff,
 } from "~/lib/auth/cloud";
+import { setOutletContext, setScope } from "~/lib/auth/session";
 import { AuthStorage } from "~/lib/auth/storage";
 import type { Region } from "~/lib/data/regions";
 import { createLogger } from "~/lib/utils";
-import { setScope } from "~/store/auth";
-import { setOutletContext } from "~/store/outlet";
-import { syncNow } from "~/store/sync";
 import { StepMerchant } from "./components/step-merchant";
 import {
   isPhoneValid,
