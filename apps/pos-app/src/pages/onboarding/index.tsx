@@ -1,9 +1,21 @@
-import { useNavigate } from "@solidjs/router";
+import { useNavigate, useSearchParams } from "@solidjs/router";
 import { createMemo, createSignal, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { toast } from "solid-sonner";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
+import { Numpad, PinDots } from "~/components/pin";
+import {
+  ApiError,
+  createMerchant,
+  createOutlet,
+  createStaff as createStaffApi,
+  getCurrentCloudStaff,
+} from "~/lib/auth/cloud";
 import type { Region } from "~/lib/data/regions";
+import { createLogger } from "~/lib/logger";
+import { setScope } from "~/store/auth";
+import { setOutletContext } from "~/store/outlet";
+import { syncNow } from "~/store/sync";
 import { StepMerchant } from "./components/step-merchant";
 import {
   isPhoneValid,
@@ -14,7 +26,12 @@ import { StepPreferences } from "./components/step-preferences";
 import { WizardShell } from "./components/wizard-shell";
 import { INITIAL_ONBOARDING_FORM, type OnboardingForm } from "./types";
 
-const TOTAL_STEPS = 3;
+const onboardingLogger = createLogger({
+  domain: "AUTH",
+  module: "onboarding",
+});
+
+const TOTAL_STEPS = 4;
 
 const STEP_META = [
   {
@@ -29,15 +46,52 @@ const STEP_META = [
     title: "Setelan Kasir Cepat",
     subtitle: "Sedikit preferensi sebelum Anda mulai berjualan.",
   },
+  { title: "Buat PIN", subtitle: "Buat PIN 6 digit untuk keamanan akun Anda." },
 ] as const;
+
+const PREFS_STORAGE_KEY = "sakti-pos:onboarding-prefs";
+
+function savePreferences(form: OnboardingForm) {
+  localStorage.setItem(
+    PREFS_STORAGE_KEY,
+    JSON.stringify({
+      business_type: form.business_type,
+      initial_cash: form.initial_cash,
+      tax_percentage: form.tax_percentage,
+      use_tax: form.use_tax,
+    })
+  );
+}
+
+function resolveInitialStep(
+  merchantId: string | null,
+  outletId: string | null
+): number {
+  if (merchantId && outletId) {
+    return 4;
+  }
+  if (merchantId) {
+    return 2;
+  }
+  return 1;
+}
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const merchantIdFromQuery =
+    typeof searchParams.merchantId === "string"
+      ? searchParams.merchantId
+      : null;
+  const outletIdFromQuery =
+    typeof searchParams.outletId === "string" ? searchParams.outletId : null;
+
   const [form, setForm] = createStore<OnboardingForm>({
     ...INITIAL_ONBOARDING_FORM,
   });
-
-  const [step, setStep] = createSignal(1);
+  const [step, setStep] = createSignal(
+    resolveInitialStep(merchantIdFromQuery, outletIdFromQuery)
+  );
   const [nameInvalid, setNameInvalid] = createSignal(false);
   const [phoneInvalid, setPhoneInvalid] = createSignal(false);
   const [regionInvalid, setRegionInvalid] = createSignal(false);
@@ -45,14 +99,27 @@ export default function OnboardingPage() {
     string | undefined
   >();
   const [submitting, setSubmitting] = createSignal(false);
+  const [error, setError] = createSignal("");
+  const [createdMerchantId, setCreatedMerchantId] = createSignal<string | null>(
+    merchantIdFromQuery
+  );
+  const [createdOutletId, setCreatedOutletId] = createSignal<string | null>(
+    outletIdFromQuery
+  );
+  const [pin, setPin] = createSignal("");
+  const [pinConfirm, setPinConfirm] = createSignal("");
+  const [pinError, setPinError] = createSignal("");
+  const [pinStep, setPinStep] = createSignal<"first" | "confirm">("first");
 
   const stepIndex = () => step() - 1;
   const meta = () => STEP_META[stepIndex()];
-
   const isNameValid = () => form.merchant_name.trim().length >= 3;
   const isRegionValid = () => form.subdistrict_id.length > 0;
+  const pinComplete = () =>
+    pinStep() === "confirm" && pinConfirm().length === 6;
+  const pinLabel = () =>
+    pinStep() === "first" ? "Masukkan PIN" : "Konfirmasi PIN";
 
-  // Per-step gate. The "Next" button reflects the current step's validity.
   const canProceed = createMemo(() => {
     switch (step()) {
       case 1:
@@ -65,41 +132,27 @@ export default function OnboardingPage() {
         );
       case 3:
         return true;
+      case 4:
+        return pinComplete();
       default:
         return false;
     }
   });
 
-  function next() {
-    // Re-validate the current step before advancing; surface inline errors.
-    if (step() === 1) {
-      const ok = isNameValid();
-      setNameInvalid(!ok);
-      if (!ok) {
-        return;
-      }
-    }
-    if (step() === 2) {
-      const phoneOk = isPhoneValid(form.outlet_phone);
-      const regionOk = isRegionValid();
-      setPhoneInvalid(!phoneOk);
-      setRegionInvalid(!regionOk);
-      if (!(phoneOk && regionOk)) {
-        return;
-      }
-    }
-    if (step() < TOTAL_STEPS) {
-      setStep((s) => s + 1);
-    }
-  }
-
   function back() {
     if (submitting()) {
       return;
     }
+    setError("");
     setNameInvalid(false);
     setPhoneInvalid(false);
     setRegionInvalid(false);
+    setPinError("");
+    if (step() === 4 && pinStep() === "confirm") {
+      setPinStep("first");
+      setPinConfirm("");
+      return;
+    }
     if (step() > 1) {
       setStep((s) => s - 1);
     } else {
@@ -114,40 +167,189 @@ export default function OnboardingPage() {
     setRegionInvalid(false);
   }
 
-  // ── Submit ──────────────────────────────────────────────────────
-  // Builds the single onboarding payload the backend controller wraps in
-  // one transaction (merchants → outlets → session context). Until the
-  // Eden/API client is wired, this mirrors the auth pages' mock-then-
-  // navigate convention. Replace `mockSubmit` with the real typed call.
+  // ── Step 1: Create merchant ───────────────────────────────────────
+  async function handleCreateMerchant() {
+    if (submitting()) {
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+    try {
+      const merchant = await createMerchant(form.merchant_name.trim());
+      setCreatedMerchantId(merchant.id);
+      onboardingLogger.info("merchant_created", { merchantId: merchant.id });
+      setStep(2);
+    } catch (err) {
+      onboardingLogger.error("create_merchant_failed", err, {
+        name: form.merchant_name.trim(),
+      });
+      setError(err instanceof ApiError ? err.message : "Gagal membuat bisnis");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // ── Step 2: Create outlet ─────────────────────────────────────────
+  async function handleCreateOutlet() {
+    const merchantId = createdMerchantId();
+    if (!merchantId || submitting()) {
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+    try {
+      const result = await createOutlet(
+        merchantId,
+        form.outlet_name.trim(),
+        form.raw_street_address.trim() || undefined
+      );
+      setOutletContext(
+        result.id,
+        result.merchantId,
+        result.register?.id,
+        result.timezone
+      );
+      setCreatedOutletId(result.id);
+      onboardingLogger.info("outlet_created", {
+        outletId: result.id,
+        merchantId,
+      });
+
+      // Check if owner staff already exists
+      const { getOwnerStaff } = await import("~/db/staff");
+      const existingOwner = await getOwnerStaff(merchantId);
+      if (existingOwner) {
+        onboardingLogger.info("owner_staff_exists", { merchantId });
+        // Skip PIN setup, go to preferences then finish
+        setStep(3);
+        return;
+      }
+
+      setStep(3);
+    } catch (err) {
+      onboardingLogger.error("create_outlet_failed", err, { merchantId });
+      setError(err instanceof ApiError ? err.message : "Gagal membuat outlet");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // ── Step 4: PIN setup ────────────────────────────────────────────
+  function handlePinDigit(digit: string) {
+    if (submitting()) {
+      return;
+    }
+    const current = pinStep() === "first" ? pin() : pinConfirm();
+    if (current.length >= 6) {
+      return;
+    }
+
+    if (pinStep() === "first") {
+      setPin(current + digit);
+      if (current.length + 1 === 6) {
+        // Auto-advance to confirm
+        setTimeout(() => {
+          setPinStep("confirm");
+        }, 200);
+      }
+    } else {
+      setPinConfirm(current + digit);
+    }
+  }
+
+  function handlePinBackspace() {
+    if (pinStep() === "first") {
+      setPin(pin().slice(0, -1));
+    } else {
+      if (pinConfirm().length === 0) {
+        setPinStep("first");
+        return;
+      }
+      setPinConfirm(pinConfirm().slice(0, -1));
+    }
+  }
+
+  // ── Final submit (after Step 4) ───────────────────────────────────
   async function submit() {
     if (submitting()) {
       return;
     }
+    const merchantId = createdMerchantId();
+    if (!merchantId) {
+      setError("Data bisnis tidak ditemukan");
+      return;
+    }
+    setError("");
     setSubmitting(true);
     try {
-      await mockSubmit({ ...form });
+      // Save preferences to localStorage (pending future DB schema)
+      savePreferences({ ...form });
+
+      // If PIN was set, create staff
+      if (pin().length === 6 && pin() === pinConfirm()) {
+        const session = await (await import("~/lib/auth/cloud")).getSession();
+        const ownerName = session.user?.name || "Owner";
+        await createStaffApi({
+          merchantId,
+          outletId: createdOutletId() ?? undefined,
+          name: ownerName,
+          pin: pin(),
+          role: "owner",
+        });
+        const cloudStaff = await getCurrentCloudStaff(merchantId);
+        if (!cloudStaff.staff) {
+          setError("Gagal menghubungkan akun cloud dengan staff");
+          setSubmitting(false);
+          return;
+        }
+        onboardingLogger.info("owner_staff_created", {
+          merchantId,
+          staffId: cloudStaff.staff.id,
+        });
+      }
+
+      setScope(merchantId);
+      await syncNow();
+      onboardingLogger.info("onboarding_complete", {
+        merchantId,
+        outletId: createdOutletId(),
+      });
+
       toast.success("Onboarding selesai. Selamat berjualan! 🚀");
-      // Active merchant/outlet context is set server-side in the real flow;
-      // land on the home dashboard. replace:true so the user can't back
-      // into a completed onboarding (same pattern as payment → receipt).
       setTimeout(() => navigate("/", { replace: true }), 900);
     } catch (err) {
+      onboardingLogger.error("onboarding_failed", err, { merchantId });
       setSubmitting(false);
-      toast.error("Gagal menyimpan onboarding. Coba lagi.");
-      // Re-throw so the error is visible to the caller/logger, not swallowed.
-      throw err;
+      setError(
+        err instanceof ApiError ? err.message : "Gagal menyelesaikan onboarding"
+      );
+      toast.error("Gagal menyimpan. Coba lagi.");
     }
   }
 
   async function handlePrimary() {
-    if (step() < TOTAL_STEPS) {
-      next();
+    if (step() === 1) {
+      await handleCreateMerchant();
       return;
     }
-    try {
+    if (step() === 2) {
+      await handleCreateOutlet();
+      return;
+    }
+    if (step() === 3) {
+      setStep(4);
+      return;
+    }
+    if (step() === 4) {
+      // Validate PIN match
+      if (pin() !== pinConfirm()) {
+        setPinError("PIN tidak cocok");
+        setPinConfirm("");
+        setPinStep("first");
+        setPin("");
+        return;
+      }
       await submit();
-    } catch {
-      // Error already surfaced via toast inside submit().
     }
   }
 
@@ -164,14 +366,18 @@ export default function OnboardingPage() {
         title={meta().title}
         total={TOTAL_STEPS}
       >
+        <Show when={error()}>
+          <div class="mx-auto mb-4 max-w-md rounded-lg bg-destructive/10 px-3 py-2 text-center text-destructive text-sm">
+            {error()}
+          </div>
+        </Show>
+
         <Show when={step() === 1}>
           <StepMerchant
             businessType={form.business_type}
             name={form.merchant_name}
             nameInvalid={nameInvalid()}
-            onBusinessTypeChange={(v) => {
-              setForm("business_type", v);
-            }}
+            onBusinessTypeChange={(v) => setForm("business_type", v)}
             onNameChange={(v) => {
               setForm("merchant_name", v);
               if (nameInvalid() && v.trim().length >= 3) {
@@ -206,28 +412,35 @@ export default function OnboardingPage() {
           <StepPreferences
             initialCash={form.initial_cash}
             onInitialCashChange={(v) => setForm("initial_cash", v)}
-            onTaxPercentageChange={(v) => {
-              // Clamp to a sane 0–100 range.
-              setForm("tax_percentage", Math.min(100, Math.max(0, v)));
-            }}
+            onTaxPercentageChange={(v) =>
+              setForm("tax_percentage", Math.min(100, Math.max(0, v)))
+            }
             onUseTaxChange={(v) => setForm("use_tax", v)}
             taxPercentage={form.tax_percentage}
             useTax={form.use_tax}
           />
         </Show>
+
+        <Show when={step() === 4}>
+          <div class="flex flex-col items-center gap-5">
+            <div class="text-center text-muted-foreground text-sm">
+              {pinLabel()}
+            </div>
+            <PinDots
+              hasError={!!pinError()}
+              length={(pinStep() === "first" ? pin() : pinConfirm()).length}
+            />
+            <Show when={pinError()}>
+              <div class="text-center text-danger text-sm">{pinError()}</div>
+            </Show>
+            <Numpad
+              disabled={submitting()}
+              onBackspace={handlePinBackspace}
+              onDigit={handlePinDigit}
+            />
+          </div>
+        </Show>
       </WizardShell>
     </SafeAreaShell>
-  );
-}
-
-/** MOCK — replace with the typed Eden/API onboarding call. Kept local so the
- *  contract (one payload → one transaction) is visible at the call site.
- *
- *  When the real call lands: route through `~/lib/logger.ts` under the
- *  `[JS] [POS:ONBOARDING_SUBMIT]` prefix (see docs/knowledge/APP-LOGGING-DOCS.md)
- *  and update LOG_FILTER in logs/capture-adb-logcat.sh. */
-function mockSubmit(_payload: OnboardingForm): Promise<{ ok: true }> {
-  return new Promise((resolve) =>
-    setTimeout(() => resolve({ ok: true }), 1400)
   );
 }

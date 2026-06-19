@@ -41,6 +41,7 @@ export function AuthRightPanel(props: {
   googleLabel: string;
   footer: JSX.Element;
   children: JSX.Element;
+  onGoogle?: () => void;
 }) {
   return (
     <main class="relative flex min-h-0 w-full flex-col justify-start overflow-y-auto bg-background p-8 pt-10 lg:w-[480px] lg:min-w-[420px] lg:justify-center lg:px-14 lg:py-10">
@@ -109,7 +110,9 @@ export function AuthRightPanel(props: {
       <Button
         class="relative z-10 w-full"
         look="outline"
-        onClick={() => toast.success("Menghubungkan ke Google...")}
+        onClick={() =>
+          props.onGoogle?.() ?? toast.success("Menghubungkan ke Google...")
+        }
         size="lg"
         tone="neutral"
       >

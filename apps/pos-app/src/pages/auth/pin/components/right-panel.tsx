@@ -1,25 +1,51 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { UsersIcon } from "~/assets";
+import { Numpad, PinDots, SuccessOverlay, UserCard } from "~/components/pin";
 import { Button } from "~/components/ui/button";
-import { pinUsers } from "~/lib/data/auth";
 import { cn } from "~/lib/utils";
+import { getActiveStaff } from "~/store/auth";
 import { DIGIT_RE, MAX_PIN, type PinUser } from "../types";
 import { usePinAuth } from "../use-pin-auth";
 import { AccountSelector } from "./account-selector";
-import { Numpad } from "./numpad";
-import { PinDots } from "./pin-dots";
-import { SuccessOverlay } from "./success-overlay";
-import { UserCard } from "./user-card";
+
+function toPinUser(staff: { id: string; name: string; role: string }): PinUser {
+  const parts = staff.name.split(" ");
+  const initials =
+    parts.length >= 2
+      ? `${parts[0][0]}${parts.at(-1)![0]}`
+      : staff.name.slice(0, 2).toUpperCase();
+  return {
+    id: staff.id,
+    initials: initials.toUpperCase(),
+    name: staff.name,
+    role: staff.role.charAt(0).toUpperCase() + staff.role.slice(1),
+    venue: "", // outlet name not in staff row; could be fetched
+  };
+}
 
 export function PinRightPanel() {
-  const [currentUser, setCurrentUser] = createSignal<PinUser>(pinUsers[0]);
+  const [staffList, setStaffList] = createSignal<PinUser[]>([]);
+  const [currentUser, setCurrentUser] = createSignal<PinUser | null>(null);
   const [showUserList, setShowUserList] = createSignal(false);
   const [showSuccess, setShowSuccess] = createSignal(false);
 
   const auth = usePinAuth({
-    user: currentUser,
+    user: currentUser!,
     onSuccess: () => setShowSuccess(true),
+  });
+
+  onMount(async () => {
+    try {
+      const activeStaff = await getActiveStaff();
+      const users = activeStaff.map(toPinUser);
+      setStaffList(users);
+      if (users.length > 0) {
+        setCurrentUser(users[0]);
+      }
+    } catch {
+      // DB not ready yet — could show error or retry
+    }
   });
 
   function selectUser(user: PinUser) {
@@ -77,7 +103,16 @@ export function PinRightPanel() {
           </div>
 
           {/* User info */}
-          <UserCard user={currentUser()} />
+          <Show
+            fallback={
+              <div class="text-center text-muted-foreground text-sm">
+                Memuat data...
+              </div>
+            }
+            when={currentUser()}
+          >
+            <UserCard user={currentUser()!} />
+          </Show>
 
           {/* Title */}
           <div class="text-center font-medium text-body text-muted-foreground leading-relaxed tracking-normal">
@@ -126,6 +161,7 @@ export function PinRightPanel() {
         onCancel={() => setShowUserList(false)}
         onSelect={selectUser}
         open={showUserList()}
+        users={staffList()}
       />
 
       {/* Success overlay */}

@@ -1,8 +1,7 @@
 export interface PinUser {
-  readonly id: number;
+  readonly id: string;
   readonly initials: string;
   readonly name: string;
-  readonly pin: string;
   readonly role: string;
   readonly venue: string;
 }
