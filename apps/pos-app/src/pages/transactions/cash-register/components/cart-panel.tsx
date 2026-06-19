@@ -1,23 +1,18 @@
+import type { CartLine } from "~/lib/sales/types";
 import { CartList } from "./cart-list";
 import { CartTotals } from "./cart-totals";
-import type { CartEntry, Product } from "./types";
 
 interface CartPanelProps {
-  readonly cart: readonly CartEntry[];
-  readonly onDecrement: (id: number) => void;
-  readonly onIncrement: (id: number) => void;
+  readonly lines: readonly CartLine[];
+  readonly onDecrement: (productId: number) => void;
+  readonly onIncrement: (productId: number) => void;
   readonly onPay: () => void;
   readonly onProcess: () => void;
-  readonly products: readonly Product[];
 }
 
 export const CartPanel = (props: CartPanelProps) => {
-  const totalItems = () => props.cart.reduce((s, c) => s + c.qty, 0);
-  const subtotal = () =>
-    props.cart.reduce((s, c) => {
-      const p = props.products.find((pr) => pr.id === c.id);
-      return s + (p ? p.price * c.qty : 0);
-    }, 0);
+  const totalItems = () => props.lines.reduce((s, l) => s + l.qty, 0);
+  const subtotal = () => props.lines.reduce((s, l) => s + l.price * l.qty, 0);
 
   return (
     <>
@@ -32,15 +27,14 @@ export const CartPanel = (props: CartPanelProps) => {
 
       <div class="scrollbar-none flex flex-1 flex-col overflow-y-auto px-5 py-3">
         <CartList
-          cart={props.cart}
+          lines={props.lines}
           onDecrement={props.onDecrement}
           onIncrement={props.onIncrement}
-          products={props.products}
         />
       </div>
 
       <CartTotals
-        disabled={props.cart.length === 0}
+        disabled={props.lines.length === 0}
         onPay={props.onPay}
         onProcess={props.onProcess}
         subtotal={subtotal()}

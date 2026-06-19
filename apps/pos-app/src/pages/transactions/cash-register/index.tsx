@@ -14,20 +14,21 @@ import {
 import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { cashRegisterProducts as products } from "~/lib/data/transactions";
+import * as sale from "~/lib/sales/sale-session";
 import { formatRupiah } from "~/lib/utils";
 import { CartList } from "./components/cart-list";
 import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
 import { type CategoryKey, categoryTabs } from "./components/category-tabs";
 import { ProductGrid } from "./components/product-grid";
-import type { CartEntry } from "./components/types";
 
 export default function CashRegisterPage() {
   const navigate = useNavigate();
   const [activeCat, setActiveCat] = createSignal<CategoryKey>("minuman");
   const [search, setSearch] = createSignal("");
-  const [cart, setCart] = createSignal<CartEntry[]>([]);
   const [sheetOpen, setSheetOpen] = createSignal(false);
+
+  const cart = sale.getCart;
 
   const filteredByCat = (cat: CategoryKey) => {
     const q = search().toLowerCase();
@@ -39,35 +40,16 @@ export default function CashRegisterPage() {
   };
 
   const addToCart = (id: number) => {
-    setCart((prev) => {
-      const existing = prev.find((c) => c.id === id);
-      if (existing) {
-        return prev.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c));
-      }
-      return [...prev, { id, qty: 1 }];
-    });
+    const product = products.find((p) => p.id === id);
+    if (product) {
+      sale.addToCart(product);
+    }
   };
 
-  const increment = (id: number) =>
-    setCart((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c))
-    );
+  const increment = sale.increment;
+  const decrement = sale.decrement;
 
-  const decrement = (id: number) =>
-    setCart((prev) => {
-      const item = prev.find((c) => c.id === id);
-      if (item && item.qty <= 1) {
-        return prev.filter((c) => c.id !== id);
-      }
-      return prev.map((c) => (c.id === id ? { ...c, qty: c.qty - 1 } : c));
-    });
-
-  const cartTotal = () =>
-    cart().reduce((s, c) => {
-      const p = products.find((pr) => pr.id === c.id);
-      return s + (p ? p.price * c.qty : 0);
-    }, 0);
-
+  const cartTotal = () => sale.totals().subtotal;
   const cartItemCount = () => cart().reduce((s, c) => s + c.qty, 0);
 
   return (
@@ -165,15 +147,14 @@ export default function CashRegisterPage() {
           x={40}
         >
           <CartPanel
-            cart={cart()}
+            lines={cart()}
             onDecrement={decrement}
             onIncrement={increment}
             onPay={() => navigate("/transactions/payment")}
             onProcess={() => {
               toast.success("Transaksi disimpan & diproses");
-              setCart([]);
+              sale.clearCart();
             }}
-            products={products}
           />
         </FadeIn>
 
@@ -207,10 +188,9 @@ export default function CashRegisterPage() {
 
               <DrawerBody>
                 <CartList
-                  cart={cart()}
+                  lines={cart()}
                   onDecrement={decrement}
                   onIncrement={increment}
-                  products={products}
                 />
               </DrawerBody>
 
@@ -223,7 +203,7 @@ export default function CashRegisterPage() {
                 onProcess={() => {
                   close();
                   toast.success("Transaksi disimpan & diproses");
-                  setCart([]);
+                  sale.clearCart();
                 }}
                 subtotal={cartTotal()}
               />

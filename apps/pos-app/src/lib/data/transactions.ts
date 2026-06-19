@@ -1,5 +1,4 @@
 import type { Product } from "~/pages/transactions/cash-register/components/types";
-import type { OrderItem } from "~/pages/transactions/payment/components/order-summary";
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -68,48 +67,8 @@ export const cashRegisterProducts: readonly Product[] = [
 
 /* ── Payment sample cart ────────────────────────────────────────── */
 
-export const samplePaymentCart: OrderItem[] = [
-  {
-    id: 1,
-    name: "Es Kopi Susu",
-    desc: "Minuman",
-    price: 18_000,
-    qty: 2,
-    img: 237,
-  },
-  {
-    id: 4,
-    name: "Cappuccino",
-    desc: "Minuman",
-    price: 25_000,
-    qty: 1,
-    img: 225,
-  },
-  {
-    id: 9,
-    name: "Nasi Goreng Spesial",
-    desc: "Makanan",
-    price: 32_000,
-    qty: 1,
-    img: 292,
-  },
-  {
-    id: 16,
-    name: "Kentang Goreng",
-    desc: "Snack",
-    price: 20_000,
-    qty: 2,
-    img: 312,
-  },
-  {
-    id: 21,
-    name: "Es Krim Vanilla",
-    desc: "Dessert",
-    price: 15_000,
-    qty: 1,
-    img: 291,
-  },
-];
+// Removed: the payment screen now reads the live sale session
+// (~/lib/sales/sale-session) instead of a static cart.
 
 /* ── Transaction history ────────────────────────────────────────── */
 
@@ -226,9 +185,9 @@ export const transactionFilterCounts: Record<FilterKey, number> = {
 /* ── Receipt sample items ───────────────────────────────────────── */
 
 export const sampleReceiptItems = [
-  { name: "Es Kopi Susu", desc: "Minuman", price: 18_000, qty: 2 },
-  { name: "Cappuccino", desc: "Minuman", price: 25_000, qty: 1 },
-  { name: "Nasi Goreng Spesial", desc: "Makanan", price: 32_000, qty: 1 },
-  { name: "Kentang Goreng", desc: "Snack", price: 20_000, qty: 2 },
-  { name: "Es Krim Vanilla", desc: "Dessert", price: 15_000, qty: 1 },
+  { name: "Es Kopi Susu", category: "Minuman", price: 18_000, qty: 2 },
+  { name: "Cappuccino", category: "Minuman", price: 25_000, qty: 1 },
+  { name: "Nasi Goreng Spesial", category: "Makanan", price: 32_000, qty: 1 },
+  { name: "Kentang Goreng", category: "Snack", price: 20_000, qty: 2 },
+  { name: "Es Krim Vanilla", category: "Dessert", price: 15_000, qty: 1 },
 ] as const;

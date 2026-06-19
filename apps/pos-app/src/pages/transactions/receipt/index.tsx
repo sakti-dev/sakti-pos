@@ -14,6 +14,9 @@ import {
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
 import { sampleReceiptItems } from "~/lib/data/transactions";
+import { orderRepository } from "~/lib/sales/order-repository";
+import * as sale from "~/lib/sales/sale-session";
+import type { CompletedOrder } from "~/lib/sales/types";
 import { cn, formatRupiah } from "~/lib/utils";
 
 const BARCODE_PATTERN = [
@@ -31,10 +34,9 @@ const METHOD_META: Record<
   ewallet: { Icon: WalletIcon, label: "E-Wallet" },
 };
 
-/* ── sample data ── */
+/* ── formatting helpers ── */
 
-const now = new Date();
-const days = [
+const DAYS = [
   "Minggu",
   "Senin",
   "Selasa",
@@ -43,7 +45,7 @@ const days = [
   "Jumat",
   "Sabtu",
 ] as const;
-const months = [
+const MONTHS = [
   "Januari",
   "Februari",
   "Maret",
@@ -58,9 +60,12 @@ const months = [
   "Desember",
 ] as const;
 
-const dateStr = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-const txNum = `TX-${String(Math.floor(Math.random() * 900_000) + 100_000)}`;
+const formatReceiptDate = (d: Date) =>
+  `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+const formatReceiptTime = (d: Date) =>
+  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+/* ── sample fallback (direct nav / dev demo only) ── */
 
 const sampleSubtotal = sampleReceiptItems.reduce(
   (s, i) => s + i.price * i.qty,
@@ -78,29 +83,29 @@ export default function Receipt() {
   const navigate = useNavigate();
   const loc = useLocation();
 
-  const state = loc.state as
-    | {
-        items: readonly {
-          name: string;
-          desc: string;
-          price: number;
-          qty: number;
-        }[];
-        method: string;
-        paid: number;
-        subtotal: number;
-        tax: number;
-        total: number;
-      }
-    | undefined;
+  const navState = loc.state as { orderId?: string } | undefined;
 
-  const items = state?.items ?? sampleReceiptItems;
-  const method = state?.method ?? "cash";
-  const subtotal = state?.subtotal ?? sampleSubtotal;
-  const tax = state?.tax ?? sampleTax;
-  const total = state?.total ?? sampleTotal;
-  const paid = state?.paid ?? total;
-  const change = paid - total;
+  // Prefer the order id passed from payment; fall back to the session's last
+  // commit; finally the sample data for direct navigation / dev demo.
+  const order: CompletedOrder | undefined = (() => {
+    if (navState?.orderId) {
+      return orderRepository.get(navState.orderId);
+    }
+    return sale.lastCommittedOrder();
+  })();
+
+  const items = order?.lines ?? sampleReceiptItems;
+  const method = order?.payment.method ?? "cash";
+  const subtotal = order?.subtotal ?? sampleSubtotal;
+  const tax = order?.tax ?? sampleTax;
+  const total = order?.total ?? sampleTotal;
+  const paid = order?.paid ?? total;
+  const change = order ? order.change : paid - total;
+  const txNum =
+    order?.id ?? `TX-${String(Math.floor(Math.random() * 900_000) + 100_000)}`;
+  const placedAt = order ? new Date(order.createdAt) : new Date();
+  const dateStr = formatReceiptDate(placedAt);
+  const timeStr = formatReceiptTime(placedAt);
 
   const meta = METHOD_META[method] ?? METHOD_META.cash;
   return (
@@ -197,7 +202,7 @@ export default function Receipt() {
                       {item.name}
                     </div>
                     <div class="mt-0.5 text-caption text-muted-foreground tracking-wide">
-                      {item.desc}
+                      {item.category}
                     </div>
                   </div>
                   <div class="ml-4 shrink-0 text-right">

@@ -3,8 +3,8 @@ import { createSignal } from "solid-js";
 import { CheckCircleIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
-import { samplePaymentCart } from "~/lib/data/transactions";
-import { type OrderItem, OrderSummary } from "./components/order-summary";
+import * as sale from "~/lib/sales/sale-session";
+import { OrderSummary } from "./components/order-summary";
 import { PaymentExtras } from "./components/payment-extras";
 import type { PayMethod } from "./components/payment-method";
 import { PaymentMethod } from "./components/payment-method";
@@ -12,7 +12,7 @@ import { TotalBanner } from "./components/total-banner";
 
 export default function PaymentPage() {
   const navigate = useNavigate();
-  const [cart, setCart] = createSignal<OrderItem[]>(samplePaymentCart);
+  const cart = sale.getCart;
   const [method, setMethod] = createSignal<PayMethod>("cash");
   const [cashRaw, setCashRaw] = createSignal("");
   const [selectedQuick, setSelectedQuick] = createSignal<number | null>(null);
@@ -20,38 +20,41 @@ export default function PaymentPage() {
   const [customer, setCustomer] = createSignal("");
   const [notes, setNotes] = createSignal("");
 
-  const subtotal = () => cart().reduce((s, i) => s + i.price * i.qty, 0);
-  const tax = () => Math.round(subtotal() * 0.11);
-  const total = () => subtotal() + tax();
+  const totals = sale.totals;
+  const subtotal = () => totals().subtotal;
+  const tax = () => totals().tax;
+  const total = () => totals().total;
   const totalQty = () => cart().reduce((s, i) => s + i.qty, 0);
   const cashNum = () => Number.parseInt(cashRaw() || "0", 10) || 0;
   const canConfirm = () =>
-    method() === "cash" ? cashNum() >= total() && cashNum() > 0 : true;
+    cart().length > 0 &&
+    (method() === "cash" ? cashNum() >= total() && cashNum() > 0 : true);
 
   const confirmPayment = () => {
     if (!canConfirm()) {
       return;
     }
+    sale.setPayment({
+      method: method(),
+      cashTendered: method() === "cash" ? cashNum() : undefined,
+      ewallet: method() === "ewallet" ? ewallet() : undefined,
+      customerName: customer() || undefined,
+      notes: notes() || undefined,
+    });
+    const order = sale.commit();
     navigate("/transactions/receipt", {
       replace: true,
-      state: {
-        items: cart(),
-        method: method(),
-        paid: method() === "cash" ? cashNum() : total(),
-        subtotal: subtotal(),
-        tax: tax(),
-        total: total(),
-      },
+      state: { orderId: order.id },
     });
   };
 
-  const adjustQty = (id: number, delta: number) =>
-    setCart((prev) => {
-      const updated = prev.map((i) =>
-        i.id === id ? { ...i, qty: i.qty + delta } : i
-      );
-      return updated.filter((i) => i.qty > 0);
-    });
+  const adjustQty = (productId: number, delta: number) => {
+    if (delta >= 0) {
+      sale.increment(productId);
+    } else {
+      sale.decrement(productId);
+    }
+  };
 
   return (
     <SubPageShell

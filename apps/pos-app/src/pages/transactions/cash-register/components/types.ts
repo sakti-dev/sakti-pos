@@ -1,12 +1,3 @@
-export interface Product {
-  readonly cat: string;
-  readonly id: number;
-  readonly img: number;
-  readonly name: string;
-  readonly price: number;
-}
-
-export interface CartEntry {
-  readonly id: number;
-  qty: number;
-}
+// Canonical sale domain types live in ~/lib/sales/types. Re-exported here so
+// existing local imports (`./types`) keep working.
+export type { Product } from "~/lib/sales/types";

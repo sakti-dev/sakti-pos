@@ -1,19 +1,11 @@
 import { For } from "solid-js";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
+import type { CartLine } from "~/lib/sales/types";
 import { formatRupiah } from "~/lib/utils";
 
-export interface OrderItem {
-  readonly desc: string;
-  readonly id: number;
-  readonly img: number;
-  readonly name: string;
-  readonly price: number;
-  qty: number;
-}
-
 interface OrderSummaryProps {
-  readonly items: readonly OrderItem[];
-  readonly onAdjustQty: (id: number, delta: number) => void;
+  readonly items: readonly CartLine[];
+  readonly onAdjustQty: (productId: number, delta: number) => void;
   readonly subtotal: number;
   readonly tax: number;
   readonly total: number;
@@ -53,7 +45,7 @@ export const OrderSummary = (props: OrderSummaryProps) => (
               </div>
               <div class="min-w-0 flex-1">
                 <div class="text-caption text-faint-foreground">
-                  {item.desc} · {formatRupiah(item.price)}
+                  {item.category} · {formatRupiah(item.price)}
                 </div>
                 <div class="font-bold text-body-sm text-foreground tabular-nums">
                   {formatRupiah(item.price * item.qty)}
@@ -61,8 +53,8 @@ export const OrderSummary = (props: OrderSummaryProps) => (
               </div>
               <QuantityStepper
                 ariaLabel={item.name}
-                onDecrement={() => props.onAdjustQty(item.id, -1)}
-                onIncrement={() => props.onAdjustQty(item.id, 1)}
+                onDecrement={() => props.onAdjustQty(item.productId, -1)}
+                onIncrement={() => props.onAdjustQty(item.productId, 1)}
                 value={item.qty}
               />
             </div>

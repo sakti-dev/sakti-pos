@@ -1,13 +1,12 @@
 import { For, Show } from "solid-js";
 import { CartShoppingIcon } from "~/assets";
+import type { CartLine } from "~/lib/sales/types";
 import { CartItemRow } from "./cart-item-row";
-import type { CartEntry, Product } from "./types";
 
 interface CartListProps {
-  readonly cart: readonly CartEntry[];
-  readonly onDecrement: (id: number) => void;
-  readonly onIncrement: (id: number) => void;
-  readonly products: readonly Product[];
+  readonly lines: readonly CartLine[];
+  readonly onDecrement: (productId: number) => void;
+  readonly onIncrement: (productId: number) => void;
 }
 
 export const CartList = (props: CartListProps) => (
@@ -21,21 +20,18 @@ export const CartList = (props: CartListProps) => (
         </span>
       </div>
     }
-    when={props.cart.length > 0}
+    when={props.lines.length > 0}
   >
-    <For each={props.cart}>
-      {(item) => {
-        const p = () => props.products.find((pr) => pr.id === item.id);
-        return (
-          <CartItemRow
-            name={p()?.name ?? ""}
-            onDecrement={() => props.onDecrement(item.id)}
-            onIncrement={() => props.onIncrement(item.id)}
-            price={p()?.price ?? 0}
-            qty={item.qty}
-          />
-        );
-      }}
+    <For each={props.lines}>
+      {(line) => (
+        <CartItemRow
+          name={line.name}
+          onDecrement={() => props.onDecrement(line.productId)}
+          onIncrement={() => props.onIncrement(line.productId)}
+          price={line.price}
+          qty={line.qty}
+        />
+      )}
     </For>
   </Show>
 );
