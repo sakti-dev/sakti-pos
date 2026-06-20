@@ -11,9 +11,7 @@ export const merchants = sqliteTable(
     name: text("name").notNull(),
     businessType: text("business_type", {
       enum: ["fnb", "retail", "hybrid"],
-    })
-      .notNull()
-      .default("hybrid"),
+    }).notNull().default("hybrid"),
     ...localSyncColumns(),
   },
   (table) => [index("merchants_is_synced_idx").on(table.isSynced)]
@@ -92,7 +90,10 @@ export const categories = sqliteTable(
   },
   (table) => [
     index("categories_is_synced_idx").on(table.isSynced),
-    index("categories_merchant_sort_idx").on(table.merchantId, table.sortOrder),
+    index("categories_merchant_sort_idx").on(
+      table.merchantId,
+      table.sortOrder
+    ),
   ]
 );
 

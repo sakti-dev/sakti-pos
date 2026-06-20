@@ -1,0 +1,389 @@
+{
+  "contractVersion": "2026-06-20",
+  "generatorVersion": "0.1.0",
+  "tables": [
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "name": 2,
+        "business_type": 3,
+        "deleted_at": 4,
+        "is_synced": 5,
+        "created_at": 6,
+        "updated_at": 7
+      },
+      "name": "merchants",
+      "fields": [
+        "id",
+        "name",
+        "business_type",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "merchant_id": 2,
+        "timezone": 3,
+        "name": 4,
+        "address": 5,
+        "receipt_name": 6,
+        "receipt_address": 7,
+        "is_active": 8,
+        "use_tax": 9,
+        "tax_percentage": 10,
+        "deleted_at": 11,
+        "is_synced": 12,
+        "created_at": 13,
+        "updated_at": 14
+      },
+      "name": "outlets",
+      "fields": [
+        "id",
+        "merchant_id",
+        "timezone",
+        "name",
+        "address",
+        "receipt_name",
+        "receipt_address",
+        "is_active",
+        "use_tax",
+        "tax_percentage",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "outlet_id": 2,
+        "name": 3,
+        "short_id": 4,
+        "pairing_code": 5,
+        "pairing_expires_at": 6,
+        "is_active": 7,
+        "last_seen_at": 8,
+        "deleted_at": 9,
+        "is_synced": 10,
+        "created_at": 11,
+        "updated_at": 12
+      },
+      "name": "registers",
+      "fields": [
+        "id",
+        "outlet_id",
+        "name",
+        "short_id",
+        "pairing_code",
+        "pairing_expires_at",
+        "is_active",
+        "last_seen_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "merchant_id": 2,
+        "cloud_user_id": 3,
+        "outlet_id": 4,
+        "name": 5,
+        "pin": 6,
+        "role": 7,
+        "is_active": 8,
+        "deleted_at": 9,
+        "is_synced": 10,
+        "created_at": 11,
+        "updated_at": 12
+      },
+      "name": "staff",
+      "fields": [
+        "id",
+        "merchant_id",
+        "cloud_user_id",
+        "outlet_id",
+        "name",
+        "pin",
+        "role",
+        "is_active",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "merchant_id": 2,
+        "name": 3,
+        "sort_order": 4,
+        "is_active": 5,
+        "deleted_at": 6,
+        "is_synced": 7,
+        "created_at": 8,
+        "updated_at": 9
+      },
+      "name": "categories",
+      "fields": [
+        "id",
+        "merchant_id",
+        "name",
+        "sort_order",
+        "is_active",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "merchant_id": 2,
+        "job_id": 3,
+        "object_key": 4,
+        "original_filename": 5,
+        "content_type": 6,
+        "byte_size": 7,
+        "content_hash": 8,
+        "kind": 9,
+        "width": 10,
+        "height": 11,
+        "status": 12,
+        "created_by_user_id": 13,
+        "deleted_at": 14,
+        "is_synced": 15,
+        "created_at": 16,
+        "updated_at": 17
+      },
+      "name": "assets",
+      "fields": [
+        "id",
+        "merchant_id",
+        "job_id",
+        "object_key",
+        "original_filename",
+        "content_type",
+        "byte_size",
+        "content_hash",
+        "kind",
+        "width",
+        "height",
+        "status",
+        "created_by_user_id",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "merchant_id": 2,
+        "category_id": 3,
+        "name": 4,
+        "price_minor_units": 5,
+        "image_asset_id": 6,
+        "is_active": 7,
+        "sort_order": 8,
+        "deleted_at": 9,
+        "is_synced": 10,
+        "created_at": 11,
+        "updated_at": 12
+      },
+      "name": "products",
+      "fields": [
+        "id",
+        "merchant_id",
+        "category_id",
+        "name",
+        "price_minor_units",
+        "image_asset_id",
+        "is_active",
+        "sort_order",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "outlet_id": 2,
+        "product_id": 3,
+        "price_minor_units": 4,
+        "is_available": 5,
+        "sort_order": 6,
+        "deleted_at": 7,
+        "is_synced": 8,
+        "created_at": 9,
+        "updated_at": 10
+      },
+      "name": "outlet_products",
+      "fields": [
+        "id",
+        "outlet_id",
+        "product_id",
+        "price_minor_units",
+        "is_available",
+        "sort_order",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "outlet_id": 2,
+        "register_id": 3,
+        "staff_id": 4,
+        "order_number": 5,
+        "total_minor_units": 6,
+        "payment_method": 7,
+        "amount_paid_minor_units": 8,
+        "change_amount_minor_units": 9,
+        "status": 10,
+        "deleted_at": 11,
+        "is_synced": 12,
+        "created_at": 13,
+        "updated_at": 14
+      },
+      "name": "orders",
+      "fields": [
+        "id",
+        "outlet_id",
+        "register_id",
+        "staff_id",
+        "order_number",
+        "total_minor_units",
+        "payment_method",
+        "amount_paid_minor_units",
+        "change_amount_minor_units",
+        "status",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "order_id": 2,
+        "outlet_id": 3,
+        "product_id": 4,
+        "product_name": 5,
+        "quantity": 6,
+        "unit_price_minor_units": 7,
+        "original_price_minor_units": 8,
+        "subtotal_minor_units": 9,
+        "deleted_at": 10,
+        "is_synced": 11,
+        "created_at": 12,
+        "updated_at": 13
+      },
+      "name": "order_items",
+      "fields": [
+        "id",
+        "order_id",
+        "outlet_id",
+        "product_id",
+        "product_name",
+        "quantity",
+        "unit_price_minor_units",
+        "original_price_minor_units",
+        "subtotal_minor_units",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    }
+  ],
+  "scopeMappings": [
+    {
+      "table": "merchants",
+      "field": "id"
+    },
+    {
+      "table": "outlets",
+      "field": "merchantId"
+    },
+    {
+      "table": "registers",
+      "field": "outletId"
+    },
+    {
+      "table": "staff",
+      "field": "merchantId"
+    },
+    {
+      "table": "categories",
+      "field": "merchantId"
+    },
+    {
+      "table": "assets",
+      "field": "merchantId"
+    },
+    {
+      "table": "products",
+      "field": "merchantId"
+    },
+    {
+      "table": "outlet_products",
+      "field": "outletId"
+    },
+    {
+      "table": "orders",
+      "field": "outletId"
+    },
+    {
+      "table": "order_items",
+      "field": "outletId"
+    }
+  ],
+  "tableOrder": {
+    "upsert": [
+      "merchants",
+      "outlets",
+      "registers",
+      "staff",
+      "categories",
+      "assets",
+      "products",
+      "outlet_products",
+      "orders",
+      "order_items"
+    ],
+    "delete": [
+      "order_items",
+      "orders",
+      "outlet_products",
+      "products",
+      "assets",
+      "categories",
+      "staff",
+      "registers",
+      "outlets",
+      "merchants"
+    ]
+  },
+  "outputPaths": [
+    "sync-contract.json",
+    "sync-table-order.ts",
+    "sync-contract.manifest.json"
+  ]
+}

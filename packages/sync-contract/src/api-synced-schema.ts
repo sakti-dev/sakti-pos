@@ -9,6 +9,11 @@ export const merchants = sqliteTable(
       .primaryKey()
       .$defaultFn(() => uuidv7()),
     name: text("name").notNull(),
+    businessType: text("business_type", {
+      enum: ["fnb", "retail", "hybrid"],
+    })
+      .notNull()
+      .default("hybrid"),
     ...apiSyncColumns(),
   },
   (table) => [
@@ -31,6 +36,8 @@ export const outlets = sqliteTable(
     receiptName: text("receipt_name"),
     receiptAddress: text("receipt_address"),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    useTax: integer("use_tax", { mode: "boolean" }).notNull().default(false),
+    taxPercentage: integer("tax_percentage").notNull().default(0),
     ...apiSyncColumns(),
   },
   (table) => [
@@ -79,6 +86,7 @@ export const staff = sqliteTable(
   },
   (table) => [
     index("staff_scope_sync_idx").on(table.merchantId, table.syncUpdatedAt),
+    index("staff_merchant_active_idx").on(table.merchantId, table.isActive),
   ]
 );
 
@@ -101,6 +109,7 @@ export const categories = sqliteTable(
       table.merchantId,
       table.syncUpdatedAt
     ),
+    index("categories_merchant_sort_idx").on(table.merchantId, table.sortOrder),
   ]
 );
 
@@ -123,7 +132,7 @@ export const assets = sqliteTable(
     width: integer("width"),
     height: integer("height"),
     status: text("status", {
-      enum: ["pending", "compressed", "pending_upload", "ready", "failed"],
+      enum: ["pending", "compressed", "ready", "failed"],
     }).notNull(),
     createdByUserId: text("created_by_user_id"),
     ...apiSyncColumns(),
@@ -152,6 +161,11 @@ export const products = sqliteTable(
   },
   (table) => [
     index("products_scope_sync_idx").on(table.merchantId, table.syncUpdatedAt),
+    index("products_merchant_active_sort_idx").on(
+      table.merchantId,
+      table.isActive,
+      table.sortOrder
+    ),
   ]
 );
 
@@ -179,6 +193,10 @@ export const outletProducts = sqliteTable(
       table.outletId,
       table.syncUpdatedAt
     ),
+    index("outlet_products_outlet_product_idx").on(
+      table.outletId,
+      table.productId
+    ),
   ]
 );
 
@@ -203,6 +221,7 @@ export const orders = sqliteTable(
   },
   (table) => [
     index("orders_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("orders_outlet_created_idx").on(table.outletId, table.createdAt),
   ]
 );
 
@@ -228,5 +247,6 @@ export const orderItems = sqliteTable(
   },
   (table) => [
     index("order_items_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("order_items_order_idx").on(table.orderId),
   ]
 );
