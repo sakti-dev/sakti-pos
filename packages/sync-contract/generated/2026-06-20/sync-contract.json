@@ -11,9 +11,25 @@
     "products",
     "outlet_products",
     "orders",
-    "order_items"
+    "order_items",
+    "ingredients",
+    "inventory_stocks",
+    "stocktakes",
+    "stocktake_lines",
+    "goods_receipts",
+    "goods_receipt_lines",
+    "cash_shifts",
+    "order_item_modifiers"
   ],
   "deleteOrder": [
+    "order_item_modifiers",
+    "cash_shifts",
+    "goods_receipt_lines",
+    "goods_receipts",
+    "stocktake_lines",
+    "stocktakes",
+    "inventory_stocks",
+    "ingredients",
     "order_items",
     "orders",
     "outlet_products",
@@ -225,6 +241,169 @@
         "unit_price_minor_units",
         "original_price_minor_units",
         "subtotal_minor_units",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "ingredients": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "name",
+        "sku",
+        "unit",
+        "category",
+        "is_active",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "inventory_stocks": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "target_type",
+        "target_id",
+        "on_hand_qty",
+        "low_stock_threshold",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "stocktakes": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "staff_id",
+        "ref",
+        "target_type",
+        "reason",
+        "counted_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "stocktake_lines": {
+      "columns": [
+        "id",
+        "stocktake_id",
+        "outlet_id",
+        "target_id",
+        "system_qty_before",
+        "counted_qty",
+        "variance_qty",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "goods_receipts": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "staff_id",
+        "ref",
+        "supplier_name",
+        "note",
+        "received_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "goods_receipt_lines": {
+      "columns": [
+        "id",
+        "goods_receipt_id",
+        "outlet_id",
+        "target_id",
+        "received_qty",
+        "unit_cost_minor_units",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "cash_shifts": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "register_id",
+        "opened_by_staff_id",
+        "opened_at",
+        "closed_at",
+        "initial_float_minor_units",
+        "expected_cash_minor_units",
+        "actual_cash_minor_units",
+        "difference_minor_units",
+        "status",
+        "note",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "order_item_modifiers": {
+      "columns": [
+        "id",
+        "order_item_id",
+        "outlet_id",
+        "modifier_name",
+        "modifier_group",
+        "price_delta_minor_units",
+        "quantity",
         "deleted_at",
         "is_synced",
         "created_at",

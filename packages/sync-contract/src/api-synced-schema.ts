@@ -1,5 +1,12 @@
 import { apiSyncColumns } from "baresync/schema";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { v7 as uuidv7 } from "uuid";
 
 export const merchants = sqliteTable(
@@ -248,5 +255,237 @@ export const orderItems = sqliteTable(
   (table) => [
     index("order_items_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
     index("order_items_order_idx").on(table.orderId),
+  ]
+);
+
+export const ingredients = sqliteTable(
+  "ingredients",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    merchantId: text("merchant_id")
+      .notNull()
+      .references(() => merchants.id),
+    name: text("name").notNull(),
+    sku: text("sku"),
+    unit: text("unit").notNull().default("Pcs"),
+    category: text("category"),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("ingredients_scope_sync_idx").on(
+      table.merchantId,
+      table.syncUpdatedAt
+    ),
+    index("ingredients_merchant_active_idx").on(
+      table.merchantId,
+      table.isActive
+    ),
+  ]
+);
+
+export const inventoryStocks = sqliteTable(
+  "inventory_stocks",
+  {
+    id: text("id").primaryKey(),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    targetType: text("target_type", {
+      enum: ["product", "ingredient"],
+    }).notNull(),
+    targetId: text("target_id").notNull(),
+    onHandQty: real("on_hand_qty").notNull().default(0),
+    lowStockThreshold: real("low_stock_threshold"),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("inventory_stocks_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
+    index("inventory_stocks_outlet_target_idx").on(
+      table.outletId,
+      table.targetType,
+      table.targetId
+    ),
+    uniqueIndex("inventory_stocks_outlet_target_unique").on(
+      table.outletId,
+      table.targetType,
+      table.targetId
+    ),
+  ]
+);
+
+export const stocktakes = sqliteTable(
+  "stocktakes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    staffId: text("staff_id")
+      .notNull()
+      .references(() => staff.id),
+    ref: text("ref").notNull(),
+    targetType: text("target_type", {
+      enum: ["product", "ingredient"],
+    }).notNull(),
+    reason: text("reason").notNull(),
+    countedAt: text("counted_at").notNull(),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("stocktakes_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("stocktakes_outlet_counted_idx").on(table.outletId, table.countedAt),
+  ]
+);
+
+export const stocktakeLines = sqliteTable(
+  "stocktake_lines",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    stocktakeId: text("stocktake_id")
+      .notNull()
+      .references(() => stocktakes.id),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    targetId: text("target_id").notNull(),
+    systemQtyBefore: real("system_qty_before").notNull(),
+    countedQty: real("counted_qty").notNull(),
+    varianceQty: real("variance_qty").notNull(),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("stocktake_lines_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
+    index("stocktake_lines_stocktake_idx").on(table.stocktakeId),
+  ]
+);
+
+export const goodsReceipts = sqliteTable(
+  "goods_receipts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    staffId: text("staff_id")
+      .notNull()
+      .references(() => staff.id),
+    ref: text("ref").notNull(),
+    supplierName: text("supplier_name"),
+    note: text("note"),
+    receivedAt: text("received_at").notNull(),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("goods_receipts_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
+    index("goods_receipts_outlet_received_idx").on(
+      table.outletId,
+      table.receivedAt
+    ),
+  ]
+);
+
+export const goodsReceiptLines = sqliteTable(
+  "goods_receipt_lines",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    goodsReceiptId: text("goods_receipt_id")
+      .notNull()
+      .references(() => goodsReceipts.id),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    targetId: text("target_id").notNull(),
+    receivedQty: real("received_qty").notNull(),
+    unitCostMinorUnits: integer("unit_cost_minor_units"),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("goods_receipt_lines_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
+    index("goods_receipt_lines_receipt_idx").on(table.goodsReceiptId),
+  ]
+);
+
+export const cashShifts = sqliteTable(
+  "cash_shifts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    registerId: text("register_id").references(() => registers.id),
+    openedByStaffId: text("opened_by_staff_id")
+      .notNull()
+      .references(() => staff.id),
+    openedAt: text("opened_at").notNull(),
+    closedAt: text("closed_at"),
+    initialFloatMinorUnits: integer("initial_float_minor_units")
+      .notNull()
+      .default(0),
+    expectedCashMinorUnits: integer("expected_cash_minor_units")
+      .notNull()
+      .default(0),
+    actualCashMinorUnits: integer("actual_cash_minor_units"),
+    differenceMinorUnits: integer("difference_minor_units"),
+    status: text("status", { enum: ["open", "closed"] }).notNull(),
+    note: text("note"),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("cash_shifts_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("cash_shifts_outlet_status_idx").on(table.outletId, table.status),
+  ]
+);
+
+export const orderItemModifiers = sqliteTable(
+  "order_item_modifiers",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    orderItemId: text("order_item_id")
+      .notNull()
+      .references(() => orderItems.id),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    modifierName: text("modifier_name").notNull(),
+    modifierGroup: text("modifier_group"),
+    priceDeltaMinorUnits: integer("price_delta_minor_units")
+      .notNull()
+      .default(0),
+    quantity: integer("quantity").notNull().default(1),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("order_item_modifiers_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
+    index("order_item_modifiers_order_item_idx").on(table.orderItemId),
   ]
 );

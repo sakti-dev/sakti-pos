@@ -311,6 +311,244 @@
         "created_at",
         "updated_at"
       ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "merchant_id": 2,
+        "name": 3,
+        "sku": 4,
+        "unit": 5,
+        "category": 6,
+        "is_active": 7,
+        "deleted_at": 8,
+        "is_synced": 9,
+        "created_at": 10,
+        "updated_at": 11
+      },
+      "name": "ingredients",
+      "fields": [
+        "id",
+        "merchant_id",
+        "name",
+        "sku",
+        "unit",
+        "category",
+        "is_active",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "outlet_id": 2,
+        "target_type": 3,
+        "target_id": 4,
+        "on_hand_qty": 5,
+        "low_stock_threshold": 6,
+        "deleted_at": 7,
+        "is_synced": 8,
+        "created_at": 9,
+        "updated_at": 10
+      },
+      "name": "inventory_stocks",
+      "fields": [
+        "id",
+        "outlet_id",
+        "target_type",
+        "target_id",
+        "on_hand_qty",
+        "low_stock_threshold",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "outlet_id": 2,
+        "staff_id": 3,
+        "ref": 4,
+        "target_type": 5,
+        "reason": 6,
+        "counted_at": 7,
+        "deleted_at": 8,
+        "is_synced": 9,
+        "created_at": 10,
+        "updated_at": 11
+      },
+      "name": "stocktakes",
+      "fields": [
+        "id",
+        "outlet_id",
+        "staff_id",
+        "ref",
+        "target_type",
+        "reason",
+        "counted_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "stocktake_id": 2,
+        "outlet_id": 3,
+        "target_id": 4,
+        "system_qty_before": 5,
+        "counted_qty": 6,
+        "variance_qty": 7,
+        "deleted_at": 8,
+        "is_synced": 9,
+        "created_at": 10,
+        "updated_at": 11
+      },
+      "name": "stocktake_lines",
+      "fields": [
+        "id",
+        "stocktake_id",
+        "outlet_id",
+        "target_id",
+        "system_qty_before",
+        "counted_qty",
+        "variance_qty",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "outlet_id": 2,
+        "staff_id": 3,
+        "ref": 4,
+        "supplier_name": 5,
+        "note": 6,
+        "received_at": 7,
+        "deleted_at": 8,
+        "is_synced": 9,
+        "created_at": 10,
+        "updated_at": 11
+      },
+      "name": "goods_receipts",
+      "fields": [
+        "id",
+        "outlet_id",
+        "staff_id",
+        "ref",
+        "supplier_name",
+        "note",
+        "received_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "goods_receipt_id": 2,
+        "outlet_id": 3,
+        "target_id": 4,
+        "received_qty": 5,
+        "unit_cost_minor_units": 6,
+        "deleted_at": 7,
+        "is_synced": 8,
+        "created_at": 9,
+        "updated_at": 10
+      },
+      "name": "goods_receipt_lines",
+      "fields": [
+        "id",
+        "goods_receipt_id",
+        "outlet_id",
+        "target_id",
+        "received_qty",
+        "unit_cost_minor_units",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "outlet_id": 2,
+        "register_id": 3,
+        "opened_by_staff_id": 4,
+        "opened_at": 5,
+        "closed_at": 6,
+        "initial_float_minor_units": 7,
+        "expected_cash_minor_units": 8,
+        "actual_cash_minor_units": 9,
+        "difference_minor_units": 10,
+        "status": 11,
+        "note": 12,
+        "deleted_at": 13,
+        "is_synced": 14,
+        "created_at": 15,
+        "updated_at": 16
+      },
+      "name": "cash_shifts",
+      "fields": [
+        "id",
+        "outlet_id",
+        "register_id",
+        "opened_by_staff_id",
+        "opened_at",
+        "closed_at",
+        "initial_float_minor_units",
+        "expected_cash_minor_units",
+        "actual_cash_minor_units",
+        "difference_minor_units",
+        "status",
+        "note",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "fieldNumbers": {
+        "id": 1,
+        "order_item_id": 2,
+        "outlet_id": 3,
+        "modifier_name": 4,
+        "modifier_group": 5,
+        "price_delta_minor_units": 6,
+        "quantity": 7,
+        "deleted_at": 8,
+        "is_synced": 9,
+        "created_at": 10,
+        "updated_at": 11
+      },
+      "name": "order_item_modifiers",
+      "fields": [
+        "id",
+        "order_item_id",
+        "outlet_id",
+        "modifier_name",
+        "modifier_group",
+        "price_delta_minor_units",
+        "quantity",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ]
     }
   ],
   "scopeMappings": [
@@ -353,6 +591,38 @@
     {
       "table": "order_items",
       "field": "outletId"
+    },
+    {
+      "table": "ingredients",
+      "field": "merchantId"
+    },
+    {
+      "table": "inventory_stocks",
+      "field": "outletId"
+    },
+    {
+      "table": "stocktakes",
+      "field": "outletId"
+    },
+    {
+      "table": "stocktake_lines",
+      "field": "outletId"
+    },
+    {
+      "table": "goods_receipts",
+      "field": "outletId"
+    },
+    {
+      "table": "goods_receipt_lines",
+      "field": "outletId"
+    },
+    {
+      "table": "cash_shifts",
+      "field": "outletId"
+    },
+    {
+      "table": "order_item_modifiers",
+      "field": "outletId"
     }
   ],
   "tableOrder": {
@@ -366,9 +636,25 @@
       "products",
       "outlet_products",
       "orders",
-      "order_items"
+      "order_items",
+      "ingredients",
+      "inventory_stocks",
+      "stocktakes",
+      "stocktake_lines",
+      "goods_receipts",
+      "goods_receipt_lines",
+      "cash_shifts",
+      "order_item_modifiers"
     ],
     "delete": [
+      "order_item_modifiers",
+      "cash_shifts",
+      "goods_receipt_lines",
+      "goods_receipts",
+      "stocktake_lines",
+      "stocktakes",
+      "inventory_stocks",
+      "ingredients",
       "order_items",
       "orders",
       "outlet_products",
