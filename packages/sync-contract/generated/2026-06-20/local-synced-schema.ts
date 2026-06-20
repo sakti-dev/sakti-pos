@@ -32,7 +32,7 @@ export const outlets = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    merchantId: text("merchant_id").notNull(),
+    merchantId: text("merchant_id").notNull().references(() => merchants.id),
     timezone: text("timezone").notNull().default("Asia/Jakarta"),
     name: text("name").notNull(),
     address: text("address"),
@@ -52,7 +52,7 @@ export const registers = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    outletId: text("outlet_id").notNull(),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
     name: text("name").notNull(),
     shortId: text("short_id").notNull(),
     pairingCode: text("pairing_code"),
@@ -70,9 +70,9 @@ export const staff = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    merchantId: text("merchant_id").notNull(),
+    merchantId: text("merchant_id").notNull().references(() => merchants.id),
     cloudUserId: text("cloud_user_id"),
-    outletId: text("outlet_id"),
+    outletId: text("outlet_id").references(() => outlets.id),
     name: text("name").notNull(),
     pin: text("pin"),
     role: text("role", { enum: ["cashier", "manager", "owner"] }).notNull(),
@@ -91,7 +91,7 @@ export const categories = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    merchantId: text("merchant_id").notNull(),
+    merchantId: text("merchant_id").notNull().references(() => merchants.id),
     name: text("name").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
@@ -109,7 +109,7 @@ export const assets = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    merchantId: text("merchant_id").notNull(),
+    merchantId: text("merchant_id").notNull().references(() => merchants.id),
     jobId: text("job_id"),
     objectKey: text("object_key"),
     originalFilename: text("original_filename"),
@@ -134,11 +134,11 @@ export const products = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    merchantId: text("merchant_id").notNull(),
-    categoryId: text("category_id"),
+    merchantId: text("merchant_id").notNull().references(() => merchants.id),
+    categoryId: text("category_id").references(() => categories.id),
     name: text("name").notNull(),
     priceMinorUnits: integer("price_minor_units").notNull(),
-    imageAssetId: text("image_asset_id"),
+    imageAssetId: text("image_asset_id").references(() => assets.id),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     ...localSyncColumns(),
@@ -159,8 +159,8 @@ export const outletProducts = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    outletId: text("outlet_id").notNull(),
-    productId: text("product_id").notNull(),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
+    productId: text("product_id").notNull().references(() => products.id),
     priceMinorUnits: integer("price_minor_units"),
     isAvailable: integer("is_available", { mode: "boolean" })
       .notNull()
@@ -183,9 +183,9 @@ export const orders = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    outletId: text("outlet_id").notNull(),
-    registerId: text("register_id"),
-    staffId: text("staff_id"),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
+    registerId: text("register_id").references(() => registers.id),
+    staffId: text("staff_id").references(() => staff.id),
     orderNumber: text("order_number").notNull().unique(),
     totalMinorUnits: integer("total_minor_units").notNull(),
     paymentMethod: text("payment_method", { enum: ["cash", "qris"] }).notNull(),
@@ -206,8 +206,8 @@ export const orderItems = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    orderId: text("order_id").notNull(),
-    outletId: text("outlet_id").notNull(),
+    orderId: text("order_id").notNull().references(() => orders.id),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
     productId: text("product_id"),
     productName: text("product_name").notNull(),
     quantity: integer("quantity").notNull(),
@@ -228,7 +228,7 @@ export const ingredients = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    merchantId: text("merchant_id").notNull(),
+    merchantId: text("merchant_id").notNull().references(() => merchants.id),
     name: text("name").notNull(),
     sku: text("sku"),
     unit: text("unit").notNull().default("Pcs"),
@@ -238,7 +238,10 @@ export const ingredients = sqliteTable(
   },
   (table) => [
     index("ingredients_is_synced_idx").on(table.isSynced),
-    index("ingredients_merchant_active_idx").on(table.merchantId, table.isActive),
+    index("ingredients_merchant_active_idx").on(
+      table.merchantId,
+      table.isActive
+    ),
   ]
 );
 
@@ -246,8 +249,10 @@ export const inventoryStocks = sqliteTable(
   "inventory_stocks",
   {
     id: text("id").primaryKey(),
-    outletId: text("outlet_id").notNull(),
-    targetType: text("target_type", { enum: ["product", "ingredient"] }).notNull(),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
+    targetType: text("target_type", {
+      enum: ["product", "ingredient"],
+    }).notNull(),
     targetId: text("target_id").notNull(),
     onHandQty: real("on_hand_qty").notNull().default(0),
     lowStockThreshold: real("low_stock_threshold"),
@@ -274,10 +279,12 @@ export const stocktakes = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    outletId: text("outlet_id").notNull(),
-    staffId: text("staff_id").notNull(),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
+    staffId: text("staff_id").notNull().references(() => staff.id),
     ref: text("ref").notNull(),
-    targetType: text("target_type", { enum: ["product", "ingredient"] }).notNull(),
+    targetType: text("target_type", {
+      enum: ["product", "ingredient"],
+    }).notNull(),
     reason: text("reason").notNull(),
     countedAt: text("counted_at").notNull(),
     ...localSyncColumns(),
@@ -294,8 +301,8 @@ export const stocktakeLines = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    stocktakeId: text("stocktake_id").notNull(),
-    outletId: text("outlet_id").notNull(),
+    stocktakeId: text("stocktake_id").notNull().references(() => stocktakes.id),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
     targetId: text("target_id").notNull(),
     systemQtyBefore: real("system_qty_before").notNull(),
     countedQty: real("counted_qty").notNull(),
@@ -314,8 +321,8 @@ export const goodsReceipts = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    outletId: text("outlet_id").notNull(),
-    staffId: text("staff_id").notNull(),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
+    staffId: text("staff_id").notNull().references(() => staff.id),
     ref: text("ref").notNull(),
     supplierName: text("supplier_name"),
     note: text("note"),
@@ -324,7 +331,10 @@ export const goodsReceipts = sqliteTable(
   },
   (table) => [
     index("goods_receipts_is_synced_idx").on(table.isSynced),
-    index("goods_receipts_outlet_received_idx").on(table.outletId, table.receivedAt),
+    index("goods_receipts_outlet_received_idx").on(
+      table.outletId,
+      table.receivedAt
+    ),
   ]
 );
 
@@ -334,8 +344,8 @@ export const goodsReceiptLines = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    goodsReceiptId: text("goods_receipt_id").notNull(),
-    outletId: text("outlet_id").notNull(),
+    goodsReceiptId: text("goods_receipt_id").notNull().references(() => goodsReceipts.id),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
     targetId: text("target_id").notNull(),
     receivedQty: real("received_qty").notNull(),
     unitCostMinorUnits: integer("unit_cost_minor_units"),
@@ -353,13 +363,17 @@ export const cashShifts = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    outletId: text("outlet_id").notNull(),
-    registerId: text("register_id"),
-    openedByStaffId: text("opened_by_staff_id").notNull(),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
+    registerId: text("register_id").references(() => registers.id),
+    openedByStaffId: text("opened_by_staff_id").notNull().references(() => staff.id),
     openedAt: text("opened_at").notNull(),
     closedAt: text("closed_at"),
-    initialFloatMinorUnits: integer("initial_float_minor_units").notNull().default(0),
-    expectedCashMinorUnits: integer("expected_cash_minor_units").notNull().default(0),
+    initialFloatMinorUnits: integer("initial_float_minor_units")
+      .notNull()
+      .default(0),
+    expectedCashMinorUnits: integer("expected_cash_minor_units")
+      .notNull()
+      .default(0),
     actualCashMinorUnits: integer("actual_cash_minor_units"),
     differenceMinorUnits: integer("difference_minor_units"),
     status: text("status", { enum: ["open", "closed"] }).notNull(),
@@ -378,11 +392,13 @@ export const orderItemModifiers = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
-    orderItemId: text("order_item_id").notNull(),
-    outletId: text("outlet_id").notNull(),
+    orderItemId: text("order_item_id").notNull().references(() => orderItems.id),
+    outletId: text("outlet_id").notNull().references(() => outlets.id),
     modifierName: text("modifier_name").notNull(),
     modifierGroup: text("modifier_group"),
-    priceDeltaMinorUnits: integer("price_delta_minor_units").notNull().default(0),
+    priceDeltaMinorUnits: integer("price_delta_minor_units")
+      .notNull()
+      .default(0),
     quantity: integer("quantity").notNull().default(1),
     ...localSyncColumns(),
   },

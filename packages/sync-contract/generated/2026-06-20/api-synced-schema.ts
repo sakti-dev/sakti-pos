@@ -275,8 +275,14 @@ export const ingredients = sqliteTable(
     ...apiSyncColumns(),
   },
   (table) => [
-    index("ingredients_scope_sync_idx").on(table.merchantId, table.syncUpdatedAt),
-    index("ingredients_merchant_active_idx").on(table.merchantId, table.isActive),
+    index("ingredients_scope_sync_idx").on(
+      table.merchantId,
+      table.syncUpdatedAt
+    ),
+    index("ingredients_merchant_active_idx").on(
+      table.merchantId,
+      table.isActive
+    ),
   ]
 );
 
@@ -287,14 +293,19 @@ export const inventoryStocks = sqliteTable(
     outletId: text("outlet_id")
       .notNull()
       .references(() => outlets.id),
-    targetType: text("target_type", { enum: ["product", "ingredient"] }).notNull(),
+    targetType: text("target_type", {
+      enum: ["product", "ingredient"],
+    }).notNull(),
     targetId: text("target_id").notNull(),
     onHandQty: real("on_hand_qty").notNull().default(0),
     lowStockThreshold: real("low_stock_threshold"),
     ...apiSyncColumns(),
   },
   (table) => [
-    index("inventory_stocks_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("inventory_stocks_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
     index("inventory_stocks_outlet_target_idx").on(
       table.outletId,
       table.targetType,
@@ -321,7 +332,9 @@ export const stocktakes = sqliteTable(
       .notNull()
       .references(() => staff.id),
     ref: text("ref").notNull(),
-    targetType: text("target_type", { enum: ["product", "ingredient"] }).notNull(),
+    targetType: text("target_type", {
+      enum: ["product", "ingredient"],
+    }).notNull(),
     reason: text("reason").notNull(),
     countedAt: text("counted_at").notNull(),
     ...apiSyncColumns(),
@@ -351,7 +364,10 @@ export const stocktakeLines = sqliteTable(
     ...apiSyncColumns(),
   },
   (table) => [
-    index("stocktake_lines_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("stocktake_lines_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
     index("stocktake_lines_stocktake_idx").on(table.stocktakeId),
   ]
 );
@@ -375,8 +391,14 @@ export const goodsReceipts = sqliteTable(
     ...apiSyncColumns(),
   },
   (table) => [
-    index("goods_receipts_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
-    index("goods_receipts_outlet_received_idx").on(table.outletId, table.receivedAt),
+    index("goods_receipts_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
+    index("goods_receipts_outlet_received_idx").on(
+      table.outletId,
+      table.receivedAt
+    ),
   ]
 );
 
@@ -398,7 +420,10 @@ export const goodsReceiptLines = sqliteTable(
     ...apiSyncColumns(),
   },
   (table) => [
-    index("goods_receipt_lines_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("goods_receipt_lines_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
     index("goods_receipt_lines_receipt_idx").on(table.goodsReceiptId),
   ]
 );
@@ -418,8 +443,12 @@ export const cashShifts = sqliteTable(
       .references(() => staff.id),
     openedAt: text("opened_at").notNull(),
     closedAt: text("closed_at"),
-    initialFloatMinorUnits: integer("initial_float_minor_units").notNull().default(0),
-    expectedCashMinorUnits: integer("expected_cash_minor_units").notNull().default(0),
+    initialFloatMinorUnits: integer("initial_float_minor_units")
+      .notNull()
+      .default(0),
+    expectedCashMinorUnits: integer("expected_cash_minor_units")
+      .notNull()
+      .default(0),
     actualCashMinorUnits: integer("actual_cash_minor_units"),
     differenceMinorUnits: integer("difference_minor_units"),
     status: text("status", { enum: ["open", "closed"] }).notNull(),
@@ -446,12 +475,17 @@ export const orderItemModifiers = sqliteTable(
       .references(() => outlets.id),
     modifierName: text("modifier_name").notNull(),
     modifierGroup: text("modifier_group"),
-    priceDeltaMinorUnits: integer("price_delta_minor_units").notNull().default(0),
+    priceDeltaMinorUnits: integer("price_delta_minor_units")
+      .notNull()
+      .default(0),
     quantity: integer("quantity").notNull().default(1),
     ...apiSyncColumns(),
   },
   (table) => [
-    index("order_item_modifiers_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("order_item_modifiers_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
     index("order_item_modifiers_order_item_idx").on(table.orderItemId),
   ]
 );
