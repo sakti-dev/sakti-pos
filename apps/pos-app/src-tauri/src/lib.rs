@@ -57,7 +57,7 @@ pub fn run() {
                 .api_base_url("http://192.168.1.2:3001/api/sync/v1")
                 .db_path("baresync.db")
                 .contract_json(include_str!(
-                    "../../../../packages/sync-contract/generated/2026-06-10/sync-contract.json"
+                    "../../../../packages/sync-contract/generated/2026-06-20/sync-contract.json"
                 ))
                 .migrations_path("migrations")
                 .poll_interval_secs(30)

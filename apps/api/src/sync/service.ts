@@ -1,7 +1,13 @@
 import {
   assets,
+  cashShifts,
   categories,
+  goodsReceiptLines,
+  goodsReceipts,
+  ingredients,
+  inventoryStocks,
   merchants,
+  orderItemModifiers,
   orderItems,
   orders,
   outletProducts,
@@ -9,7 +15,9 @@ import {
   products,
   registers,
   staff,
-} from "@sync-contract/generated/2026-06-10/api-synced-schema";
+  stocktakeLines,
+  stocktakes,
+} from "@sync-contract/generated/2026-06-20/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -69,6 +77,10 @@ export const repository = createDrizzleSyncRepository({
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "merchants.id"),
         name: requiredString(row.name, "merchants.name"),
+        businessType: requiredString(
+          row.businessType,
+          "merchants.businessType"
+        ),
         deletedAt: optionalString(row.deletedAt),
         syncUpdatedAt,
         createdAt: requiredString(row.createdAt, "merchants.createdAt"),
@@ -109,6 +121,7 @@ export const repository = createDrizzleSyncRepository({
             target: merchants.id,
             set: {
               name: sql.raw("excluded.name"),
+              businessType: sql.raw("excluded.business_type"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),
@@ -126,6 +139,11 @@ export const repository = createDrizzleSyncRepository({
         receiptName: optionalString(row.receiptName),
         receiptAddress: optionalString(row.receiptAddress),
         isActive: requiredBoolean(row.isActive),
+        useTax: requiredBoolean(row.useTax),
+        taxPercentage: requiredNumber(
+          row.taxPercentage,
+          "outlets.taxPercentage"
+        ),
         deletedAt: optionalString(row.deletedAt),
         syncUpdatedAt,
         createdAt: requiredString(row.createdAt, "outlets.createdAt"),
@@ -173,6 +191,8 @@ export const repository = createDrizzleSyncRepository({
               receiptName: sql.raw("excluded.receipt_name"),
               receiptAddress: sql.raw("excluded.receipt_address"),
               isActive: sql.raw("excluded.is_active"),
+              useTax: sql.raw("excluded.use_tax"),
+              taxPercentage: sql.raw("excluded.tax_percentage"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),
@@ -708,6 +728,539 @@ export const repository = createDrizzleSyncRepository({
                 "excluded.original_price_minor_units"
               ),
               subtotalMinorUnits: sql.raw("excluded.subtotal_minor_units"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    ingredients: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "ingredients.id"),
+        merchantId: requiredString(row.merchantId, "merchantId"),
+        name: requiredString(row.name, "name"),
+        sku: optionalString(row.sku),
+        unit: requiredString(row.unit, "unit"),
+        category: optionalString(row.category),
+        isActive: requiredBoolean(row.isActive),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "ingredients.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(ingredients)
+          .where(eq(ingredients.merchantId, scopeId))
+          .orderBy(sql`${ingredients.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(ingredients)
+          .where(
+            and(
+              eq(ingredients.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(ingredients.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(ingredients.syncUpdatedAt), asc(ingredients.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(ingredients)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(ingredients.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(ingredients)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: ingredients.id,
+            set: {
+              merchantId: sql.raw("excluded.merchant_id"),
+              name: sql.raw("excluded.name"),
+              sku: sql.raw("excluded.sku"),
+              unit: sql.raw("excluded.unit"),
+              category: sql.raw("excluded.category"),
+              isActive: sql.raw("excluded.is_active"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    inventoryStocks: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "inventory_stocks.id"),
+        outletId: requiredString(row.outletId, "outletId"),
+        targetType: requiredString(row.targetType, "targetType"),
+        targetId: requiredString(row.targetId, "targetId"),
+        onHandQty: requiredNumber(row.onHandQty, "onHandQty"),
+        lowStockThreshold: requiredNumber(
+          row.lowStockThreshold,
+          "lowStockThreshold"
+        ),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "inventory_stocks.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(inventoryStocks)
+          .where(eq(inventoryStocks.outletId, scopeId))
+          .orderBy(sql`${inventoryStocks.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(inventoryStocks)
+          .where(
+            and(
+              eq(inventoryStocks.outletId, scopeId),
+              cursorTimestamp > 0
+                ? gt(inventoryStocks.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(inventoryStocks.syncUpdatedAt), asc(inventoryStocks.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(inventoryStocks)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(inventoryStocks.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(inventoryStocks)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: inventoryStocks.id,
+            set: {
+              outletId: sql.raw("excluded.outlet_id"),
+              targetType: sql.raw("excluded.target_type"),
+              targetId: sql.raw("excluded.target_id"),
+              onHandQty: sql.raw("excluded.on_hand_qty"),
+              lowStockThreshold: sql.raw("excluded.low_stock_threshold"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    stocktakes: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "stocktakes.id"),
+        outletId: requiredString(row.outletId, "outletId"),
+        staffId: requiredString(row.staffId, "staffId"),
+        ref: requiredString(row.ref, "ref"),
+        targetType: requiredString(row.targetType, "targetType"),
+        reason: requiredString(row.reason, "reason"),
+        countedAt: requiredString(row.countedAt, "countedAt"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "stocktakes.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(stocktakes)
+          .where(eq(stocktakes.outletId, scopeId))
+          .orderBy(sql`${stocktakes.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(stocktakes)
+          .where(
+            and(
+              eq(stocktakes.outletId, scopeId),
+              cursorTimestamp > 0
+                ? gt(stocktakes.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(stocktakes.syncUpdatedAt), asc(stocktakes.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(stocktakes)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(stocktakes.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(stocktakes)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: stocktakes.id,
+            set: {
+              outletId: sql.raw("excluded.outlet_id"),
+              staffId: sql.raw("excluded.staff_id"),
+              ref: sql.raw("excluded.ref"),
+              targetType: sql.raw("excluded.target_type"),
+              reason: sql.raw("excluded.reason"),
+              countedAt: sql.raw("excluded.counted_at"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    stocktakeLines: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "stocktake_lines.id"),
+        stocktakeId: requiredString(row.stocktakeId, "stocktakeId"),
+        outletId: requiredString(row.outletId, "outletId"),
+        targetId: requiredString(row.targetId, "targetId"),
+        systemQtyBefore: requiredNumber(row.systemQtyBefore, "systemQtyBefore"),
+        countedQty: requiredNumber(row.countedQty, "countedQty"),
+        varianceQty: requiredNumber(row.varianceQty, "varianceQty"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "stocktake_lines.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(stocktakeLines)
+          .where(eq(stocktakeLines.outletId, scopeId))
+          .orderBy(sql`${stocktakeLines.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(stocktakeLines)
+          .where(
+            and(
+              eq(stocktakeLines.outletId, scopeId),
+              cursorTimestamp > 0
+                ? gt(stocktakeLines.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(stocktakeLines.syncUpdatedAt), asc(stocktakeLines.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(stocktakeLines)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(stocktakeLines.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(stocktakeLines)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: stocktakeLines.id,
+            set: {
+              stocktakeId: sql.raw("excluded.stocktake_id"),
+              outletId: sql.raw("excluded.outlet_id"),
+              targetId: sql.raw("excluded.target_id"),
+              systemQtyBefore: sql.raw("excluded.system_qty_before"),
+              countedQty: sql.raw("excluded.counted_qty"),
+              varianceQty: sql.raw("excluded.variance_qty"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    goodsReceipts: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "goods_receipts.id"),
+        outletId: requiredString(row.outletId, "outletId"),
+        staffId: requiredString(row.staffId, "staffId"),
+        ref: requiredString(row.ref, "ref"),
+        supplierName: optionalString(row.supplierName),
+        note: optionalString(row.note),
+        receivedAt: requiredString(row.receivedAt, "receivedAt"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "goods_receipts.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(goodsReceipts)
+          .where(eq(goodsReceipts.outletId, scopeId))
+          .orderBy(sql`${goodsReceipts.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(goodsReceipts)
+          .where(
+            and(
+              eq(goodsReceipts.outletId, scopeId),
+              cursorTimestamp > 0
+                ? gt(goodsReceipts.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(goodsReceipts.syncUpdatedAt), asc(goodsReceipts.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(goodsReceipts)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(goodsReceipts.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(goodsReceipts)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: goodsReceipts.id,
+            set: {
+              outletId: sql.raw("excluded.outlet_id"),
+              staffId: sql.raw("excluded.staff_id"),
+              ref: sql.raw("excluded.ref"),
+              supplierName: sql.raw("excluded.supplier_name"),
+              note: sql.raw("excluded.note"),
+              receivedAt: sql.raw("excluded.received_at"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    goodsReceiptLines: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "goods_receipt_lines.id"),
+        goodsReceiptId: requiredString(row.goodsReceiptId, "goodsReceiptId"),
+        outletId: requiredString(row.outletId, "outletId"),
+        targetId: requiredString(row.targetId, "targetId"),
+        receivedQty: requiredNumber(row.receivedQty, "receivedQty"),
+        unitCostMinorUnits: requiredNumber(
+          row.unitCostMinorUnits,
+          "unitCostMinorUnits"
+        ),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(
+          row.createdAt,
+          "goods_receipt_lines.createdAt"
+        ),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(goodsReceiptLines)
+          .where(eq(goodsReceiptLines.outletId, scopeId))
+          .orderBy(sql`${goodsReceiptLines.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(goodsReceiptLines)
+          .where(
+            and(
+              eq(goodsReceiptLines.outletId, scopeId),
+              cursorTimestamp > 0
+                ? gt(goodsReceiptLines.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(
+            asc(goodsReceiptLines.syncUpdatedAt),
+            asc(goodsReceiptLines.id)
+          ),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(goodsReceiptLines)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(goodsReceiptLines.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(goodsReceiptLines)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: goodsReceiptLines.id,
+            set: {
+              goodsReceiptId: sql.raw("excluded.goods_receipt_id"),
+              outletId: sql.raw("excluded.outlet_id"),
+              targetId: sql.raw("excluded.target_id"),
+              receivedQty: sql.raw("excluded.received_qty"),
+              unitCostMinorUnits: sql.raw("excluded.unit_cost_minor_units"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    cashShifts: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "cash_shifts.id"),
+        outletId: requiredString(row.outletId, "outletId"),
+        registerId: optionalString(row.registerId),
+        openedByStaffId: requiredString(row.openedByStaffId, "openedByStaffId"),
+        openedAt: requiredString(row.openedAt, "openedAt"),
+        closedAt: optionalString(row.closedAt),
+        initialFloatMinorUnits: requiredNumber(
+          row.initialFloatMinorUnits,
+          "initialFloatMinorUnits"
+        ),
+        expectedCashMinorUnits: requiredNumber(
+          row.expectedCashMinorUnits,
+          "expectedCashMinorUnits"
+        ),
+        actualCashMinorUnits: optionalNumber(row.actualCashMinorUnits),
+        differenceMinorUnits: optionalNumber(row.differenceMinorUnits),
+        status: requiredString(row.status, "status"),
+        note: requiredString(row.note, "note"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "cash_shifts.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(cashShifts)
+          .where(eq(cashShifts.outletId, scopeId))
+          .orderBy(sql`${cashShifts.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(cashShifts)
+          .where(
+            and(
+              eq(cashShifts.outletId, scopeId),
+              cursorTimestamp > 0
+                ? gt(cashShifts.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(cashShifts.syncUpdatedAt), asc(cashShifts.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(cashShifts)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(cashShifts.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(cashShifts)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: cashShifts.id,
+            set: {
+              outletId: sql.raw("excluded.outlet_id"),
+              registerId: sql.raw("excluded.register_id"),
+              openedByStaffId: sql.raw("excluded.opened_by_staff_id"),
+              openedAt: sql.raw("excluded.opened_at"),
+              closedAt: sql.raw("excluded.closed_at"),
+              initialFloatMinorUnits: sql.raw(
+                "excluded.initial_float_minor_units"
+              ),
+              expectedCashMinorUnits: sql.raw(
+                "excluded.expected_cash_minor_units"
+              ),
+              actualCashMinorUnits: sql.raw("excluded.actual_cash_minor_units"),
+              differenceMinorUnits: sql.raw("excluded.difference_minor_units"),
+              status: sql.raw("excluded.status"),
+              note: sql.raw("excluded.note"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    orderItemModifiers: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "order_item_modifiers.id"),
+        orderItemId: requiredString(row.orderItemId, "orderItemId"),
+        outletId: requiredString(row.outletId, "outletId"),
+        modifierName: requiredString(row.modifierName, "modifierName"),
+        modifierGroup: optionalString(row.modifierGroup),
+        priceDeltaMinorUnits: requiredNumber(
+          row.priceDeltaMinorUnits,
+          "priceDeltaMinorUnits"
+        ),
+        quantity: requiredNumber(row.quantity, "quantity"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(
+          row.createdAt,
+          "order_item_modifiers.createdAt"
+        ),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(orderItemModifiers)
+          .where(eq(orderItemModifiers.outletId, scopeId))
+          .orderBy(sql`${orderItemModifiers.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(orderItemModifiers)
+          .where(
+            and(
+              eq(orderItemModifiers.outletId, scopeId),
+              cursorTimestamp > 0
+                ? gt(orderItemModifiers.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(
+            asc(orderItemModifiers.syncUpdatedAt),
+            asc(orderItemModifiers.id)
+          ),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(orderItemModifiers)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(orderItemModifiers.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(orderItemModifiers)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: orderItemModifiers.id,
+            set: {
+              orderItemId: sql.raw("excluded.order_item_id"),
+              outletId: sql.raw("excluded.outlet_id"),
+              modifierName: sql.raw("excluded.modifier_name"),
+              modifierGroup: sql.raw("excluded.modifier_group"),
+              priceDeltaMinorUnits: sql.raw("excluded.price_delta_minor_units"),
+              quantity: sql.raw("excluded.quantity"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),
