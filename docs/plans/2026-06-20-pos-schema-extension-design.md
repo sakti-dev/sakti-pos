@@ -67,8 +67,11 @@ isActive    integer bool notNull default true
 
 ### `inventory_stocks` (scope: `outletId`)
 Current on-hand quantity per outlet per target. Polymorphic on `targetType` — now justified by two real targets (`product` + `ingredient`), not phantom.
+
+**Deterministic ID:** `id = inv:{outletId}:{targetType}:{targetId}` (NOT UUIDv7). This table has a natural composite key, and baresync upserts pulled rows by PK (`ON CONFLICT(id) DO UPDATE`, verified). Random UUIDv7 would let two devices create non-merging duplicate rows for the same logical stock card; a deterministic ID converges them via upsert. See DATABASE-DESIGN.md § "Why deterministic IDs for inventory_stocks".
+
 ```
-id                  text PK uuidv7
+id                  text PK   (deterministic: inv:{outletId}:{targetType}:{targetId})
 outletId            text notNull          (scope)
 targetType          text enum ['product','ingredient'] notNull
 targetId            text notNull          (soft-ref to products.id or ingredients.id)
@@ -76,7 +79,7 @@ onHandQty           real notNull default 0      // real = fractional kg/liters f
 lowStockThreshold   real
 + local/api sync columns
 ```
-**Indexes:** API `(outlet_id, sync_updated_at)`; local `isSynced`. Read-path `(outlet_id, target_type, target_id)` (covers the "show me this outlet's stock for this product" lookup). API adds `UNIQUE(outlet_id, target_type, target_id)`.
+**Indexes:** API `(outlet_id, sync_updated_at)`; local `isSynced`. Read-path `(outlet_id, target_type, target_id)` (covers the "show me this outlet's stock for this product" lookup). API adds `UNIQUE(outlet_id, target_type, target_id)` (redundant with the deterministic PK but documents the natural key for server-side integrity).
 
 ### `stocktakes` (scope: `outletId`) — header
 Counting session. Matches the form's `buildConfirmInput()` batch shape (`{ ref, reason, items[] }`).
@@ -239,7 +242,9 @@ Verify no runtime code writes the `pending_upload` string literal anywhere (`app
 
 - **Local migration hand-written** — divergence from API migration is the highest risk. Mitigation: column-for-column diff in verification gate #5.
 - **Polymorphic `inventory_stocks.targetType/targetId`** — no FK enforcement; app must guard against orphaned targets. Accepted (matches existing soft-ref pattern).
+- **Concurrent stock adjustment loses updates (known limitation, NOT solved in this change)** — `inventory_stocks.onHandQty` is a mutable absolute value updated by stocktakes/goods_receipts. Under server-wins, if two devices adjust stock for the same product concurrently, the later write overwrites the earlier — one adjustment is silently lost. The deterministic ID (above) prevents *duplicate rows*; it does NOT prevent *lost updates* to the quantity value. A full fix requires operation-log/CRDT semantics (append-only adjustments summed on read), which is out of scope. Mitigation for now: the append-only ledger tables (`stocktake_lines`, `goods_receipt_lines`) preserve the *audit trail* of every adjustment even when `inventory_stocks.onHandQty` converges to a single value, so discrepancies are recoverable from the ledger. Revisit if multi-device concurrent stock edits become a real operational problem.
 - **Soft-delete interaction with `cash_shifts.status`** — a soft-deleted `cash_shifts` row still has `status='open'`. App logic must filter `deletedAt IS NULL` when checking "is a shift open." This is the existing convention across all synced tables; document in code, not schema.
+- **Denormalized-scope rows must be immutable** — child tables (`order_items`, `*_lines`, `order_item_modifiers`) carry `outlet_id` directly. Mutating a parent's scope would require cascading child-scope rewrites that re-enter the outbox and destabilize incremental sync. POS financial ledgers are append-only by domain rule; enforce immutability in app code (see DATABASE-DESIGN.md § Immutability convention).
 - **`order_item_modifiers` snapshot grows order payload** — one row per modifier per line item. Acceptable for POS receipt scale (single-digit modifiers per line). Revisit if bulk-order workflows emerge.
 
 ---

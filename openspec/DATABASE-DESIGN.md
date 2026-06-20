@@ -33,8 +33,9 @@ This split produces **three distinct views** of the database:
 Every synced table follows these rules without exception:
 
 ### Identifiers
-- **Primary key:** single `text` column named `id`, UUIDv7 (`.$defaultFn(() => uuidv7())`). No composite PKs — baresync requires a single text `id`.
-- **UUIDv7, not UUIDv4:** time-ordered values are B-tree friendly (sequential inserts don't fragment the index), lexicographically sortable, and globally unique without coordination between client and server.
+- **Primary key:** single `text` column named `id`. No composite PKs — baresync requires a single text `id`.
+- **UUIDv7 (default):** most tables use `.$defaultFn(() => uuidv7())`. Time-ordered values are B-tree friendly (sequential inserts don't fragment the index), lexicographically sortable, and globally unique without coordination between client and server.
+- **Deterministic IDs (bridge tables):** tables with a natural composite uniqueness key use a **deterministic derived ID** instead of UUIDv7. This is required because baresync upserts pulled rows by PK (`INSERT ... ON CONFLICT(id) DO UPDATE`, verified in `vendor/baresync/.../push.rs`). With random UUIDv7, two devices creating the same logical row (e.g. both registers in one outlet initializing stock for the same product) produce two non-merging rows. With a deterministic ID derived from the natural key, both devices target the same PK and converge to one row via upsert. The current exception is `inventory_stocks` (ID format: `inv:{outletId}:{targetType}:{targetId}`). Readable string IDs are preferred over opaque hashes for sync-log debuggability. This pattern should be applied to any future bridge/junction table scoped by a natural composite key.
 
 ### Money
 - **Integer minor units**, always. Column suffix `_minor_units`. Example: `price_minor_units = 15000` means Rp 150.000. No `REAL` or `NUMERIC` for currency anywhere — IEEE 754 floats introduce drift (`0.1 + 0.2 ≠ 0.3`), which is unacceptable for financial data.
@@ -44,6 +45,9 @@ Every synced table follows these rules without exception:
 
 ### Soft deletes
 - No hard `DELETE` on synced tables. Instead: set `deleted_at` timestamp + `is_synced = false`. The sync engine pushes this as an update so the server marks the row deleted. Hard deletes can't be synced (there's no row to push).
+
+### Immutability of denormalized-scope rows
+- Child tables that denormalize their scope column (`order_items`, `stocktake_lines`, `goods_receipt_lines`, `order_item_modifiers` — all carry `outlet_id` directly) are **immutable once committed** at the application layer. Mutating a parent's scope (e.g. moving a completed order to another outlet) would require cascading updates to every child's denormalized scope column — exactly the kind of multi-row rewrite that destabilizes incremental sync (each rewritten child row re-enters the outbox and re-pushes). POS financial ledgers are append-only by domain rule anyway; enforce this in app code, not the schema.
 
 ### Soft references (local side)
 - The **local schema has no hard foreign keys** (`.references()`). All inter-table references are plain `text` columns resolved app-side. The **API schema uses real FKs** (`.references()` with referential integrity).
@@ -232,11 +236,11 @@ erDiagram
     }
 
     INVENTORY_STOCKS {
-        text id PK "(P)"
+        text id PK "deterministic: inv:{outlet}:{type}:{target} (P)"
         text outlet_id FK "scope (P)"
         text target_type "product|ingredient (P)"
         text target_id "polymorphic (P)"
-        real on_hand_qty "(P)"
+        real on_hand_qty "mutable absolute value (P)"
         real low_stock_threshold "(P)"
     }
 
@@ -463,7 +467,11 @@ The `&` character is URL-unfriendly (needs encoding in query strings) and JSON-u
 
 ### Why denormalized `outletId` on child tables?
 
-`order_items`, `stocktake_lines`, `goods_receipt_lines`, and `order_item_modifiers` all carry `outlet_id` directly, even though it's derivable from their parent (`order.outlet_id`, `stocktake.outlet_id`). Reason: baresync filters sync data by the **row's own scope column**, not through joins. A child row without its own scope column can't be scoped, and would either sync to all devices (security breach) or require the engine to join to the parent on every pull (performance killer). Denormalizing the scope column is the correct trade-off.
+`order_items`, `stocktake_lines`, `goods_receipt_lines`, and `order_item_modifiers` all carry `outlet_id` directly, even though it's derivable from their parent (`order.outlet_id`, `stocktake.outlet_id`). Reason: baresync filters sync data by the **row's own scope column**, not through joins. A child row without its own scope column can't be scoped, and would either sync to all devices (security breach) or require the engine to join to the parent on every pull (performance killer). Denormalizing the scope column is the correct trade-off. The corollary (see Immutability convention above): these rows must never have their scope mutated after commit.
+
+### Why deterministic IDs for `inventory_stocks`?
+
+Most tables use UUIDv7 — globally unique, no coordination, B-tree friendly. But `inventory_stocks` has a **natural composite key**: one row per `(outlet, target)`. Consider two registers in the same outlet, both offline, both initializing stock for product X. With UUIDv7, each device generates a distinct ID; after sync you have **two rows** for the same logical stock card that never merge. With a deterministic ID derived from the natural key (`inv:{outletId}:{targetType}:{targetId}`), both devices target the same PK. baresync applies pulled rows via `INSERT ... ON CONFLICT(id) DO UPDATE` (verified at `vendor/baresync/.../push.rs:46` + asserted in tests), so the second-write device's row upserts over the first — the two rows converge to one. This is the correct pattern for any bridge/junction table whose uniqueness is a natural composite key, not a synthetic identity. A readable string format (over an opaque hash) is chosen deliberately: it makes the row identifiable in sync logs and SQLite query output.
 
 ---
 
