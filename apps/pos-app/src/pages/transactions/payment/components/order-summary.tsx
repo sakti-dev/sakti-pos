@@ -1,11 +1,12 @@
 import { For } from "solid-js";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
+import { ProductThumb } from "~/lib/assets/resolve";
 import type { CartLine } from "~/lib/sales/types";
 import { formatRupiah } from "~/lib/utils";
 
 interface OrderSummaryProps {
   readonly items: readonly CartLine[];
-  readonly onAdjustQty: (productId: number, delta: number) => void;
+  readonly onAdjustQty: (productId: string, delta: number) => void;
   readonly subtotal: number;
   readonly tax: number;
   readonly total: number;
@@ -36,12 +37,7 @@ export const OrderSummary = (props: OrderSummaryProps) => (
             </div>
             <div class="flex items-center gap-3">
               <div class="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
-                <img
-                  alt={item.name}
-                  class="h-full w-full object-cover"
-                  loading="lazy"
-                  src={`https://picsum.photos/id/${item.img}/120/120`}
-                />
+                <ProductThumb assetId={item.imageAssetId} name={item.name} />
               </div>
               <div class="min-w-0 flex-1">
                 <div class="text-caption text-faint-foreground">

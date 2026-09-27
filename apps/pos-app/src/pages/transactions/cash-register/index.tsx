@@ -1,5 +1,5 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createSignal, For } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
@@ -13,36 +13,61 @@ import {
 } from "~/components/ui/drawer";
 import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { cashRegisterProducts as products } from "~/lib/data/transactions";
+import { getCategories, getProducts } from "~/db/catalog";
 import * as sale from "~/lib/sales/sale-session";
+import type { Product } from "~/lib/sales/types";
 import { formatRupiah } from "~/lib/utils";
 import { CartList } from "./components/cart-list";
 import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
-import { type CategoryKey, categoryTabs } from "./components/category-tabs";
 import { ProductGrid } from "./components/product-grid";
 
 export default function CashRegisterPage() {
   const navigate = useNavigate();
-  const [activeCat, setActiveCat] = createSignal<CategoryKey>("minuman");
+  const [activeCat, setActiveCat] = createSignal<string>("all");
   const [search, setSearch] = createSignal("");
   const [sheetOpen, setSheetOpen] = createSignal(false);
 
+  const [categories] = createResource(getCategories);
+  const [productRows] = createResource(() => getProducts());
+
   const cart = sale.getCart;
 
-  const filteredByCat = (cat: CategoryKey) => {
+  const categoryNames = () => {
+    const map = new Map<string, string>();
+    for (const c of categories() ?? []) {
+      map.set(c.id, c.name);
+    }
+    return map;
+  };
+
+  const products = (): Product[] =>
+    (productRows() ?? []).map((row) => ({
+      categoryId: row.categoryId,
+      id: row.id,
+      imageAssetId: row.imageAssetId,
+      name: row.name,
+      price: row.priceMinorUnits / 100,
+    }));
+
+  const filteredByCat = (cat: string) => {
     const q = search().toLowerCase();
-    return products.filter((p) => {
-      const catOk = p.cat === cat;
+    return products().filter((p) => {
+      const catOk =
+        cat === "all" ||
+        p.categoryId === cat ||
+        (cat === "uncategorized" && p.categoryId === null);
       const searchOk = !q || p.name.toLowerCase().includes(q);
       return catOk && searchOk;
     });
   };
 
-  const addToCart = (id: number) => {
-    const product = products.find((p) => p.id === id);
+  const addToCart = (id: string) => {
+    const product = products().find((p) => p.id === id);
     if (product) {
-      sale.addToCart(product);
+      const name =
+        (product.categoryId && categoryNames().get(product.categoryId)) || "";
+      sale.addToCart(product, name);
     }
   };
 
@@ -94,47 +119,54 @@ export default function CashRegisterPage() {
           >
             <Tabs
               class="flex min-h-0 flex-1 flex-col gap-3"
-              onChange={(v) => setActiveCat(v as CategoryKey)}
+              onChange={(v) => setActiveCat(v)}
               value={activeCat()}
             >
               <div class="shrink-0">
                 <TabsList class="scrollbar-none flex gap-2.5 overflow-x-auto pb-1">
-                  <For each={categoryTabs}>
-                    {(tab) => (
+                  <TabsTrigger
+                    aria-label="Semua"
+                    class="px-8 py-4 text-body"
+                    shape="rounded"
+                    value="all"
+                    variant="pill"
+                  >
+                    Semua
+                  </TabsTrigger>
+                  <For each={categories() ?? []}>
+                    {(cat) => (
                       <TabsTrigger
-                        aria-label={tab.label}
+                        aria-label={cat.name}
                         class="px-8 py-4 text-body"
                         shape="rounded"
-                        value={tab.key}
+                        value={cat.id}
                         variant="pill"
                       >
-                        {tab.label}
+                        {cat.name}
                       </TabsTrigger>
                     )}
                   </For>
                 </TabsList>
               </div>
 
-              <For each={categoryTabs}>
-                {(tab) => (
-                  <TabsContent
-                    class="scrollbar-none min-h-0 flex-1 gap-3 overflow-y-auto px-0.5 py-1"
-                    value={tab.key}
-                  >
-                    {/* Mobile search — scrolls with content */}
-                    <SearchBar
-                      class="mb-3 lg:hidden"
-                      onInput={setSearch}
-                      placeholder="Cari menu..."
-                      value={search()}
-                    />
-                    <ProductGrid
-                      onAdd={addToCart}
-                      products={filteredByCat(tab.key)}
-                    />
-                  </TabsContent>
-                )}
-              </For>
+              <TabsContent
+                class="scrollbar-none min-h-0 flex-1 gap-3 overflow-y-auto px-0.5 py-1"
+                value={activeCat()}
+              >
+                {/* Mobile search — scrolls with content */}
+                <SearchBar
+                  class="mb-3 lg:hidden"
+                  onInput={setSearch}
+                  placeholder="Cari menu..."
+                  value={search()}
+                />
+                <Show when={categories()}>
+                  <ProductGrid
+                    onAdd={addToCart}
+                    products={filteredByCat(activeCat())}
+                  />
+                </Show>
+              </TabsContent>
             </Tabs>
           </FadeIn>
         </div>

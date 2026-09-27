@@ -1,20 +1,20 @@
 import { A } from "@solidjs/router";
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
-import { type Category, categories, products } from "~/lib/data/catalog";
+import { type CategoryRow, getCategories, getProducts } from "~/db/catalog";
 
 export function CategoryTab() {
   const [search, setSearch] = createSignal("");
+  const [categories] = createResource(getCategories);
+  const [products] = createResource(() => getProducts());
 
+  const rows = () => categories() ?? [];
   const filtered = createMemo(() => {
     const q = search().toLowerCase();
-    if (!q) {
-      return categories;
-    }
-    return categories.filter((c) => c.name.toLowerCase().includes(q));
+    return rows().filter((c) => c.name.toLowerCase().includes(q));
   });
 
   return (
@@ -53,7 +53,14 @@ export function CategoryTab() {
             <For each={filtered()}>
               {(cat, i) => (
                 <FadeIn delay={0.1 + i() * 0.03} duration={0.35} y={12}>
-                  <CategoryItem category={cat} />
+                  <CategoryItem
+                    category={cat}
+                    productCount={
+                      (products() ?? []).filter(
+                        (pr) => pr.categoryId === cat.id
+                      ).length
+                    }
+                  />
                 </FadeIn>
               )}
             </For>
@@ -64,9 +71,8 @@ export function CategoryTab() {
   );
 }
 
-function CategoryItem(props: { category: Category }) {
-  const count = () =>
-    products.filter((p) => p.category === props.category.id).length;
+function CategoryItem(props: { category: CategoryRow; productCount: number }) {
+  const count = () => props.productCount;
   return (
     <A
       aria-label={`Edit ${props.category.name}`}

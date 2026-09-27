@@ -18,7 +18,6 @@ import {
   type CompletedOrder,
   categoryLabel,
   computeTotals,
-  generateOrderId,
   type OrderTotals,
   type PayMethod,
   type PaymentDetails,
@@ -58,7 +57,7 @@ export function totals(): OrderTotals {
 /* ── cart mutations ────────────────────────────────────────────── */
 
 /** Add a product (or bump its qty if already in the cart). */
-export function addToCart(product: Product): void {
+export function addToCart(product: Product, categoryName: string): void {
   setCart(
     produce((lines) => {
       const existing = lines.find((l) => l.productId === product.id);
@@ -70,8 +69,8 @@ export function addToCart(product: Product): void {
         productId: product.id,
         name: product.name,
         price: product.price,
-        category: categoryLabel(product.cat),
-        img: product.img,
+        category: categoryLabel(categoryName),
+        imageAssetId: product.imageAssetId,
         qty: 1,
       });
     })
@@ -79,7 +78,7 @@ export function addToCart(product: Product): void {
 }
 
 /** Increment a line's quantity by product id. */
-export function increment(productId: number): void {
+export function increment(productId: string): void {
   setCart(
     produce((lines) => {
       const line = lines.find((l) => l.productId === productId);
@@ -91,7 +90,7 @@ export function increment(productId: number): void {
 }
 
 /** Decrement a line's quantity, removing it when it hits zero. */
-export function decrement(productId: number): void {
+export function decrement(productId: string): void {
   setCart(
     produce((lines) => {
       const i = lines.findIndex((l) => l.productId === productId);
@@ -108,7 +107,7 @@ export function decrement(productId: number): void {
 }
 
 /** Remove a line outright. */
-export function removeLine(productId: number): void {
+export function removeLine(productId: string): void {
   setCart(
     produce((lines) => {
       const i = lines.findIndex((l) => l.productId === productId);
@@ -141,12 +140,14 @@ export function clearCart(): void {
 
 /**
  * Validate, persist, and clear the current sale. Returns the committed
- * order. Caller is responsible for confirming cash tendered covers the
- * total for cash payments before calling.
+ * order (also kept in memory for the receipt). Caller is responsible for
+ * confirming cash tendered covers the total for cash payments before
+ * calling. Persists through the active repository — a rejected promise
+ * means the sale did NOT complete.
  *
  * @throws if the cart is empty.
  */
-export function commit(): CompletedOrder {
+export async function commit(): Promise<CompletedOrder> {
   if (cart.length === 0) {
     throw new Error("commit: cannot commit an empty sale");
   }
@@ -154,7 +155,7 @@ export function commit(): CompletedOrder {
   const isCash = payment.method === "cash";
   const paid = isCash ? (payment.cashTendered ?? 0) : t.total;
   const order: CompletedOrder = {
-    id: generateOrderId(),
+    id: await orderRepository.nextOrderNumber(),
     lines: cart.map((l) => ({ ...l })),
     payment: { ...payment },
     subtotal: t.subtotal,
@@ -165,7 +166,7 @@ export function commit(): CompletedOrder {
     change: Math.max(0, paid - t.total),
     createdAt: Date.now(),
   };
-  orderRepository.commit(order);
+  await orderRepository.commit(order);
   lastOrder = order;
   clearCart();
   return order;

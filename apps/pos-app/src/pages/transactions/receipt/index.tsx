@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "@solidjs/router";
-import { For, Show } from "solid-js";
+import { createResource, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import {
   BanknoteIcon,
@@ -11,7 +11,6 @@ import {
 } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
-import { sampleReceiptItems } from "~/lib/data/transactions";
 import { orderRepository } from "~/lib/sales/order-repository";
 import * as sale from "~/lib/sales/sale-session";
 import type { CompletedOrder } from "~/lib/sales/types";
@@ -62,15 +61,6 @@ const formatReceiptDate = (d: Date) =>
 const formatReceiptTime = (d: Date) =>
   `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
-/* ── sample fallback (direct nav / dev demo only) ── */
-
-const sampleSubtotal = sampleReceiptItems.reduce(
-  (s, i) => s + i.price * i.qty,
-  0
-);
-const sampleTax = Math.round(sampleSubtotal * 0.11);
-const sampleTotal = sampleSubtotal + sampleTax;
-
 const secondaryActionClass =
   "h-[52px] rounded-md border-2 border-border bg-card font-semibold text-body text-foreground tracking-wide hover:border-primary/20 hover:bg-primary/5";
 
@@ -82,20 +72,20 @@ export default function Receipt() {
 
   const navState = loc.state as { orderId?: string } | undefined;
 
-  // Prefer the order id passed from payment; fall back to the session's last
-  // commit; finally the sample data for direct navigation / dev demo.
-  const order: CompletedOrder | undefined = (() => {
-    if (navState?.orderId) {
-      return orderRepository.get(navState.orderId);
-    }
-    return sale.lastCommittedOrder();
-  })();
+  // Prefer the session's last commit; fall back to the order id passed from
+  // payment (direct navigation / reprint) via the repository.
+  const [repoOrder] = createResource(
+    () => navState?.orderId ?? null,
+    (id) => orderRepository.get(id)
+  );
+  const order: CompletedOrder | undefined =
+    sale.lastCommittedOrder() ?? repoOrder();
 
-  const items = order?.lines ?? sampleReceiptItems;
+  const items = order?.lines ?? [];
   const method = order?.payment.method ?? "cash";
-  const subtotal = order?.subtotal ?? sampleSubtotal;
-  const tax = order?.tax ?? sampleTax;
-  const total = order?.total ?? sampleTotal;
+  const subtotal = order?.subtotal ?? 0;
+  const tax = order?.tax ?? 0;
+  const total = order?.total ?? 0;
   const paid = order?.paid ?? total;
   const change = order ? order.change : paid - total;
   const txNum =

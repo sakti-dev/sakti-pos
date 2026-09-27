@@ -13,13 +13,13 @@
 export const TAX_RATE = 0.11;
 
 /**
- * A sellable product (a catalog row). MVP mock ids are numeric; the backend
- * will use uuid strings — only this type's `id` field changes then.
+ * A sellable product (a catalog row, whole-Rupiah price). Backed by the
+ * synced `products` table.
  */
 export interface Product {
-  readonly cat: string;
-  readonly id: number;
-  readonly img: number;
+  readonly categoryId: string | null;
+  readonly id: string;
+  readonly imageAssetId: string | null;
   readonly name: string;
   readonly price: number;
 }
@@ -27,14 +27,14 @@ export interface Product {
 /**
  * A line in the in-progress cart. Snapshots the product at add-time so the
  * cart — and any committed order — reflects what was actually sold, not the
- * live catalog price. `category` is display-ready (capitalized).
+ * live catalog price. `category` is the display-ready category name.
  */
 export interface CartLine {
   readonly category: string;
-  readonly img: number;
+  readonly imageAssetId: string | null;
   readonly name: string;
   readonly price: number;
-  readonly productId: number;
+  readonly productId: string;
   qty: number;
 }
 
@@ -76,17 +76,6 @@ export function computeTotals(
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
   const tax = Math.round(subtotal * taxRate);
   return { subtotal, tax, taxRate, total: subtotal + tax };
-}
-
-let orderSeq = 0;
-
-/** Generate a unique, human-readable order id: `TX-YYYYMMDD-XXX`. */
-export function generateOrderId(now: Date = new Date()): string {
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  const seq = String(++orderSeq).padStart(3, "0");
-  return `TX-${y}${m}${d}-${seq}`;
 }
 
 /** Turn a raw product `cat` key ("minuman") into a display label ("Minuman"). */

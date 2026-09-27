@@ -1,10 +1,11 @@
 import { For, Show } from "solid-js";
 import { PlusIcon } from "~/assets";
+import { ProductThumb } from "~/lib/assets/resolve";
+import type { Product } from "~/lib/sales/types";
 import { formatRupiah } from "~/lib/utils";
-import type { Product } from "./types";
 
 interface ProductGridProps {
-  readonly onAdd: (id: number) => void;
+  readonly onAdd: (id: string) => void;
   readonly products: readonly Product[];
 }
 
@@ -27,12 +28,9 @@ export const ProductGrid = (props: ProductGridProps) => {
               onClick={() => props.onAdd(p.id)}
               type="button"
             >
-              <img
-                alt={p.name}
-                class="absolute inset-0 h-full w-full object-cover transition-transform duration-400 ease-out group-hover:scale-108"
-                loading="lazy"
-                src={`https://picsum.photos/id/${p.img}/400/400`}
-              />
+              <div class="absolute inset-0">
+                <ProductThumb assetId={p.imageAssetId} name={p.name} />
+              </div>
 
               {/* Gradient overlay */}
               <div class="absolute inset-0 z-10 bg-[linear-gradient(to_top,rgba(0,0,0,1)_0%,rgba(0,0,0,1)_15%,rgba(0,0,0,0.90)_35%,rgba(0,0,0,0.70)_50%,rgba(0,0,0,0.50)_65%,rgba(0,0,0,0.30)_78%,rgba(0,0,0,0.15)_88%,transparent_100%)]" />
@@ -48,8 +46,8 @@ export const ProductGrid = (props: ProductGridProps) => {
               </div>
 
               {/* Add badge (hover) */}
-              <div class="absolute top-2.5 right-2.5 z-30 grid h-8 w-8 scale-50 place-items-center rounded-full bg-white/90 text-primary opacity-0 shadow-card transition duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-100 group-hover:opacity-100 dark:bg-accent">
-                <PlusIcon class="h-4 w-4" />
+              <div class="absolute top-3 right-3 z-30 grid size-8 translate-y-1 place-items-center rounded-full bg-white/95 text-foreground opacity-0 shadow-card backdrop-blur transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                <PlusIcon class="size-4" />
               </div>
             </button>
           )}

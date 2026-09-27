@@ -1,15 +1,18 @@
 import { useNavigate } from "@solidjs/router";
-import { createEffect, createResource, createSignal } from "solid-js";
+import { createEffect, createResource, createSignal, Show } from "solid-js";
 import { CheckCircleIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
 import { getPaymentSettings } from "~/db/payment-settings";
 import * as sale from "~/lib/sales/sale-session";
+import { createLogger } from "~/lib/utils";
 import { OrderSummary } from "./components/order-summary";
 import { PaymentExtras } from "./components/payment-extras";
 import type { PayMethod } from "./components/payment-method";
 import { PaymentMethod } from "./components/payment-method";
 import { TotalBanner } from "./components/total-banner";
+
+const paymentLogger = createLogger({ domain: "POS", module: "payment" });
 
 export default function PaymentPage() {
   const navigate = useNavigate();
@@ -54,24 +57,35 @@ export default function PaymentPage() {
   const confirmLabel = () =>
     method() === "cash" ? "Konfirmasi Pembayaran" : "Sudah Dibayar";
 
-  const confirmPayment = () => {
-    if (!canConfirm()) {
+  const [committing, setCommitting] = createSignal(false);
+  const [commitError, setCommitError] = createSignal(false);
+
+  const confirmPayment = async () => {
+    if (!canConfirm() || committing()) {
       return;
     }
+    setCommitting(true);
+    setCommitError(false);
     sale.setPayment({
       method: method(),
       cashTendered: method() === "cash" ? cashNum() : undefined,
       customerName: customer() || undefined,
       notes: notes() || undefined,
     });
-    const order = sale.commit();
-    navigate("/transactions/receipt", {
-      replace: true,
-      state: { orderId: order.id },
-    });
+    try {
+      const order = await sale.commit();
+      navigate("/transactions/receipt", {
+        replace: true,
+        state: { orderId: order.id },
+      });
+    } catch (error) {
+      paymentLogger.error("COMMIT_FAILED", { error: String(error) });
+      setCommitError(true);
+      setCommitting(false);
+    }
   };
 
-  const adjustQty = (productId: number, delta: number) => {
+  const adjustQty = (productId: string, delta: number) => {
     if (delta >= 0) {
       sale.increment(productId);
     } else {
@@ -120,11 +134,17 @@ export default function PaymentPage() {
               onNotesChange={setNotes}
             />
 
+            <Show when={commitError()}>
+              <p class="text-body-sm text-danger">
+                Gagal menyimpan transaksi. Coba lagi.
+              </p>
+            </Show>
+
             {/* Desktop: inline button */}
             <div class="hidden shrink-0 pt-1 lg:block">
               <Button
                 class="h-14 w-full rounded-md font-bold text-body shadow-card disabled:opacity-40 dark:disabled:shadow-none"
-                disabled={!canConfirm()}
+                disabled={!canConfirm() || committing()}
                 onClick={confirmPayment}
                 size="xl"
                 type="button"
@@ -141,7 +161,7 @@ export default function PaymentPage() {
       <div class="fixed inset-x-0 bottom-0 z-60 border-border border-t bg-card p-3 pb-3 sm:block lg:hidden lg:p-4 lg:pb-4">
         <Button
           class="h-14 w-full rounded-md font-bold text-body shadow-card disabled:opacity-40 dark:disabled:shadow-none"
-          disabled={!canConfirm()}
+          disabled={!canConfirm() || committing()}
           onClick={confirmPayment}
           size="xl"
           type="button"

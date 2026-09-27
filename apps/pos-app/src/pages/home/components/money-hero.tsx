@@ -1,13 +1,21 @@
 import { A } from "@solidjs/router";
-import { createSignal, Show } from "solid-js";
+import { createResource, createSignal, Show } from "solid-js";
 import { ArrowRightIcon, EyeClosedIcon, EyeOpenIcon } from "~/assets";
-import { earningsAmount, earningsBreakdown } from "../lib/data";
+import { getTodayOrderStats } from "~/db/orders";
+import { formatRupiah } from "~/lib/utils";
 
 export const MoneyHero = () => {
   const [visible, setVisible] = createSignal(true);
   const masked = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
 
-  const b = earningsBreakdown;
+  const [stats] = createResource(getTodayOrderStats);
+  const amount = () => formatRupiah((stats()?.totalMinorUnits ?? 0) / 100);
+  const cashCount = () => stats()?.byMethod.cash ?? 0;
+  const qrisCount = () =>
+    (stats()?.byMethod.qris_static ?? 0) +
+    (stats()?.byMethod.qris_dynamic ?? 0) +
+    (stats()?.byMethod.qris ?? 0);
+  const orderCount = () => stats()?.count ?? 0;
 
   return (
     <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-md">
@@ -46,7 +54,7 @@ export const MoneyHero = () => {
           when={visible()}
         >
           <span class="font-bold font-display text-[40px] text-white tabular-nums leading-none tracking-[-0.02em] sm:text-display">
-            {earningsAmount}
+            {amount()}
           </span>
         </Show>
       </div>
@@ -59,17 +67,17 @@ export const MoneyHero = () => {
         <div class="flex items-center gap-3 text-caption text-white/75">
           <span class="inline-flex items-center gap-1.5">
             <span class="size-1.5 rounded-full bg-accent-soft" />
-            {b.cash} tunai
+            {cashCount()} tunai
           </span>
           <span class="h-3 w-px bg-white/15" />
           <span class="inline-flex items-center gap-1.5">
             <span class="size-1.5 rounded-full bg-white/50" />
-            {b.card} kartu
+            {qrisCount()} qris
           </span>
           <span class="h-3 w-px bg-white/15" />
           <span class="inline-flex items-center gap-1.5">
             <span class="size-1.5 rounded-full bg-white/20" />
-            {b.unpaid} belum dibayar
+            {orderCount()} pesanan
           </span>
         </div>
         <ArrowRightIcon class="size-4 shrink-0 text-white/40 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-white/70" />

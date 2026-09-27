@@ -220,7 +220,9 @@ export const orders = sqliteTable(
     staffId: text("staff_id").references(() => staff.id),
     orderNumber: text("order_number").notNull().unique(),
     totalMinorUnits: integer("total_minor_units").notNull(),
-    paymentMethod: text("payment_method", { enum: ["cash", "qris"] }).notNull(),
+    paymentMethod: text("payment_method", {
+      enum: ["cash", "qris", "qris_static", "qris_dynamic"],
+    }).notNull(),
     amountPaidMinorUnits: integer("amount_paid_minor_units"),
     changeAmountMinorUnits: integer("change_amount_minor_units"),
     status: text("status", { enum: ["completed", "cancelled"] }).notNull(),

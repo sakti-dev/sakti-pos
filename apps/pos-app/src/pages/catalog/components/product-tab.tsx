@@ -1,32 +1,34 @@
 import { A } from "@solidjs/router";
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import {
-  categories,
-  type Product,
-  products,
-  stockStatus,
-} from "~/lib/data/catalog";
+import { getCategories, getProducts, type ProductRow } from "~/db/catalog";
 import { formatRupiah } from "~/lib/utils";
 
 export function ProductTab() {
   const [search, setSearch] = createSignal("");
   const [activeCat, setActiveCat] = createSignal("all");
 
+  const [categories] = createResource(getCategories);
+  const [products] = createResource(() => getProducts());
+
+  const categoryById = createMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of categories() ?? []) {
+      map.set(c.id, c.name);
+    }
+    return map;
+  });
+
   const filtered = createMemo(() => {
     const q = search().toLowerCase();
     const cat = activeCat();
-    return products.filter((p) => {
-      const matchCat = cat === "all" || p.category === cat;
-      const matchQ =
-        !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q);
+    return (products() ?? []).filter((p) => {
+      const matchCat = cat === "all" || p.categoryId === cat;
+      const matchQ = !q || p.name.toLowerCase().includes(q);
       return matchCat && matchQ;
     });
   });
@@ -38,7 +40,7 @@ export function ProductTab() {
         <SearchBar
           class="flex-1"
           onInput={setSearch}
-          placeholder="Cari produk atau SKU..."
+          placeholder="Cari produk..."
           value={search()}
         />
         <Button
@@ -63,10 +65,10 @@ export function ProductTab() {
             <TabsTrigger shape="pill" tone="accent" value="all" variant="pill">
               Semua
               <span class="text-caption-sm opacity-70">
-                ({products.length})
+                ({(products() ?? []).length})
               </span>
             </TabsTrigger>
-            <For each={categories}>
+            <For each={categories() ?? []}>
               {(cat) => (
                 <TabsTrigger
                   shape="pill"
@@ -76,7 +78,12 @@ export function ProductTab() {
                 >
                   {cat.name}
                   <span class="text-caption-sm opacity-70">
-                    ({products.filter((p) => p.category === cat.id).length})
+                    (
+                    {
+                      (products() ?? []).filter((p) => p.categoryId === cat.id)
+                        .length
+                    }
+                    )
                   </span>
                 </TabsTrigger>
               )}
@@ -85,10 +92,7 @@ export function ProductTab() {
         </Tabs>
       </div>
 
-      {/* Product list — container query so columns adapt to content width,
-          not viewport. 2 cols when container ≥40rem (640px).
-          `keyed` on activeCat forces full remount when switching category,
-          so FadeIn replays on every tab change. */}
+      {/* Product list */}
       <div class="@container scrollbar-none flex-1 overflow-y-auto px-4 pb-28 lg:px-6 lg:pb-6">
         <Show keyed when={activeCat()}>
           <Show
@@ -104,7 +108,15 @@ export function ProductTab() {
               <For each={filtered()}>
                 {(product, i) => (
                   <FadeIn delay={0.1 + i() * 0.03} duration={0.35} y={12}>
-                    <ProductRow product={product} />
+                    <ProductListRow
+                      categoryName={
+                        product.categoryId
+                          ? (categoryById().get(product.categoryId) ??
+                            "Tanpa kategori")
+                          : "Tanpa kategori"
+                      }
+                      product={product}
+                    />
                   </FadeIn>
                 )}
               </For>
@@ -116,8 +128,7 @@ export function ProductTab() {
   );
 }
 
-function ProductRow(props: { product: Product }) {
-  const s = () => stockStatus(props.product.stock);
+function ProductListRow(props: { categoryName: string; product: ProductRow }) {
   return (
     <A
       aria-label={`Edit ${props.product.name}`}
@@ -129,17 +140,15 @@ function ProductRow(props: { product: Product }) {
           {props.product.name}
         </h3>
         <p class="mt-0.5 truncate text-caption-sm text-faint-foreground">
-          {props.product.sku} · {formatRupiah(props.product.price)}
+          {props.categoryName} ·{" "}
+          {formatRupiah(props.product.priceMinorUnits / 100)}
         </p>
       </div>
-      <div class="flex shrink-0 flex-col items-end gap-1">
-        <span class="font-bold text-body-sm text-foreground tabular-nums">
-          {props.product.stock}
+      {!props.product.isActive && (
+        <span class="shrink-0 text-caption-sm text-faint-foreground">
+          Nonaktif
         </span>
-        <Badge size="sm" variant={s().badge}>
-          {s().label}
-        </Badge>
-      </div>
+      )}
     </A>
   );
 }

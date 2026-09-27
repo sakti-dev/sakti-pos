@@ -5,8 +5,8 @@ import { CartItemRow } from "./cart-item-row";
 
 interface CartListProps {
   readonly lines: readonly CartLine[];
-  readonly onDecrement: (productId: number) => void;
-  readonly onIncrement: (productId: number) => void;
+  readonly onDecrement: (productId: string) => void;
+  readonly onIncrement: (productId: string) => void;
 }
 
 export const CartList = (props: CartListProps) => (

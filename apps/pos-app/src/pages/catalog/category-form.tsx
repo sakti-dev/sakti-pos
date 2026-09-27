@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, useParams } from "@solidjs/router";
-import { createSignal } from "solid-js";
+import { createResource, createSignal } from "solid-js";
 import { toast } from "solid-sonner";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
@@ -8,28 +8,60 @@ import {
   TextFieldInput,
   TextFieldLabel,
 } from "~/components/ui/text-field";
-import { categories } from "~/lib/data/catalog";
+import { createCategory, getCategories, updateCategory } from "~/db/catalog";
 
 export default function CategoryFormPage() {
   const navigate = useNavigate();
   const params = useParams();
 
-  const editId = () =>
-    params.id && params.id !== "new" ? params.id : undefined;
+  const isEditing = () => Boolean(params.id) && params.id !== "new";
+
+  const [categoriesList, { refetch }] = createResource(getCategories);
   const existing = () =>
-    editId() ? categories.find((c) => c.id === editId()) : undefined;
-  const isEditing = () => Boolean(existing());
+    isEditing() ? categoriesList()?.find((c) => c.id === params.id) : undefined;
 
-  const [name, setName] = createSignal(existing()?.name ?? "");
+  const [name, setName] = createSignal("");
+  const [hydrated, setHydrated] = createSignal(false);
+  const [saving, setSaving] = createSignal(false);
 
-  const handleSave = () => {
+  createResource(
+    () => existing()?.id ?? null,
+    (id) => {
+      if (id && !hydrated()) {
+        setName(existing()?.name ?? "");
+        setHydrated(true);
+      }
+    }
+  );
+
+  const saveLabel = () => {
+    if (saving()) {
+      return "Menyimpan…";
+    }
+    return isEditing() ? "Simpan Perubahan" : "Simpan Kategori";
+  };
+
+  const handleSave = async () => {
     const trimmed = name().trim();
     if (!trimmed) {
       toast.error("Nama kategori wajib diisi");
       return;
     }
-    toast.success(isEditing() ? "Kategori diperbarui" : "Kategori ditambahkan");
-    navigate("/catalog");
+    setSaving(true);
+    try {
+      if (isEditing() && existing()) {
+        await updateCategory(existing()!.id, { name: trimmed });
+        toast.success("Kategori diperbarui");
+      } else {
+        await createCategory({ name: trimmed });
+        toast.success("Kategori ditambahkan");
+      }
+      await refetch();
+      navigate("/catalog");
+    } catch {
+      toast.error("Gagal menyimpan kategori");
+      setSaving(false);
+    }
   };
 
   return (
@@ -54,8 +86,8 @@ export default function CategoryFormPage() {
             >
               Batal
             </Button>
-            <Button onClick={handleSave} type="button">
-              {isEditing() ? "Simpan Perubahan" : "Simpan Kategori"}
+            <Button disabled={saving()} onClick={handleSave} type="button">
+              {saveLabel()}
             </Button>
           </div>
         </div>

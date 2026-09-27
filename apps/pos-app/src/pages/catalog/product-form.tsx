@@ -1,5 +1,5 @@
-import { A, useLocation, useNavigate, useParams } from "@solidjs/router";
-import { createSignal, Show } from "solid-js";
+import { useLocation, useNavigate, useParams } from "@solidjs/router";
+import { createResource, createSignal, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { UploadIcon, XCloseIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
@@ -15,72 +15,139 @@ import {
   TextFieldInput,
   TextFieldLabel,
 } from "~/components/ui/text-field";
-import { categories, products } from "~/lib/data/catalog";
+import {
+  createCategory,
+  createProduct,
+  getCategories,
+  getProduct,
+  updateProduct,
+} from "~/db/catalog";
+import { pickProductImage } from "~/lib/assets/product-image";
+import { resolveImageUrl } from "~/lib/assets/resolve";
+import { createLogger } from "~/lib/utils";
 
-const UNITS = ["cup", "glass", "plate", "pcs", "bowl", "bottle"] as const;
+const logger = createLogger({ domain: "POS", module: "product-form" });
 
 const labelClass =
   "font-medium text-body-sm text-foreground leading-none tracking-normal";
+
+interface StagedPhoto {
+  readonly assetId: string | null;
+  readonly url: string;
+}
 
 export default function ProductFormPage() {
   const navigate = useNavigate();
   const params = useParams();
 
-  const editId = () => {
-    if (!params.id || params.id === "new") {
-      return;
-    }
-    const n = Number.parseInt(params.id, 10);
-    return Number.isNaN(n) ? undefined : n;
-  };
-  const existing = () =>
-    editId() ? products.find((p) => p.id === editId()) : undefined;
-  const isEditing = () => Boolean(existing());
+  const isEditing = () => Boolean(params.id) && params.id !== "new";
 
-  const [name, setName] = createSignal(existing()?.name ?? "");
-  const [sku, setSku] = createSignal(existing()?.sku ?? "");
-  const [category, setCategory] = createSignal(existing()?.category ?? "");
-  const [price, setPrice] = createSignal(
-    existing() ? String(existing()!.price) : ""
+  const [product] = createResource(
+    () => (isEditing() ? params.id : undefined),
+    (id) => getProduct(id!)
   );
-  const [initialStock, setInitialStock] = createSignal("");
-  const [unit, setUnit] = createSignal(existing()?.unit ?? "cup");
-  const [photo, setPhoto] = createSignal<string | null>(null);
-  const [categoryOptions, setCategoryOptions] = createSignal(
-    categories.map((c) => ({ value: c.id, label: c.name }))
+  const [categoriesList] = createResource(getCategories);
+
+  const existing = () => product();
+
+  const [name, setName] = createSignal("");
+  const [category, setCategory] = createSignal<string>("");
+  const [price, setPrice] = createSignal("");
+  const [photo, setPhoto] = createSignal<StagedPhoto | null>(null);
+  const [saving, setSaving] = createSignal(false);
+
+  createResource(
+    () => existing()?.imageAssetId ?? null,
+    async (assetId) => {
+      const resolved = await resolveImageUrl(assetId);
+      if (resolved) {
+        setPhoto(resolved);
+      }
+    }
   );
 
-  const handlePhotoChange = (e: Event) => {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) {
-      return;
+  createResource(
+    () => existing()?.id ?? null,
+    (id) => {
+      if (!id) {
+        return;
+      }
+      const row = existing();
+      setName(row?.name ?? "");
+      setCategory(row?.categoryId ?? "");
+      setPrice(row ? String(row.priceMinorUnits / 100) : "");
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => setPhoto(ev.target?.result as string);
-    reader.readAsDataURL(file);
+  );
+
+  const handlePhotoPick = async () => {
+    const picked = await pickProductImage();
+    if (picked) {
+      setPhoto({ assetId: picked.assetId, url: picked.previewUrl });
+    } else {
+      toast.error("Gagal memilih foto");
+    }
   };
 
-  const handleSave = () => {
+  const saveLabel = () => {
+    if (saving()) {
+      return "Menyimpan…";
+    }
+    return isEditing() ? "Simpan Perubahan" : "Simpan Produk";
+  };
+
+  const validate = (): { name: string; price: number } | null => {
     const trimmedName = name().trim();
     if (!trimmedName) {
       toast.error("Nama produk wajib diisi");
-      return;
-    }
-    if (!sku().trim()) {
-      toast.error("SKU wajib diisi");
-      return;
+      return null;
     }
     if (!category()) {
       toast.error("Pilih kategori");
-      return;
+      return null;
     }
-    if (!price() || Number.parseInt(price(), 10) <= 0) {
+    const priceNum = Number.parseInt(price(), 10);
+    if (!priceNum || priceNum <= 0) {
       toast.error("Harga wajib diisi");
+      return null;
+    }
+    return { name: trimmedName, price: priceNum };
+  };
+
+  const handleSave = async () => {
+    const valid = validate();
+    if (!valid) {
       return;
     }
-    toast.success(isEditing() ? "Produk diperbarui" : "Produk ditambahkan");
-    navigate("/catalog");
+
+    setSaving(true);
+    try {
+      if (isEditing() && existing()) {
+        await updateProduct(existing()!.id, {
+          categoryId: category(),
+          ...(photo()?.assetId ? { imageAssetId: photo()!.assetId } : {}),
+          name: valid.name,
+          price: valid.price,
+        });
+        toast.success("Produk diperbarui");
+      } else {
+        await createProduct({
+          categoryId: category(),
+          ...(photo()?.assetId ? { imageAssetId: photo()!.assetId } : {}),
+          name: valid.name,
+          price: valid.price,
+        });
+        toast.success(
+          photo()?.assetId
+            ? "Produk ditambahkan — foto akan diproses di background"
+            : "Produk ditambahkan"
+        );
+      }
+      navigate("/catalog");
+    } catch (error) {
+      logger.error("PRODUCT_SAVE_FAILED", { error: String(error) });
+      toast.error("Gagal menyimpan produk");
+      setSaving(false);
+    }
   };
 
   return (
@@ -91,16 +158,20 @@ export default function ProductFormPage() {
     >
       <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-6 pb-28">
         <div class="mx-auto w-full max-w-2xl sm:rounded-lg sm:border sm:border-border sm:bg-card sm:p-6">
-          {/* ── Photo + Name + SKU ── */}
+          {/* ── Photo + Name ── */}
           <div class="flex flex-col gap-5 sm:flex-row">
             <div class="flex flex-col gap-1.5">
               <span class={labelClass}>Foto Produk</span>
-              <label class="group relative grid aspect-square size-[120px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border-2 border-input border-dashed bg-background sm:size-[132px]">
+              <button
+                class="group relative grid aspect-square size-[120px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border-2 border-input border-dashed bg-background sm:size-[132px]"
+                onClick={handlePhotoPick}
+                type="button"
+              >
                 <Show when={photo()}>
                   <img
                     alt="Preview"
                     class="absolute inset-0 h-full w-full object-cover"
-                    src={photo()!}
+                    src={photo()!.url}
                   />
                 </Show>
                 <Show when={!photo()}>
@@ -109,13 +180,7 @@ export default function ProductFormPage() {
                     <span class="font-medium text-caption-sm">Upload</span>
                   </div>
                 </Show>
-                <input
-                  accept="image/*"
-                  class="sr-only"
-                  onChange={handlePhotoChange}
-                  type="file"
-                />
-              </label>
+              </button>
               <Show when={photo()}>
                 <button
                   class="inline-flex items-center justify-center gap-1 font-medium text-caption-sm text-danger transition-colors hover:text-danger/80"
@@ -133,87 +198,44 @@ export default function ProductFormPage() {
                 <TextFieldLabel>Nama Produk</TextFieldLabel>
                 <TextFieldInput autofocus placeholder="e.g. Es Kopi Susu" />
               </TextField>
-              <TextField class="gap-1.5" onChange={setSku} value={sku()}>
-                <TextFieldLabel>SKU</TextFieldLabel>
-                <TextFieldInput placeholder="e.g. KPI-001" />
-              </TextField>
             </div>
           </div>
 
           {/* ── Divider ── */}
           <hr class="my-6 border-border" />
 
-          {/* ── Category + Price + Stock + Unit ── */}
+          {/* ── Category + Price ── */}
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div class="flex flex-col gap-1.5">
               <span class={labelClass}>Kategori</span>
               <PickerField
                 onChange={setCategory}
-                onCreate={(query) => {
-                  const id = query.toLowerCase().replace(/\s+/g, "-");
-                  setCategoryOptions((prev) => [
-                    ...prev,
-                    { value: id, label: query },
-                  ]);
-                  return id;
+                onCreate={async (query) => {
+                  const created = await createCategory({ name: query });
+                  return created.id;
                 }}
-                options={categoryOptions()}
+                options={(categoriesList() ?? []).map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                }))}
                 placeholder="Pilih kategori"
                 title="Pilih Kategori"
                 value={category()}
               />
             </div>
+
             <NumberField class="gap-1.5">
               <NumberFieldLabel>Harga (Rp)</NumberFieldLabel>
               <NumberFieldInput
-                onChange={(v) => setPrice(v > 0 ? String(v) : "")}
+                onChange={(v) => setPrice(String(v))}
                 placeholder="25000"
-                value={price() ? Number.parseInt(price(), 10) : 0}
+                value={Number.parseInt(price(), 10) || undefined}
               />
             </NumberField>
-            <Show
-              fallback={
-                <div class="flex flex-col gap-1.5">
-                  <span class={labelClass}>Stok</span>
-                  <p class="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-body-sm text-muted-foreground">
-                    Stok dikelola di menu{" "}
-                    <A class="font-medium text-primary" href="/inventory">
-                      Stok
-                    </A>
-                    .
-                  </p>
-                </div>
-              }
-              when={!isEditing()}
-            >
-              <NumberField class="gap-1.5">
-                <NumberFieldLabel>Stok Awal</NumberFieldLabel>
-                <NumberFieldInput
-                  onChange={(v) => setInitialStock(v > 0 ? String(v) : "")}
-                  placeholder="50"
-                  value={
-                    initialStock() ? Number.parseInt(initialStock(), 10) : 0
-                  }
-                />
-              </NumberField>
-            </Show>
-            <div class="flex flex-col gap-1.5">
-              <span class={labelClass}>Satuan</span>
-              <PickerField
-                onChange={setUnit}
-                options={UNITS.map((u) => ({
-                  value: u,
-                  label: u.charAt(0).toUpperCase() + u.slice(1),
-                }))}
-                placeholder="Pilih satuan"
-                title="Pilih Satuan"
-                value={unit()}
-              />
-            </div>
           </div>
 
           {/* ── Actions ── */}
-          <div class="mt-7 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+          <div class="mt-8 flex items-center justify-end gap-3">
             <Button
               look="outline"
               onClick={() => navigate("/catalog")}
@@ -222,8 +244,12 @@ export default function ProductFormPage() {
             >
               Batal
             </Button>
-            <Button onClick={handleSave} type="button">
-              {isEditing() ? "Simpan Perubahan" : "Simpan Produk"}
+            <Button
+              disabled={saving() || product.loading}
+              onClick={handleSave}
+              type="button"
+            >
+              {saveLabel()}
             </Button>
           </div>
         </div>

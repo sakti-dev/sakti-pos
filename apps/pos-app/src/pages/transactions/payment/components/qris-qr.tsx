@@ -27,7 +27,7 @@ export function QRisQR(props: { readonly payload: string | null }) {
   return (
     <div class="relative">
       <canvas
-        class={failed() ? "hidden" : ""}
+        class={failed() || !props.payload ? "hidden" : ""}
         ref={(el) => {
           canvasRef = el;
         }}
@@ -35,6 +35,11 @@ export function QRisQR(props: { readonly payload: string | null }) {
       <Show when={failed()}>
         <div class="max-w-[200px] break-all text-center font-mono text-[10px] text-muted-foreground leading-tight">
           {props.payload}
+        </div>
+      </Show>
+      <Show when={!props.payload}>
+        <div class="grid h-[200px] w-[200px] place-items-center text-caption text-faint-foreground">
+          Total belum tersedia
         </div>
       </Show>
     </div>

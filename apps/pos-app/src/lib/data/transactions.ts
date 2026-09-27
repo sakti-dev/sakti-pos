@@ -1,4 +1,12 @@
-import type { Product } from "~/pages/transactions/cash-register/components/types";
+/* Historical mock data — kept for reference only; screens no longer read it. */
+
+export interface MockProduct {
+  readonly cat: string;
+  readonly id: number;
+  readonly img: number;
+  readonly name: string;
+  readonly price: number;
+}
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -16,7 +24,7 @@ export interface TxEntry {
 
 /* ── Cash register products ─────────────────────────────────────── */
 
-export const cashRegisterProducts: readonly Product[] = [
+export const cashRegisterProducts: readonly MockProduct[] = [
   { id: 1, name: "Es Kopi Susu", price: 18_000, cat: "minuman", img: 225 },
   { id: 2, name: "Kopi Hitam", price: 12_000, cat: "minuman", img: 302 },
   { id: 3, name: "Matcha Latte", price: 22_000, cat: "minuman", img: 425 },

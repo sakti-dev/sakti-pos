@@ -129,6 +129,12 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
     if (props.method === "qris_static") {
       return payload;
     }
+    // Guard: deriving a dynamic payload needs a positive total. Returning
+    // null (placeholder panel) instead of throwing keeps reactive updates —
+    // e.g. the cart clearing after commit — from crashing the render.
+    if (!Number.isInteger(props.total) || props.total <= 0) {
+      return null;
+    }
     return toDynamic(payload, props.total);
   };
 
