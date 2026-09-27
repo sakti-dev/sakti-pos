@@ -80,8 +80,7 @@ The system SHALL generate order numbers in the format `YYYY-MM-DD-NNN`, where `Y
 **THEN** the system SHALL use the outlet's configured timezone to determine the business date from the current UTC timestamp.
 
 ### R5: Payment Processing
-
-The system SHALL support two payment methods: `cash` and `qris`.
+The system SHALL support three payment methods: `cash`, `qris_static`, and `qris_dynamic`. Tunai is always offered; QRIS Statis and QRIS Dinamis appear only when enabled in `payment_settings`.
 
 **WHEN** the payment method is `cash`
 **THEN** the system SHALL require the cashier to enter an amount paid, validate that it is >= the cart total, and calculate change as `amountPaid - cartTotal`.
@@ -89,14 +88,25 @@ The system SHALL support two payment methods: `cash` and `qris`.
 **WHEN** the payment method is `cash` and the amount paid is less than the cart total
 **THEN** the system SHALL disable the confirm button.
 
-**WHEN** the payment method is `qris`
-**THEN** the system SHALL set `amountPaid` to the cart total and `changeAmount` to 0, with no amount input required.
+**WHEN** the payment method is `qris_static` or `qris_dynamic`
+**THEN** the system SHALL set `amountPaid` to the cart total and `changeAmount` to 0, with no amount input required, confirmed via the manual "Sudah Dibayar" action.
 
 **WHEN** payment is confirmed
-**THEN** the system SHALL record `totalMinorUnits` (cart total), `paymentMethod`, `amountPaidMinorUnits`, and `changeAmountMinorUnits` on the order.
+**THEN** the system SHALL record `totalMinorUnits` (cart total), `paymentMethod` (`cash` | `qris_static` | `qris_dynamic`), `amountPaidMinorUnits`, and `changeAmountMinorUnits` on the order.
 
-**WHEN** the payment dialog is open
+**WHEN** the payment dialog is open with method `cash`
 **THEN** the system SHALL display a numpad for cash amount entry (digits 0-9, 000, and delete), the running total, and the calculated change.
+
+**WHEN** the payment dialog is open with method `qris_static` or `qris_dynamic`
+**THEN** the system SHALL display the QR panel (Statis: payload as-is; Dinamis: converted with cart total embedded) and the "Sudah Dibayar" button.
+
+#### Scenario: QRIS Statis order
+- **WHEN** a sale completes via QRIS Statis
+- **THEN** the order row records `payment_method = 'qris_static'`
+
+#### Scenario: Cash order unchanged
+- **WHEN** a sale completes via Tunai
+- **THEN** the order row records `payment_method = 'cash'` (unchanged from today)
 
 ### R6: Order Status
 
@@ -181,3 +191,37 @@ The system SHALL persist all orders and order items to the local SQLite database
 
 **WHEN** the sync outbox contains unprocessed order changes
 **THEN** the system SHALL mark them with `is_synced = false` for later synchronization.
+
+### R12: Order Item Modifier Snapshot
+
+The system SHALL capture product modifiers (sizes, add-ons — e.g., "Extra Shot", "Large", "Ice Level: Less") as a relational snapshot via an `order_item_modifiers` table, sibling to `order_items`. This extends the existing "Product and Price Snapshots on Order Items" pattern (R8) to modifier data.
+
+- The `order_item_modifiers` table SHALL carry: `id` (UUIDv7), `orderItemId` (text notNull, soft-ref to `order_items`), `outletId` (scope column, denormalized from the parent order for sync filtering), `modifierName` (text notNull — e.g., `"Extra Shot"`), `modifierGroup` (text nullable — e.g., `"Size"`, `"Add-ons"`), `priceDeltaMinorUnits` (integer notNull, default `0` — signed; positive for upcharge, zero for no-cost options), `quantity` (integer notNull, default `1`), plus the standard sync columns.
+- Modifiers SHALL be stored as a relational snapshot, NOT as a JSON column on `order_items`. Rationale: baresync warns against JSON-typed columns (`SYNC_SCHEMA_JSON_ONLY_FIELD`); relational storage matches the existing `order_items` snapshot pattern; and it enables SQL analytics ("how many extra shots sold this month").
+- `priceDeltaMinorUnits` uses integer minor units (no float).
+- The table is scoped by `outletId` (denormalized) — same convention as `order_items`.
+- This is a receipt **snapshot** only. It captures what was sold on each line. It does NOT define what modifiers a product *offers* (a future `product_modifier_catalog` table is out of scope).
+
+#### Scenario: Order line with two modifiers
+- **WHEN** an order line for "Cappuccino" includes modifiers "Extra Shot" (+Rp 5.000) and "Oat Milk" (+Rp 7.000)
+- **THEN** the client SHALL insert two `order_item_modifiers` rows for that `orderItemId`
+- **AND** each row SHALL snapshot `modifierName`, `modifierGroup`, `priceDeltaMinorUnits`, `quantity`
+
+#### Scenario: Free modifier option
+- **WHEN** a modifier option has no upcharge (e.g., "Ice Level: Normal")
+- **THEN** `priceDeltaMinorUnits` SHALL be `0` (not null)
+
+#### Scenario: Modifier quantity
+- **WHEN** a customer orders "Extra Shot" with quantity 2 (double shot)
+- **THEN** the `order_item_modifiers` row SHALL have `quantity = 2`
+- **AND** `priceDeltaMinorUnits` SHALL record the per-unit delta (the line total contribution is `priceDeltaMinorUnits × quantity`)
+
+#### Scenario: Receipt renders modifiers
+- **WHEN** the receipt renderer builds a line item
+- **THEN** it SHALL query `order_item_modifiers WHERE orderItemId = ?`
+- **AND** render each modifier with its name and price delta beneath the parent line
+
+#### Scenario: Modifier analytics
+- **WHEN** a merchant queries "how many Extra Shots sold this month"
+- **THEN** the system SHALL query `order_item_modifiers WHERE modifierName = 'Extra Shot'` joined to `order_items` and `orders` filtered by date
+- (This query path is enabled by relational storage; JSON storage would require per-row parsing.)
