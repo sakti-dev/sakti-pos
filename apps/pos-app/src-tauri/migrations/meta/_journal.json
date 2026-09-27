@@ -1,11 +1,12 @@
 {
   "version": "7",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
       "version": "6",
-      "when": 1781919124743,
-      "tag": "0000_dashing_meggan",
+      "when": 1790541099406,
+      "tag": "0000_payment-settings-baseline",
       "breakpoints": true
     }
   ]

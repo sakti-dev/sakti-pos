@@ -112,7 +112,9 @@ export function ToggleRow(props: {
   readonly title: string;
   readonly desc: string;
   readonly checked?: boolean;
+  readonly disabled?: boolean;
   readonly last?: boolean;
+  readonly onChange?: (checked: boolean) => void;
 }) {
   return (
     <div
@@ -126,13 +128,19 @@ export function ToggleRow(props: {
           {props.desc}
         </div>
       </div>
-      <label class="relative h-6 w-11 shrink-0">
+      <label class="relative inline-flex h-6 w-11 shrink-0 items-center">
         <input
           checked={props.checked}
-          class="absolute h-0 w-0 opacity-0"
+          class="peer sr-only"
+          disabled={props.disabled}
+          onChange={(e) => props.onChange?.(e.currentTarget.checked)}
           type="checkbox"
         />
-        <span class="absolute top-0 right-0 bottom-0 left-0 cursor-pointer rounded-full bg-border transition-colors duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:size-5 before:rounded-full before:bg-white before:shadow-card before:transition-transform before:duration-250 before:content-[''] checked:bg-primary dark:checked:bg-accent" />
+        <span
+          aria-hidden
+          class="block h-6 w-11 rounded-full bg-border transition-colors duration-250 before:absolute before:bottom-[3px] before:left-[3px] before:size-5 before:rounded-full before:bg-white before:shadow-card before:transition-transform before:duration-250 before:content-[''] peer-checked:bg-primary peer-checked:before:translate-x-5 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:peer-checked:bg-accent"
+          role="presentation"
+        />
       </label>
     </div>
   );

@@ -5,8 +5,11 @@ import {
   queryClient,
   SyncClientProvider,
 } from "./lib/api/sync-client-provider.tsx";
+import { loadOutletContext } from "./lib/auth/session";
 import "./styles/index.css";
 import AppRoutes from "./routes.tsx";
+
+loadOutletContext();
 
 const root = document.getElementById("root");
 

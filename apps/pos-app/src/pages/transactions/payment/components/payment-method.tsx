@@ -1,15 +1,15 @@
 import type { Component } from "solid-js";
 import { createEffect, For, Show } from "solid-js";
-import {
-  BanknoteIcon,
-  CreditCardIcon,
-  QrCodeIcon,
-  WalletCardIcon,
-} from "~/assets";
+import { BanknoteIcon, QrCodeIcon, ScannerIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
 import { Numpad } from "~/components/ui/numpad";
 import { TabButton } from "~/components/ui/tabs";
+import { toDynamic } from "~/lib/qris";
+import type { PayMethod } from "~/lib/sales/types";
 import { cn, formatRupiah } from "~/lib/utils";
+import { QRisQR } from "./qris-qr";
+
+export type { PayMethod };
 
 const RE_ANDROID = /android/i;
 const RE_SINGLE_DIGIT = /^\d$/;
@@ -84,30 +84,25 @@ const getSmartCashSuggestions = (total: number): number[] => {
 
   return result;
 };
-export type PayMethod = "cash" | "qris" | "card" | "ewallet";
-
 const methodOptions: readonly {
   key: PayMethod;
   Icon: Component<{ class?: string }>;
   label: string;
 }[] = [
   { key: "cash", Icon: BanknoteIcon, label: "Tunai" },
-  { key: "qris", Icon: QrCodeIcon, label: "QRIS" },
-  { key: "card", Icon: CreditCardIcon, label: "Kartu" },
-  { key: "ewallet", Icon: WalletCardIcon, label: "E-Wallet" },
+  { key: "qris_static", Icon: QrCodeIcon, label: "QRIS Statis" },
+  { key: "qris_dynamic", Icon: ScannerIcon, label: "QRIS Dinamis" },
 ] as const;
 
-const ewallets = ["GoPay", "OVO", "DANA", "ShopeePay"] as const;
-
 interface PaymentMethodProps {
+  readonly availableMethods: readonly PayMethod[];
   readonly cashRaw: string;
-  readonly ewallet: string;
   readonly method: PayMethod;
   readonly onCashRawChange: (v: string) => void;
   readonly onConfirm: () => void;
-  readonly onEwalletChange: (v: string) => void;
   readonly onMethodChange: (m: PayMethod) => void;
   readonly onSelectedQuickChange: (v: number | null) => void;
+  readonly qrisPayload: string | null;
   readonly selectedQuick: number | null;
   readonly subtotal: number;
   readonly tax: number;
@@ -125,6 +120,17 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
   const change = () => cashNum() - props.total;
 
   const quickAmounts = () => getSmartCashSuggestions(props.total);
+
+  const qrisRenderPayload = () => {
+    const payload = props.qrisPayload;
+    if (!payload) {
+      return null;
+    }
+    if (props.method === "qris_static") {
+      return payload;
+    }
+    return toDynamic(payload, props.total);
+  };
 
   /** Map a cursor position in formatted text → position in raw digit string. */
   const formattedToRawPos = (
@@ -203,8 +209,12 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
       </div>
 
       {/* Method grid */}
-      <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <For each={methodOptions}>
+      <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <For
+          each={methodOptions.filter((m) =>
+            props.availableMethods.includes(m.key)
+          )}
+        >
           {(m) => (
             <TabButton
               active={props.method === m.key}
@@ -366,54 +376,22 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
         </div>
       </Show>
 
-      {/* QRIS */}
-      <Show when={props.method === "qris"}>
+      {/* QRIS Statis / Dinamis */}
+      <Show
+        when={props.method === "qris_static" || props.method === "qris_dynamic"}
+      >
         <div class="mt-5 flex flex-col items-center py-6">
-          <div class="relative mb-4 grid h-[200px] w-[200px] place-items-center overflow-hidden rounded-md border-2 border-border bg-card">
-            <div class="absolute inset-0 opacity-10 [background:repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_0_0/16px_16px,repeating-conic-gradient(currentColor_0%_25%,transparent_0%_50%)_80px_80px/16px_16px]" />
-            <QrCodeIcon class="relative z-10 h-16 w-16 text-faint-foreground dark:text-faint-foreground" />
-            <div class="absolute grid h-11 w-11 place-items-center rounded-md border-2 border-border bg-card">
-              <QrCodeIcon class="h-6 w-6 text-primary" />
-            </div>
+          <div class="mb-4 grid place-items-center rounded-md border-2 border-border bg-white p-3">
+            <QRisQR payload={qrisRenderPayload()} />
           </div>
-          <div class="text-body-sm text-faint-foreground">
-            Scan QR code dengan aplikasi e-wallet pelanggan
-          </div>
-        </div>
-      </Show>
-
-      {/* Card */}
-      <Show when={props.method === "card"}>
-        <div class="mt-5 flex flex-col items-center py-6">
-          <div class="mb-3 grid h-[140px] w-full place-items-center rounded-md border-2 border-border border-dashed bg-muted">
-            <CreditCardIcon class="h-12 w-12 text-faint-foreground" />
-          </div>
-          <div class="text-body-sm text-faint-foreground">
-            Tap atau gesek kartu di mesin EDC
-          </div>
-        </div>
-      </Show>
-
-      {/* E-Wallet */}
-      <Show when={props.method === "ewallet"}>
-        <div class="mt-5">
-          <div class="grid grid-cols-2 gap-2.5">
-            <For each={ewallets}>
-              {(name) => (
-                <Button
-                  aria-label={name}
-                  class="rounded-md py-3.5 font-semibold text-body-sm"
-                  look={props.ewallet === name ? "soft" : "outline"}
-                  onClick={() => props.onEwalletChange(name)}
-                  tone="primary"
-                >
-                  {name}
-                </Button>
-              )}
-            </For>
-          </div>
-          <div class="mt-3.5 text-center text-body-sm text-faint-foreground">
-            Kirim notifikasi ke pelanggan via {props.ewallet}
+          <div class="text-center text-body-sm text-faint-foreground">
+            <Show
+              fallback="Minta pelanggan pindai QRIS Anda, lalu tekan Sudah Dibayar."
+              when={props.method === "qris_dynamic"}
+            >
+              Total {formatRupiah(props.total)} sudah tersemat di QR — pelanggan
+              cukup pindai dan bayar.
+            </Show>
           </div>
         </div>
       </Show>

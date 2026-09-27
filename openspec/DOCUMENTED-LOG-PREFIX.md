@@ -129,6 +129,18 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PRINTER:REQUEST_PERMISSION_RELOAD_FALLBACK]` | printer settings |
 | `[JS] [PRINTER:TEST_PRINT_FAILED]` | printer client and settings |
 | `[JS] [PRINTER:TEST_PRINT_SKIPPED_NO_PRINTER]` | printer settings |
+| `[JS] [SETTINGS:PAYMENT_METHOD_TOGGLED]` | `pages/setting/components/section-payment-methods.tsx` |
+| `[JS] [SETTINGS:PAYMENT_METHOD_TOGGLE_FAILED]` | `pages/setting/components/section-payment-methods.tsx` |
+| `[JS] [SETTINGS:QRIS_SCAN_CLEANUP_FAILED]` | `lib/qris/scan.ts` |
+| `[JS] [SETTINGS:QRIS_SCAN_DECODED]` | `lib/qris/scan.ts` |
+| `[JS] [SETTINGS:QRIS_SCAN_IMAGE_LOAD_FAILED]` | `lib/qris/scan.ts` |
+| `[JS] [SETTINGS:QRIS_SCAN_NO_QR_FOUND]` | `lib/qris/scan.ts` |
+| `[JS] [SETTINGS:QRIS_SCAN_PICK_FAILED]` | `lib/qris/scan.ts` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_SAVE_FAILED]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_SAVED]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_SCAN_INVALID]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_SCAN_START]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_SCAN_VALID]` | `pages/setting/components/qris-walkthrough.tsx` |
 | `[JS] [SYNC:ASSET_HYDRATION_FAILED]` | `store/sync.ts` |
 | `[JS] [SYNC:ASSET_HYDRATION_FINISHED]` | `store/sync.ts` |
 | `[JS] [SYNC:ASSET_HYDRATION_STARTED]` | `store/sync.ts` |

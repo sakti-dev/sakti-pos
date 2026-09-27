@@ -343,6 +343,21 @@ CREATE TABLE `order_item_modifiers` (
 --> statement-breakpoint
 CREATE INDEX `order_item_modifiers_scope_sync_idx` ON `order_item_modifiers` (`outlet_id`,`sync_updated_at`);--> statement-breakpoint
 CREATE INDEX `order_item_modifiers_order_item_idx` ON `order_item_modifiers` (`order_item_id`);--> statement-breakpoint
+CREATE TABLE `payment_settings` (
+	`id` text PRIMARY KEY NOT NULL,
+	`merchant_id` text NOT NULL,
+	`qris_static_payload` text,
+	`qris_statis_enabled` integer DEFAULT false NOT NULL,
+	`qris_dinamis_enabled` integer DEFAULT false NOT NULL,
+	`deleted_at` text,
+	`sync_updated_at` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `payment_settings_scope_sync_idx` ON `payment_settings` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE UNIQUE INDEX `payment_settings_merchant_idx` ON `payment_settings` (`merchant_id`);--> statement-breakpoint
 CREATE TABLE `stocktake_lines` (
 	`id` text PRIMARY KEY NOT NULL,
 	`stocktake_id` text NOT NULL,

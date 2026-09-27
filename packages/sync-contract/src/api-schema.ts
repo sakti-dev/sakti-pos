@@ -59,6 +59,7 @@ export {
   orders,
   outletProducts,
   outlets,
+  paymentSettings,
   products,
   registers,
   staff,

@@ -106,12 +106,22 @@ describe("sale session", () => {
     expect(lastCommittedOrder()).toBe(order); // available for the receipt
   });
 
-  it("commit for a non-cash method pays exactly the total", () => {
+  it("commit for a QRIS Statis method pays exactly the total", () => {
     addToCart(product({ id: 1, price: 100_000 }));
-    setPayment({ method: "qris" });
+    setPayment({ method: "qris_static" });
     const order = commit();
     expect(order.paid).toBe(order.total);
     expect(order.change).toBe(0);
+    expect(order.payment.method).toBe("qris_static");
+  });
+
+  it("commit for a QRIS Dinamis method pays exactly the total", () => {
+    addToCart(product({ id: 1, price: 100_000 }));
+    setPayment({ method: "qris_dynamic" });
+    const order = commit();
+    expect(order.paid).toBe(order.total);
+    expect(order.change).toBe(0);
+    expect(order.payment.method).toBe("qris_dynamic");
   });
 
   it("commit throws on an empty cart", () => {
@@ -128,7 +138,7 @@ describe("sale session", () => {
 
   it("clearCart resets both cart and payment", () => {
     addToCart(product());
-    setPayment({ method: "card", customerName: "Budi" });
+    setPayment({ method: "qris_dynamic", customerName: "Budi" });
     clearCart();
     expect(getCart()).toHaveLength(0);
     expect(getPayment().customerName).toBeUndefined();

@@ -4,12 +4,10 @@ import { toast } from "solid-sonner";
 import {
   BanknoteIcon,
   CheckCircleIcon,
-  CreditCardIcon,
   HomeIcon,
   PrinterIcon,
   QrCodeIcon,
   ShareIcon,
-  WalletIcon,
 } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
@@ -29,9 +27,8 @@ const METHOD_META: Record<
   { Icon: typeof BanknoteIcon; label: string }
 > = {
   cash: { Icon: BanknoteIcon, label: "Tunai" },
-  qris: { Icon: QrCodeIcon, label: "QRIS" },
-  card: { Icon: CreditCardIcon, label: "Kartu" },
-  ewallet: { Icon: WalletIcon, label: "E-Wallet" },
+  qris_static: { Icon: QrCodeIcon, label: "QRIS Statis" },
+  qris_dynamic: { Icon: QrCodeIcon, label: "QRIS Dinamis" },
 };
 
 /* ── formatting helpers ── */

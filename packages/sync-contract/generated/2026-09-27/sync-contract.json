@@ -1,0 +1,443 @@
+{
+  "version": "2026-09-27",
+  "generatorVersion": "0.1.0",
+  "upsertOrder": [
+    "merchants",
+    "outlets",
+    "registers",
+    "staff",
+    "categories",
+    "assets",
+    "products",
+    "outlet_products",
+    "orders",
+    "order_items",
+    "ingredients",
+    "inventory_stocks",
+    "stocktakes",
+    "stocktake_lines",
+    "goods_receipts",
+    "goods_receipt_lines",
+    "cash_shifts",
+    "order_item_modifiers",
+    "payment_settings"
+  ],
+  "deleteOrder": [
+    "payment_settings",
+    "order_item_modifiers",
+    "cash_shifts",
+    "goods_receipt_lines",
+    "goods_receipts",
+    "stocktake_lines",
+    "stocktakes",
+    "inventory_stocks",
+    "ingredients",
+    "order_items",
+    "orders",
+    "outlet_products",
+    "products",
+    "assets",
+    "categories",
+    "staff",
+    "registers",
+    "outlets",
+    "merchants"
+  ],
+  "tables": {
+    "merchants": {
+      "columns": [
+        "id",
+        "name",
+        "business_type",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "id"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "outlets": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "timezone",
+        "name",
+        "address",
+        "receipt_name",
+        "receipt_address",
+        "is_active",
+        "use_tax",
+        "tax_percentage",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "registers": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "name",
+        "short_id",
+        "pairing_code",
+        "pairing_expires_at",
+        "is_active",
+        "last_seen_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "staff": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "cloud_user_id",
+        "outlet_id",
+        "name",
+        "pin",
+        "role",
+        "is_active",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "categories": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "name",
+        "sort_order",
+        "is_active",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "assets": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "job_id",
+        "object_key",
+        "original_filename",
+        "content_type",
+        "byte_size",
+        "content_hash",
+        "kind",
+        "width",
+        "height",
+        "status",
+        "created_by_user_id",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "products": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "category_id",
+        "name",
+        "price_minor_units",
+        "image_asset_id",
+        "is_active",
+        "sort_order",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "outlet_products": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "product_id",
+        "price_minor_units",
+        "is_available",
+        "sort_order",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "orders": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "register_id",
+        "staff_id",
+        "order_number",
+        "total_minor_units",
+        "payment_method",
+        "amount_paid_minor_units",
+        "change_amount_minor_units",
+        "status",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "order_items": {
+      "columns": [
+        "id",
+        "order_id",
+        "outlet_id",
+        "product_id",
+        "product_name",
+        "quantity",
+        "unit_price_minor_units",
+        "original_price_minor_units",
+        "subtotal_minor_units",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "ingredients": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "name",
+        "sku",
+        "unit",
+        "category",
+        "is_active",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "inventory_stocks": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "target_type",
+        "target_id",
+        "on_hand_qty",
+        "low_stock_threshold",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "stocktakes": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "staff_id",
+        "ref",
+        "target_type",
+        "reason",
+        "counted_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "stocktake_lines": {
+      "columns": [
+        "id",
+        "stocktake_id",
+        "outlet_id",
+        "target_id",
+        "system_qty_before",
+        "counted_qty",
+        "variance_qty",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "goods_receipts": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "staff_id",
+        "ref",
+        "supplier_name",
+        "note",
+        "received_at",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "goods_receipt_lines": {
+      "columns": [
+        "id",
+        "goods_receipt_id",
+        "outlet_id",
+        "target_id",
+        "received_qty",
+        "unit_cost_minor_units",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "cash_shifts": {
+      "columns": [
+        "id",
+        "outlet_id",
+        "register_id",
+        "opened_by_staff_id",
+        "opened_at",
+        "closed_at",
+        "initial_float_minor_units",
+        "expected_cash_minor_units",
+        "actual_cash_minor_units",
+        "difference_minor_units",
+        "status",
+        "note",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "order_item_modifiers": {
+      "columns": [
+        "id",
+        "order_item_id",
+        "outlet_id",
+        "modifier_name",
+        "modifier_group",
+        "price_delta_minor_units",
+        "quantity",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "outletId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    },
+    "payment_settings": {
+      "columns": [
+        "id",
+        "merchant_id",
+        "qris_static_payload",
+        "qris_statis_enabled",
+        "qris_dinamis_enabled",
+        "deleted_at",
+        "is_synced",
+        "created_at",
+        "updated_at"
+      ],
+      "scope": {
+        "field": "merchantId"
+      },
+      "localOnlyColumns": ["isSynced"],
+      "serverOnlyColumns": ["syncUpdatedAt"]
+    }
+  },
+  "limits": {
+    "maxPushBytes": 2097152,
+    "maxPushRows": 2000
+  }
+}

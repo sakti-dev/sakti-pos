@@ -38,13 +38,12 @@ export interface CartLine {
   qty: number;
 }
 
-export type PayMethod = "cash" | "qris" | "card" | "ewallet";
+export type PayMethod = "cash" | "qris_static" | "qris_dynamic";
 
 /** Payment details collected on the payment screen. */
 export interface PaymentDetails {
   readonly cashTendered?: number;
   readonly customerName?: string;
-  readonly ewallet?: string;
   readonly method: PayMethod;
   readonly notes?: string;
 }

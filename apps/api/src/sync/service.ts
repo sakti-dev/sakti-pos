@@ -12,12 +12,13 @@ import {
   orders,
   outletProducts,
   outlets,
+  paymentSettings,
   products,
   registers,
   staff,
   stocktakeLines,
   stocktakes,
-} from "@sync-contract/generated/2026-06-20/api-synced-schema";
+} from "@sync-contract/generated/2026-09-27/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -1261,6 +1262,67 @@ export const repository = createDrizzleSyncRepository({
               modifierGroup: sql.raw("excluded.modifier_group"),
               priceDeltaMinorUnits: sql.raw("excluded.price_delta_minor_units"),
               quantity: sql.raw("excluded.quantity"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    paymentSettings: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "payment_settings.id"),
+        merchantId: requiredString(
+          row.merchantId,
+          "payment_settings.merchantId"
+        ),
+        qrisStaticPayload: optionalString(row.qrisStaticPayload),
+        qrisStatisEnabled: requiredBoolean(row.qrisStatisEnabled),
+        qrisDinamisEnabled: requiredBoolean(row.qrisDinamisEnabled),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "payment_settings.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(paymentSettings)
+          .where(eq(paymentSettings.merchantId, scopeId))
+          .orderBy(sql`${paymentSettings.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(paymentSettings)
+          .where(
+            and(
+              eq(paymentSettings.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(paymentSettings.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(paymentSettings.syncUpdatedAt), asc(paymentSettings.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(paymentSettings)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(paymentSettings.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(paymentSettings)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: paymentSettings.id,
+            set: {
+              merchantId: sql.raw("excluded.merchant_id"),
+              qrisStaticPayload: sql.raw("excluded.qris_static_payload"),
+              qrisStatisEnabled: sql.raw("excluded.qris_statis_enabled"),
+              qrisDinamisEnabled: sql.raw("excluded.qris_dinamis_enabled"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),

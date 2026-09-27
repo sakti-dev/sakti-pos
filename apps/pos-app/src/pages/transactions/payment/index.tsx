@@ -1,8 +1,9 @@
 import { useNavigate } from "@solidjs/router";
-import { createSignal } from "solid-js";
+import { createEffect, createResource, createSignal } from "solid-js";
 import { CheckCircleIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
+import { getPaymentSettings } from "~/db/payment-settings";
 import * as sale from "~/lib/sales/sale-session";
 import { OrderSummary } from "./components/order-summary";
 import { PaymentExtras } from "./components/payment-extras";
@@ -16,9 +17,9 @@ export default function PaymentPage() {
   const [method, setMethod] = createSignal<PayMethod>("cash");
   const [cashRaw, setCashRaw] = createSignal("");
   const [selectedQuick, setSelectedQuick] = createSignal<number | null>(null);
-  const [ewallet, setEwallet] = createSignal("GoPay");
   const [customer, setCustomer] = createSignal("");
   const [notes, setNotes] = createSignal("");
+  const [settings] = createResource(getPaymentSettings);
 
   const totals = sale.totals;
   const subtotal = () => totals().subtotal;
@@ -26,9 +27,32 @@ export default function PaymentPage() {
   const total = () => totals().total;
   const totalQty = () => cart().reduce((s, i) => s + i.qty, 0);
   const cashNum = () => Number.parseInt(cashRaw() || "0", 10) || 0;
+
+  const qrisPayload = () => settings()?.qrisStaticPayload ?? null;
+  const availableMethods = (): readonly PayMethod[] => {
+    const methods: PayMethod[] = ["cash"];
+    const payload = qrisPayload();
+    if (payload && settings()?.qrisStatisEnabled) {
+      methods.push("qris_static");
+    }
+    if (payload && settings()?.qrisDinamisEnabled) {
+      methods.push("qris_dynamic");
+    }
+    return methods;
+  };
+
+  createEffect(() => {
+    if (!availableMethods().includes(method())) {
+      setMethod("cash");
+    }
+  });
+
   const canConfirm = () =>
     cart().length > 0 &&
     (method() === "cash" ? cashNum() >= total() && cashNum() > 0 : true);
+
+  const confirmLabel = () =>
+    method() === "cash" ? "Konfirmasi Pembayaran" : "Sudah Dibayar";
 
   const confirmPayment = () => {
     if (!canConfirm()) {
@@ -37,7 +61,6 @@ export default function PaymentPage() {
     sale.setPayment({
       method: method(),
       cashTendered: method() === "cash" ? cashNum() : undefined,
-      ewallet: method() === "ewallet" ? ewallet() : undefined,
       customerName: customer() || undefined,
       notes: notes() || undefined,
     });
@@ -76,14 +99,14 @@ export default function PaymentPage() {
           <div class="scrollbar-none order-1 flex flex-none flex-col gap-4 overflow-y-visible lg:order-2 lg:flex-1 lg:overflow-y-auto">
             <TotalBanner subtotal={subtotal()} tax={tax()} total={total()} />
             <PaymentMethod
+              availableMethods={availableMethods()}
               cashRaw={cashRaw()}
-              ewallet={ewallet()}
               method={method()}
               onCashRawChange={setCashRaw}
               onConfirm={confirmPayment}
-              onEwalletChange={setEwallet}
               onMethodChange={setMethod}
               onSelectedQuickChange={setSelectedQuick}
+              qrisPayload={qrisPayload()}
               selectedQuick={selectedQuick()}
               subtotal={subtotal()}
               tax={tax()}
@@ -107,7 +130,7 @@ export default function PaymentPage() {
                 type="button"
               >
                 <CheckCircleIcon class="h-5 w-5" />
-                Konfirmasi Pembayaran
+                {confirmLabel()}
               </Button>
             </div>
           </div>
@@ -124,7 +147,7 @@ export default function PaymentPage() {
           type="button"
         >
           <CheckCircleIcon class="h-5 w-5" />
-          Konfirmasi Pembayaran
+          {confirmLabel()}
         </Button>
       </div>
     </SubPageShell>

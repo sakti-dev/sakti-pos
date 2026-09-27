@@ -255,6 +255,21 @@ CREATE TABLE `outlets` (
 );
 --> statement-breakpoint
 CREATE INDEX `outlets_is_synced_idx` ON `outlets` (`is_synced`);--> statement-breakpoint
+CREATE TABLE `payment_settings` (
+	`id` text PRIMARY KEY NOT NULL,
+	`merchant_id` text NOT NULL,
+	`qris_static_payload` text,
+	`qris_statis_enabled` integer DEFAULT false NOT NULL,
+	`qris_dinamis_enabled` integer DEFAULT false NOT NULL,
+	`deleted_at` text,
+	`is_synced` integer DEFAULT false NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `payment_settings_is_synced_idx` ON `payment_settings` (`is_synced`);--> statement-breakpoint
+CREATE UNIQUE INDEX `payment_settings_merchant_idx` ON `payment_settings` (`merchant_id`);--> statement-breakpoint
 CREATE TABLE `products` (
 	`id` text PRIMARY KEY NOT NULL,
 	`merchant_id` text NOT NULL,

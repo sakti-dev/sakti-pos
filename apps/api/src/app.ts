@@ -6,6 +6,7 @@ import { assetsRoutes } from "./assets/routes";
 import { authRoutes } from "./auth/routes";
 import { merchantsRoutes } from "./merchants/routes";
 import { outletsRoutes } from "./outlets/routes";
+import { paymentSettingsRoutes } from "./payment-settings/routes";
 import { registersRoutes } from "./registers/routes";
 import { staffRoutes } from "./staff/routes";
 import { syncRoutes } from "./sync/routes";
@@ -33,6 +34,7 @@ const app = new Elysia({ adapter: CloudflareAdapter })
   .use(assetsRoutes)
   .use(merchantsRoutes)
   .use(outletsRoutes)
+  .use(paymentSettingsRoutes)
   .use(registersRoutes)
   .use(staffRoutes)
   .use(syncRoutes)
