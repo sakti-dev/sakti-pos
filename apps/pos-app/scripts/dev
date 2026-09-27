@@ -2,6 +2,7 @@
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PACKAGE="com.sakti_dev.sakti_pos"
+ASSETS_MIGRATIONS="$PROJECT_ROOT/src-tauri/gen/android/app/src/main/assets/migrations"
 
 echo "1) Build & run (keep data)"
 echo "2) Build & run (clear data + uninstall first)"
@@ -10,16 +11,27 @@ read -p "Choose [1/2]: " CHOICE
 
 if [[ "$CHOICE" == "2" ]]; then
     echo "🗑️ Clearing app data and uninstalling..."
-    adb shell pm clear "$PACKAGE" 2>/dev/null || true
-    adb uninstall "$PACKAGE" 2>/dev/null || true
+    if adb shell pm path "$PACKAGE" >/dev/null 2>&1; then
+        if ! adb shell pm clear "$PACKAGE"; then
+            echo "❌ 'adb pm clear' failed — device data would stay stale. Aborting." >&2
+            echo "   Try: adb shell pm uninstall -k --user 0 $PACKAGE ; or reboot the device." >&2
+            exit 1
+        fi
+    fi
+    adb uninstall "$PACKAGE" || true
 fi
 
+echo "🧹 Removing stale android asset migrations (tauri re-copies from src-tauri/migrations)..."
+mkdir -p "$ASSETS_MIGRATIONS"
+find "$ASSETS_MIGRATIONS" -maxdepth 1 -name '*.sql' -delete
+
+LAN_IP="$(ip -4 -brief addr show 2>/dev/null | awk '$1 ~ /^(wlp|wlan|enp|eth)/ && NF >= 3 {split($3,a,"/"); print a[1]; exit}')"
 export RUST_LOG="${RUST_LOG:-debug}"
-export TAURI_DEV_HOST="${TAURI_DEV_HOST:-192.168.1.2}"
+export TAURI_DEV_HOST="${TAURI_DEV_HOST:-${LAN_IP:-192.168.1.2}}"
 
 echo "🧹 Cleaning up existing dev servers..."
 fuser -k 1420/tcp 1421/tcp 2>/dev/null
 echo "Starting tauri android development..."
-echo "Using RUST_LOG=$RUST_LOG"
+echo "Using RUST_LOG=$RUST_LOG TAURI_DEV_HOST=$TAURI_DEV_HOST"
 cd "$PROJECT_ROOT"
-bun tauri android dev --no-watch --host 192.168.1.2
+bun tauri android dev --no-watch --host "$TAURI_DEV_HOST"

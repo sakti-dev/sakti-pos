@@ -57,6 +57,4 @@ bun test apps/api/src/registers/__test__/routes.test.ts
 cargo test --manifest-path apps/pos-app/src-tauri/Cargo.toml --lib
 ```
 
-## Review Focus
-
 Biome/Ultracite handle formatting. Human review should focus on business correctness, naming, architecture, edge cases, UX/accessibility/performance, and useful documentation.
