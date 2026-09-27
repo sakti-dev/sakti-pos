@@ -66,3 +66,4 @@ graphify-out
 *.log
 *.sqlite
 references
+.opencode
