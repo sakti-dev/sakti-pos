@@ -3,5 +3,9 @@
   "name": "api",
   "main": "dist-cf/worker.mjs",
   "compatibility_date": "2025-06-01",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "API_URL": "https://api.ardianoption.workers.dev",
+    "NODE_ENV": "production"
+  }
 }
