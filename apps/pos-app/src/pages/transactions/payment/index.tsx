@@ -134,43 +134,44 @@ export default function PaymentPage() {
             totalQty={totalQty()}
           />
 
-          <div class="scrollbar-none order-1 flex flex-none flex-col gap-4 overflow-y-visible lg:order-2 lg:flex-1 lg:overflow-y-auto">
+          <div class="order-1 flex flex-none flex-col gap-4 overflow-y-visible lg:order-2 lg:flex-1">
             <TotalBanner
               subtotal={subtotal()}
               tax={tax()}
               taxPercent={taxPercent()}
               total={total()}
             />
-            <PaymentMethod
-              availableMethods={availableMethods()}
-              cashRaw={cashRaw()}
-              method={method()}
-              onCashRawChange={setCashRaw}
-              onConfirm={confirmPayment}
-              onMethodChange={setMethod}
-              onSelectedQuickChange={setSelectedQuick}
-              qrisPayload={qrisPayload()}
-              selectedQuick={selectedQuick()}
-              subtotal={subtotal()}
-              tax={tax()}
-              total={total()}
-            />
+            <div class="scrollbar-none flex flex-col gap-4 lg:flex-1 lg:overflow-y-auto">
+              <PaymentMethod
+                availableMethods={availableMethods()}
+                cashRaw={cashRaw()}
+                method={method()}
+                onCashRawChange={setCashRaw}
+                onConfirm={confirmPayment}
+                onMethodChange={setMethod}
+                onSelectedQuickChange={setSelectedQuick}
+                selectedQuick={selectedQuick()}
+                subtotal={subtotal()}
+                tax={tax()}
+                total={total()}
+              />
 
-            <PaymentExtras
-              customer={customer()}
-              notes={notes()}
-              onCustomerChange={setCustomer}
-              onNotesChange={setNotes}
-            />
+              <PaymentExtras
+                customer={customer()}
+                notes={notes()}
+                onCustomerChange={setCustomer}
+                onNotesChange={setNotes}
+              />
 
-            <Show when={commitError()}>
-              <p class="text-body-sm text-danger">
-                Gagal menyimpan transaksi. Coba lagi.
-              </p>
-            </Show>
+              <Show when={commitError()}>
+                <p class="text-body-sm text-danger">
+                  Gagal menyimpan transaksi. Coba lagi.
+                </p>
+              </Show>
+            </div>
 
-            {/* Desktop: inline button */}
-            <div class="hidden shrink-0 pt-1 lg:block">
+            {/* Landscape: button pinned to the column bottom, always visible */}
+            <div class="hidden shrink-0 lg:block">
               <Button
                 class="h-14 w-full rounded-md font-bold text-body shadow-card disabled:opacity-40 dark:disabled:shadow-none"
                 disabled={!canConfirm() || committing()}

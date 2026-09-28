@@ -121,20 +121,22 @@ describe("nextOrderNumber", () => {
   });
 
   test("increments the max existing suffix for the business date", async () => {
+    const { businessDate } = await import("../orders");
+    const today = businessDate();
     mockSelect.mockImplementation(() => ({
       from: vi.fn().mockReturnValue({
         where: vi
           .fn()
           .mockResolvedValue([
-            { orderNumber: "2026-09-28-001" },
-            { orderNumber: "2026-09-28-007" },
-            { orderNumber: "2026-09-28-003" },
+            { orderNumber: `${today}-001` },
+            { orderNumber: `${today}-007` },
+            { orderNumber: `${today}-003` },
           ]),
       }),
     }));
 
     const { nextOrderNumber } = await import("../orders");
-    await expect(nextOrderNumber()).resolves.toBe("2026-09-28-008");
+    await expect(nextOrderNumber()).resolves.toBe(`${today}-008`);
   });
 
   test("starts at 001 when no orders exist today", async () => {

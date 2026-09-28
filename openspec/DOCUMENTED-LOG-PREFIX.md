@@ -141,7 +141,7 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [QRIS:MONITORED_PACKAGES_SAVED]` | `lib/qris/detection.ts` |
 | `[JS] [QRIS:MONITORED_PACKAGES_STORE_WRITE_FAILED]` | `lib/qris/detection.ts` |
 | `[JS] [QRIS:MONITORED_PACKAGES_SYNC_TO_NATIVE_FAILED]` | `lib/qris/detection.ts` |
-| `[JS] [QRIS:MONITORED_APPS_LOAD_FAILED]` / `MONITORED_APPS_SAVE_FAILED` | `pages/setting/components/section-payment-monitor.tsx` |
+| `[JS] [QRIS:MONITORED_APPS_LOAD_FAILED]` / `MONITORED_APPS_SAVE_FAILED` / `MONITORED_APPS_AUTOSAVED` | `pages/setting/components/section-payment-monitor.tsx` |
 | `[JS] [QRIS:OPEN_NOTIFICATION_SETTINGS_FAILED]` | `pages/setting/components/section-payment-monitor.tsx` |
 | `[JS] [QRIS:EVENT_RECEIVED]` | `lib/qris/detection.ts` — live event from notification service |
 | `[JS] [QRIS:EVENT_DRAIN_FAILED]` / `EVENT_LISTENER_REGISTER_FAILED` | `lib/qris/detection.ts` |
@@ -161,6 +161,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SETTINGS:QRIS_SCAN_IMAGE_LOAD_FAILED]` | `lib/qris/scan.ts` |
 | `[JS] [SETTINGS:QRIS_SCAN_NO_QR_FOUND]` | `lib/qris/scan.ts` |
 | `[JS] [SETTINGS:QRIS_SCAN_PICK_FAILED]` | `lib/qris/scan.ts` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_GRANT_CHECKED]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_GRANT_CHECK_FAILED]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_MONITOR_OPENED]` | `pages/setting/components/qris-walkthrough.tsx` |
 | `[JS] [SETTINGS:QRIS_WALKTHROUGH_SAVE_FAILED]` | `pages/setting/components/qris-walkthrough.tsx` |
 | `[JS] [SETTINGS:QRIS_WALKTHROUGH_SAVED]` | `pages/setting/components/qris-walkthrough.tsx` |
 | `[JS] [SETTINGS:QRIS_WALKTHROUGH_SCAN_INVALID]` | `pages/setting/components/qris-walkthrough.tsx` |

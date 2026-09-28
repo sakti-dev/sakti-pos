@@ -4,10 +4,8 @@ import { BanknoteIcon, QrCodeIcon, ScannerIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
 import { Numpad } from "~/components/ui/numpad";
 import { TabButton } from "~/components/ui/tabs";
-import { toDynamic } from "~/lib/qris";
 import type { PayMethod } from "~/lib/sales/types";
 import { cn, formatRupiah } from "~/lib/utils";
-import { QRisQR } from "./qris-qr";
 
 export type { PayMethod };
 
@@ -102,7 +100,6 @@ interface PaymentMethodProps {
   readonly onConfirm: () => void;
   readonly onMethodChange: (m: PayMethod) => void;
   readonly onSelectedQuickChange: (v: number | null) => void;
-  readonly qrisPayload: string | null;
   readonly selectedQuick: number | null;
   readonly subtotal: number;
   readonly tax: number;
@@ -120,23 +117,6 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
   const change = () => cashNum() - props.total;
 
   const quickAmounts = () => getSmartCashSuggestions(props.total);
-
-  const qrisRenderPayload = () => {
-    const payload = props.qrisPayload;
-    if (!payload) {
-      return null;
-    }
-    if (props.method === "qris_static") {
-      return payload;
-    }
-    // Guard: deriving a dynamic payload needs a positive total. Returning
-    // null (placeholder panel) instead of throwing keeps reactive updates —
-    // e.g. the cart clearing after commit — from crashing the render.
-    if (!Number.isInteger(props.total) || props.total <= 0) {
-      return null;
-    }
-    return toDynamic(payload, props.total);
-  };
 
   /** Map a cursor position in formatted text → position in raw digit string. */
   const formattedToRawPos = (
@@ -387,15 +367,12 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
         when={props.method === "qris_static" || props.method === "qris_dynamic"}
       >
         <div class="mt-5 flex flex-col items-center py-6">
-          <div class="mb-4 grid place-items-center rounded-md border-2 border-border bg-white p-3">
-            <QRisQR payload={qrisRenderPayload()} />
-          </div>
           <div class="text-center text-body-sm text-faint-foreground">
             <Show
               fallback="Tekan Tampilkan QR di bawah untuk layar pindai pelanggan."
               when={props.method === "qris_dynamic"}
             >
-              Total {formatRupiah(props.total)} sudah tersemat di QR — pelanggan
+              Total {formatRupiah(props.total)} akan tersemat di QR — pelanggan
               cukup pindai dan bayar.
             </Show>
           </div>
