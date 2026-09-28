@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import type { Static } from "typebox";
 import { Register } from "../registers/registers.model";
 
 export const Outlet = t.Object({
@@ -49,10 +50,10 @@ export const OutletUpdateResponse = t.Object({
   outlet: Outlet,
 });
 
-export type Outlet = typeof Outlet.static;
-export type OutletCreateRequest = typeof OutletCreateRequest.static;
-export type OutletCreateResponse = typeof OutletCreateResponse.static;
-export type OutletListRequest = typeof OutletListRequest.static;
-export type OutletListResponse = typeof OutletListResponse.static;
-export type OutletUpdateRequest = typeof OutletUpdateRequest.static;
-export type OutletUpdateResponse = typeof OutletUpdateResponse.static;
+export type Outlet = Static<typeof Outlet>;
+export type OutletCreateRequest = Static<typeof OutletCreateRequest>;
+export type OutletCreateResponse = Static<typeof OutletCreateResponse>;
+export type OutletListRequest = Static<typeof OutletListRequest>;
+export type OutletListResponse = Static<typeof OutletListResponse>;
+export type OutletUpdateRequest = Static<typeof OutletUpdateRequest>;
+export type OutletUpdateResponse = Static<typeof OutletUpdateResponse>;

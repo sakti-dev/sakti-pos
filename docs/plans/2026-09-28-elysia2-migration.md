@@ -47,7 +47,7 @@ time curl -sf http://127.0.0.1:3001/ -o /dev/null
 
 Expected: `Sakti POS API v1`; note the real time in the task notes below (append to this file when executing).
 
-**Task 1 notes (fill during execution):** api tests ____ passing; pos-app ____ passing; cold-start first-request ____ ms.
+**Task 1 notes (fill during execution):** api tests **66** passing; pos-app **131** passing (via `bun run test` — vitest; plain `bun test` is the wrong runner for pos-app, 56 env errors); cold-start first-request **~28ms** (wrangler dev, port 3002, "Ready on" then first curl; warm ~17-19ms).
 
 ---
 

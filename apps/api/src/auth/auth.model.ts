@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import type { Static } from "typebox";
 
 export const ApiUser = t.Object({
   id: t.String(),
@@ -42,10 +43,10 @@ export const GoogleExchangeRequest = t.Object({
   code: t.String(),
 });
 
-export type ApiUser = typeof ApiUser.static;
-export type SessionMerchant = typeof SessionMerchant.static;
-export type AuthRegisterRequest = typeof AuthRegisterRequest.static;
-export type AuthLoginRequest = typeof AuthLoginRequest.static;
-export type AuthResponse = typeof AuthResponse.static;
-export type AuthSessionResponse = typeof AuthSessionResponse.static;
-export type LogoutResponse = typeof LogoutResponse.static;
+export type ApiUser = Static<typeof ApiUser>;
+export type SessionMerchant = Static<typeof SessionMerchant>;
+export type AuthRegisterRequest = Static<typeof AuthRegisterRequest>;
+export type AuthLoginRequest = Static<typeof AuthLoginRequest>;
+export type AuthResponse = Static<typeof AuthResponse>;
+export type AuthSessionResponse = Static<typeof AuthSessionResponse>;
+export type LogoutResponse = Static<typeof LogoutResponse>;

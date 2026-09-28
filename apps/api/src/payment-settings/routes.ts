@@ -32,6 +32,9 @@ export const paymentSettingsRoutes = new Elysia({
   .use(authenticated)
   .post(
     "/get",
+    {
+      body: PaymentSettingsGetRequest,
+    },
     async ({ body, session }) => {
       throwIfFalse(
         await verifyMerchantAccess(session.userId, body.merchantId),
@@ -45,13 +48,13 @@ export const paymentSettingsRoutes = new Elysia({
         .limit(1);
 
       return { paymentSettings: row ?? null };
-    },
-    {
-      body: PaymentSettingsGetRequest,
     }
   )
   .post(
     "/upsert",
+    {
+      body: PaymentSettingsUpsertRequest,
+    },
     async ({ body, session }) => {
       throwIfFalse(
         await verifyMerchantAccess(session.userId, body.merchantId),
@@ -104,8 +107,5 @@ export const paymentSettingsRoutes = new Elysia({
         .returning();
 
       return { paymentSettings: updated };
-    },
-    {
-      body: PaymentSettingsUpsertRequest,
     }
   );

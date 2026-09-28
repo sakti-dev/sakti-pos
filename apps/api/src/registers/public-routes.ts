@@ -58,6 +58,9 @@ export const publicRegisterRoutes = new Elysia({
   prefix: "/api/registers",
 }).post(
   "/pair",
+  {
+    body: RegisterPairRequest,
+  },
   async ({ body, set }) => {
     const [register] = await db
       .select()
@@ -113,8 +116,5 @@ export const publicRegisterRoutes = new Elysia({
         register: encodeRegister(updatedRegister),
       };
     });
-  },
-  {
-    body: RegisterPairRequest,
   }
 );

@@ -141,7 +141,7 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [QRIS:MONITORED_PACKAGES_SAVED]` | `lib/qris/detection.ts` |
 | `[JS] [QRIS:MONITORED_PACKAGES_STORE_WRITE_FAILED]` | `lib/qris/detection.ts` |
 | `[JS] [QRIS:MONITORED_PACKAGES_SYNC_TO_NATIVE_FAILED]` | `lib/qris/detection.ts` |
-| `[JS] [QRIS:MONITORED_APPS_LOAD_FAILED]` / `MONITORED_APPS_SAVE_FAILED` | `pages/setting/components/section-payment-monitor.tsx` |
+| `[JS] [QRIS:MONITORED_APPS_LOAD_FAILED]` / `MONITORED_APPS_SAVE_FAILED` / `MONITORED_APPS_AUTOSAVED` | `pages/setting/components/section-payment-monitor.tsx` |
 | `[JS] [QRIS:OPEN_NOTIFICATION_SETTINGS_FAILED]` | `pages/setting/components/section-payment-monitor.tsx` |
 | `[JS] [QRIS:EVENT_RECEIVED]` | `lib/qris/detection.ts` — live event from notification service |
 | `[JS] [QRIS:EVENT_DRAIN_FAILED]` / `EVENT_LISTENER_REGISTER_FAILED` | `lib/qris/detection.ts` |
@@ -161,6 +161,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SETTINGS:QRIS_SCAN_IMAGE_LOAD_FAILED]` | `lib/qris/scan.ts` |
 | `[JS] [SETTINGS:QRIS_SCAN_NO_QR_FOUND]` | `lib/qris/scan.ts` |
 | `[JS] [SETTINGS:QRIS_SCAN_PICK_FAILED]` | `lib/qris/scan.ts` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_GRANT_CHECKED]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_GRANT_CHECK_FAILED]` | `pages/setting/components/qris-walkthrough.tsx` |
+| `[JS] [SETTINGS:QRIS_WALKTHROUGH_MONITOR_OPENED]` | `pages/setting/components/qris-walkthrough.tsx` |
 | `[JS] [SETTINGS:QRIS_WALKTHROUGH_SAVE_FAILED]` | `pages/setting/components/qris-walkthrough.tsx` |
 | `[JS] [SETTINGS:QRIS_WALKTHROUGH_SAVED]` | `pages/setting/components/qris-walkthrough.tsx` |
 | `[JS] [SETTINGS:QRIS_WALKTHROUGH_SCAN_INVALID]` | `pages/setting/components/qris-walkthrough.tsx` |
@@ -191,6 +194,30 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
 | `[JS] [UI:REQUIRE_AUTH_GUARD]` | `App.tsx` |
+
+## API Server Logs
+
+`apps/api` emits one single-line JSON object per request via `console.log`
+(`apps/api/src/lib/request-log.ts`), which workerd forwards to the dev
+process; `apps/api/scripts/dev` tees it into `logs/api.log`. The previous
+pino-based logger's output never reached this file (workerd did not forward
+its stream). Wrangler's own `[wrangler:info]` request lines are gone with
+the Elysia 2 migration.
+
+```json
+{"lvl":"info","origin":"API","msg":"request","method":"POST","path":"/api/sync/v1/status","status":200,"ms":12}
+```
+
+- `lvl`: `info` for served requests, `error` when the error hook ran
+- error lines carry `name` + `status` only — raw error messages are not
+  logged (Elysia 2 problem+json posture)
+- OPTIONS preflight requests are skipped
+
+```bash
+grep '"origin":"API"' logs/api.log        # all request lines
+grep '"lvl":"error"' logs/api.log         # errors only
+grep '"path":"/api/sync' logs/api.log     # sync endpoints
+```
 
 ## Kotlin Prefixes
 

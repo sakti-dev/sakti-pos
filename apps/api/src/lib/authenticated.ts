@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { getSessionFromRequest } from "./session";
 
 export const authenticated = new Elysia({ name: "authenticated" })
-  .resolve(async ({ request, status }) => {
+  .derive(async ({ request, status }) => {
     const session = await getSessionFromRequest(request);
 
     if (!session) {
@@ -11,4 +11,4 @@ export const authenticated = new Elysia({ name: "authenticated" })
 
     return { session };
   })
-  .as("global");
+  .as("plugin");

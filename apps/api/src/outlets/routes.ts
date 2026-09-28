@@ -91,6 +91,9 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
   .use(authenticated)
   .post(
     "/create",
+    {
+      body: OutletCreateRequest,
+    },
     async ({ body, session, set }) => {
       let merchantId: string;
       let name: string;
@@ -156,13 +159,13 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
         outlet: encodeOutlet(outlet),
         register: encodeRegister(register),
       };
-    },
-    {
-      body: OutletCreateRequest,
     }
   )
   .post(
     "/list",
+    {
+      body: OutletListRequest,
+    },
     async ({ body, session }) => {
       throwIfFalse(
         await verifyMerchantAccess(session.userId, body.merchantId),
@@ -177,13 +180,13 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
       return {
         outlets: results.map(encodeOutlet),
       };
-    },
-    {
-      body: OutletListRequest,
     }
   )
   .post(
     "/update",
+    {
+      body: OutletUpdateRequest,
+    },
     async ({ body, session, set }) => {
       const [outlet] = await db
         .select()
@@ -240,8 +243,5 @@ export const outletsRoutes = new Elysia({ prefix: "/api/outlets" })
       return {
         outlet: encodeOutlet(updated),
       };
-    },
-    {
-      body: OutletUpdateRequest,
     }
   );

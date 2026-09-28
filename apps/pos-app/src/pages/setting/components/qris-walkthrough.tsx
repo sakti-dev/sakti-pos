@@ -1,8 +1,10 @@
-import { createSignal, Show } from "solid-js";
-import { QrCodeIcon, ScannerIcon } from "~/assets";
+import { useNavigate } from "@solidjs/router";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { BellIcon, QrCodeIcon, ScannerIcon } from "~/assets";
 import { upsertPaymentSettings } from "~/db/payment-settings";
 import type { QRISValidationRejection } from "~/lib/qris";
 import { parseQRIS } from "~/lib/qris";
+import { isNotificationAccessGranted } from "~/lib/qris/detection";
 import { type ScanFailure, scanQRISFromPicker } from "~/lib/qris/scan";
 import { createLogger } from "~/lib/utils";
 import { WizardShell } from "~/pages/onboarding/components/wizard-shell";
@@ -27,6 +29,20 @@ const VALIDATION_FAILURE_TEXT: Record<QRISValidationRejection, string> = {
     "Ini QRIS Dinamis. Yang dibutuhkan adalah QRIS Statis (QR cetakan dari bank/ penyedia Anda).",
 };
 
+type GrantStatus = "checking" | "granted" | "denied";
+
+const GRANT_DOT_CLASS: Record<GrantStatus, string> = {
+  checking: "animate-pulse bg-muted-foreground",
+  denied: "bg-warning",
+  granted: "bg-success",
+};
+
+const GRANT_LABEL: Record<GrantStatus, string> = {
+  checking: "Memeriksa…",
+  denied: "Belum aktif",
+  granted: "Aktif",
+};
+
 interface QRISWalkthroughProps {
   readonly initialStep?: 1 | 2;
   readonly onClose: () => void;
@@ -36,11 +52,13 @@ interface QRISWalkthroughProps {
 }
 
 export function QRISWalkthrough(props: QRISWalkthroughProps) {
-  const [step, setStep] = createSignal<1 | 2 | 3>(props.initialStep ?? 1);
+  const navigate = useNavigate();
+  const [step, setStep] = createSignal<1 | 2 | 3 | 4>(props.initialStep ?? 1);
   const [scanning, setScanning] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [payload, setPayload] = createSignal<string | null>(null);
   const [saving, setSaving] = createSignal(false);
+  const [grantStatus, setGrantStatus] = createSignal<GrantStatus>("checking");
 
   const identity = () => {
     const current = payload();
@@ -53,6 +71,48 @@ export function QRISWalkthrough(props: QRISWalkthroughProps) {
       merchantId: parsed.merchantAccountInfo[0]?.merchantId,
       name: parsed.merchantName,
     };
+  };
+
+  const refreshGrant = async () => {
+    setGrantStatus("checking");
+    try {
+      const granted = await isNotificationAccessGranted();
+      setGrantStatus(granted ? "granted" : "denied");
+      logger.info("QRIS_WALKTHROUGH_GRANT_CHECKED", { granted });
+    } catch (error_) {
+      setGrantStatus("denied");
+      logger.warn("QRIS_WALKTHROUGH_GRANT_CHECK_FAILED", {
+        error: String(error_),
+      });
+    }
+  };
+
+  createEffect(() => {
+    if (step() === 4) {
+      refreshGrant().catch(() => undefined);
+    }
+  });
+
+  onMount(() => {
+    const onVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible" &&
+        step() === 4 &&
+        grantStatus() !== "granted"
+      ) {
+        refreshGrant().catch(() => undefined);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    onCleanup(() =>
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    );
+  });
+
+  const handleOpenMonitor = () => {
+    logger.info("QRIS_WALKTHROUGH_MONITOR_OPENED", {});
+    props.onSaved();
+    navigate("/setting/payment-monitor");
   };
 
   const handleScan = async () => {
@@ -102,7 +162,8 @@ export function QRISWalkthrough(props: QRISWalkthroughProps) {
         qrisStaticPayload: current,
       });
       logger.info("QRIS_WALKTHROUGH_SAVED", { target: props.targetMode });
-      props.onSaved();
+      setSaving(false);
+      setStep(4);
     } catch (error_) {
       logger.error("QRIS_WALKTHROUGH_SAVE_FAILED", { error: String(error_) });
       setError("Gagal menyimpan. Coba lagi.");
@@ -136,7 +197,7 @@ export function QRISWalkthrough(props: QRISWalkthroughProps) {
           step={1}
           subtitle="Satu pemindaian QRIS Statis mengaktifkan dua metode pembayaran."
           title="Pindai QRIS Statis Anda"
-          total={3}
+          total={4}
         >
           <div class="flex flex-col gap-5">
             <div class="flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4">
@@ -179,7 +240,7 @@ export function QRISWalkthrough(props: QRISWalkthroughProps) {
           submitting={scanning()}
           subtitle="Pilih foto QRIS Statis Anda dari galeri. Pastikan QR terlihat jelas dan tidak terpotong."
           title="Pindai QRIS Statis"
-          total={3}
+          total={4}
         >
           <Show when={error()}>
             <div class="rounded-2xl border border-danger/30 bg-danger/5 px-5 py-4">
@@ -208,7 +269,7 @@ export function QRISWalkthrough(props: QRISWalkthroughProps) {
           submitting={saving()}
           subtitle="Pastikan identitas berikut sesuai dengan QRIS Anda."
           title="Konfirmasi QRIS"
-          total={3}
+          total={4}
         >
           <Show when={identity()}>
             {(info) => (
@@ -234,6 +295,56 @@ export function QRISWalkthrough(props: QRISWalkthroughProps) {
           >
             Bukan QRIS saya, ulangi pemindaian
           </button>
+        </WizardShell>
+      </Show>
+
+      <Show when={step() === 4}>
+        <WizardShell
+          canProceed
+          onBack={props.onSaved}
+          onNext={handleOpenMonitor}
+          step={4}
+          submitLabel="Atur Deteksi Pembayaran"
+          subtitle="Opsional — aktifkan deteksi pembayaran otomatis. Tanpa ini, kasir tetap bisa konfirmasi manual."
+          title="Deteksi Pembayaran Otomatis"
+          total={4}
+        >
+          <div class="flex flex-col gap-5">
+            <div class="flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4">
+              <BellIcon class="size-10 shrink-0 text-primary" />
+              <div>
+                <p class="font-medium text-body-sm text-foreground">
+                  Baca notifikasi pembayaran
+                </p>
+                <p class="mt-1 text-body-sm text-muted-foreground leading-relaxed">
+                  Saat transaksi berlangsung, Sakti POS membaca notifikasi dana
+                  masuk dari aplikasi pembayaran dan menandai pembayaran yang
+                  cocok.
+                </p>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-border bg-card px-5 py-4">
+              <div class="flex items-center justify-between gap-4">
+                <p class="font-medium text-body-sm text-foreground">
+                  Akses notifikasi
+                </p>
+                <div class="flex items-center gap-2">
+                  <span
+                    class={`size-2 rounded-full ${GRANT_DOT_CLASS[grantStatus()]}`}
+                  />
+                  <p class="font-medium text-body-sm text-muted-foreground">
+                    {GRANT_LABEL[grantStatus()]}
+                  </p>
+                </div>
+              </div>
+              <Show when={grantStatus() === "denied"}>
+                <p class="mt-3 text-caption text-muted-foreground leading-relaxed">
+                  Pilih aplikasi pembayaran yang dipantau dan berikan akses
+                  notifikasi di layar berikutnya.
+                </p>
+              </Show>
+            </div>
+          </div>
         </WizardShell>
       </Show>
     </div>

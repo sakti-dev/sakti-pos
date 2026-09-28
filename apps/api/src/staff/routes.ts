@@ -120,6 +120,9 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
   .use(authenticated)
   .post(
     "/current",
+    {
+      body: StaffCurrentRequest,
+    },
     async ({ body, session }) => {
       const membership = await getMerchantMembership(
         session.userId,
@@ -250,13 +253,13 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
           staff: encodeStaff(claimedOwner),
         };
       });
-    },
-    {
-      body: StaffCurrentRequest,
     }
   )
   .post(
     "/create",
+    {
+      body: StaffCreateRequest,
+    },
     async ({ body, session, set }) => {
       let merchantId: string;
       let name: string;
@@ -308,13 +311,13 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
           outletId: created.outletId,
         }),
       };
-    },
-    {
-      body: StaffCreateRequest,
     }
   )
   .post(
     "/list",
+    {
+      body: StaffListRequest,
+    },
     async ({ body, session }) => {
       throwIfFalse(
         await verifyMerchantAccess(session.userId, body.merchantId),
@@ -338,13 +341,13 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
       return {
         staff: results.map((row) => encodeStaff(row)),
       };
-    },
-    {
-      body: StaffListRequest,
     }
   )
   .post(
     "/update-pin",
+    {
+      body: StaffUpdatePinRequest,
+    },
     async ({ body, session, set }) => {
       let pin: string;
       try {
@@ -391,13 +394,13 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
           outletId: updated.outletId,
         }),
       };
-    },
-    {
-      body: StaffUpdatePinRequest,
     }
   )
   .post(
     "/delete",
+    {
+      body: StaffDeleteRequest,
+    },
     async ({ body, session, set }) => {
       const [existing] = await db
         .select({ merchantId: staff.merchantId })
@@ -430,8 +433,5 @@ export const staffRoutes = new Elysia({ prefix: "/api/staff" })
       return {
         success: true,
       };
-    },
-    {
-      body: StaffDeleteRequest,
     }
   );

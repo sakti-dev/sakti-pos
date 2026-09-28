@@ -62,8 +62,9 @@ export const OrderSummary = (props: OrderSummaryProps) => (
       </For>
     </div>
 
-    {/* totals — simplified on mobile: only subtotal row visible */}
-    <div class="shrink-0 border-border border-t bg-card px-5 py-4">
+    {/* totals — portrait only; landscape shows the pinned strip in the
+        payment column instead (see TotalBanner) */}
+    <div class="shrink-0 border-border border-t bg-card px-5 py-4 lg:hidden">
       <div class="flex items-center justify-between py-1.5">
         <span class="text-body-sm text-muted-foreground">Subtotal</span>
         <span class="font-medium text-body-sm text-foreground tabular-nums">

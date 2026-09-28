@@ -39,6 +39,9 @@ done
 echo "Turso ready, pushing schema..."
 bunx drizzle-kit push
 
+echo "Generating Elysia AOT manifest (workerd bans new Function)..."
+bun run gen:manifest
+
 echo "Starting wrangler..."
 npx wrangler dev > >(tee "$LOG_FILE") 2>&1 &
 WRANGLER_PID=$!

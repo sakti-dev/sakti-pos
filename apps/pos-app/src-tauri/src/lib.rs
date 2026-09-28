@@ -56,7 +56,10 @@ pub fn run() {
         .plugin(qris::init())
         .plugin(
             BaresyncBuilder::new()
-                .api_base_url("http://192.168.1.2:3001/api/sync/v1")
+                .api_base_url(format!(
+                    "{}/api/sync/v1",
+                    option_env!("SAKTI_API_URL").unwrap_or("http://192.168.1.2:3001")
+                ))
                 .db_path("baresync.db")
                 .contract_json(include_str!(
                     "../../../../packages/sync-contract/generated/2026-09-27/sync-contract.json"

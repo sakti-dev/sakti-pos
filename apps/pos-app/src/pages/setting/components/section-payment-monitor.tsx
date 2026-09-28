@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-import { createSignal, For, onMount, Show } from "solid-js";
+import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { Button } from "~/components/ui/button";
 import {
@@ -28,6 +28,7 @@ import {
 const logger = createLogger({ domain: "SETTINGS", module: "payment-monitor" });
 
 const LOAD_DEFER_MS = 1000;
+const AUTOSAVE_DEBOUNCE_MS = 500;
 
 export function SectionPaymentMonitor() {
   const [apps, setApps] = createSignal<readonly QrisAppInfo[]>([]);
@@ -36,6 +37,29 @@ export function SectionPaymentMonitor() {
   const [loading, setLoading] = createSignal(true);
   const [accessGranted, setAccessGranted] = createSignal<boolean | null>(null);
   const [saving, setSaving] = createSignal(false);
+  let saveTimer: number | undefined;
+
+  const persistSelection = () => {
+    setSaving(true);
+    saveMonitoredPackages([...selected()])
+      .then(() => {
+        logger.info("MONITORED_APPS_AUTOSAVED", { count: selected().size });
+      })
+      .catch((error: unknown) => {
+        logger.error("MONITORED_APPS_SAVE_FAILED", String(error));
+        toast.error("Gagal menyimpan pilihan aplikasi");
+      })
+      .finally(() => {
+        setSaving(false);
+      });
+  };
+
+  onCleanup(() => {
+    if (saveTimer !== undefined) {
+      window.clearTimeout(saveTimer);
+      persistSelection();
+    }
+  });
 
   const refreshAccessState = async () => {
     try {
@@ -117,19 +141,13 @@ export function SectionPaymentMonitor() {
       }
       return next;
     });
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await saveMonitoredPackages([...selected()]);
-      toast.success("Aplikasi yang dipantau tersimpan");
-    } catch (error) {
-      logger.error("MONITORED_APPS_SAVE_FAILED", String(error));
-      toast.error("Gagal menyimpan pilihan aplikasi");
-    } finally {
-      setSaving(false);
+    if (saveTimer !== undefined) {
+      window.clearTimeout(saveTimer);
     }
+    saveTimer = window.setTimeout(() => {
+      saveTimer = undefined;
+      persistSelection();
+    }, AUTOSAVE_DEBOUNCE_MS);
   };
 
   const appIcon = (app: QrisAppInfo): JSX.Element => (
@@ -233,7 +251,7 @@ export function SectionPaymentMonitor() {
       </Show>
 
       <p class="text-caption text-faint-foreground">
-        {selected().size} aplikasi dipilih
+        {selected().size} aplikasi dipantau — tersimpan otomatis
       </p>
 
       <BtnRow>
@@ -245,10 +263,6 @@ export function SectionPaymentMonitor() {
           type="button"
         >
           Muat Ulang
-        </Button>
-        <Button disabled={saving()} onClick={handleSave} type="button">
-          <Show when={saving()}>Menyimpan…</Show>
-          <Show when={!saving()}>Simpan Pilihan</Show>
         </Button>
       </BtnRow>
     </SectionCard>

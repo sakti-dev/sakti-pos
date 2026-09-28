@@ -58,6 +58,9 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
   .use(authenticated)
   .post(
     "/presign-upload",
+    {
+      body: AssetPresignUploadRequest,
+    },
     async ({ body, session, set }) => {
       let merchantId: string;
       let contentType: string;
@@ -102,13 +105,13 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
         objectKey,
         requiredHeaders: [{ name: "Content-Type", value: contentType }],
       };
-    },
-    {
-      body: AssetPresignUploadRequest,
     }
   )
   .post(
     "/presign-download",
+    {
+      body: AssetPresignDownloadRequest,
+    },
     async ({ body, session, set }) => {
       let assetId: string;
       try {
@@ -156,8 +159,5 @@ export const assetsRoutes = new Elysia({ prefix: "/api/assets" })
       return {
         downloadUrl,
       };
-    },
-    {
-      body: AssetPresignDownloadRequest,
     }
   );

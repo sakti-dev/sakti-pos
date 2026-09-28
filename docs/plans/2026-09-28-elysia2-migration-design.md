@@ -88,3 +88,42 @@ work for adapter, plugins, error shapes, build pipeline.
   before vs after
 - All beta deps pinned exact; bump to 2.0 stable as a follow-up when it
   ships
+
+
+---
+
+## Execution Results (2026-09-28)
+
+Branch: `elysia-2-migration`. All 8 tasks complete.
+
+### Verified
+- api: 70 tests green (66 baseline + 4 requestLog), typecheck + ultracite clean
+- pos-app: 131 tests green, typecheck clean (Eden 2.0.0-beta.5)
+- wrangler dev with frozen manifest: GET / 200 "Sakti POS API v1",
+  POST /api/sync/v1/status unauthenticated 401, CORS preflight 204,
+  requestLog JSON lines in output (-> logs/api.log via scripts/dev tee)
+- Standalone AOT bundle (604KB minified) via
+  `wrangler dev -c wrangler.standalone.jsonc`: same checks green
+- Cold-start (local, first request after "Ready on"): ~32ms vs ~28ms
+  baseline — parity locally; the win materializes on deployed Workers
+  where runtime JIT is impossible and memory is billed
+
+### Deviations from design (discovered during execution)
+1. **No @cloudflare/vite-plugin / vite dev** — its worker environment never
+   exposed module transforms to the AOT vite plugin (vite 8/rolldown) and
+   failed on extensionless TS imports (vite 7). Replaced with elysia's own
+   pattern: dev = wrangler dev + pre-generated frozen manifest
+   (`bun run gen:manifest`, run by scripts/dev), deploy = esbuild bundle
+   (`bun run build:worker`) + `wrangler.standalone.jsonc`. Dev workflow is
+   therefore UNCHANGED (wrangler dev, same port, same tee).
+2. **typebox pinned to 1.3.2 + exact-mirror 1.2.6** — npm-latest typebox
+   1.3.34 moved `buildResult` out of `schema.Compile`, breaking beta.19's
+   validator (elysia's lockfile develops against 1.3.2).
+3. **authenticated: as('global') -> as('plugin')** — Elysia 2 global scope
+   promoted the 401 derive onto public routes (GET / returned 401).
+4. **Error-shape task shrank**: our `status(4xx, {error})` bodies are
+   explicit and unchanged; only elysia-generated errors are problem+json.
+   pos-app `throwIfError` now wraps errors as ApiError (detail/title/error
+   aware) making the dead `instanceof ApiError` UI checks functional.
+5. requestLog uses a WeakMap for start times (beta.19's `request` hook has
+   no `store`) and requires `.as('global')` on the plugin instance.

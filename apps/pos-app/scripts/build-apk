@@ -14,6 +14,16 @@ KEY_ALIAS="debug"
 KEY_PASS="android"
 APK_NAME="sakti-pos"
 
+# Optional: build against a specific API (e.g. first deploy):
+#   API_URL=https://nata-pos.hieka.id ./scripts/build-apk
+# Leaves dev defaults (http://192.168.1.2:3001) unset otherwise.
+if [ -n "${API_URL:-}" ]; then
+  export VITE_API_URL="$API_URL"
+  export SAKTI_API_URL="$API_URL"
+  APK_NAME="sakti-pos-prod"
+  echo "==> Building against API: $API_URL"
+fi
+
 echo "==> Building release APK..."
 bunx tauri android build --apk --target aarch64 --split-per-abi
 
