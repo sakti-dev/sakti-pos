@@ -57,9 +57,19 @@ android {
         unitTests.isReturnDefaultValues = true
     }
     sourceSets {
-        // Vendored plugin sources are compiled by their own gradle projects
-        // (see tauri.settings.gradle); adding them here as srcDirs compiled
-        // every class twice, which R8 rejects in release builds.
+        // tauri-plugin-dialog is compiled by its own gradle project (see
+        // tauri.settings.gradle) — do NOT add its srcDirs here: every class
+        // would exist twice, which R8 rejects in release builds.
+        // tauri-plugin-image-pipeline has NO gradle project (android dir has
+        // no build files), so its Kotlin must be compiled here or the JNI
+        // plugin registration (register_android_plugin "…imagepipeline")
+        // crashes at startup with ClassNotFoundException.
+        getByName("main") {
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/main/java")
+        }
+        getByName("test") {
+            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/test/java")
+        }
     }
 }
 
