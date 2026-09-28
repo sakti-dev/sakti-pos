@@ -39,6 +39,13 @@ android {
             }
         }
         getByName("release") {
+            // Local sideload builds talk to the LAN dev API over plain HTTP
+            // (http://192.168.1.2:3001); without this Android WebView blocks
+            // every fetch with ERR_CLEARTEXT_NOT_PERMITTED and login silently
+            // fails. A Play Store build should use a scoped
+            // networkSecurityConfig to private ranges instead.
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+            manifestPlaceholders["allowBackup"] = "false"
             isMinifyEnabled = true
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
