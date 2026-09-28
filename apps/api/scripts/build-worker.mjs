@@ -19,6 +19,7 @@ await build({
   platform: "browser",
   target: "esnext",
   external: ["node:*", "cloudflare:workers"],
+  minify: true,
   plugins: [aot(entry, { registerFrom: "elysia", target: "workerd" })],
 });
 console.log("built dist-cf/worker.mjs");
