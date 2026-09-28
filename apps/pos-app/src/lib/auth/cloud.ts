@@ -84,9 +84,37 @@ async function logRequest(method: string, path: string): Promise<void> {
   });
 }
 
+function extractErrorMessage(error: unknown): {
+  message: string;
+  status: number;
+} {
+  const value =
+    typeof error === "object" && error !== null && "value" in error
+      ? (error as { value: unknown }).value
+      : error;
+  if (typeof value === "object" && value !== null) {
+    const body = value as Record<string, unknown>;
+    // RFC 9457 problem+json (Elysia 2) and legacy { error: string } shapes
+    let message = JSON.stringify(body);
+    if (typeof body.error === "string") {
+      message = body.error;
+    }
+    if (typeof body.title === "string") {
+      message = body.title;
+    }
+    if (typeof body.detail === "string") {
+      message = body.detail;
+    }
+    const status = typeof body.status === "number" ? body.status : 0;
+    return { message, status };
+  }
+  return { message: String(value), status: 0 };
+}
+
 function throwIfError<T>(result: { data: T | null; error: unknown }): T {
   if (result.error) {
-    throw result.error;
+    const { message, status } = extractErrorMessage(result.error);
+    throw new ApiError(message, status);
   }
   if (result.data == null) {
     throw new Error("Unexpected null response from API");
