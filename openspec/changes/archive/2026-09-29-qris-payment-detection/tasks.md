@@ -27,7 +27,7 @@
   `section-tax.tsx` patterns) with searchable app list, toggles, and
   persistence to the app's local store, re-pushing to native prefs on mount;
   verify toggling an app then restarting the app preserves the selection
-- [ ] 2.2 Add the notification-access step to the QRIS walkthrough (deep
+- [x] 2.2 Add the notification-access step to the QRIS walkthrough (deep
   link to system notification-listener settings, granted-state detection on
   resume) and verify the walkthrough shows the correct state before/after
   granting in device settings
