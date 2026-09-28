@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api",
+  "main": "dist-cf/worker.mjs",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"]
+}

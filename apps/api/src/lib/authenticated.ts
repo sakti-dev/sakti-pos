@@ -11,4 +11,4 @@ export const authenticated = new Elysia({ name: "authenticated" })
 
     return { session };
   })
-  .as("global");
+  .as("plugin");

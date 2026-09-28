@@ -67,3 +67,6 @@ graphify-out
 *.sqlite
 references
 .opencode
+apps/api/src/manifest.generated.js
+apps/api/dist-cf/
+apps/api/.wrangler/
