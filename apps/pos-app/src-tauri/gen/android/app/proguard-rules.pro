@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# Vendored tauri-api (dialog plugin) ships no consumer rules; without these
+# R8 fails to complete while shrinking app.tauri.* classes.
+-keep class app.tauri.** { *; }
+-dontwarn app.tauri.**

@@ -57,14 +57,9 @@ android {
         unitTests.isReturnDefaultValues = true
     }
     sourceSets {
-        getByName("main") {
-            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/main/java")
-            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/main/java")
-        }
-        getByName("test") {
-            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/vendor/tauri-plugin-dialog/android/src/test/java")
-            java.srcDirs("../../../../../../vendor/tauri-plugin-image-pipeline/android/src/test/java")
-        }
+        // Vendored plugin sources are compiled by their own gradle projects
+        // (see tauri.settings.gradle); adding them here as srcDirs compiled
+        // every class twice, which R8 rejects in release builds.
     }
 }
 
