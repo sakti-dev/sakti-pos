@@ -5,5 +5,4 @@ import "./manifest.generated.js";
 
 import app from "./app";
 
-// biome-ignore lint/performance/noBarrelFile: worker entry re-export, not an aggregation barrel
 export default app;
