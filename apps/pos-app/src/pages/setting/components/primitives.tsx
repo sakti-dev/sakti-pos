@@ -65,12 +65,16 @@ export function FormInput(props: {
   readonly min?: string;
   readonly max?: string;
   readonly step?: string;
+  readonly disabled?: boolean;
+  readonly onInput?: (e: InputEvent) => void;
 }) {
   return (
     <input
-      class="h-[42px] rounded-xl border border-border bg-card px-3.5 font-[inherit] text-body-sm text-foreground outline-none transition-colors transition-shadow duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+      class="h-[42px] rounded-xl border border-border bg-card px-3.5 font-[inherit] text-body-sm text-foreground outline-none transition-colors transition-shadow duration-200 focus:border-primary/30 focus:ring-2 focus:ring-primary/10 disabled:opacity-40"
+      disabled={props.disabled}
       max={props.max}
       min={props.min}
+      onInput={props.onInput}
       placeholder={props.placeholder}
       step={props.step}
       type={props.type ?? "text"}

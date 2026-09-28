@@ -36,6 +36,10 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
         ...(registerId ? { registerId } : {}),
         orderNumber: order.id,
         totalMinorUnits: order.total * 100,
+        taxMinorUnits: order.tax * 100,
+        serviceChargeMinorUnits: order.serviceCharge * 100,
+        taxPercentage: Math.round(order.taxRate * 100),
+        serviceChargePercentage: Math.round(order.serviceChargeRate * 100),
         paymentMethod: order.payment.method,
         amountPaidMinorUnits: order.paid * 100,
         changeAmountMinorUnits: order.change * 100,
@@ -202,12 +206,11 @@ function rowToCompletedOrder(
     lines,
     paid,
     payment: { method: toPayMethod(row.paymentMethod) },
+    serviceCharge: (row.serviceChargeMinorUnits ?? 0) / 100,
+    serviceChargeRate: (row.serviceChargePercentage ?? 0) / 100,
     subtotal: items.reduce((s, i) => s + i.subtotalMinorUnits / 100, 0),
-    tax: Math.max(
-      0,
-      total - items.reduce((s, i) => s + i.subtotalMinorUnits / 100, 0)
-    ),
-    taxRate: 0,
+    tax: (row.taxMinorUnits ?? 0) / 100,
+    taxRate: (row.taxPercentage ?? 0) / 100,
     total,
   };
 }

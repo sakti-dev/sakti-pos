@@ -86,6 +86,9 @@ export default function Receipt() {
   const subtotal = order?.subtotal ?? 0;
   const tax = order?.tax ?? 0;
   const total = order?.total ?? 0;
+  const serviceCharge = order?.serviceCharge ?? 0;
+  const serviceChargeRate = order?.serviceChargeRate ?? 0;
+  const taxRate = order?.taxRate ?? 0;
   const paid = order?.paid ?? total;
   const change = order ? order.change : paid - total;
   const txNum =
@@ -215,14 +218,26 @@ export default function Receipt() {
                 {formatRupiah(subtotal)}
               </span>
             </div>
-            <div class="flex justify-between py-1">
-              <span class="text-body-sm text-muted-foreground tracking-wide">
-                Pajak (11%)
-              </span>
-              <span class="font-medium text-body-sm text-foreground tabular-nums">
-                {formatRupiah(tax)}
-              </span>
-            </div>
+            {serviceCharge > 0 && (
+              <div class="flex justify-between py-1">
+                <span class="text-body-sm text-muted-foreground tracking-wide">
+                  Biaya Layanan ({Math.round(serviceChargeRate * 100)}%)
+                </span>
+                <span class="font-medium text-body-sm text-foreground tabular-nums">
+                  {formatRupiah(serviceCharge)}
+                </span>
+              </div>
+            )}
+            {tax > 0 && (
+              <div class="flex justify-between py-1">
+                <span class="text-body-sm text-muted-foreground tracking-wide">
+                  Pajak ({Math.round(taxRate * 100)}%)
+                </span>
+                <span class="font-medium text-body-sm text-foreground tabular-nums">
+                  {formatRupiah(tax)}
+                </span>
+              </div>
+            )}
             <div class="my-2.5 h-px bg-border" />
             <div class="flex items-baseline justify-between">
               <span class="font-bold text-body text-foreground">Total</span>

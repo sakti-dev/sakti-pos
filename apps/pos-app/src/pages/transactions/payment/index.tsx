@@ -26,7 +26,10 @@ export default function PaymentPage() {
 
   const totals = sale.totals;
   const subtotal = () => totals().subtotal;
+  const serviceCharge = () => totals().serviceCharge;
+  const servicePercent = () => Math.round(totals().serviceChargeRate * 100);
   const tax = () => totals().tax;
+  const taxPercent = () => Math.round(totals().taxRate * 100);
   const total = () => totals().total;
   const totalQty = () => cart().reduce((s, i) => s + i.qty, 0);
   const cashNum = () => Number.parseInt(cashRaw() || "0", 10) || 0;
@@ -104,14 +107,22 @@ export default function PaymentPage() {
           <OrderSummary
             items={cart()}
             onAdjustQty={adjustQty}
+            serviceCharge={serviceCharge()}
+            servicePercent={servicePercent()}
             subtotal={subtotal()}
             tax={tax()}
+            taxPercent={taxPercent()}
             total={total()}
             totalQty={totalQty()}
           />
 
           <div class="scrollbar-none order-1 flex flex-none flex-col gap-4 overflow-y-visible lg:order-2 lg:flex-1 lg:overflow-y-auto">
-            <TotalBanner subtotal={subtotal()} tax={tax()} total={total()} />
+            <TotalBanner
+              subtotal={subtotal()}
+              tax={tax()}
+              taxPercent={taxPercent()}
+              total={total()}
+            />
             <PaymentMethod
               availableMethods={availableMethods()}
               cashRaw={cashRaw()}

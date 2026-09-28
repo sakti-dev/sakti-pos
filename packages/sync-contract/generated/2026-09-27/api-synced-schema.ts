@@ -45,6 +45,12 @@ export const outlets = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     useTax: integer("use_tax", { mode: "boolean" }).notNull().default(false),
     taxPercentage: integer("tax_percentage").notNull().default(0),
+    useServiceCharge: integer("use_service_charge", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    serviceChargePercentage: integer("service_charge_percentage")
+      .notNull()
+      .default(0),
     ...apiSyncColumns(),
   },
   (table) => [
@@ -218,19 +224,28 @@ export const orders = sqliteTable(
       .references(() => outlets.id),
     registerId: text("register_id").references(() => registers.id),
     staffId: text("staff_id").references(() => staff.id),
-    orderNumber: text("order_number").notNull().unique(),
+    orderNumber: text("order_number").notNull(),
     totalMinorUnits: integer("total_minor_units").notNull(),
     paymentMethod: text("payment_method", {
       enum: ["cash", "qris", "qris_static", "qris_dynamic"],
     }).notNull(),
     amountPaidMinorUnits: integer("amount_paid_minor_units"),
     changeAmountMinorUnits: integer("change_amount_minor_units"),
+    taxMinorUnits: integer("tax_minor_units").notNull().default(0),
+    serviceChargeMinorUnits: integer("service_charge_minor_units")
+      .notNull()
+      .default(0),
+    taxPercentage: integer("tax_percentage").notNull().default(0),
+    serviceChargePercentage: integer("service_charge_percentage")
+      .notNull()
+      .default(0),
     status: text("status", { enum: ["completed", "cancelled"] }).notNull(),
     ...apiSyncColumns(),
   },
   (table) => [
     index("orders_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
     index("orders_outlet_created_idx").on(table.outletId, table.createdAt),
+    uniqueIndex("orders_outlet_number_unique").on(table.outletId, table.orderNumber),
   ]
 );
 

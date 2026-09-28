@@ -74,7 +74,7 @@ export default function CashRegisterPage() {
   const increment = sale.increment;
   const decrement = sale.decrement;
 
-  const cartTotal = () => sale.totals().subtotal;
+  const cartTotal = () => sale.totals().total;
   const cartItemCount = () => cart().reduce((s, c) => s + c.qty, 0);
 
   return (
@@ -237,7 +237,7 @@ export default function CashRegisterPage() {
                   toast.success("Transaksi disimpan & diproses");
                   sale.clearCart();
                 }}
-                subtotal={cartTotal()}
+                totals={sale.totals()}
               />
             </>
           )}

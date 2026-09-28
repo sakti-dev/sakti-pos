@@ -20,7 +20,7 @@ import {
   stocktakes,
 } from "@sync-contract/generated/2026-09-27/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
-import { and, asc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, gt, sql } from "drizzle-orm";
 import { db } from "../db";
 
 const DIGITS_ONLY = /^\d+$/;
@@ -145,6 +145,11 @@ export const repository = createDrizzleSyncRepository({
           row.taxPercentage,
           "outlets.taxPercentage"
         ),
+        useServiceCharge: requiredBoolean(row.useServiceCharge),
+        serviceChargePercentage: requiredNumber(
+          row.serviceChargePercentage,
+          "outlets.serviceChargePercentage"
+        ),
         deletedAt: optionalString(row.deletedAt),
         syncUpdatedAt,
         createdAt: requiredString(row.createdAt, "outlets.createdAt"),
@@ -194,6 +199,10 @@ export const repository = createDrizzleSyncRepository({
               isActive: sql.raw("excluded.is_active"),
               useTax: sql.raw("excluded.use_tax"),
               taxPercentage: sql.raw("excluded.tax_percentage"),
+              useServiceCharge: sql.raw("excluded.use_service_charge"),
+              serviceChargePercentage: sql.raw(
+                "excluded.service_charge_percentage"
+              ),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),
@@ -218,20 +227,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(registers))
           .from(registers)
-          .where(eq(registers.outletId, scopeId))
+          .innerJoin(outlets, eq(registers.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${registers.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(registers))
           .from(registers)
+          .innerJoin(outlets, eq(registers.outletId, outlets.id))
           .where(
             and(
-              eq(registers.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(registers.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -391,11 +402,12 @@ export const repository = createDrizzleSyncRepository({
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "assets.id"),
         merchantId: requiredString(row.merchantId, "assets.merchantId"),
-        objectKey: requiredString(row.objectKey, "assets.objectKey"),
+        jobId: optionalString(row.jobId),
+        objectKey: optionalString(row.objectKey),
         originalFilename: optionalString(row.originalFilename),
         contentType: requiredString(row.contentType, "assets.contentType"),
-        byteSize: requiredNumber(row.byteSize, "assets.byteSize"),
-        contentHash: requiredString(row.contentHash, "assets.contentHash"),
+        byteSize: optionalNumber(row.byteSize),
+        contentHash: optionalString(row.contentHash),
         kind: requiredString(row.kind, "assets.kind"),
         width: optionalNumber(row.width),
         height: optionalNumber(row.height),
@@ -442,6 +454,7 @@ export const repository = createDrizzleSyncRepository({
             target: assets.id,
             set: {
               merchantId: sql.raw("excluded.merchant_id"),
+              jobId: sql.raw("excluded.job_id"),
               objectKey: sql.raw("excluded.object_key"),
               originalFilename: sql.raw("excluded.original_filename"),
               contentType: sql.raw("excluded.content_type"),
@@ -526,7 +539,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    outletProducts: {
+    outlet_products: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "outletProducts.id"),
         outletId: requiredString(row.outletId, "outletProducts.outletId"),
@@ -541,20 +554,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(outletProducts))
           .from(outletProducts)
-          .where(eq(outletProducts.outletId, scopeId))
+          .innerJoin(outlets, eq(outletProducts.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${outletProducts.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(outletProducts))
           .from(outletProducts)
+          .innerJoin(outlets, eq(outletProducts.outletId, outlets.id))
           .where(
             and(
-              eq(outletProducts.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(outletProducts.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -603,6 +618,12 @@ export const repository = createDrizzleSyncRepository({
         ),
         amountPaidMinorUnits: optionalNumber(row.amountPaidMinorUnits),
         changeAmountMinorUnits: optionalNumber(row.changeAmountMinorUnits),
+        taxMinorUnits: optionalNumber(row.taxMinorUnits) ?? 0,
+        serviceChargeMinorUnits:
+          optionalNumber(row.serviceChargeMinorUnits) ?? 0,
+        taxPercentage: optionalNumber(row.taxPercentage) ?? 0,
+        serviceChargePercentage:
+          optionalNumber(row.serviceChargePercentage) ?? 0,
         status: requiredString(row.status, "orders.status"),
         deletedAt: optionalString(row.deletedAt),
         syncUpdatedAt,
@@ -611,20 +632,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(orders))
           .from(orders)
-          .where(eq(orders.outletId, scopeId))
+          .innerJoin(outlets, eq(orders.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${orders.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(orders))
           .from(orders)
+          .innerJoin(outlets, eq(orders.outletId, outlets.id))
           .where(
             and(
-              eq(orders.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(orders.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -654,6 +677,14 @@ export const repository = createDrizzleSyncRepository({
               changeAmountMinorUnits: sql.raw(
                 "excluded.change_amount_minor_units"
               ),
+              taxMinorUnits: sql.raw("excluded.tax_minor_units"),
+              serviceChargeMinorUnits: sql.raw(
+                "excluded.service_charge_minor_units"
+              ),
+              taxPercentage: sql.raw("excluded.tax_percentage"),
+              serviceChargePercentage: sql.raw(
+                "excluded.service_charge_percentage"
+              ),
               status: sql.raw("excluded.status"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
@@ -662,7 +693,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    orderItems: {
+    order_items: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "orderItems.id"),
         orderId: requiredString(row.orderId, "orderItems.orderId"),
@@ -686,20 +717,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(orderItems))
           .from(orderItems)
-          .where(eq(orderItems.outletId, scopeId))
+          .innerJoin(outlets, eq(orderItems.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${orderItems.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(orderItems))
           .from(orderItems)
+          .innerJoin(outlets, eq(orderItems.outletId, outlets.id))
           .where(
             and(
-              eq(orderItems.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(orderItems.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -798,7 +831,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    inventoryStocks: {
+    inventory_stocks: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "inventory_stocks.id"),
         outletId: requiredString(row.outletId, "outletId"),
@@ -816,20 +849,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(inventoryStocks))
           .from(inventoryStocks)
-          .where(eq(inventoryStocks.outletId, scopeId))
+          .innerJoin(outlets, eq(inventoryStocks.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${inventoryStocks.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(inventoryStocks))
           .from(inventoryStocks)
+          .innerJoin(outlets, eq(inventoryStocks.outletId, outlets.id))
           .where(
             and(
-              eq(inventoryStocks.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(inventoryStocks.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -877,20 +912,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(stocktakes))
           .from(stocktakes)
-          .where(eq(stocktakes.outletId, scopeId))
+          .innerJoin(outlets, eq(stocktakes.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${stocktakes.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(stocktakes))
           .from(stocktakes)
+          .innerJoin(outlets, eq(stocktakes.outletId, outlets.id))
           .where(
             and(
-              eq(stocktakes.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(stocktakes.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -923,7 +960,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    stocktakeLines: {
+    stocktake_lines: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "stocktake_lines.id"),
         stocktakeId: requiredString(row.stocktakeId, "stocktakeId"),
@@ -939,20 +976,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(stocktakeLines))
           .from(stocktakeLines)
-          .where(eq(stocktakeLines.outletId, scopeId))
+          .innerJoin(outlets, eq(stocktakeLines.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${stocktakeLines.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(stocktakeLines))
           .from(stocktakeLines)
+          .innerJoin(outlets, eq(stocktakeLines.outletId, outlets.id))
           .where(
             and(
-              eq(stocktakeLines.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(stocktakeLines.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -985,7 +1024,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    goodsReceipts: {
+    goods_receipts: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "goods_receipts.id"),
         outletId: requiredString(row.outletId, "outletId"),
@@ -1001,20 +1040,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(goodsReceipts))
           .from(goodsReceipts)
-          .where(eq(goodsReceipts.outletId, scopeId))
+          .innerJoin(outlets, eq(goodsReceipts.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${goodsReceipts.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(goodsReceipts))
           .from(goodsReceipts)
+          .innerJoin(outlets, eq(goodsReceipts.outletId, outlets.id))
           .where(
             and(
-              eq(goodsReceipts.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(goodsReceipts.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -1047,7 +1088,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    goodsReceiptLines: {
+    goods_receipt_lines: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "goods_receipt_lines.id"),
         goodsReceiptId: requiredString(row.goodsReceiptId, "goodsReceiptId"),
@@ -1068,20 +1109,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(goodsReceiptLines))
           .from(goodsReceiptLines)
-          .where(eq(goodsReceiptLines.outletId, scopeId))
+          .innerJoin(outlets, eq(goodsReceiptLines.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${goodsReceiptLines.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(goodsReceiptLines))
           .from(goodsReceiptLines)
+          .innerJoin(outlets, eq(goodsReceiptLines.outletId, outlets.id))
           .where(
             and(
-              eq(goodsReceiptLines.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(goodsReceiptLines.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -1116,7 +1159,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    cashShifts: {
+    cash_shifts: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "cash_shifts.id"),
         outletId: requiredString(row.outletId, "outletId"),
@@ -1143,20 +1186,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(cashShifts))
           .from(cashShifts)
-          .where(eq(cashShifts.outletId, scopeId))
+          .innerJoin(outlets, eq(cashShifts.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${cashShifts.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(cashShifts))
           .from(cashShifts)
+          .innerJoin(outlets, eq(cashShifts.outletId, outlets.id))
           .where(
             and(
-              eq(cashShifts.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(cashShifts.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -1198,7 +1243,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    orderItemModifiers: {
+    order_item_modifiers: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "order_item_modifiers.id"),
         orderItemId: requiredString(row.orderItemId, "orderItemId"),
@@ -1220,20 +1265,22 @@ export const repository = createDrizzleSyncRepository({
       }),
       readLatestRow: async ({ scopeId }) => {
         const [row] = await db
-          .select()
+          .select(getTableColumns(orderItemModifiers))
           .from(orderItemModifiers)
-          .where(eq(orderItemModifiers.outletId, scopeId))
+          .innerJoin(outlets, eq(orderItemModifiers.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
           .orderBy(sql`${orderItemModifiers.syncUpdatedAt} DESC`)
           .limit(1);
         return row ?? null;
       },
       readRows: ({ cursorTimestamp, scopeId }) =>
         db
-          .select()
+          .select(getTableColumns(orderItemModifiers))
           .from(orderItemModifiers)
+          .innerJoin(outlets, eq(orderItemModifiers.outletId, outlets.id))
           .where(
             and(
-              eq(orderItemModifiers.outletId, scopeId),
+              eq(outlets.merchantId, scopeId),
               cursorTimestamp > 0
                 ? gt(orderItemModifiers.syncUpdatedAt, cursorTimestamp)
                 : undefined
@@ -1269,7 +1316,7 @@ export const repository = createDrizzleSyncRepository({
           });
       },
     },
-    paymentSettings: {
+    payment_settings: {
       buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
         id: requiredString(row.id, "payment_settings.id"),
         merchantId: requiredString(

@@ -12,6 +12,7 @@
  */
 
 import { createStore, produce, reconcile } from "solid-js/store";
+import { outletChargeConfig } from "~/lib/auth/session";
 import { orderRepository } from "./order-repository";
 import {
   type CartLine,
@@ -49,9 +50,16 @@ export function lastCommittedOrder(): CompletedOrder | undefined {
   return lastOrder;
 }
 
-/** Subtotal/tax/total for the current cart. Recomputed per read. */
+/** Subtotal/charges/total for the current cart. Recomputed per read;
+ * charge rates come from the outlet's persisted configuration. */
 export function totals(): OrderTotals {
-  return computeTotals(cart);
+  const config = outletChargeConfig();
+  return computeTotals(cart, {
+    taxPercent: config.useTax ? config.taxPercentage : 0,
+    servicePercent: config.useServiceCharge
+      ? config.serviceChargePercentage
+      : 0,
+  });
 }
 
 /* ── cart mutations ────────────────────────────────────────────── */
@@ -151,7 +159,7 @@ export async function commit(): Promise<CompletedOrder> {
   if (cart.length === 0) {
     throw new Error("commit: cannot commit an empty sale");
   }
-  const t = computeTotals(cart);
+  const t = totals();
   const isCash = payment.method === "cash";
   const paid = isCash ? (payment.cashTendered ?? 0) : t.total;
   const order: CompletedOrder = {
@@ -161,6 +169,8 @@ export async function commit(): Promise<CompletedOrder> {
     subtotal: t.subtotal,
     tax: t.tax,
     taxRate: t.taxRate,
+    serviceCharge: t.serviceCharge,
+    serviceChargeRate: t.serviceChargeRate,
     total: t.total,
     paid,
     change: Math.max(0, paid - t.total),

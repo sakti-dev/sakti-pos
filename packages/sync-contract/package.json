@@ -3,19 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": "./src/local-schema.ts",
-    "./local-schema": "./src/local-schema.ts",
-    "./api-schema": "./src/api-schema.ts",
-    "./api-synced-schema": "./src/api-synced-schema.ts",
-    "./local-synced-schema": "./src/local-synced-schema.ts",
-    "./sync.config": "./sync.config.ts",
-    "./generated/sync-contract": "./generated/2026-06-10/sync-contract.json",
-    "./generated/sync-table-order": "./generated/2026-06-10/sync-table-order.ts",
-    "./generated/manifest": "./generated/2026-06-10/sync-contract.manifest.json",
-    "./generated/api-synced-schema": "./generated/2026-06-10/api-synced-schema.ts",
-    "./generated/local-synced-schema": "./generated/2026-06-10/local-synced-schema.ts"
-  },
   "scripts": {
     "generate": "bunx baresync generate",
     "doctor": "bunx baresync doctor",

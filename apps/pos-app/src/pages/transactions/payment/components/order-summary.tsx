@@ -7,8 +7,11 @@ import { formatRupiah } from "~/lib/utils";
 interface OrderSummaryProps {
   readonly items: readonly CartLine[];
   readonly onAdjustQty: (productId: string, delta: number) => void;
+  readonly serviceCharge: number;
+  readonly servicePercent: number;
   readonly subtotal: number;
   readonly tax: number;
+  readonly taxPercent: number;
   readonly total: number;
   readonly totalQty: number;
 }
@@ -67,12 +70,26 @@ export const OrderSummary = (props: OrderSummaryProps) => (
           {formatRupiah(props.subtotal)}
         </span>
       </div>
-      <div class="flex items-center justify-between py-1.5">
-        <span class="text-body-sm text-muted-foreground">Pajak (11%)</span>
-        <span class="font-medium text-body-sm text-foreground tabular-nums">
-          {formatRupiah(props.tax)}
-        </span>
-      </div>
+      {props.serviceCharge > 0 && (
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-body-sm text-muted-foreground">
+            Biaya Layanan ({props.servicePercent}%)
+          </span>
+          <span class="font-medium text-body-sm text-foreground tabular-nums">
+            {formatRupiah(props.serviceCharge)}
+          </span>
+        </div>
+      )}
+      {props.tax > 0 && (
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-body-sm text-muted-foreground">
+            Pajak ({props.taxPercent}%)
+          </span>
+          <span class="font-medium text-body-sm text-foreground tabular-nums">
+            {formatRupiah(props.tax)}
+          </span>
+        </div>
+      )}
       <div class="my-3 h-px bg-border" />
       <div class="flex items-center justify-between">
         <span class="font-bold text-body text-foreground">Total</span>

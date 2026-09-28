@@ -9,9 +9,6 @@
  * implementation changes; these types and the sale session stay as-is.
  */
 
-/** Flat PPN tax rate. Today constant; will become a per-outlet setting. */
-export const TAX_RATE = 0.11;
-
 /**
  * A sellable product (a catalog row, whole-Rupiah price). Backed by the
  * synced `products` table.
@@ -49,10 +46,20 @@ export interface PaymentDetails {
 }
 
 export interface OrderTotals {
+  readonly serviceCharge: number;
+  readonly serviceChargeRate: number;
   readonly subtotal: number;
   readonly tax: number;
   readonly taxRate: number;
   readonly total: number;
+}
+
+/** Charge configuration consumed by the sale loop (outlet-scoped). */
+export interface ChargeRates {
+  /** Integer percent 0-100 (e.g. 5 for service 5%). */
+  readonly servicePercent: number;
+  /** Integer percent 0-100 (e.g. 11 for PPN 11%). */
+  readonly taxPercent: number;
 }
 
 /**
@@ -68,14 +75,24 @@ export interface CompletedOrder extends OrderTotals {
   readonly payment: PaymentDetails;
 }
 
-/** Compute subtotal/tax/total for a set of lines. Pure and reusable. */
+/** Compute subtotal/service/tax/total for a set of lines. Charges are
+ * integer percentages applied to the subtotal (service first, then tax —
+ * both on the subtotal, not compounding), rounded once per charge. */
 export function computeTotals(
   lines: readonly CartLine[],
-  taxRate: number = TAX_RATE
+  rates: ChargeRates = { taxPercent: 0, servicePercent: 0 }
 ): OrderTotals {
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
-  const tax = Math.round(subtotal * taxRate);
-  return { subtotal, tax, taxRate, total: subtotal + tax };
+  const serviceCharge = Math.round((subtotal * rates.servicePercent) / 100);
+  const tax = Math.round((subtotal * rates.taxPercent) / 100);
+  return {
+    subtotal,
+    tax,
+    taxRate: rates.taxPercent / 100,
+    serviceCharge,
+    serviceChargeRate: rates.servicePercent / 100,
+    total: subtotal + serviceCharge + tax,
+  };
 }
 
 /** Turn a raw product `cat` key ("minuman") into a display label ("Minuman"). */

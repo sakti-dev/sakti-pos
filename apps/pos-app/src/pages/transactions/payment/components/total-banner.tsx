@@ -3,6 +3,7 @@ import { formatRupiah } from "~/lib/utils";
 interface TotalBannerProps {
   readonly subtotal: number;
   readonly tax: number;
+  readonly taxPercent: number;
   readonly total: number;
 }
 
@@ -15,9 +16,11 @@ export const TotalBanner = (props: TotalBannerProps) => (
       <span>
         Subtotal: <b>{formatRupiah(props.subtotal)}</b>
       </span>
-      <span>
-        Pajak 11%: <b>{formatRupiah(props.tax)}</b>
-      </span>
+      {props.tax > 0 && (
+        <span>
+          Pajak {props.taxPercent}%: <b>{formatRupiah(props.tax)}</b>
+        </span>
+      )}
     </div>
   </div>
 );

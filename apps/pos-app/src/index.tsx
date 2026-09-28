@@ -2,6 +2,7 @@
 import { QueryClientProvider } from "@tanstack/solid-query";
 import { render } from "solid-js/web";
 import { DrizzleOrderRepository } from "./db/orders";
+import { hydrateChargeConfigFromDb } from "./db/outlets";
 import {
   queryClient,
   SyncClientProvider,
@@ -12,6 +13,9 @@ import "./styles/index.css";
 import AppRoutes from "./routes.tsx";
 
 loadOutletContext();
+hydrateChargeConfigFromDb().catch(() => {
+  // Hydration is best-effort; the cached config stays in force.
+});
 setOrderRepository(new DrizzleOrderRepository());
 
 const root = document.getElementById("root");

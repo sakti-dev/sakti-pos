@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type OrderRepository,
   orderRepository,
@@ -19,6 +19,17 @@ import {
   totals,
 } from "../sale-session";
 import type { CompletedOrder, Product } from "../types";
+
+let mockChargeConfig = {
+  useTax: false,
+  taxPercentage: 0,
+  useServiceCharge: false,
+  serviceChargePercentage: 0,
+};
+
+vi.mock("~/lib/auth/session", () => ({
+  outletChargeConfig: () => mockChargeConfig,
+}));
 
 // Top-level regex avoids biome's useTopLevelRegex perf lint.
 const ORDER_ID_RE = /^\d{4}-\d{2}-\d{2}-\d{3}$/;
@@ -51,6 +62,12 @@ const fakeRepo: OrderRepository = {
 
 describe("sale session", () => {
   beforeEach(() => {
+    mockChargeConfig = {
+      useTax: false,
+      taxPercentage: 0,
+      useServiceCharge: false,
+      serviceChargePercentage: 0,
+    };
     resetSaleSession();
     committed = [];
     fakeSeq = 0;
@@ -83,14 +100,46 @@ describe("sale session", () => {
     expect(getCart()).toHaveLength(0);
   });
 
-  it("totals compute subtotal, 11% tax, and total", () => {
+  it("totals add no charges when the outlet config is off", () => {
     addToCart(product({ id: "prod-1", price: 100_000 }), "minuman");
     addToCart(product({ id: "prod-2", name: "X", price: 50_000 }), "minuman");
     const t = totals();
     expect(t.subtotal).toBe(150_000);
-    expect(t.tax).toBe(16_500);
-    expect(t.total).toBe(166_500);
-    expect(t.taxRate).toBe(0.11);
+    expect(t.tax).toBe(0);
+    expect(t.serviceCharge).toBe(0);
+    expect(t.total).toBe(150_000);
+  });
+
+  it("totals apply configured tax and service charge on the subtotal", () => {
+    mockChargeConfig = {
+      useTax: true,
+      taxPercentage: 10,
+      useServiceCharge: true,
+      serviceChargePercentage: 5,
+    };
+    addToCart(product({ id: "prod-1", price: 100_000 }), "minuman");
+    addToCart(product({ id: "prod-2", name: "X", price: 50_000 }), "minuman");
+    const t = totals();
+    expect(t.subtotal).toBe(150_000);
+    expect(t.serviceCharge).toBe(7500); // 5% of subtotal
+    expect(t.tax).toBe(15_000); // 10% of subtotal, not compounding
+    expect(t.total).toBe(172_500);
+    expect(t.taxRate).toBe(0.1);
+    expect(t.serviceChargeRate).toBe(0.05);
+  });
+
+  it("totals round per charge and disable zeroes the rate", () => {
+    mockChargeConfig = {
+      useTax: true,
+      taxPercentage: 11,
+      useServiceCharge: false,
+      serviceChargePercentage: 5, // ignored while disabled
+    };
+    addToCart(product({ id: "prod-1", price: 99_999 }), "minuman");
+    const t = totals();
+    expect(t.tax).toBe(11_000); // Math.round(99999 * 0.11)
+    expect(t.serviceCharge).toBe(0);
+    expect(t.total).toBe(110_999);
   });
 
   it("commit persists through the repository, clears the cart, and stashes lastOrder", async () => {
@@ -102,9 +151,9 @@ describe("sale session", () => {
 
     expect(order.lines).toHaveLength(1);
     expect(order.lines[0].qty).toBe(2);
-    expect(order.total).toBe(222_000); // 200k + 11%
+    expect(order.total).toBe(200_000); // no charges configured
     expect(order.paid).toBe(250_000);
-    expect(order.change).toBe(28_000);
+    expect(order.change).toBe(50_000); // 250k - 200k, no charges
     expect(order.id).toMatch(ORDER_ID_RE);
     expect(getCart()).toHaveLength(0); // cleared
     expect(getPayment().method).toBe("cash"); // reset to default

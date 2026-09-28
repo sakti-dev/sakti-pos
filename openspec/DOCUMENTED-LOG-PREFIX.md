@@ -129,6 +129,10 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PRINTER:REQUEST_PERMISSION_RELOAD_FALLBACK]` | printer settings |
 | `[JS] [PRINTER:TEST_PRINT_FAILED]` | printer client and settings |
 | `[JS] [PRINTER:TEST_PRINT_SKIPPED_NO_PRINTER]` | printer settings |
+| `[JS] [SETTINGS:CHARGE_CONFIG_HYDRATED]` | `db/outlets.ts` |
+| `[JS] [SETTINGS:CHARGE_CONFIG_HYDRATE_FAILED]` | `db/outlets.ts` |
+| `[JS] [SETTINGS:CHARGE_CONFIG_SAVE_FAILED]` | `pages/setting/components/section-tax.tsx` |
+| `[JS] [SETTINGS:CHARGE_CONFIG_SAVED]` | `db/outlets.ts` and `pages/setting/components/section-tax.tsx` |
 | `[JS] [SETTINGS:PAYMENT_METHOD_TOGGLED]` | `pages/setting/components/section-payment-methods.tsx` |
 | `[JS] [SETTINGS:PAYMENT_METHOD_TOGGLE_FAILED]` | `pages/setting/components/section-payment-methods.tsx` |
 | `[JS] [SETTINGS:QRIS_SCAN_CLEANUP_FAILED]` | `lib/qris/scan.ts` |

@@ -53,6 +53,29 @@ const STEP_META = [
 
 const PREFS_STORAGE_KEY = "sakti-pos:onboarding-prefs";
 
+async function persistChargeConfig(
+  form: OnboardingForm,
+  logger: ReturnType<typeof createLogger>,
+  hasOutlet: boolean
+) {
+  if (!hasOutlet) {
+    return;
+  }
+  try {
+    const { saveChargeConfig } = await import("~/db/outlets");
+    await saveChargeConfig({
+      useTax: form.use_tax,
+      taxPercentage: form.tax_percentage ?? 0,
+      useServiceCharge: false,
+      serviceChargePercentage: 0,
+    });
+  } catch (err) {
+    logger.warn("charge_config_save_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 function savePreferences(form: OnboardingForm) {
   localStorage.setItem(
     PREFS_STORAGE_KEY,
@@ -324,6 +347,15 @@ export default function OnboardingPage() {
       }
 
       await syncNow();
+
+      // Persist the tax preference to the outlet row now that the first
+      // sync has pulled the outlet row into the local DB.
+      await persistChargeConfig(
+        { ...form },
+        onboardingLogger,
+        Boolean(createdOutletId() ?? outletIdFromQuery)
+      );
+
       onboardingLogger.info("onboarding_complete", {
         merchantId,
         outletId: createdOutletId(),

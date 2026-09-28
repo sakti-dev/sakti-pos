@@ -1,4 +1,6 @@
+import { outletChargeConfig } from "~/lib/auth/session";
 import type { CartLine } from "~/lib/sales/types";
+import { computeTotals } from "~/lib/sales/types";
 import { CartList } from "./cart-list";
 import { CartTotals } from "./cart-totals";
 
@@ -12,7 +14,15 @@ interface CartPanelProps {
 
 export const CartPanel = (props: CartPanelProps) => {
   const totalItems = () => props.lines.reduce((s, l) => s + l.qty, 0);
-  const subtotal = () => props.lines.reduce((s, l) => s + l.price * l.qty, 0);
+  const totals = () => {
+    const config = outletChargeConfig();
+    return computeTotals(props.lines, {
+      taxPercent: config.useTax ? config.taxPercentage : 0,
+      servicePercent: config.useServiceCharge
+        ? config.serviceChargePercentage
+        : 0,
+    });
+  };
 
   return (
     <>
@@ -37,7 +47,7 @@ export const CartPanel = (props: CartPanelProps) => {
         disabled={props.lines.length === 0}
         onPay={props.onPay}
         onProcess={props.onProcess}
-        subtotal={subtotal()}
+        totals={totals()}
       />
     </>
   );

@@ -136,6 +136,21 @@ export const getActiveStaff = async (): Promise<AuthUser[]> => {
 
 // --- Device / terminal context (merchant, outlet, register, timezone) ---
 
+/** Outlet-scoped tax & service-charge configuration (from the outlets row). */
+export interface OutletChargeConfig {
+  readonly serviceChargePercentage: number;
+  readonly taxPercentage: number;
+  readonly useServiceCharge: boolean;
+  readonly useTax: boolean;
+}
+
+export const DEFAULT_CHARGE_CONFIG: OutletChargeConfig = {
+  useTax: false,
+  taxPercentage: 0,
+  useServiceCharge: false,
+  serviceChargePercentage: 0,
+};
+
 const [currentOutletId, setCurrentOutletId] = createSignal<string | null>(null);
 const [currentOutletTimezone, setCurrentOutletTimezone] = createSignal<string>(
   DEFAULT_BUSINESS_TIMEZONE
@@ -145,6 +160,9 @@ const [currentMerchantId, setCurrentMerchantId] = createSignal<string | null>(
 );
 const [currentRegisterId, setCurrentRegisterId] = createSignal<string | null>(
   null
+);
+const [chargeConfig, setChargeConfigSignal] = createSignal<OutletChargeConfig>(
+  DEFAULT_CHARGE_CONFIG
 );
 
 export {
@@ -156,6 +174,18 @@ export {
   setCurrentOutletTimezone,
 };
 
+export const CHARGE_CONFIG_STORAGE_KEY = "sakti-pos:outlet-charge-config";
+
+export function outletChargeConfig(): OutletChargeConfig {
+  return chargeConfig();
+}
+
+/** Update the in-memory + cached charge config (callers persist the DB row). */
+export function setChargeConfig(config: OutletChargeConfig) {
+  setChargeConfigSignal(config);
+  localStorage.setItem(CHARGE_CONFIG_STORAGE_KEY, JSON.stringify(config));
+}
+
 export const OUTLET_STORAGE_KEY = "sakti-pos:current-outlet-id";
 export const OUTLET_TIMEZONE_STORAGE_KEY = "sakti-pos:current-outlet-timezone";
 export const MERCHANT_STORAGE_KEY = "sakti-pos:current-merchant-id";
@@ -166,6 +196,17 @@ export function loadOutletContext() {
   const outletTimezone = localStorage.getItem(OUTLET_TIMEZONE_STORAGE_KEY);
   const merchantId = localStorage.getItem(MERCHANT_STORAGE_KEY);
   const registerId = localStorage.getItem(REGISTER_STORAGE_KEY);
+  const cachedChargeConfig = localStorage.getItem(CHARGE_CONFIG_STORAGE_KEY);
+  if (cachedChargeConfig) {
+    try {
+      setChargeConfigSignal({
+        ...DEFAULT_CHARGE_CONFIG,
+        ...JSON.parse(cachedChargeConfig),
+      });
+    } catch {
+      localStorage.removeItem(CHARGE_CONFIG_STORAGE_KEY);
+    }
+  }
   if (outletId) {
     setCurrentOutletId(outletId);
   }
