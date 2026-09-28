@@ -124,6 +124,9 @@ function setCookies(
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
   .post(
     "/register",
+    {
+      body: AuthRegisterRequest,
+    },
     async ({ body, set }) => {
       let email: string;
       let password: string;
@@ -176,13 +179,13 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         sessionToken: token,
         user: { id: user.id, email: user.email, name: user.name },
       };
-    },
-    {
-      body: AuthRegisterRequest,
     }
   )
   .post(
     "/login",
+    {
+      body: AuthLoginRequest,
+    },
     async ({ body, set }) => {
       let email: string;
       let password: string;
@@ -222,66 +225,55 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         sessionToken: token,
         user: { id: user.id, email: user.email, name: user.name },
       };
-    },
-    {
-      body: AuthLoginRequest,
     }
   )
-  .post(
-    "/logout",
-    async ({ request, set }) => {
-      const session = await getSessionFromRequest(request);
-      if (session) {
-        await narvik.invalidateSession(session.id);
-      }
-      setCookies(set, [createBlankCookie()]);
-      return { success: true };
-    },
-    {}
-  )
-  .post(
-    "/session",
-    async ({ request }) => {
-      const session = await getSessionFromRequest(request);
-      if (!session) {
-        return { hasUser: false, merchants: [], user: undefined };
-      }
+  .post("/logout", {}, async ({ request, set }) => {
+    const session = await getSessionFromRequest(request);
+    if (session) {
+      await narvik.invalidateSession(session.id);
+    }
+    setCookies(set, [createBlankCookie()]);
+    return { success: true };
+  })
+  .post("/session", {}, async ({ request }) => {
+    const session = await getSessionFromRequest(request);
+    if (!session) {
+      return { hasUser: false, merchants: [], user: undefined };
+    }
 
-      const [user] = await db
-        .select({
-          id: users.id,
-          email: users.email,
-          name: users.name,
-        })
-        .from(users)
-        .where(eq(users.id, session.userId))
-        .limit(1);
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+      })
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .limit(1);
 
-      const merchantRows = await db
-        .select({
-          merchantId: userMerchants.merchantId,
-          name: merchants.name,
-          role: userMerchants.role,
-        })
-        .from(userMerchants)
-        .innerJoin(merchants, eq(merchants.id, userMerchants.merchantId))
-        .where(eq(userMerchants.userId, session.userId));
+    const merchantRows = await db
+      .select({
+        merchantId: userMerchants.merchantId,
+        name: merchants.name,
+        role: userMerchants.role,
+      })
+      .from(userMerchants)
+      .innerJoin(merchants, eq(merchants.id, userMerchants.merchantId))
+      .where(eq(userMerchants.userId, session.userId));
 
-      return {
-        hasUser: user != null,
-        merchants: merchantRows.map((row) => ({
-          merchantId: row.merchantId,
-          name: row.name,
-          role: row.role,
-        })),
-        user: user
-          ? { id: user.id, email: user.email, name: user.name }
-          : undefined,
-      };
-    },
-    {}
-  )
-  .get("/google", ({ set }) => {
+    return {
+      hasUser: user != null,
+      merchants: merchantRows.map((row) => ({
+        merchantId: row.merchantId,
+        name: row.name,
+        role: row.role,
+      })),
+      user: user
+        ? { id: user.id, email: user.email, name: user.name }
+        : undefined,
+    };
+  })
+  .get("/google", ({ set, redirect }) => {
     const state = generateState();
     const codeVerifier = generateCodeVerifier();
     const scopes = ["openid", "profile", "email"];
@@ -302,8 +294,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       }),
     ]);
 
-    set.redirect = url.toString();
-    return "";
+    return redirect(url.toString());
   })
   .get("/google/callback", async ({ request, set }) => {
     const url = new URL(request.url);
@@ -388,6 +379,9 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
   })
   .post(
     "/google/exchange",
+    {
+      body: GoogleExchangeRequest,
+    },
     async ({ body, set }) => {
       const code = body.code;
       if (!code || typeof code !== "string") {
@@ -422,8 +416,5 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         sessionToken: payload.sessionToken,
         user: payload.user,
       };
-    },
-    {
-      body: GoogleExchangeRequest,
     }
   );

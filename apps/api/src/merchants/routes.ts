@@ -10,6 +10,9 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
   .use(authenticated)
   .post(
     "/create",
+    {
+      body: MerchantCreateRequest,
+    },
     async ({ body, session, set }) => {
       let name: string;
       try {
@@ -55,31 +58,24 @@ export const merchantsRoutes = new Elysia({ prefix: "/api/merchants" })
           updatedAt: merchant.updatedAt,
         },
       };
-    },
-    {
-      body: MerchantCreateRequest,
     }
   )
-  .post(
-    "/list",
-    async ({ session }) => {
-      const results = await db
-        .select({
-          merchantId: userMerchants.merchantId,
-          name: merchants.name,
-          role: userMerchants.role,
-        })
-        .from(userMerchants)
-        .innerJoin(merchants, eq(userMerchants.merchantId, merchants.id))
-        .where(eq(userMerchants.userId, session.userId));
+  .post("/list", {}, async ({ session }) => {
+    const results = await db
+      .select({
+        merchantId: userMerchants.merchantId,
+        name: merchants.name,
+        role: userMerchants.role,
+      })
+      .from(userMerchants)
+      .innerJoin(merchants, eq(userMerchants.merchantId, merchants.id))
+      .where(eq(userMerchants.userId, session.userId));
 
-      return {
-        merchants: results.map((row) => ({
-          merchantId: row.merchantId,
-          name: row.name,
-          role: row.role,
-        })),
-      };
-    },
-    {}
-  );
+    return {
+      merchants: results.map((row) => ({
+        merchantId: row.merchantId,
+        name: row.name,
+        role: row.role,
+      })),
+    };
+  });

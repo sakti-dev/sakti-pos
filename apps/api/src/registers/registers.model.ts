@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import type { Static } from "typebox";
 
 export const Register = t.Object({
   id: t.String(),
@@ -60,12 +61,12 @@ export const DeleteResponse = t.Object({
   success: t.Boolean(),
 });
 
-export type Register = typeof Register.static;
-export type RegisterCreateRequest = typeof RegisterCreateRequest.static;
-export type RegisterCreateResponse = typeof RegisterCreateResponse.static;
-export type RegisterListRequest = typeof RegisterListRequest.static;
-export type RegisterListResponse = typeof RegisterListResponse.static;
-export type RegisterDeleteRequest = typeof RegisterDeleteRequest.static;
-export type RegisterPairRequest = typeof RegisterPairRequest.static;
-export type RegisterPairResponse = typeof RegisterPairResponse.static;
-export type DeleteResponse = typeof DeleteResponse.static;
+export type Register = Static<typeof Register>;
+export type RegisterCreateRequest = Static<typeof RegisterCreateRequest>;
+export type RegisterCreateResponse = Static<typeof RegisterCreateResponse>;
+export type RegisterListRequest = Static<typeof RegisterListRequest>;
+export type RegisterListResponse = Static<typeof RegisterListResponse>;
+export type RegisterDeleteRequest = Static<typeof RegisterDeleteRequest>;
+export type RegisterPairRequest = Static<typeof RegisterPairRequest>;
+export type RegisterPairResponse = Static<typeof RegisterPairResponse>;
+export type DeleteResponse = Static<typeof DeleteResponse>;

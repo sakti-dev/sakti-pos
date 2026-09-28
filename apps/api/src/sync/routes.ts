@@ -95,18 +95,12 @@ const syncServer = createSyncServer<ScopeContext, ResolvedScope>({
 
 export const syncRoutes = new Elysia({ prefix: "/api/sync/v1" })
   .use(authenticated)
-  .post(
-    "/push",
-    (c) => syncServer.push(c.request, { userId: c.session.userId }),
-    { parse: "none" }
+  .post("/push", { parse: "none" }, (c) =>
+    syncServer.push(c.request, { userId: c.session.userId })
   )
-  .post(
-    "/pull",
-    (c) => syncServer.pull(c.request, { userId: c.session.userId }),
-    { parse: "none" }
+  .post("/pull", { parse: "none" }, (c) =>
+    syncServer.pull(c.request, { userId: c.session.userId })
   )
-  .post(
-    "/status",
-    (c) => syncServer.status(c.request, { userId: c.session.userId }),
-    { parse: "none" }
+  .post("/status", { parse: "none" }, (c) =>
+    syncServer.status(c.request, { userId: c.session.userId })
   );

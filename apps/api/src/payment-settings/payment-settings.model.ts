@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import type { Static } from "typebox";
 
 export const PaymentSettings = t.Object({
   id: t.String(),
@@ -29,11 +30,16 @@ export const PaymentSettingsUpsertResponse = t.Object({
   paymentSettings: PaymentSettings,
 });
 
-export type PaymentSettings = typeof PaymentSettings.static;
-export type PaymentSettingsGetRequest = typeof PaymentSettingsGetRequest.static;
-export type PaymentSettingsGetResponse =
-  typeof PaymentSettingsGetResponse.static;
-export type PaymentSettingsUpsertRequest =
-  typeof PaymentSettingsUpsertRequest.static;
-export type PaymentSettingsUpsertResponse =
-  typeof PaymentSettingsUpsertResponse.static;
+export type PaymentSettings = Static<typeof PaymentSettings>;
+export type PaymentSettingsGetRequest = Static<
+  typeof PaymentSettingsGetRequest
+>;
+export type PaymentSettingsGetResponse = Static<
+  typeof PaymentSettingsGetResponse
+>;
+export type PaymentSettingsUpsertRequest = Static<
+  typeof PaymentSettingsUpsertRequest
+>;
+export type PaymentSettingsUpsertResponse = Static<
+  typeof PaymentSettingsUpsertResponse
+>;

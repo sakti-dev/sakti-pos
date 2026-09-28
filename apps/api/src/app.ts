@@ -1,9 +1,9 @@
-import { logger } from "@bogeychan/elysia-logger";
-import { cors } from "@elysiajs/cors";
+import { cors } from "@elysia/cors";
 import { Elysia } from "elysia";
-import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
+import { WebStandardAdapter } from "elysia/adapter/web-standard";
 import { assetsRoutes } from "./assets/routes";
 import { authRoutes } from "./auth/routes";
+import { requestLog } from "./lib/request-log";
 import { merchantsRoutes } from "./merchants/routes";
 import { outletsRoutes } from "./outlets/routes";
 import { paymentSettingsRoutes } from "./payment-settings/routes";
@@ -11,7 +11,7 @@ import { registersRoutes } from "./registers/routes";
 import { staffRoutes } from "./staff/routes";
 import { syncRoutes } from "./sync/routes";
 
-const app = new Elysia({ adapter: CloudflareAdapter })
+const app = new Elysia({ adapter: WebStandardAdapter })
   .use(
     cors({
       origin: true,
@@ -21,15 +21,7 @@ const app = new Elysia({ adapter: CloudflareAdapter })
       maxAge: 86_400,
     })
   )
-  .use(
-    logger({
-      autoLogging: {
-        ignore(ctx) {
-          return ctx.request.method === "OPTIONS";
-        },
-      },
-    })
-  )
+  .use(requestLog)
   .use(authRoutes)
   .use(assetsRoutes)
   .use(merchantsRoutes)

@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import type { Static } from "typebox";
 import { SessionMerchant } from "../auth/auth.model";
 
 export const Merchant = t.Object({
@@ -20,7 +21,7 @@ export const MerchantListResponse = t.Object({
   merchants: t.Array(SessionMerchant),
 });
 
-export type Merchant = typeof Merchant.static;
-export type MerchantCreateRequest = typeof MerchantCreateRequest.static;
-export type MerchantCreateResponse = typeof MerchantCreateResponse.static;
-export type MerchantListResponse = typeof MerchantListResponse.static;
+export type Merchant = Static<typeof Merchant>;
+export type MerchantCreateRequest = Static<typeof MerchantCreateRequest>;
+export type MerchantCreateResponse = Static<typeof MerchantCreateResponse>;
+export type MerchantListResponse = Static<typeof MerchantListResponse>;

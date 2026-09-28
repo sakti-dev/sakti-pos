@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import type { Static } from "typebox";
 
 export const Staff = t.Object({
   id: t.String(),
@@ -59,14 +60,14 @@ export const DeleteResponse = t.Object({
   success: t.Boolean(),
 });
 
-export type Staff = typeof Staff.static;
-export type StaffCurrentRequest = typeof StaffCurrentRequest.static;
-export type StaffCurrentResponse = typeof StaffCurrentResponse.static;
-export type StaffCreateRequest = typeof StaffCreateRequest.static;
-export type StaffCreateResponse = typeof StaffCreateResponse.static;
-export type StaffListRequest = typeof StaffListRequest.static;
-export type StaffListResponse = typeof StaffListResponse.static;
-export type StaffUpdatePinRequest = typeof StaffUpdatePinRequest.static;
-export type StaffUpdatePinResponse = typeof StaffUpdatePinResponse.static;
-export type StaffDeleteRequest = typeof StaffDeleteRequest.static;
-export type DeleteResponse = typeof DeleteResponse.static;
+export type Staff = Static<typeof Staff>;
+export type StaffCurrentRequest = Static<typeof StaffCurrentRequest>;
+export type StaffCurrentResponse = Static<typeof StaffCurrentResponse>;
+export type StaffCreateRequest = Static<typeof StaffCreateRequest>;
+export type StaffCreateResponse = Static<typeof StaffCreateResponse>;
+export type StaffListRequest = Static<typeof StaffListRequest>;
+export type StaffListResponse = Static<typeof StaffListResponse>;
+export type StaffUpdatePinRequest = Static<typeof StaffUpdatePinRequest>;
+export type StaffUpdatePinResponse = Static<typeof StaffUpdatePinResponse>;
+export type StaffDeleteRequest = Static<typeof StaffDeleteRequest>;
+export type DeleteResponse = Static<typeof DeleteResponse>;

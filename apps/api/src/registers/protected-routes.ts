@@ -80,6 +80,9 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
   .use(authenticated)
   .post(
     "/create",
+    {
+      body: RegisterCreateRequest,
+    },
     async ({ body, session, set }) => {
       let outletId: string;
       let name: string;
@@ -129,13 +132,13 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
       return {
         register: encodeRegister(register),
       };
-    },
-    {
-      body: RegisterCreateRequest,
     }
   )
   .post(
     "/list",
+    {
+      body: RegisterListRequest,
+    },
     async ({ body, session }) => {
       throwIfFalse(
         await verifyOutletOwnership(session.userId, body.outletId),
@@ -150,13 +153,13 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
       return {
         registers: results.map(encodeRegister),
       };
-    },
-    {
-      body: RegisterListRequest,
     }
   )
   .post(
     "/delete",
+    {
+      body: RegisterDeleteRequest,
+    },
     async ({ body, session, set }) => {
       const [register] = await db
         .select()
@@ -183,8 +186,5 @@ export const protectedRegisterRoutes = new Elysia({ prefix: "/api/registers" })
       });
 
       return { success: true };
-    },
-    {
-      body: RegisterDeleteRequest,
     }
   );

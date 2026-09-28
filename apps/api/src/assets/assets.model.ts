@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import type { Static } from "typebox";
 
 export const Asset = t.Object({
   id: t.String(),
@@ -42,12 +43,17 @@ export const AssetPresignDownloadResponse = t.Object({
   downloadUrl: t.String(),
 });
 
-export type Asset = typeof Asset.static;
-export type AssetHeader = typeof AssetHeader.static;
-export type AssetPresignUploadRequest = typeof AssetPresignUploadRequest.static;
-export type AssetPresignUploadResponse =
-  typeof AssetPresignUploadResponse.static;
-export type AssetPresignDownloadRequest =
-  typeof AssetPresignDownloadRequest.static;
-export type AssetPresignDownloadResponse =
-  typeof AssetPresignDownloadResponse.static;
+export type Asset = Static<typeof Asset>;
+export type AssetHeader = Static<typeof AssetHeader>;
+export type AssetPresignUploadRequest = Static<
+  typeof AssetPresignUploadRequest
+>;
+export type AssetPresignUploadResponse = Static<
+  typeof AssetPresignUploadResponse
+>;
+export type AssetPresignDownloadRequest = Static<
+  typeof AssetPresignDownloadRequest
+>;
+export type AssetPresignDownloadResponse = Static<
+  typeof AssetPresignDownloadResponse
+>;
