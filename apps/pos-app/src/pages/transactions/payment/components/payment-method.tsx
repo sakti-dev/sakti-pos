@@ -392,7 +392,7 @@ export const PaymentMethod = (props: PaymentMethodProps) => {
           </div>
           <div class="text-center text-body-sm text-faint-foreground">
             <Show
-              fallback="Minta pelanggan pindai QRIS Anda, lalu tekan Sudah Dibayar."
+              fallback="Tekan Tampilkan QR di bawah untuk layar pindai pelanggan."
               when={props.method === "qris_dynamic"}
             >
               Total {formatRupiah(props.total)} sudah tersemat di QR — pelanggan

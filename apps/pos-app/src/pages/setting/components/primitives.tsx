@@ -116,20 +116,28 @@ export function ToggleRow(props: {
   readonly title: string;
   readonly desc: string;
   readonly checked?: boolean;
+  readonly class?: string;
+  readonly descClass?: string;
   readonly disabled?: boolean;
+  readonly icon?: JSX.Element;
   readonly last?: boolean;
   readonly onChange?: (checked: boolean) => void;
 }) {
   return (
     <div
-      class={`flex items-center justify-between gap-4 py-3 ${props.last ? "" : "border-border border-b"}`}
+      class={`flex items-center justify-between gap-4 py-3 ${props.class ?? ""} ${props.last ? "" : "border-border border-b"}`}
     >
-      <div class="min-w-0 flex-1">
-        <div class="font-medium text-body-sm text-foreground">
-          {props.title}
-        </div>
-        <div class="mt-0.5 text-caption text-muted-foreground">
-          {props.desc}
+      <div class="flex min-w-0 flex-1 items-center gap-3">
+        {props.icon}
+        <div class="min-w-0">
+          <div class="font-medium text-body-sm text-foreground">
+            {props.title}
+          </div>
+          <div
+            class={`mt-0.5 text-caption text-muted-foreground ${props.descClass ?? ""}`}
+          >
+            {props.desc}
+          </div>
         </div>
       </div>
       <label class="relative inline-flex h-6 w-11 shrink-0 items-center">

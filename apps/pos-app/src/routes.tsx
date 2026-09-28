@@ -30,12 +30,14 @@ import { SectionBusiness } from "./pages/setting/components/section-business";
 import { SectionDevices } from "./pages/setting/components/section-devices";
 import { SectionGeneral } from "./pages/setting/components/section-general";
 import { SectionPaymentMethods } from "./pages/setting/components/section-payment-methods";
+import { SectionPaymentMonitor } from "./pages/setting/components/section-payment-monitor";
 import { SectionReceipt } from "./pages/setting/components/section-receipt";
 import { SectionTax } from "./pages/setting/components/section-tax";
 import { SectionTeams } from "./pages/setting/components/section-teams";
 import Transactions from "./pages/transactions";
 import CashRegisterPage from "./pages/transactions/cash-register";
 import PaymentPage from "./pages/transactions/payment";
+import QrisPayScreen from "./pages/transactions/payment/qris";
 import Receipt from "./pages/transactions/receipt";
 
 const storageManager = createLocalStorageManager("sakti-theme");
@@ -82,6 +84,7 @@ export default function AppRoutes() {
         <Route component={SectionGeneral} path="/general" />
         <Route component={SectionTax} path="/tax" />
         <Route component={SectionPaymentMethods} path="/payment-methods" />
+        <Route component={SectionPaymentMonitor} path="/payment-monitor" />
         <Route component={SectionReceipt} path="/receipt" />
         <Route component={SectionTeams} path="/teams" />
         <Route component={SectionDevices} path="/devices" />
@@ -100,6 +103,7 @@ export default function AppRoutes() {
       <Route component={GoodsReceiptPage} path="/inventory/goods-receipt/new" />
       <Route component={CashRegisterPage} path="/transactions/cash-register" />
       <Route component={PaymentPage} path="/transactions/payment" />
+      <Route component={QrisPayScreen} path="/transactions/payment/qris" />
       <Route component={Receipt} path="/transactions/receipt" />
       <Route component={LoginPage} path="/auth/login" />
       <Route component={RegisterPage} path="/auth/register" />

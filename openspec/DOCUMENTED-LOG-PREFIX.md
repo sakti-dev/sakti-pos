@@ -133,6 +133,27 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SETTINGS:CHARGE_CONFIG_HYDRATE_FAILED]` | `db/outlets.ts` |
 | `[JS] [SETTINGS:CHARGE_CONFIG_SAVE_FAILED]` | `pages/setting/components/section-tax.tsx` |
 | `[JS] [SETTINGS:CHARGE_CONFIG_SAVED]` | `db/outlets.ts` and `pages/setting/components/section-tax.tsx` |
+
+### QRIS detection (domain `QRIS`)
+
+| Prefix | Origin |
+| --- | --- |
+| `[JS] [QRIS:MONITORED_PACKAGES_SAVED]` | `lib/qris/detection.ts` |
+| `[JS] [QRIS:MONITORED_PACKAGES_STORE_WRITE_FAILED]` | `lib/qris/detection.ts` |
+| `[JS] [QRIS:MONITORED_PACKAGES_SYNC_TO_NATIVE_FAILED]` | `lib/qris/detection.ts` |
+| `[JS] [QRIS:MONITORED_APPS_LOAD_FAILED]` / `MONITORED_APPS_SAVE_FAILED` | `pages/setting/components/section-payment-monitor.tsx` |
+| `[JS] [QRIS:OPEN_NOTIFICATION_SETTINGS_FAILED]` | `pages/setting/components/section-payment-monitor.tsx` |
+| `[JS] [QRIS:EVENT_RECEIVED]` | `lib/qris/detection.ts` — live event from notification service |
+| `[JS] [QRIS:EVENT_DRAIN_FAILED]` / `EVENT_LISTENER_REGISTER_FAILED` | `lib/qris/detection.ts` |
+| `[JS] [QRIS:SESSION_BEGUN]` | `lib/qris/detection.ts` — payment session anchor set |
+| `[JS] [QRIS:APP_LIST_LOADED]` | `lib/qris/detection.ts` — installed-apps query done (count, durationMs) |
+| `[JS] [QRIS:ICONS_HYDRATED]` | `lib/qris/detection.ts` — icon hydration summary (requested/fetched/failed, total/avg/max ms) |
+| `[JS] [QRIS:APP_ICON_SLOW]` / `APP_ICON_FETCH_FAILED` | `lib/qris/detection.ts` — per-icon slow (>100ms) / failure |
+| `[JS] [QRIS:MONITORED_PACKAGES_SYNCED_TO_NATIVE]` | `lib/qris/detection.ts` — allowlist pushed to native (count, durationMs) |
+| `[JS] [QRIS:EVENT_DRAINED]` | `lib/qris/detection.ts` — buffer drained (count, durationMs) |
+| `[JS] [QRIS:APP_LIST_CACHE_HIT]` / `APP_LIST_CACHE_WARMED` / `APP_LIST_CACHE_WARM_FAILED` / `APP_LIST_CACHE_WRITE_FAILED` | `lib/qris/detection.ts` — cached list render + background warm |
+| `[JS] [QRIS:DEFERRED_LOAD_STARTED]` | `pages/setting/components/section-payment-monitor.tsx` — section load started after the fixed post-navigation deferral |
+| `[JS] [QRIS:ACCESS_STATE_CHANGED]` / `SECTION_LOADED` | `pages/setting/components/section-payment-monitor.tsx` — grant flip + section load timing |
 | `[JS] [SETTINGS:PAYMENT_METHOD_TOGGLED]` | `pages/setting/components/section-payment-methods.tsx` |
 | `[JS] [SETTINGS:PAYMENT_METHOD_TOGGLE_FAILED]` | `pages/setting/components/section-payment-methods.tsx` |
 | `[JS] [SETTINGS:QRIS_SCAN_CLEANUP_FAILED]` | `lib/qris/scan.ts` |
@@ -170,6 +191,18 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
 | `[JS] [UI:REQUIRE_AUTH_GUARD]` | `App.tsx` |
+
+## Kotlin Prefixes
+
+Log tag `QrisNotificationService` / `QrisBridgePlugin` (structured message prefix, appears under those tags in logcat).
+
+| Prefix | Origin |
+| --- | --- |
+| `[QRIS_DETECT:EVENT_CAPTURED]` | `gen/android/.../qris/QrisNotificationService.kt` — allowlisted notification parsed and buffered |
+| `[QRIS_DETECT:EVENT_DROPPED_NO_AMOUNT]` | `gen/android/.../qris/QrisNotificationService.kt` — allowlisted notification had no parsable Rp amount |
+| `[QRIS_DETECT:ALLOWLIST_SAVED]` | `gen/android/.../qris/QrisBridgePlugin.kt` — monitored-package allowlist written to native prefs |
+| `[QRIS_DETECT:GET_APPS_COMPLETED]` | `gen/android/.../qris/QrisBridgePlugin.kt` — launcher apps resolved + elapsed |
+| `[QRIS_DETECT:APP_ICON_SLOW]` | `gen/android/.../qris/QrisBridgePlugin.kt` — single icon encode took > 50ms |
 
 ## Rust Prefixes
 

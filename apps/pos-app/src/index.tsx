@@ -8,6 +8,7 @@ import {
   SyncClientProvider,
 } from "./lib/api/sync-client-provider.tsx";
 import { loadOutletContext } from "./lib/auth/session";
+import { startPaymentEventCapture } from "./lib/qris/detection";
 import { setOrderRepository } from "./lib/sales/order-repository";
 import "./styles/index.css";
 import AppRoutes from "./routes.tsx";
@@ -17,6 +18,7 @@ hydrateChargeConfigFromDb().catch(() => {
   // Hydration is best-effort; the cached config stays in force.
 });
 setOrderRepository(new DrizzleOrderRepository());
+startPaymentEventCapture();
 
 const root = document.getElementById("root");
 

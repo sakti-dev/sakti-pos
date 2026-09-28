@@ -3,6 +3,7 @@ mod auth;
 mod db;
 mod hardware;
 mod logging;
+mod qris;
 mod theme;
 
 use tauri_plugin_baresync::builder::Builder as BaresyncBuilder;
@@ -52,6 +53,7 @@ pub fn run() {
         .plugin(auth::init())
         .plugin(hardware::printer::init())
         .plugin(theme::init())
+        .plugin(qris::init())
         .plugin(
             BaresyncBuilder::new()
                 .api_base_url("http://192.168.1.2:3001/api/sync/v1")
@@ -76,6 +78,13 @@ pub fn run() {
             hardware::printer::print_thermal_receipt,
             hardware::printer::request_bluetooth_permission,
             theme::sync_status_bar_color,
+            qris::qris_get_app_icon,
+            qris::qris_get_installed_apps,
+            qris::qris_set_allowed_packages,
+            qris::qris_get_allowed_packages,
+            qris::qris_get_recent_events,
+            qris::qris_is_notification_access_granted,
+            qris::qris_open_notification_access_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

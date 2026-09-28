@@ -1,9 +1,16 @@
 import { useNavigate } from "@solidjs/router";
-import { createEffect, createResource, createSignal, Show } from "solid-js";
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  onMount,
+  Show,
+} from "solid-js";
 import { CheckCircleIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { Button } from "~/components/ui/button";
 import { getPaymentSettings } from "~/db/payment-settings";
+import { beginPaymentSession } from "~/lib/qris/detection";
 import * as sale from "~/lib/sales/sale-session";
 import { createLogger } from "~/lib/utils";
 import { OrderSummary } from "./components/order-summary";
@@ -23,6 +30,10 @@ export default function PaymentPage() {
   const [customer, setCustomer] = createSignal("");
   const [notes, setNotes] = createSignal("");
   const [settings] = createResource(getPaymentSettings);
+
+  onMount(() => {
+    beginPaymentSession();
+  });
 
   const totals = sale.totals;
   const subtotal = () => totals().subtotal;
@@ -57,8 +68,10 @@ export default function PaymentPage() {
     cart().length > 0 &&
     (method() === "cash" ? cashNum() >= total() && cashNum() > 0 : true);
 
+  const isQris = () =>
+    method() === "qris_static" || method() === "qris_dynamic";
   const confirmLabel = () =>
-    method() === "cash" ? "Konfirmasi Pembayaran" : "Sudah Dibayar";
+    method() === "cash" ? "Konfirmasi Pembayaran" : "Tampilkan QR";
 
   const [committing, setCommitting] = createSignal(false);
   const [commitError, setCommitError] = createSignal(false);
@@ -67,14 +80,19 @@ export default function PaymentPage() {
     if (!canConfirm() || committing()) {
       return;
     }
-    setCommitting(true);
-    setCommitError(false);
     sale.setPayment({
       method: method(),
       cashTendered: method() === "cash" ? cashNum() : undefined,
       customerName: customer() || undefined,
       notes: notes() || undefined,
     });
+    if (isQris()) {
+      paymentLogger.info("QRIS_FLOW_OPEN_PAY_SCREEN", { method: method() });
+      navigate("/transactions/payment/qris");
+      return;
+    }
+    setCommitting(true);
+    setCommitError(false);
     try {
       const order = await sale.commit();
       navigate("/transactions/receipt", {

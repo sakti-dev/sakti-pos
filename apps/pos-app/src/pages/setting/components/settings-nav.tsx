@@ -19,6 +19,7 @@ export type SectionKey =
   | "general"
   | "tax"
   | "payment-methods"
+  | "payment-monitor"
   | "receipt"
   | "teams"
   | "devices"

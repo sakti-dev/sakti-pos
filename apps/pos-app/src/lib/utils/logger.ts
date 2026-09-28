@@ -18,6 +18,7 @@ export type LogDomain =
   | "PHOTO"
   | "POS"
   | "PRINTER"
+  | "QRIS"
   | "SETTINGS"
   | "SYNC"
   | "UI";

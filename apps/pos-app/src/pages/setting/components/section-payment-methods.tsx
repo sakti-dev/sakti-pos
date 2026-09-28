@@ -1,9 +1,15 @@
+import { A } from "@solidjs/router";
 import { createResource, createSignal, Show } from "solid-js";
+import { ArrowRightIcon } from "~/assets";
 import { Button } from "~/components/ui/button";
 import {
   getPaymentSettings,
   upsertPaymentSettings,
 } from "~/db/payment-settings";
+import {
+  readCachedNotificationAccess,
+  readStoredMonitoredPackages,
+} from "~/lib/qris/detection";
 import { createLogger } from "~/lib/utils";
 import { CardDesc, CardTitle, SectionCard, ToggleRow } from "./primitives";
 import { type QRISTargetMode, QRISWalkthrough } from "./qris-walkthrough";
@@ -22,6 +28,18 @@ export function SectionPaymentMethods() {
   );
 
   const hasPayload = () => Boolean(settings()?.qrisStaticPayload);
+
+  const detectionStatus = () => {
+    const count = readStoredMonitoredPackages().length;
+    const granted = readCachedNotificationAccess();
+    if (count === 0) {
+      return "Belum diatur — pilih aplikasi yang dipantau";
+    }
+    if (granted === false) {
+      return `${count} aplikasi · izin notifikasi belum aktif`;
+    }
+    return `${count} aplikasi dipantau${granted ? " · aktif" : ""}`;
+  };
 
   const handleToggle = async (mode: QRISTargetMode, next: boolean) => {
     if (next && !hasPayload()) {
@@ -69,6 +87,28 @@ export function SectionPaymentMethods() {
         onChange={(next) => handleToggle("qris_dinamis", next)}
         title="QRIS Dinamis"
       />
+
+      <Show
+        when={
+          (settings()?.qrisStatisEnabled ?? false) ||
+          (settings()?.qrisDinamisEnabled ?? false)
+        }
+      >
+        <A
+          class="flex items-center justify-between gap-4 py-3"
+          href="/setting/payment-monitor"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="font-medium text-body-sm text-foreground">
+              Deteksi Pembayaran
+            </div>
+            <div class="mt-0.5 text-caption text-muted-foreground">
+              {detectionStatus()}
+            </div>
+          </div>
+          <ArrowRightIcon class="size-5 shrink-0 text-muted-foreground" />
+        </A>
+      </Show>
 
       <Show when={hasPayload()}>
         <div class="flex items-center justify-between gap-4">
