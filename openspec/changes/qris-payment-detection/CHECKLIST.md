@@ -38,21 +38,21 @@ alias qrisnotif='adb shell cmd notification post -t "Livin'"'"' Merchant" -S big
 - [x] No commit possible from this event
 
 ### 2. Sticker payment (notification before QR screen)
-- [ ] On payment page filling notes (do NOT tap Tampilkan QR yet) →
+- [x] On payment page filling notes (do NOT tap Tampilkan QR yet) →
       `qrisnotif 'Dana masuk Rp<TOTAL>'`
-- [ ] Now tap Tampilkan QR → event already listed and armed ("terdeteksi")
-- [ ] Confirm → receipt
+- [x] Now tap Tampilkan QR → event already listed and armed ("terdeteksi")
+- [x] Confirm → receipt
 
 ### 3. Backing out commits nothing
-- [ ] Enter QR screen → hardware back → payment page intact
+- [x] Enter QR screen → hardware back → payment page intact
       (method, customer name, notes still filled)
-- [ ] Complete as Tunai instead → receipt
-- [ ] No duplicate/ghost QRIS order in Transactions list
+- [x] Complete as Tunai instead → receipt
+- [x] No duplicate/ghost QRIS order in Transactions list
 
 ### 4. Notification access revoked
-- [ ] System settings → revoke notification access for Sakti POS
-- [ ] Re-enter QR screen (≤3s) → shows "Notifikasi tidak dipantau" hint
-- [ ] **Sudah Dibayar** still confirms manually
+- [x] System settings → revoke notification access for Sakti POS
+- [x] Re-enter QR screen (≤3s) → shows "Notifikasi tidak dipantau" hint
+- [x] **Sudah Dibayar** still confirms manually
 
 ### 5. Reboot survival (bonus)
 - [x] Reboot phone → open QRIS sale → post notification → still captured
@@ -78,5 +78,6 @@ stays on-device.
 > mismatch (Rp355 vs Rp500 → "tidak cocok"), and reboot survival verified
 > with real GoPay Merchant payments on the Redmi Pad 2 (sakti-pos-prod.apk
 > against nata-pos.hieka.id). Stale-state rendering also observed
-> (pre-flow payment → "sebelum sesi ini", by design). Remaining: edge 2
-> exact anchor timing, edge 3 back-commits-nothing, edge 4 revoked access.
+> (pre-flow payment → "sebelum sesi ini", by design). All checklist items verified. Edge 2/3 confirmed by user on
+> 2026-09-29; edge 4 verified with hint flip, dumpsys listener-unbound
+> evidence, manual Sudah Dibayar commit, and grant restore flip-back.
