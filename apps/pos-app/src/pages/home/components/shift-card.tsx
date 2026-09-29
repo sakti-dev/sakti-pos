@@ -1,8 +1,9 @@
 import { useNavigate } from "@solidjs/router";
 import dayjs from "dayjs";
-import { createResource, Show } from "solid-js";
+import { Show } from "solid-js";
 import { WalletIcon } from "~/assets";
 import { getDrawerSnapshot } from "~/db/cash-shifts";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { cn, formatRupiah } from "~/lib/utils";
 
 /**
@@ -12,7 +13,11 @@ import { cn, formatRupiah } from "~/lib/utils";
  */
 export const ShiftCard = () => {
   const navigate = useNavigate();
-  const [snapshot] = createResource(() => getDrawerSnapshot());
+  const snapshotQuery = useDrizzleQuery(
+    ["drizzle", "cash-shifts", "drawer"],
+    () => getDrawerSnapshot()
+  );
+  const snapshot = () => snapshotQuery.data();
   const shift = () => snapshot()?.shift ?? null;
   const open = () => shift() != null;
   const drawerLabel = () =>
@@ -31,7 +36,7 @@ export const ShiftCard = () => {
       fallback={
         <div class="h-[88px] animate-pulse rounded-2xl border border-border bg-card" />
       }
-      when={!snapshot.loading}
+      when={!snapshotQuery.loading() && snapshot() != null}
     >
       <div
         class={cn(

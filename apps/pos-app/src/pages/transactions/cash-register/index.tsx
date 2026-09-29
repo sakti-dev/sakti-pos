@@ -21,6 +21,7 @@ import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { getOpenShift } from "~/db/cash-shifts";
 import { getCategories, getProducts } from "~/db/catalog";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import * as sale from "~/lib/sales/sale-session";
 import type { Product } from "~/lib/sales/types";
 import { formatRupiah } from "~/lib/utils";
@@ -34,12 +35,15 @@ export default function CashRegisterPage() {
   const [activeCat, setActiveCat] = createSignal<string>("all");
   const [search, setSearch] = createSignal("");
   const [sheetOpen, setSheetOpen] = createSignal(false);
-  const [shift] = createResource(() => getOpenShift());
+  const shiftQuery = useDrizzleQuery(["drizzle", "cash-shifts", "open"], () =>
+    getOpenShift()
+  );
+  const shift = () => shiftQuery.data() ?? null;
 
   // Shift gate: no open shift for this outlet → the open screen owns
   // the flow. Redirect (not inline render) so ssgoi animates the pair.
   createEffect(() => {
-    if (!shift.loading && shift() == null) {
+    if (!shiftQuery.loading() && shift() == null) {
       navigate("/transactions/cash-register/shift-open", { replace: true });
     }
   });
@@ -94,7 +98,7 @@ export default function CashRegisterPage() {
   const cartItemCount = () => cart().reduce((s, c) => s + c.qty, 0);
 
   return (
-    <Show fallback={null} when={!shift.loading && shift() != null}>
+    <Show fallback={null} when={!shiftQuery.loading() && shift() != null}>
       <SafeAreaShell
         class="bg-muted"
         data-ssgoi-transition="/transactions/cash-register"

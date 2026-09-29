@@ -1,6 +1,6 @@
 import { useNavigate } from "@solidjs/router";
 import dayjs from "dayjs";
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
@@ -11,6 +11,7 @@ import {
   getOpenShift,
   getShiftWindowTotals,
 } from "~/db/cash-shifts";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import * as sale from "~/lib/sales/sale-session";
 import { createLogger, formatRupiah } from "~/lib/utils";
 
@@ -53,15 +54,29 @@ const SummaryLine = (props: { readonly rows: readonly SummaryRow[] }) => (
  */
 export default function ShiftClosePage() {
   const navigate = useNavigate();
-  const [shift, { refetch }] = createResource(() => getOpenShift());
-  const [totals] = createResource(() => {
-    const open = shift();
-    return getShiftWindowTotals({
-      initialFloatMinorUnits: open?.initialFloatMinorUnits ?? 0,
-      openedAt: open?.openedAt ?? dayjs().toISOString(),
-      outletId: open?.outletId ?? "",
-    });
-  });
+  const shiftQuery = useDrizzleQuery(["drizzle", "cash-shifts", "open"], () =>
+    getOpenShift()
+  );
+  const shift = () => shiftQuery.data() ?? null;
+
+  // TanStack: key tracks the shift id, so the window refetches when the
+  // open shift resolves (or changes) — the bug was createResource never
+  // re-running its dependent fetcher.
+  const totalsQuery = useDrizzleQuery(
+    () => shift()?.id ?? "none",
+    async () => {
+      const open = shift();
+      if (!open) {
+        return {
+          cashMinorUnits: 0,
+          expectedInDrawerMinorUnits: 0,
+          qrisMinorUnits: 0,
+        };
+      }
+      return await getShiftWindowTotals(open);
+    }
+  );
+  const totals = () => totalsQuery.data();
   const [countRaw, setCountRaw] = createSignal("");
   const [note, setNote] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
@@ -113,7 +128,7 @@ export default function ShiftClosePage() {
         sale.clearCart();
       }
       setClosedRow(row);
-      refetch();
+      shiftQuery.refetch();
       toast.success("Shift ditutup");
     } catch (error) {
       logger.error("CLOSE_FAILED", String(error));

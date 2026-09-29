@@ -1,5 +1,6 @@
-import { createResource, Show } from "solid-js";
+import { Show } from "solid-js";
 import { getDrawerSnapshot } from "~/db/cash-shifts";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { cn } from "~/lib/utils";
 import { currentUser, currentVenue } from "../lib/data";
 
@@ -22,8 +23,12 @@ function Dot({ class: cls }: { class?: string }) {
 }
 
 export const StatusPlaque = () => {
-  const [snapshot] = createResource(() => getDrawerSnapshot());
-  const loaded = () => !snapshot.loading && snapshot.state !== "errored";
+  const snapshotQuery = useDrizzleQuery(
+    ["drizzle", "cash-shifts", "drawer"],
+    () => getDrawerSnapshot()
+  );
+  const snapshot = () => snapshotQuery.data();
+  const loaded = () => !snapshotQuery.loading() && snapshot() != null;
   const open = () => snapshot()?.shift != null;
 
   return (
