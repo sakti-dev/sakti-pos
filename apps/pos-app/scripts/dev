@@ -4,21 +4,53 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PACKAGE="com.sakti_dev.sakti_pos"
 ASSETS_MIGRATIONS="$PROJECT_ROOT/src-tauri/gen/android/app/src/main/assets/migrations"
 
-echo "1) Build & run (keep data)"
-echo "2) Build & run (clear data + uninstall first)"
-echo ""
-read -p "Choose [1/2]: " CHOICE
+# Waydroid: the container reaches the host through the waydroid0 bridge
+# gateway, not the host's wlan IP.
+WAYDOID_SERIAL="192.168.240.112:5555"
+WAYDOID_HOST="192.168.240.1"
 
-if [[ "$CHOICE" == "2" ]]; then
+echo "1) Build & run (keep data)          — USB/LAN device"
+echo "2) Build & run (clear data first)   — USB/LAN device"
+echo "3) Build & run (keep data)          — Waydroid"
+echo "4) Build & run (clear data first)   — Waydroid"
+echo ""
+read -p "Choose [1-4]: " CHOICE
+
+ADB=(adb)
+case "$CHOICE" in
+    3|4)
+        ADB=(adb -s "$WAYDOID_SERIAL")
+        export TAURI_DEV_HOST="$WAYDOID_HOST"
+        export SAKTI_API_URL="http://$WAYDOID_HOST:3001"
+        # Direct the tauri CLI (install/launch) at Waydroid when several
+        # devices are connected at once.
+        export ANDROID_SERIAL="$WAYDOID_SERIAL"
+        if ! "${ADB[@]}" get-state >/dev/null 2>&1; then
+            echo "🔌 Waydroid not connected — trying adb connect $WAYDOID_SERIAL..."
+            adb connect "$WAYDOID_SERIAL"
+            "${ADB[@]}" get-state >/dev/null 2>&1 || {
+                echo "❌ Waydroid ($WAYDOID_SERIAL) unreachable. Is the container running?" >&2
+                exit 1
+            }
+        fi
+        ;;
+    1|2) ;;
+    *)
+        echo "Invalid choice: $CHOICE" >&2
+        exit 1
+        ;;
+esac
+
+if [[ "$CHOICE" == "2" || "$CHOICE" == "4" ]]; then
     echo "🗑️ Clearing app data and uninstalling..."
-    if adb shell pm path "$PACKAGE" >/dev/null 2>&1; then
-        if ! adb shell pm clear "$PACKAGE"; then
+    if "${ADB[@]}" shell pm path "$PACKAGE" >/dev/null 2>&1; then
+        if ! "${ADB[@]}" shell pm clear "$PACKAGE"; then
             echo "❌ 'adb pm clear' failed — device data would stay stale. Aborting." >&2
-            echo "   Try: adb shell pm uninstall -k --user 0 $PACKAGE ; or reboot the device." >&2
+            echo "   Try: ${ADB[*]} shell pm uninstall -k --user 0 $PACKAGE ; or reboot the device." >&2
             exit 1
         fi
     fi
-    adb uninstall "$PACKAGE" || true
+    "${ADB[@]}" uninstall "$PACKAGE" || true
 fi
 
 echo "🧹 Removing stale android asset migrations (tauri re-copies from src-tauri/migrations)..."
@@ -32,6 +64,6 @@ export TAURI_DEV_HOST="${TAURI_DEV_HOST:-${LAN_IP:-192.168.1.2}}"
 echo "🧹 Cleaning up existing dev servers..."
 fuser -k 1420/tcp 1421/tcp 2>/dev/null
 echo "Starting tauri android development..."
-echo "Using RUST_LOG=$RUST_LOG TAURI_DEV_HOST=$TAURI_DEV_HOST"
+echo "Using RUST_LOG=$RUST_LOG TAURI_DEV_HOST=$TAURI_DEV_HOST SAKTI_API_URL=${SAKTI_API_URL:-<lan default>}"
 cd "$PROJECT_ROOT"
 bun tauri android dev --no-watch --host "$TAURI_DEV_HOST"
