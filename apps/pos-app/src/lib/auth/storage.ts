@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { markPaired } from "~/lib/auth/pairing";
 import { createLogger } from "~/lib/utils";
 
 const storageLogger = createLogger({
@@ -31,6 +32,7 @@ async function migrateLegacyToken(token: string): Promise<void> {
 export const AuthStorage = {
   async saveToken(token: string): Promise<void> {
     cachedToken = token;
+    markPaired(true);
     localStorage.removeItem(LOCAL_KEY);
     try {
       await saveTokenNative(token);
@@ -70,6 +72,7 @@ export const AuthStorage = {
 
   async clearToken(): Promise<void> {
     cachedToken = null;
+    markPaired(false);
     localStorage.removeItem(LOCAL_KEY);
     try {
       await clearTokenNative();

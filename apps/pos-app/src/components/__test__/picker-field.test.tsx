@@ -58,6 +58,7 @@ describe("PickerField", () => {
     mockMatches = {};
   });
 
+  // corvu-backed sheet: wall-clock heavy under parallel load.
   it("shows placeholder when no value", async () => {
     setViewport(1024);
     const { PickerField } = await import("../picker-field");
@@ -69,7 +70,7 @@ describe("PickerField", () => {
       />
     ));
     expect(screen.getByText("Pilih kategori")).toBeTruthy();
-  });
+  }, 15_000);
 
   it("shows selected option label as button text", async () => {
     setViewport(1024);

@@ -3,13 +3,13 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrent } from "@tauri-apps/plugin-deep-link";
 import {
   createEffect,
-  createSignal,
   onCleanup,
   onMount,
   type ParentComponent,
 } from "solid-js";
 import { toast } from "solid-sonner";
 import { exchangeGoogleOAuthCode, getMerchants } from "~/lib/auth/cloud";
+import { markPaired, paired } from "~/lib/auth/pairing";
 import { currentUser } from "~/lib/auth/session";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger, describeError } from "~/lib/utils";
@@ -64,9 +64,6 @@ export const AuthProvider: ParentComponent = (props) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Pairing state from durable storage: undefined = not yet known.
-  const [paired, setPaired] = createSignal<boolean | undefined>(undefined);
-
   onMount(async () => {
     // Check for cold-start URLs (arrived before JS listener was ready)
     try {
@@ -92,8 +89,8 @@ export const AuthProvider: ParentComponent = (props) => {
 
     // Pairing check: a stored cloud token means this device is paired
     // and its local DB is in sync — staff identity still needs PIN.
-    const token = await AuthStorage.getToken();
-    setPaired(token != null);
+    // AuthStorage writes keep `paired` current after this point.
+    markPaired((await AuthStorage.getToken()) != null);
   });
 
   // Session gate, reactive to both pairing state and navigation:

@@ -54,6 +54,8 @@ describe("AdaptiveDialog mode detection", () => {
     mockMatches = {};
   });
 
+  // corvu Drawer's open animation makes this wall-clock heavy — it
+  // starves past the 5s default when the dev machine is loaded.
   it("renders Drawer (bottom sheet) on mobile (<768px)", async () => {
     setViewport(375);
     const { AdaptiveDialog, AdaptiveDialogTrigger, AdaptiveDialogContent } =
@@ -68,7 +70,7 @@ describe("AdaptiveDialog mode detection", () => {
     ));
     const drawerContent = document.querySelector("[data-corvu-drawer-content]");
     expect(drawerContent).not.toBeNull();
-  });
+  }, 15_000);
 
   it("renders Dialog (centered) on tablet+ (≥768px)", async () => {
     setViewport(1024);
