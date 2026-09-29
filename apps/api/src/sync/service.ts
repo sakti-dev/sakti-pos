@@ -18,7 +18,7 @@ import {
   staff,
   stocktakeLines,
   stocktakes,
-} from "@sync-contract/generated/2026-09-27/api-synced-schema";
+} from "@sync-contract/generated/2026-09-29/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, getTableColumns, gt, sql } from "drizzle-orm";
 import { db } from "../db";

@@ -20,6 +20,7 @@ export type LogDomain =
   | "PRINTER"
   | "QRIS"
   | "SETTINGS"
+  | "SHIFT"
   | "SYNC"
   | "UI";
 

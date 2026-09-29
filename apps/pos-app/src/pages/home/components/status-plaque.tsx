@@ -1,6 +1,8 @@
+import { createResource, Show } from "solid-js";
 import { CloudIcon } from "~/assets";
+import { getDrawerSnapshot } from "~/db/cash-shifts";
 import { cn } from "~/lib/utils";
-import { currentUser, currentVenue, registerStatus } from "../lib/data";
+import { currentUser, currentVenue } from "../lib/data";
 
 const pillBase =
   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold text-caption-sm tracking-wide backdrop-blur-sm";
@@ -21,7 +23,12 @@ function Dot({ class: cls }: { class?: string }) {
 }
 
 export const StatusPlaque = () => {
-  const open = registerStatus.open;
+  const [snapshot] = createResource(() => getDrawerSnapshot());
+  const loaded = () => !snapshot.loading && snapshot.state !== "errored";
+  const open = () => snapshot()?.shift != null;
+  const drawerLabel = () =>
+    formatDrawer(snapshot()?.expectedInDrawerMinorUnits ?? 0);
+
   return (
     <div class="flex items-center justify-between gap-3">
       {/* Venue — collapsed from the old VenueCard */}
@@ -41,13 +48,28 @@ export const StatusPlaque = () => {
 
       {/* Status pills — apothecary hours slate */}
       <div class="flex shrink-0 items-center gap-1.5">
-        <span class={cn(pillBase, open ? pills.open : pills.closed)}>
-          <Dot class={open ? "text-primary" : "text-white/70"} />
-          {open ? "Buka" : "Tutup"}
-        </span>
-        <span class={cn(pillBase, pills.neutral)}>
-          Laci {registerStatus.drawer}
-        </span>
+        <Show
+          fallback={<span class={cn(pillBase, pills.neutral)}>…</span>}
+          when={loaded()}
+        >
+          <span class={cn(pillBase, open() ? pills.open : pills.closed)}>
+            <Dot class={open() ? "text-primary" : "text-white/70"} />
+            {open() ? "Buka" : "Tutup"}
+          </span>
+          <Show
+            fallback={
+              <span class={cn(pillBase, pills.neutral)}>Laci Tutup</span>
+            }
+            when={open()}
+          >
+            <span
+              class={cn(pillBase, pills.neutral)}
+              title="Uang yang seharusnya di laci (float + tunai)"
+            >
+              Laci {drawerLabel()}
+            </span>
+          </Show>
+        </Show>
         <span class={cn(pillBase, pills.neutral)} title="Tersinkron">
           <CloudIcon class="size-3.5" />
         </span>
@@ -55,3 +77,14 @@ export const StatusPlaque = () => {
     </div>
   );
 };
+
+/** "Rp 2,6 jt" style short label for the pill. */
+function formatDrawer(minorUnits: number): string {
+  const rupiah = minorUnits / 100;
+  if (rupiah >= 1_000_000) {
+    return `Rp ${(rupiah / 1_000_000).toLocaleString("id-ID", {
+      maximumFractionDigits: 1,
+    })} jt`;
+  }
+  return `Rp ${rupiah.toLocaleString("id-ID")}`;
+}

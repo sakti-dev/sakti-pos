@@ -20,21 +20,6 @@ import {
 
 export { currentUser, currentVenue, earningsAmount };
 
-/* ── Register / drawer status ──────────────────────────────────── */
-
-export interface RegisterStatus {
-  /** Float amount in the cash drawer */
-  readonly drawer: string;
-  readonly open: boolean;
-  readonly synced: boolean;
-}
-
-export const registerStatus: RegisterStatus = {
-  open: true,
-  drawer: "Rp 450rb",
-  synced: true,
-} as const;
-
 /* ── Today's earnings breakdown ────────────────────────────────── */
 
 export interface EarningsBreakdown {

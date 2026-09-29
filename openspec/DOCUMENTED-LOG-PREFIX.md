@@ -191,6 +191,11 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SYNC:POLLING_START_FAILED]` | `providers/sync-client-provider.tsx` — `startPolling` rejected |
 | `[JS] [SYNC:STATUS_CHANGED]` | `providers/sync-client-provider.tsx` — polling cycle emitted state, includes `needsBaselineSync`, `localDirtyCount` |
 | `[JS] [SYNC:STATUS_GET_STATE_FAILED]` | `providers/sync-client-provider.tsx` — `getState()` threw inside status listener |
+| `[JS] [SHIFT:OPENED]` | `db/cash-shifts.ts` — shift opened, includes `shiftId`, `staffId`, `floatMinorUnits` |
+| `[JS] [SHIFT:CLOSED]` | `db/cash-shifts.ts` — setoran confirmed, includes `expectedMinorUnits`, `actualMinorUnits`, `differenceMinorUnits` |
+| `[JS] [SHIFT:GATE_BLOCKED]` | `pages/transactions/cash-register/components/shift-gate.tsx` — sale entry gated, no open shift |
+| `[JS] [SHIFT:OPEN_FAILED]` | `shift-gate.tsx` — openShift threw |
+| `[JS] [SHIFT:CLOSE_FAILED]` | `shift-close.tsx` — closeShift threw |
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
 | `[JS] [UI:REQUIRE_AUTH_GUARD]` | `App.tsx` |
