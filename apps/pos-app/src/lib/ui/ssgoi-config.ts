@@ -115,17 +115,18 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
         type: "parallax",
       }),
 
-      // Shift screens: axis from both doorways (dashboard card and the
-      // register pill) — feels like switching panes, not drilling deeper.
-      // Split into two groups so "/" ↔ register keeps its drill.
+      // Shift screens: horizontal axis from both doorways (dashboard
+      // card and the register pill) in every orientation — matches the
+      // drill-in feel of shell → register. Split into two groups so
+      // "/" ↔ register keeps its own drill pair.
       axis({
         paths: ["/transactions/cash-register", SHIFT_OPEN, SHIFT_CLOSE],
-        type: isPortrait ? "x" : "y",
+        type: "x",
         variant: "default",
       }),
       axis({
         paths: ["/", SHIFT_OPEN, SHIFT_CLOSE],
-        type: isPortrait ? "x" : "y",
+        type: "x",
         variant: "default",
       }),
     ],
