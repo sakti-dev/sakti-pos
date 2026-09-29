@@ -79,8 +79,8 @@ export function PinRightPanel() {
   return (
     <>
       {/* Right panel */}
-      <div class="relative flex min-h-screen flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-6 pt-10 lg:px-8 lg:py-4">
-        <div class="relative z-10 flex w-full max-w-[400px] flex-col items-center gap-5 sm:gap-6 lg:gap-2">
+      <div class="relative flex min-h-screen flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-6 pt-10 lg:justify-center lg:p-8">
+        <div class="relative z-10 flex w-full max-w-[400px] flex-col items-center gap-5 py-6 sm:gap-6 lg:gap-2 lg:py-0">
           {/* Mobile logo + greeting — portrait only */}
           <div class="lg:hidden">
             <div class="flex flex-col items-center gap-3 lg:hidden">
