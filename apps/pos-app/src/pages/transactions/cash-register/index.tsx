@@ -158,7 +158,7 @@ export default function CashRegisterPage() {
                       <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
                       <span class="relative inline-flex size-2 rounded-full bg-current" />
                     </span>
-                    Shift Buka · Tutup
+                    Shift Buka
                   </button>
                   <SearchBar
                     class="hidden w-72 lg:flex"
