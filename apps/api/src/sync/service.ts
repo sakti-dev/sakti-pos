@@ -1165,6 +1165,7 @@ export const repository = createDrizzleSyncRepository({
         outletId: requiredString(row.outletId, "outletId"),
         registerId: optionalString(row.registerId),
         openedByStaffId: requiredString(row.openedByStaffId, "openedByStaffId"),
+        closedByStaffId: optionalString(row.closedByStaffId),
         openedAt: requiredString(row.openedAt, "openedAt"),
         closedAt: optionalString(row.closedAt),
         initialFloatMinorUnits: requiredNumber(
@@ -1178,7 +1179,7 @@ export const repository = createDrizzleSyncRepository({
         actualCashMinorUnits: optionalNumber(row.actualCashMinorUnits),
         differenceMinorUnits: optionalNumber(row.differenceMinorUnits),
         status: requiredString(row.status, "status"),
-        note: requiredString(row.note, "note"),
+        note: optionalString(row.note),
         deletedAt: optionalString(row.deletedAt),
         syncUpdatedAt,
         createdAt: requiredString(row.createdAt, "cash_shifts.createdAt"),
@@ -1224,6 +1225,7 @@ export const repository = createDrizzleSyncRepository({
               outletId: sql.raw("excluded.outlet_id"),
               registerId: sql.raw("excluded.register_id"),
               openedByStaffId: sql.raw("excluded.opened_by_staff_id"),
+              closedByStaffId: sql.raw("excluded.closed_by_staff_id"),
               openedAt: sql.raw("excluded.opened_at"),
               closedAt: sql.raw("excluded.closed_at"),
               initialFloatMinorUnits: sql.raw(

@@ -160,7 +160,17 @@ export async function getShiftWindowTotals(
   qrisMinorUnits: number;
 }> {
   const toIso = dayjs().toISOString();
-  const orders = await ordersInWindow(shift.outletId, shift.openedAt, toIso);
+  let orders: OrderWindowRow[];
+  try {
+    orders = await ordersInWindow(shift.outletId, shift.openedAt, toIso);
+  } catch (error) {
+    logger.error("WINDOW_QUERY_FAILED", String(error), {
+      fromIso: shift.openedAt,
+      outletId: shift.outletId,
+      toIso,
+    });
+    throw error;
+  }
   let cash = 0;
   let qris = 0;
   for (const order of orders) {
@@ -170,6 +180,21 @@ export async function getShiftWindowTotals(
       qris += order.totalMinorUnits;
     }
   }
+  logger.info("WINDOW_TOTALS", {
+    cashMinorUnits: cash,
+    fromIso: shift.openedAt,
+    outletId: shift.outletId,
+    qrisMinorUnits: qris,
+    rows: orders.length,
+    sample: orders[0]
+      ? {
+          createdAt: orders[0].createdAt,
+          paymentMethod: orders[0].paymentMethod,
+          status: orders[0].status,
+        }
+      : null,
+    toIso,
+  });
   return {
     cashMinorUnits: cash,
     expectedInDrawerMinorUnits: cash + shift.initialFloatMinorUnits,
