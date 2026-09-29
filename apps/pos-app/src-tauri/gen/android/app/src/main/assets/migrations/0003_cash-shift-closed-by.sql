@@ -1,0 +1,1 @@
+ALTER TABLE `cash_shifts` ADD `closed_by_staff_id` text REFERENCES staff(`id`) ON UPDATE no action ON DELETE no action;--> statement-breakpoint

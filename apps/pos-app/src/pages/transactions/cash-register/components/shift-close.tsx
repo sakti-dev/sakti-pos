@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { createResource, createSignal, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { Button } from "~/components/ui/button";
@@ -107,11 +108,7 @@ export const ShiftClose = (props: ShiftCloseProps) => {
     }
   };
 
-  const openedLabel = () =>
-    new Date(props.shift.openedAt).toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const openedLabel = () => dayjs(props.shift.openedAt).format("HH:mm");
 
   return (
     <div class="min-h-dvh bg-muted p-4 lg:p-8">

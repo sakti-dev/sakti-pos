@@ -1,5 +1,4 @@
 import { createResource, Show } from "solid-js";
-import { CloudIcon } from "~/assets";
 import { getDrawerSnapshot } from "~/db/cash-shifts";
 import { cn } from "~/lib/utils";
 import { currentUser, currentVenue } from "../lib/data";
@@ -70,9 +69,6 @@ export const StatusPlaque = () => {
             </span>
           </Show>
         </Show>
-        <span class={cn(pillBase, pills.neutral)} title="Tersinkron">
-          <CloudIcon class="size-3.5" />
-        </span>
       </div>
     </div>
   );

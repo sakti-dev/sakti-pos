@@ -1,5 +1,11 @@
-import { A, useNavigate } from "@solidjs/router";
-import { createResource, createSignal, For, Show } from "solid-js";
+import { A, useNavigate, useSearchParams } from "@solidjs/router";
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  For,
+  Show,
+} from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, CartShoppingIcon } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
@@ -27,10 +33,11 @@ import { ShiftGate } from "./components/shift-gate";
 
 export default function CashRegisterPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeCat, setActiveCat] = createSignal<string>("all");
   const [search, setSearch] = createSignal("");
   const [sheetOpen, setSheetOpen] = createSignal(false);
-  const [closing, setClosing] = createSignal(false);
+  const [closing, setClosing] = createSignal(searchParams.closing === "1");
   const [shift, { refetch: refetchShift }] = createResource(() =>
     getOpenShift()
   );
@@ -39,6 +46,14 @@ export default function CashRegisterPage() {
     setClosing(false);
     refetchShift();
   };
+
+  // Consumed the deep-link (home card → close flow); clean the URL so
+  // refresh/back doesn't re-enter closing.
+  createEffect(() => {
+    if (searchParams.closing) {
+      setSearchParams({ closing: undefined }, { replace: true });
+    }
+  });
 
   const [categories] = createResource(getCategories);
   const [productRows] = createResource(() => getProducts());

@@ -4,6 +4,7 @@ import { useOrientation } from "~/lib/ui/use-orientation";
 import { AttentionList } from "./components/attention-list";
 import { MenuNav } from "./components/menu-nav";
 import { MoneyHero } from "./components/money-hero";
+import { ShiftCard } from "./components/shift-card";
 import { StartSale } from "./components/start-sale";
 import { StatusPlaque } from "./components/status-plaque";
 
@@ -38,6 +39,11 @@ export default function HomePage() {
         enable={enable()}
         y={40}
       >
+        {/* Toko state — open/close shift owns the day's boundary */}
+        <FadeIn delay={STAGGER * 3} duration={0.4} enable={enable()} y={14}>
+          <ShiftCard />
+        </FadeIn>
+
         {/* Hero action — the sale is the anchor */}
         <FadeIn delay={STAGGER * 4} duration={0.4} enable={enable()} y={14}>
           <StartSale />
