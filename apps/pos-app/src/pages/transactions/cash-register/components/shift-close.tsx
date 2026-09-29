@@ -1,6 +1,8 @@
 import dayjs from "dayjs";
 import { createResource, createSignal, For, Show } from "solid-js";
 import { toast } from "solid-sonner";
+import { ArrowLeftIcon } from "~/assets";
+import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
 import type { CashShiftRow } from "~/db/cash-shifts";
@@ -109,188 +111,213 @@ export const ShiftClose = (props: ShiftCloseProps) => {
   };
 
   const openedLabel = () => dayjs(props.shift.openedAt).format("HH:mm");
+  const back = () => (closedRow() ? props.onClosed() : props.onCancel());
 
   return (
-    <div class="min-h-dvh bg-muted p-4 lg:p-8">
-      <FadeIn
-        class="mx-auto flex w-full max-w-md flex-col gap-4"
-        duration={0.4}
-        y={16}
-      >
-        <Show
-          fallback={
-            <>
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <h1 class="font-bold font-display text-body-lg text-foreground">
-                    Tutup Shift
-                  </h1>
-                  <p class="text-caption text-muted-foreground">
-                    Dibuka {openedLabel()} · float{" "}
-                    {formatRupiah(props.shift.initialFloatMinorUnits / 100)}
-                  </p>
-                </div>
-                <Button look="ghost" onClick={props.onCancel} size="sm">
-                  Batal
-                </Button>
-              </div>
-
-              <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-card">
-                <h2 class="font-semibold text-caption text-muted-foreground tracking-wider">
-                  SETORAN DIHARAPKAN
-                </h2>
-                <SummaryLine
-                  rows={[
-                    {
-                      label: "Float awal",
-                      value: formatRupiah(
-                        props.shift.initialFloatMinorUnits / 100
-                      ),
-                    },
-                    {
-                      label: "Penjualan tunai",
-                      value: formatRupiah(
-                        (totals()?.cashMinorUnits ?? 0) / 100
-                      ),
-                    },
-                    {
-                      label: "QRIS (non-laci)",
-                      value: formatRupiah(
-                        (totals()?.qrisMinorUnits ?? 0) / 100
-                      ),
-                    },
-                  ]}
-                />
-                <div class="flex items-baseline justify-between gap-4 border-border border-t pt-3">
-                  <span class="font-semibold text-body-sm text-foreground">
-                    Diharapkan di laci
-                  </span>
-                  <span class="font-display font-extrabold text-foreground text-heading tabular-nums">
-                    {formatRupiah(expected() / 100)}
-                  </span>
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-card">
-                <label
-                  class="font-semibold text-caption text-muted-foreground tracking-wider"
-                  for="shift-count"
-                >
-                  HITUNGAN KASIR
-                </label>
-                <div class="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-background px-4 transition-colors focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/10">
-                  <span class="font-semibold text-body text-muted-foreground">
-                    Rp
-                  </span>
-                  <input
-                    aria-label="Hitungan kasir"
-                    autocomplete="off"
-                    class="w-full bg-transparent font-bold text-foreground text-heading-lg tabular-nums outline-none"
-                    id="shift-count"
-                    inputmode="numeric"
-                    onInput={handleInput}
-                    placeholder="0"
-                    value={
-                      countRaw()
-                        ? Number.parseInt(countRaw(), 10).toLocaleString(
-                            "id-ID"
-                          )
-                        : ""
-                    }
-                  />
-                </div>
-                <Show when={countRaw()}>
-                  <p
-                    class={`text-body-sm tabular-nums ${differenceClass()}`}
-                    role="status"
-                  >
-                    {differenceLabel()}
-                  </p>
-                </Show>
-                <textarea
-                  aria-label="Catatan shift"
-                  class="min-h-[64px] resize-y rounded-xl border border-border bg-background px-3.5 py-2.5 font-[inherit] text-body-sm text-foreground outline-none transition-colors focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-                  onInput={(e) => setNote(e.currentTarget.value)}
-                  placeholder="Catatan (opsional)"
-                  value={note()}
-                />
-                <Show when={hasCart()}>
-                  <p class="rounded-lg bg-warning/10 px-3 py-2 text-caption text-warning">
-                    Ada keranjang belum dibayar — keranjang akan dibuang saat
-                    shift ditutup.
-                  </p>
-                </Show>
-                <Button
-                  class="h-12 w-full font-bold text-body-sm"
-                  disabled={submitting()}
-                  onClick={submit}
-                >
-                  {submitting() ? "Menutup…" : "Konfirmasi Tutup Shift"}
-                </Button>
-              </div>
-            </>
-          }
-          when={closedRow()}
+    <SafeAreaShell
+      class="bg-muted"
+      data-ssgoi-transition="/transactions/cash-register"
+    >
+      <div class="flex h-full flex-col">
+        <FadeIn
+          class="flex h-header shrink-0 items-center gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
+          duration={0.4}
+          x={-20}
         >
-          {(row) => (
-            <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-card">
-              <div class="flex items-center gap-3">
-                <span class="grid size-10 place-items-center rounded-full bg-success/15 font-bold text-body-lg text-success">
-                  ✓
-                </span>
-                <div>
-                  <h1 class="font-bold font-display text-body-lg text-foreground">
-                    Shift Ditutup
-                  </h1>
-                  <p class="text-caption text-muted-foreground">
-                    Setoran tercatat dan tersinkron
-                  </p>
+          <button
+            aria-label="Kembali"
+            class="grid h-[38px] w-[38px] place-items-center rounded-xl border border-border bg-card text-foreground transition-colors duration-150 hover:border-primary/20 hover:bg-primary/5"
+            onClick={back}
+            type="button"
+          >
+            <ArrowLeftIcon class="size-5" />
+          </button>
+          <span class="font-bold font-display text-body-lg text-foreground">
+            Tutup Shift
+          </span>
+        </FadeIn>
+
+        <FadeIn
+          class="scrollbar-none min-h-0 flex-1 overflow-y-auto p-4 lg:p-8"
+          delay={0.08}
+          duration={0.45}
+          y={16}
+        >
+          <div class="mx-auto flex w-full max-w-md flex-col gap-4">
+            <Show
+              fallback={
+                <>
+                  <div>
+                    <p class="text-caption text-muted-foreground">
+                      Dibuka {openedLabel()} · float{" "}
+                      {formatRupiah(props.shift.initialFloatMinorUnits / 100)}
+                    </p>
+                  </div>
+
+                  <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-card">
+                    <h2 class="font-semibold text-caption text-muted-foreground tracking-wider">
+                      SETORAN DIHARAPKAN
+                    </h2>
+                    <SummaryLine
+                      rows={[
+                        {
+                          label: "Float awal",
+                          value: formatRupiah(
+                            props.shift.initialFloatMinorUnits / 100
+                          ),
+                        },
+                        {
+                          label: "Penjualan tunai",
+                          value: formatRupiah(
+                            (totals()?.cashMinorUnits ?? 0) / 100
+                          ),
+                        },
+                        {
+                          label: "QRIS (non-laci)",
+                          value: formatRupiah(
+                            (totals()?.qrisMinorUnits ?? 0) / 100
+                          ),
+                        },
+                      ]}
+                    />
+                    <div class="flex items-baseline justify-between gap-4 border-border border-t pt-3">
+                      <span class="font-semibold text-body-sm text-foreground">
+                        Diharapkan di laci
+                      </span>
+                      <span class="font-display font-extrabold text-foreground text-heading tabular-nums">
+                        {formatRupiah(expected() / 100)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-card">
+                    <label
+                      class="font-semibold text-caption text-muted-foreground tracking-wider"
+                      for="shift-count"
+                    >
+                      HITUNGAN KASIR
+                    </label>
+                    <div class="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-background px-4 transition-colors focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/10">
+                      <span class="font-semibold text-body text-muted-foreground">
+                        Rp
+                      </span>
+                      <input
+                        aria-label="Hitungan kasir"
+                        autocomplete="off"
+                        class="w-full bg-transparent font-bold text-foreground text-heading-lg tabular-nums outline-none"
+                        id="shift-count"
+                        inputmode="numeric"
+                        onInput={handleInput}
+                        placeholder="0"
+                        value={
+                          countRaw()
+                            ? Number.parseInt(countRaw(), 10).toLocaleString(
+                                "id-ID"
+                              )
+                            : ""
+                        }
+                      />
+                    </div>
+                    <Show when={countRaw()}>
+                      <p
+                        class={`text-body-sm tabular-nums ${differenceClass()}`}
+                        role="status"
+                      >
+                        {differenceLabel()}
+                      </p>
+                    </Show>
+                    <textarea
+                      aria-label="Catatan shift"
+                      class="min-h-[64px] resize-y rounded-xl border border-border bg-background px-3.5 py-2.5 font-[inherit] text-body-sm text-foreground outline-none transition-colors focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                      onInput={(e) => setNote(e.currentTarget.value)}
+                      placeholder="Catatan (opsional)"
+                      value={note()}
+                    />
+                    <Show when={hasCart()}>
+                      <p class="rounded-lg bg-warning/10 px-3 py-2 text-caption text-warning">
+                        Ada keranjang belum dibayar — keranjang akan dibuang
+                        saat shift ditutup.
+                      </p>
+                    </Show>
+                    <Button
+                      class="h-12 w-full font-bold text-body-sm"
+                      disabled={submitting()}
+                      onClick={submit}
+                    >
+                      {submitting() ? "Menutup…" : "Konfirmasi Tutup Shift"}
+                    </Button>
+                  </div>
+                </>
+              }
+              when={closedRow()}
+            >
+              {(row) => (
+                <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-card">
+                  <div class="flex items-center gap-3">
+                    <span class="grid size-10 place-items-center rounded-full bg-success/15 font-bold text-body-lg text-success">
+                      ✓
+                    </span>
+                    <div>
+                      <h1 class="font-bold font-display text-body-lg text-foreground">
+                        Shift Ditutup
+                      </h1>
+                      <p class="text-caption text-muted-foreground">
+                        Setoran tercatat dan tersinkron
+                      </p>
+                    </div>
+                  </div>
+                  <SummaryLine
+                    rows={[
+                      {
+                        label: "Float awal",
+                        value: formatRupiah(
+                          props.shift.initialFloatMinorUnits / 100
+                        ),
+                      },
+                      {
+                        label: "Penjualan tunai",
+                        value: formatRupiah(
+                          (totals()?.cashMinorUnits ?? 0) / 100
+                        ),
+                      },
+                      {
+                        label: "QRIS (non-laci)",
+                        value: formatRupiah(
+                          (totals()?.qrisMinorUnits ?? 0) / 100
+                        ),
+                      },
+                      {
+                        label: "Diharapkan",
+                        value: formatRupiah(
+                          (row().expectedCashMinorUnits ?? 0) / 100
+                        ),
+                      },
+                      {
+                        label: "Hitungan kasir",
+                        value: formatRupiah(
+                          (row().actualCashMinorUnits ?? 0) / 100
+                        ),
+                      },
+                      {
+                        label: "Selisih",
+                        value: formatDifference(
+                          row().differenceMinorUnits ?? 0
+                        ),
+                      },
+                    ]}
+                  />
+                  <Button
+                    class="mt-1 h-12 w-full font-bold text-body-sm"
+                    onClick={props.onClosed}
+                  >
+                    Selesai
+                  </Button>
                 </div>
-              </div>
-              <SummaryLine
-                rows={[
-                  {
-                    label: "Float awal",
-                    value: formatRupiah(
-                      props.shift.initialFloatMinorUnits / 100
-                    ),
-                  },
-                  {
-                    label: "Penjualan tunai",
-                    value: formatRupiah((totals()?.cashMinorUnits ?? 0) / 100),
-                  },
-                  {
-                    label: "QRIS (non-laci)",
-                    value: formatRupiah((totals()?.qrisMinorUnits ?? 0) / 100),
-                  },
-                  {
-                    label: "Diharapkan",
-                    value: formatRupiah(
-                      (row().expectedCashMinorUnits ?? 0) / 100
-                    ),
-                  },
-                  {
-                    label: "Hitungan kasir",
-                    value: formatRupiah(
-                      (row().actualCashMinorUnits ?? 0) / 100
-                    ),
-                  },
-                  {
-                    label: "Selisih",
-                    value: formatDifference(row().differenceMinorUnits ?? 0),
-                  },
-                ]}
-              />
-              <Button
-                class="mt-1 h-12 w-full font-bold text-body-sm"
-                onClick={props.onClosed}
-              >
-                Selesai
-              </Button>
-            </div>
-          )}
-        </Show>
-      </FadeIn>
-    </div>
+              )}
+            </Show>
+          </div>
+        </FadeIn>
+      </div>
+    </SafeAreaShell>
   );
 };
