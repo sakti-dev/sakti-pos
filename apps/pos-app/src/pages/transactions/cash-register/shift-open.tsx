@@ -4,7 +4,6 @@ import { toast } from "solid-sonner";
 import { ArrowLeftIcon, WalletIcon } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
-import { FadeIn } from "~/components/ui/fade-in";
 import { openShift } from "~/db/cash-shifts";
 import { createLogger, formatRupiah } from "~/lib/utils";
 
@@ -57,11 +56,7 @@ export default function ShiftOpenPage() {
       data-ssgoi-transition="/transactions/cash-register/shift-open"
     >
       <div class="flex h-full flex-col">
-        <FadeIn
-          class="flex h-header shrink-0 items-center gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
-          duration={0.4}
-          x={-20}
-        >
+        <div class="flex h-header shrink-0 items-center gap-3.5 border-border border-b bg-card px-3.5 lg:px-5">
           <A
             aria-label="Kembali"
             class="grid h-[38px] w-[38px] place-items-center rounded-xl border border-border bg-card text-foreground transition-colors duration-150 hover:border-primary/20 hover:bg-primary/5"
@@ -72,14 +67,9 @@ export default function ShiftOpenPage() {
           <span class="font-bold font-display text-body-lg text-foreground">
             Buka Shift
           </span>
-        </FadeIn>
+        </div>
 
-        <FadeIn
-          class="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-4 lg:p-8"
-          delay={0.08}
-          duration={0.45}
-          y={16}
-        >
+        <div class="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-4 lg:p-8">
           <div class="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-card">
             <div class="flex items-center gap-3.5">
               <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -134,7 +124,7 @@ export default function ShiftOpenPage() {
               {submitting() ? "Membuka…" : "Buka Shift"}
             </Button>
           </div>
-        </FadeIn>
+        </div>
       </div>
     </SafeAreaShell>
   );

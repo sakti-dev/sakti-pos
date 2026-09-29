@@ -5,7 +5,6 @@ import { toast } from "solid-sonner";
 import { ArrowLeftIcon } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
-import { FadeIn } from "~/components/ui/fade-in";
 import type { CashShiftRow } from "~/db/cash-shifts";
 import {
   closeShift,
@@ -129,11 +128,7 @@ export default function ShiftClosePage() {
       data-ssgoi-transition="/transactions/cash-register/shift-close"
     >
       <div class="flex h-full flex-col">
-        <FadeIn
-          class="flex h-header shrink-0 items-center gap-3.5 border-border border-b bg-card px-3.5 lg:px-5"
-          duration={0.4}
-          x={-20}
-        >
+        <div class="flex h-header shrink-0 items-center gap-3.5 border-border border-b bg-card px-3.5 lg:px-5">
           <button
             aria-label="Kembali"
             class="grid h-[38px] w-[38px] place-items-center rounded-xl border border-border bg-card text-foreground transition-colors duration-150 hover:border-primary/20 hover:bg-primary/5"
@@ -145,14 +140,9 @@ export default function ShiftClosePage() {
           <span class="font-bold font-display text-body-lg text-foreground">
             Tutup Shift
           </span>
-        </FadeIn>
+        </div>
 
-        <FadeIn
-          class="scrollbar-none min-h-0 flex-1 overflow-y-auto p-4 lg:p-8"
-          delay={0.08}
-          duration={0.45}
-          y={16}
-        >
+        <div class="scrollbar-none min-h-0 flex-1 overflow-y-auto p-4 lg:p-8">
           <div class="mx-auto flex w-full max-w-md flex-col gap-4">
             <Show
               fallback={
@@ -334,7 +324,7 @@ export default function ShiftClosePage() {
               )}
             </Show>
           </div>
-        </FadeIn>
+        </div>
       </div>
     </SafeAreaShell>
   );
