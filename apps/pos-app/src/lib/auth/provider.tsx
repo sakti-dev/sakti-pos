@@ -1,9 +1,16 @@
 import { useLocation, useNavigate } from "@solidjs/router";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrent } from "@tauri-apps/plugin-deep-link";
-import { onCleanup, onMount, type ParentComponent } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  onCleanup,
+  onMount,
+  type ParentComponent,
+} from "solid-js";
 import { toast } from "solid-sonner";
 import { exchangeGoogleOAuthCode, getMerchants } from "~/lib/auth/cloud";
+import { currentUser } from "~/lib/auth/session";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger, describeError } from "~/lib/utils";
 
@@ -57,6 +64,9 @@ export const AuthProvider: ParentComponent = (props) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Pairing state from durable storage: undefined = not yet known.
+  const [paired, setPaired] = createSignal<boolean | undefined>(undefined);
+
   onMount(async () => {
     // Check for cold-start URLs (arrived before JS listener was ready)
     try {
@@ -80,14 +90,36 @@ export const AuthProvider: ParentComponent = (props) => {
 
     onCleanup(() => unlisten());
 
-    // Auth guard: redirect to login if no session on protected routes
+    // Pairing check: a stored cloud token means this device is paired
+    // and its local DB is in sync — staff identity still needs PIN.
     const token = await AuthStorage.getToken();
-    const path = location.pathname;
-    const isPublic = PUBLIC_PATHS.has(path) || path.startsWith("/auth/");
+    setPaired(token != null);
+  });
 
-    if (!(token || isPublic)) {
-      logger.info("redirect_unauthenticated", { path });
+  // Session gate, reactive to both pairing state and navigation:
+  //   unpaired            → email login (first pairing / token gone)
+  //   paired, no session  → staff select + PIN (every app start/reload)
+  //   paired, session ✓   → through
+  createEffect(() => {
+    // Track the reactive inputs the gate depends on.
+    const path = location.pathname;
+    const isPaired = paired();
+    const hasSession = currentUser() != null;
+
+    const isPublic = PUBLIC_PATHS.has(path) || path.startsWith("/auth/");
+    if (isPublic || isPaired === undefined) {
+      return;
+    }
+
+    if (!isPaired) {
+      logger.info("redirect_unpaired", { path });
       navigate("/auth/login", { replace: true });
+      return;
+    }
+
+    if (!hasSession) {
+      logger.info("redirect_pin_gate", { path });
+      navigate("/auth/pin", { replace: true });
     }
   });
 

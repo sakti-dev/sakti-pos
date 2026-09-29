@@ -109,7 +109,20 @@ export const loginWithCloudStaff = async (
   return authUser;
 };
 
+/**
+ * End the staff session only — the device stays paired (cloud token,
+ * sync scope, synced data intact) so the next login is account-select
+ * + PIN, not the full email flow.
+ */
 export const logout = () => {
+  setUser(null);
+};
+
+/**
+ * Full unpair: end the session AND forget the sync scope. Only for
+ * explicit device-unpair flows (not the sidebar Keluar).
+ */
+export const unpair = () => {
   setUser(null);
   clearScope();
 };

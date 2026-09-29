@@ -26,7 +26,8 @@ const cloudAuthLogger = createLogger({
 
 export type CloudAuthStep = "auth" | "merchant-picker" | "outlet-picker";
 
-const routeForRole = (role: string) => (role === "cashier" ? "/pos" : "/");
+const routeForRole = (role: string) =>
+  role === "cashier" ? "/transactions/cash-register" : "/";
 
 export function useCloudAuthFlow() {
   const navigate = useNavigate();

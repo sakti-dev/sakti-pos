@@ -1,4 +1,4 @@
-import { A } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { For, Show } from "solid-js";
 import {
   BoxPackageIcon,
@@ -8,6 +8,7 @@ import {
   SettingsIcon,
 } from "~/assets";
 import { Button } from "~/components/ui/button";
+import { logout } from "~/lib/auth/session";
 import type { NavKey } from "~/lib/ui/shell-config";
 import { cn } from "~/lib/utils";
 
@@ -47,6 +48,8 @@ interface SidebarProps {
 }
 
 export const Sidebar = (props: SidebarProps) => {
+  const navigate = useNavigate();
+
   return (
     <div
       class={cn(
@@ -115,16 +118,19 @@ export const Sidebar = (props: SidebarProps) => {
           </For>
         </div>
 
-        {/* Logout */}
+        {/* Keluar — ends the staff session; device stays paired, so the
+            next login is account-select + PIN, not email */}
         <Button
           aria-label="Keluar"
-          as={A}
           class={cn(
             "flex h-[58px] items-center justify-start gap-[7px] rounded-2xl [&>svg]:transition-transform [&>svg]:duration-150 [&>svg]:hover:translate-x-0.5",
             props.expanded ? "mb-1 w-full px-3" : "mb-1 w-[52px] px-[15px]"
           )}
-          href="/auth/login"
           look="ghost"
+          onClick={() => {
+            logout();
+            navigate("/auth/pin");
+          }}
           size="none"
           tone="danger"
           type="button"

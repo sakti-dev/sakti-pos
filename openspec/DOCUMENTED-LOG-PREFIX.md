@@ -52,6 +52,8 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [AUTH:CURRENT_CLOUD_STAFF_FAILED]` | `pages/login/use-cloud-auth-flow.ts` |
 | `[JS] [AUTH:CURRENT_CLOUD_STAFF_REQUEST]` | `pages/login/use-cloud-auth-flow.ts` |
 | `[JS] [AUTH:CURRENT_CLOUD_STAFF_RESULT]` | `pages/login/use-cloud-auth-flow.ts` |
+| `[JS] [AUTH:REDIRECT_UNPAIRED]` | `lib/auth/provider.tsx` — no stored cloud token, routed to email login |
+| `[JS] [AUTH:REDIRECT_PIN_GATE]` | `lib/auth/provider.tsx` — paired device without a staff session, routed to PIN gate |
 | `[JS] [AUTH:LOCAL_CLOUD_STAFF_LOGIN_FAILED]` | `pages/login/use-cloud-auth-flow.ts` |
 | `[JS] [AUTH:LOGIN_WITH_CLOUD_STAFF_LOCAL_SAMPLE]` | `store/auth.ts` |
 | `[JS] [AUTH:LOGIN_WITH_CLOUD_STAFF_REQUEST]` | `store/auth.ts` |

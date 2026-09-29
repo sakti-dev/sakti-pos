@@ -5,7 +5,8 @@ import { verifyPin } from "~/lib/auth/pin";
 import type { AuthUser } from "~/lib/auth/session";
 import { LOCK_DURATION_MS, MAX_ATTEMPTS, MAX_PIN, type PinUser } from "./types";
 
-const routeForRole = (role: string) => (role === "cashier" ? "/pos" : "/");
+const routeForRole = (role: string) =>
+  role === "cashier" ? "/transactions/cash-register" : "/";
 
 export interface UsePinAuthOptions {
   readonly onSuccess: (authUser: AuthUser) => void;
