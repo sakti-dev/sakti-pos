@@ -1,8 +1,8 @@
 import { useNavigate } from "@solidjs/router";
 import { type Accessor, createSignal, onCleanup } from "solid-js";
 import { toast } from "solid-sonner";
-import { verifyPin } from "~/lib/auth/pin";
 import type { AuthUser } from "~/lib/auth/session";
+import { login } from "~/lib/auth/session";
 import { LOCK_DURATION_MS, MAX_ATTEMPTS, MAX_PIN, type PinUser } from "./types";
 
 const routeForRole = (role: string) =>
@@ -38,7 +38,9 @@ export function usePinAuth(options: UsePinAuthOptions) {
     }
     setVerifying(true);
     try {
-      const authUser = await verifyPin(options.user().id, pin());
+      // login() verifies the PIN AND establishes the session signal —
+      // the router gate depends on it after navigation.
+      const authUser = await login(options.user().id, pin());
       options.onSuccess(authUser);
       toast.success(`Selamat datang, ${authUser.name.split(" ")[0]}!`);
       setTimeout(
