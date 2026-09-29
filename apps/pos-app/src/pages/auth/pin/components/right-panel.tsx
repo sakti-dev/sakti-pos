@@ -79,10 +79,10 @@ export function PinRightPanel() {
   return (
     <>
       {/* Right panel */}
-      <div class="relative flex min-h-screen flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-6 pt-10 lg:p-8">
-        <div class="relative z-10 flex w-full max-w-[400px] flex-col items-center gap-5 sm:gap-6">
-          {/* Mobile logo (hidden on desktop) */}
-          <div>
+      <div class="relative flex min-h-screen flex-1 flex-col items-center overflow-y-auto overflow-x-hidden bg-background p-6 pt-10 lg:px-8 lg:py-4">
+        <div class="relative z-10 flex w-full max-w-[400px] flex-col items-center gap-5 sm:gap-6 lg:gap-2">
+          {/* Mobile logo + greeting — portrait only */}
+          <div class="lg:hidden">
             <div class="flex flex-col items-center gap-3 lg:hidden">
               <img
                 alt="Nata POS"
@@ -115,7 +115,7 @@ export function PinRightPanel() {
           </Show>
 
           {/* Title */}
-          <div class="text-center font-medium text-body text-muted-foreground leading-relaxed tracking-normal">
+          <div class="text-center font-medium text-body text-muted-foreground leading-relaxed tracking-normal lg:text-caption lg:leading-normal">
             Masukkan PIN untuk melanjutkan
           </div>
 
@@ -125,7 +125,7 @@ export function PinRightPanel() {
           {/* Error message */}
           <div
             class={cn(
-              "min-h-5 text-center font-medium text-body-sm text-danger transition duration-200",
+              "min-h-5 text-center font-medium text-body-sm text-danger transition duration-200 lg:min-h-4",
               !auth.error() && "-translate-y-1 opacity-0",
               !!auth.error() && "translate-y-0 opacity-100"
             )}
@@ -142,7 +142,7 @@ export function PinRightPanel() {
           />
 
           {/* Switch account */}
-          <div class="mt-1 flex items-center justify-center">
+          <div class="mt-1 flex items-center justify-center lg:mt-0">
             <Button
               class="rounded-full px-5 py-2.5 text-faint-foreground hover:text-foreground"
               look="outline"

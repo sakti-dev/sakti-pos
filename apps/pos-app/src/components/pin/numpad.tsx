@@ -13,18 +13,18 @@ export function Numpad(props: NumpadProps) {
   return (
     <fieldset
       aria-label="Numpad"
-      class="grid w-full max-w-[260px] grid-cols-3 gap-2 border-none p-0 sm:max-w-[280px] sm:gap-2.5"
+      class="grid w-full max-w-[260px] grid-cols-3 gap-2 border-none p-0 sm:max-w-[280px] sm:gap-2.5 lg:gap-1.5"
     >
       <For each={KEYS}>
         {(key) => {
           if (key === null) {
-            return <div class="h-14 sm:h-[60px]" />;
+            return <div class="h-14 sm:h-[60px] lg:h-12" />;
           }
           if (key === "back") {
             return (
               <button
                 aria-label="Hapus"
-                class="flex h-14 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-none transition duration-150 hover:border-danger/20 hover:bg-danger/5 hover:text-danger active:scale-[0.94] active:bg-danger/10 disabled:pointer-events-none disabled:opacity-40 sm:h-[60px]"
+                class="flex h-14 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-none transition duration-150 hover:border-danger/20 hover:bg-danger/5 hover:text-danger active:scale-[0.94] active:bg-danger/10 disabled:pointer-events-none disabled:opacity-40 sm:h-[60px] lg:h-12"
                 disabled={props.disabled}
                 onClick={props.onBackspace}
                 type="button"
@@ -36,7 +36,7 @@ export function Numpad(props: NumpadProps) {
           return (
             <button
               aria-label={String(key)}
-              class="grid h-14 place-items-center rounded-lg border-none bg-card font-display font-semibold text-foreground text-heading-sm text-subheading shadow-card transition duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 sm:h-[60px]"
+              class="grid h-14 place-items-center rounded-lg border-none bg-card font-display font-semibold text-foreground text-heading-sm text-subheading shadow-card transition duration-150 hover:bg-accent-soft hover:text-primary hover:shadow-card-hover active:scale-[0.94] active:bg-accent/10 disabled:pointer-events-none disabled:opacity-40 sm:h-[60px] lg:h-12"
               disabled={props.disabled}
               onClick={() => props.onDigit(String(key))}
               type="button"
