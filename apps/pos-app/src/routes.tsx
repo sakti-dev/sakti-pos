@@ -36,6 +36,8 @@ import { SectionTax } from "./pages/setting/components/section-tax";
 import { SectionTeams } from "./pages/setting/components/section-teams";
 import Transactions from "./pages/transactions";
 import CashRegisterPage from "./pages/transactions/cash-register";
+import ShiftClosePage from "./pages/transactions/cash-register/shift-close";
+import ShiftOpenPage from "./pages/transactions/cash-register/shift-open";
 import PaymentPage from "./pages/transactions/payment";
 import QrisPayScreen from "./pages/transactions/payment/qris";
 import Receipt from "./pages/transactions/receipt";
@@ -102,6 +104,14 @@ export default function AppRoutes() {
       <Route component={StocktakePage} path="/inventory/stocktake/new" />
       <Route component={GoodsReceiptPage} path="/inventory/goods-receipt/new" />
       <Route component={CashRegisterPage} path="/transactions/cash-register" />
+      <Route
+        component={ShiftOpenPage}
+        path="/transactions/cash-register/shift-open"
+      />
+      <Route
+        component={ShiftClosePage}
+        path="/transactions/cash-register/shift-close"
+      />
       <Route component={PaymentPage} path="/transactions/payment" />
       <Route component={QrisPayScreen} path="/transactions/payment/qris" />
       <Route component={Receipt} path="/transactions/receipt" />

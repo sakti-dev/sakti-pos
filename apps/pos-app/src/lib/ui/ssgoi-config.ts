@@ -5,6 +5,8 @@ import { axis, drill, fade } from "@ssgoi/solid/view-transitions";
 
 const SHELL_PATHS = ["/", "/transactions", "/inventory", "/setting"] as const;
 const AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/pin"] as const;
+const SHIFT_OPEN = "/transactions/cash-register/shift-open";
+const SHIFT_CLOSE = "/transactions/cash-register/shift-close";
 
 /* ── Root config factory ───────────────────────────────────────────
    Pure: takes the current orientation so the caller can drive it
@@ -111,6 +113,20 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
         enter: "/inventory/history",
         exit: "/inventory",
         type: "parallax",
+      }),
+
+      // Shift screens: axis from both doorways (dashboard card and the
+      // register pill) — feels like switching panes, not drilling deeper.
+      // Split into two groups so "/" ↔ register keeps its drill.
+      axis({
+        paths: ["/transactions/cash-register", SHIFT_OPEN, SHIFT_CLOSE],
+        type: isPortrait ? "x" : "y",
+        variant: "default",
+      }),
+      axis({
+        paths: ["/", SHIFT_OPEN, SHIFT_CLOSE],
+        type: isPortrait ? "x" : "y",
+        variant: "default",
       }),
     ],
   };

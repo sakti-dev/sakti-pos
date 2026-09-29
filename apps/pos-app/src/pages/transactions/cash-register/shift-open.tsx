@@ -1,4 +1,4 @@
-import { A } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { createSignal, onMount, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { ArrowLeftIcon, WalletIcon } from "~/assets";
@@ -8,19 +8,16 @@ import { FadeIn } from "~/components/ui/fade-in";
 import { openShift } from "~/db/cash-shifts";
 import { createLogger, formatRupiah } from "~/lib/utils";
 
-const logger = createLogger({ domain: "SHIFT", module: "shift-gate" });
+const logger = createLogger({ domain: "SHIFT", module: "shift-open" });
 
 const MAX_DIGITS = 9;
 
-interface ShiftGateProps {
-  readonly onOpened: () => void;
-}
-
 /**
- * Sale-entry gate: rendered in place of the register while the outlet has
- * no open cash shift. Single action — open the drawer with a float.
+ * Sale-entry gate: the register redirects here while the outlet has no
+ * open cash shift. Single action — open the drawer with a float.
  */
-export const ShiftGate = (props: ShiftGateProps) => {
+export default function ShiftOpenPage() {
+  const navigate = useNavigate();
   const [floatRaw, setFloatRaw] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
 
@@ -46,7 +43,7 @@ export const ShiftGate = (props: ShiftGateProps) => {
     try {
       await openShift(floatAmount() * 100);
       toast.success("Shift dibuka — selamat bekerja!");
-      props.onOpened();
+      navigate("/transactions/cash-register", { replace: true });
     } catch (error) {
       logger.error("OPEN_FAILED", String(error));
       toast.error("Gagal membuka shift");
@@ -57,7 +54,7 @@ export const ShiftGate = (props: ShiftGateProps) => {
   return (
     <SafeAreaShell
       class="bg-muted"
-      data-ssgoi-transition="/transactions/cash-register"
+      data-ssgoi-transition="/transactions/cash-register/shift-open"
     >
       <div class="flex h-full flex-col">
         <FadeIn
@@ -141,4 +138,4 @@ export const ShiftGate = (props: ShiftGateProps) => {
       </div>
     </SafeAreaShell>
   );
-};
+}

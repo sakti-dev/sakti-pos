@@ -75,7 +75,7 @@ export const ShiftCard = () => {
           fallback={
             <button
               class="h-11 shrink-0 rounded-xl bg-primary px-5 font-bold text-body-sm text-primary-foreground shadow-card transition duration-200 ease-standard hover:bg-primary-hover active:scale-[0.98] active:bg-primary-active"
-              onClick={() => navigate("/transactions/cash-register")}
+              onClick={() => navigate("/transactions/cash-register/shift-open")}
               type="button"
             >
               Buka Shift
@@ -85,7 +85,7 @@ export const ShiftCard = () => {
         >
           <button
             class="h-11 shrink-0 rounded-xl border border-success/40 bg-success/10 px-5 font-bold text-body-sm text-success transition duration-200 ease-standard hover:bg-success/20 active:scale-[0.98]"
-            onClick={() => navigate("/transactions/cash-register?closing=1")}
+            onClick={() => navigate("/transactions/cash-register/shift-close")}
             type="button"
           >
             Tutup Shift
