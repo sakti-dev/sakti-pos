@@ -1,7 +1,7 @@
 import { createSignal, onCleanup, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { BellIcon, CloudIcon, LoaderIcon } from "~/assets";
-import { formatSyncSuccessMessage, syncNow, syncStatus } from "~/lib/api/sync";
+import { syncNow, syncStatus } from "~/lib/api/sync";
 import { cn } from "~/lib/utils";
 
 function formatClock(): string {
@@ -21,8 +21,7 @@ const TopBarContent = () => {
       return;
     }
     try {
-      const result = await syncNow();
-      toast.success(formatSyncSuccessMessage(result));
+      await syncNow();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Gagal menyinkronkan"
