@@ -15,7 +15,7 @@
 
 - [x] 3.1 POS route gate: no open shift → render open-shift panel (float input, "Buka Shift") instead of sale UI; non-sale routes untouched; log `SHIFT:GATE_BLOCKED`
 - [x] 3.2 Open flow: validate float (≥ 0, integer minor units), insert row, log `SHIFT:OPENED`, transition to sale UI
-- [ ] 3.3 Reboot persistence: relaunch mid-shift keeps POS usable without re-opening (device smoke)
+- [x] 3.3 Reboot persistence: relaunch mid-shift keeps POS usable without re-opening (device smoke)
 
 ## 4. Live status
 
@@ -32,5 +32,5 @@
 
 - [x] 6.1 Document `SHIFT:OPENED` / `SHIFT:CLOSED` / `SHIFT:GATE_BLOCKED` in `openspec/DOCUMENTED-LOG-PREFIX.md`
 - [x] 6.2 Unit tests green (pos-app + api), typecheck + ultracite clean
-- [ ] 6.3 Device verification on Redmi Pad 2 (dev): gate → open with float → cash + QRIS orders → plaque updates → close with deliberate short → setoran shows −selisih → gate returns; reboot mid-shift survives
+- [x] 6.3 Device verification on Redmi Pad 2 (dev): gate → open with float → cash + QRIS orders → plaque updates → close with deliberate short → setoran shows −selisih → gate returns; reboot mid-shift survives
 - [ ] 6.4 Prod schema applied (1.2) and a prod build smoke: open shift works against production API

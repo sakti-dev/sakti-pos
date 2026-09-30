@@ -16,10 +16,9 @@ _Last reviewed: 2026-09-29 · branch `main` (all work pushed) · tests: 131 pos-
 
 ## Backlog — In Order
 
-### 1. Cash shifts ← next
-- Spec: `openspec/specs/cash-shifts/spec.md` · table `cash_shifts` already in synced schema
-- **Zero implementation** — home screen Buka/Tutup + drawer float are hardcoded mocks (`apps/pos-app/src/pages/home/lib/data.ts:32`)
-- Work: shift open (initial float) / close (expected-vs-actual reconciliation) UI, wire `StatusPlaque` to real `cash_shifts` query
+### 1. Cash shifts — ✅ implemented, device-verified (Waydroid + Redmi)
+- Gate, setoran close (expected = float + tunai, QRIS excluded), live StatusPlaque/ShiftCard, `closedByStaffId` handover
+- Remaining: prod-build smoke (6.4) + archive the OpenSpec change
 
 ### 2. Dashboard real data
 - Home money-hero (`Rp 2.450.000`), payment breakdown, attention list — all mock constants (`home/lib/data.ts`, `lib/data/dashboard`)
