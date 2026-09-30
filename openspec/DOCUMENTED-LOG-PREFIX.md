@@ -121,6 +121,9 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [PHOTO:JOB_COMPLETED_RECEIVED]` | image-upload — plugin `job_completed` event received for active job |
 | `[JS] [POS:CHECKOUT_AUTO_PRINT_FAILED]` | `pages/pos/use-pos.ts` |
 | `[JS] [POS:CHECKOUT_REPRINT_FAILED]` | `pages/pos/use-pos.ts` |
+| `[JS] [POS:GROUP_CREATED]` | `db/modifier-groups.ts` — varian group + options + links enqueued |
+| `[JS] [POS:GROUP_UPDATED]` | `db/modifier-groups.ts` — group edit with option/link diff |
+| `[JS] [POS:GROUP_DELETED]` | `db/modifier-groups.ts` — cascade soft-delete of group/options/links |
 | `[JS] [PRINTER:LIST_PAIRED_PRINTERS_FAILED]` | `lib/printer/client.ts` |
 | `[JS] [PRINTER:LOAD_PRINTERS_FAILED]` | printer settings |
 | `[JS] [PRINTER:LOAD_PRINTERS_TIMEOUT]` | printer settings |

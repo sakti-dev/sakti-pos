@@ -29,7 +29,7 @@
 
 ## 5. Verification
 
-- [ ] 5.1 `bun run test` (pos-app + api) green; typecheck + ultracite clean
+- [x] 5.1 `bun run test` (pos-app + api) green; typecheck + ultracite clean
 - [ ] 5.2 Device pass (Waydroid/Redmi): create group (multi, optional) + attach → sell product with multi toppings → line price correct → checkout → `order_item_modifiers` rows in local DB → sync 200 → rows in Turso → receipt shows modifiers
 - [ ] 5.3 Offline pass: airplane-mode sale with modifiers persists and syncs when reconnected
-- [ ] 5.4 Document any new `[JS] [DOMAIN:ACTION]` log prefixes in `openspec/DOCUMENTED-LOG-PREFIX.md` + `logs/capture-adb-logcat.sh` LOG_FILTER
+- [x] 5.4 Document any new `[JS] [DOMAIN:ACTION]` log prefixes in `openspec/DOCUMENTED-LOG-PREFIX.md` + `logs/capture-adb-logcat.sh` LOG_FILTER
