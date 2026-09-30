@@ -21,6 +21,7 @@ import {
 } from "~/db/modifier-groups";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { cn } from "~/lib/utils";
+import { AttachmentCheckList } from "./components/attachment-check-list";
 
 interface OptionRow {
   _id: number;
@@ -319,35 +320,18 @@ export default function VariantFormPage() {
           {/* ── Product attachment ── */}
           <div class="mb-7 flex flex-col gap-2">
             <span class="font-medium text-body-sm text-muted-foreground leading-none tracking-normal">
-              Produk yang memakai varian ini ({attachedCount()})
+              Produk yang memakai varian ini ({attachedCount()} dipilih)
             </span>
-            <div class="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-border bg-muted p-2.5">
-              <Show
-                fallback={
-                  <p class="w-full py-2 text-center text-caption-sm text-muted-foreground">
-                    Belum ada produk
-                  </p>
-                }
-                when={(productsQuery.data()?.length ?? 0) > 0}
-              >
-                <For each={productsQuery.data() ?? []}>
-                  {(product) => (
-                    <button
-                      class={cn(
-                        "inline-flex cursor-pointer items-center whitespace-nowrap rounded-full border px-3 py-1 font-medium text-caption-sm transition-colors",
-                        attached[product.id]
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:border-primary/40"
-                      )}
-                      onClick={() => toggleProduct(product.id)}
-                      type="button"
-                    >
-                      {product.name}
-                    </button>
-                  )}
-                </For>
-              </Show>
-            </div>
+            <AttachmentCheckList
+              checked={attached}
+              emptyMessage="Belum ada produk"
+              items={(productsQuery.data() ?? []).map((p) => ({
+                id: p.id,
+                subtitle: p.categoryId ? undefined : "Tanpa kategori",
+                title: p.name,
+              }))}
+              onToggle={toggleProduct}
+            />
           </div>
 
           {/* ── Actions ── */}

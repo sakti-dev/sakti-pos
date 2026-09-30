@@ -1,11 +1,5 @@
 import { useLocation, useNavigate, useParams } from "@solidjs/router";
-import {
-  createEffect,
-  createResource,
-  createSignal,
-  For,
-  Show,
-} from "solid-js";
+import { createEffect, createResource, createSignal, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { toast } from "solid-sonner";
 import { UploadIcon, XCloseIcon } from "~/assets";
@@ -36,7 +30,8 @@ import {
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { pickProductImage } from "~/lib/assets/product-image";
 import { resolveImageUrl } from "~/lib/assets/resolve";
-import { cn, createLogger } from "~/lib/utils";
+import { createLogger } from "~/lib/utils";
+import { AttachmentCheckList } from "./components/attachment-check-list";
 
 const logger = createLogger({ domain: "POS", module: "product-form" });
 
@@ -280,34 +275,19 @@ export default function ProductFormPage() {
 
           {/* ── Modifier groups (varian) ── */}
           <div class="mt-6 flex flex-col gap-1.5">
-            <span class={labelClass}>Varian</span>
-            <Show
-              fallback={
-                <p class="text-caption-sm text-muted-foreground">
-                  Belum ada varian — buat dulu di tab Varian
-                </p>
-              }
-              when={(groupsQuery.data()?.length ?? 0) > 0}
-            >
-              <div class="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-border bg-muted p-2.5">
-                <For each={groupsQuery.data() ?? []}>
-                  {(group) => (
-                    <button
-                      class={cn(
-                        "inline-flex cursor-pointer items-center whitespace-nowrap rounded-full border px-3 py-1 font-medium text-caption-sm transition-colors",
-                        attachedGroups[group.id]
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:border-primary/40"
-                      )}
-                      onClick={() => setAttachedGroups(group.id, (on) => !on)}
-                      type="button"
-                    >
-                      {group.name}
-                    </button>
-                  )}
-                </For>
-              </div>
-            </Show>
+            <span class={labelClass}>
+              Varian ({selectedGroupIds().length} dipilih)
+            </span>
+            <AttachmentCheckList
+              checked={attachedGroups}
+              emptyMessage="Belum ada varian — buat dulu di tab Varian"
+              items={(groupsQuery.data() ?? []).map((g) => ({
+                id: g.id,
+                subtitle: `${g.selectionType === "single" ? "Pilih satu" : "Bisa beberapa"} · ${g.isRequired ? "Wajib" : "Opsional"} · ${g.options.length} opsi`,
+                title: g.name,
+              }))}
+              onToggle={(id) => setAttachedGroups(id, (on) => !on)}
+            />
           </div>
 
           {/* ── Actions ── */}
