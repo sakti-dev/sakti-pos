@@ -22,10 +22,10 @@
 
 ## 4. POS selection + checkout
 
-- [ ] 4.1 Selection sheet (AdaptiveDialog) per design.md rules: preselect first option for required single, at-least-one for required multi, "Tanpa <group>" for optional single, free skip for optional multi; groups in link order
-- [ ] 4.2 Line pricing: base + Σ deltas; sheet confirm writes cart line with chosen options
-- [ ] 4.3 Checkout persists choices to `order_item_modifiers` (group name, label, delta, quantity 1)
-- [ ] 4.4 Line-item surfaces (cart list, order detail, receipt renderer) render chosen modifiers under the parent line
+- [x] 4.1 Selection sheet (AdaptiveDialog) per design.md rules: preselect first option for required single, at-least-one for required multi, "Tanpa <group>" for optional single, free skip for optional multi; groups in link order
+- [x] 4.2 Line pricing: base + Σ deltas; sheet confirm writes cart line with chosen options
+- [x] 4.3 Checkout persists choices to `order_item_modifiers` (group name, label, delta, quantity 1)
+- [x] 4.4 Line-item surfaces (cart list, order detail, receipt renderer) render chosen modifiers under the parent line
 
 ## 5. Verification
 

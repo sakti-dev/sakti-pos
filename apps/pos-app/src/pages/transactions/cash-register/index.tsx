@@ -21,13 +21,18 @@ import { FadeIn } from "~/components/ui/fade-in";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { getOpenShift } from "~/db/cash-shifts";
 import { getCategories, getProducts } from "~/db/catalog";
+import {
+  getProductModifierGroups,
+  type ModifierGroupRow,
+} from "~/db/modifier-groups";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import * as sale from "~/lib/sales/sale-session";
-import type { Product } from "~/lib/sales/types";
+import type { LineModifier, Product } from "~/lib/sales/types";
 import { formatRupiah } from "~/lib/utils";
 import { CartList } from "./components/cart-list";
 import { CartPanel } from "./components/cart-panel";
 import { CartTotals } from "./components/cart-totals";
+import { ModifierSheet } from "./components/modifier-sheet";
 import { ProductGrid } from "./components/product-grid";
 
 export default function CashRegisterPage() {
@@ -82,13 +87,35 @@ export default function CashRegisterPage() {
     });
   };
 
-  const addToCart = (id: string) => {
+  const [sheetProduct, setSheetProduct] = createSignal<Product | null>(null);
+  const [sheetGroups, setSheetGroups] = createSignal<ModifierGroupRow[]>([]);
+
+  const addToCart = async (id: string) => {
     const product = products().find((p) => p.id === id);
-    if (product) {
-      const name =
-        (product.categoryId && categoryNames().get(product.categoryId)) || "";
-      sale.addToCart(product, name);
+    if (!product) {
+      return;
     }
+    const name =
+      (product.categoryId && categoryNames().get(product.categoryId)) || "";
+    const groups = await getProductModifierGroups(id);
+    if (groups.length === 0) {
+      sale.addToCart(product, name);
+      return;
+    }
+    // Products with varian groups go through the selection sheet.
+    setSheetGroups(groups);
+    setSheetProduct(product);
+  };
+
+  const addFromSheet = (modifiers: readonly LineModifier[]) => {
+    const product = sheetProduct();
+    if (!product) {
+      return;
+    }
+    const name =
+      (product.categoryId && categoryNames().get(product.categoryId)) || "";
+    sale.addToCart(product, name, modifiers);
+    setSheetProduct(null);
   };
 
   const increment = sale.increment;
@@ -278,6 +305,13 @@ export default function CashRegisterPage() {
             )}
           </DrawerRoot>
         </div>
+
+        <ModifierSheet
+          groups={sheetGroups()}
+          onAdd={addFromSheet}
+          onClose={() => setSheetProduct(null)}
+          product={sheetProduct()}
+        />
       </SafeAreaShell>
     </Show>
   );

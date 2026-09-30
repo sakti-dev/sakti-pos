@@ -86,17 +86,37 @@ describe("sale session", () => {
   it("increment / decrement / removeLine mutate the right line", () => {
     addToCart(product({ id: "prod-1" }), "minuman");
     addToCart(product({ id: "prod-2", name: "Cappuccino" }), "minuman");
-    increment("prod-1");
+    const line1 = getCart().find((l) => l.productId === "prod-1")!;
+    const line2 = getCart().find((l) => l.productId === "prod-2")!;
+    increment(line1.lineId);
     expect(getCart().find((l) => l.productId === "prod-1")?.qty).toBe(2);
-    decrement("prod-1");
+    decrement(line1.lineId);
     expect(getCart().find((l) => l.productId === "prod-1")?.qty).toBe(1);
-    removeLine("prod-2");
+    removeLine(line2.lineId);
     expect(getCart().find((l) => l.productId === "prod-2")).toBeUndefined();
+  });
+
+  it("same product with different modifiers lands on separate lines", () => {
+    const mods = (delta: number) => [
+      {
+        groupId: "g1",
+        groupName: "Size",
+        label: "Large",
+        optionId: `opt-${delta}`,
+        priceDelta: delta,
+      },
+    ];
+    addToCart(product(), "minuman", mods(5000));
+    addToCart(product(), "minuman", mods(5000));
+    addToCart(product(), "minuman", mods(0));
+    expect(getCart()).toHaveLength(2);
+    expect(getCart().find((l) => l.price === 23_000)?.qty).toBe(2); // 18k base + 5k
+    expect(getCart().find((l) => l.price === 18_000)?.qty).toBe(1);
   });
 
   it("decrement removes a line when it reaches zero", () => {
     addToCart(product(), "minuman");
-    decrement("prod-1");
+    decrement(getCart()[0].lineId);
     expect(getCart()).toHaveLength(0);
   });
 

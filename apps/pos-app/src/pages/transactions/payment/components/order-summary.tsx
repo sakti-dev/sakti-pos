@@ -6,7 +6,7 @@ import { formatRupiah } from "~/lib/utils";
 
 interface OrderSummaryProps {
   readonly items: readonly CartLine[];
-  readonly onAdjustQty: (productId: string, delta: number) => void;
+  readonly onAdjustQty: (lineId: string, delta: number) => void;
   readonly serviceCharge: number;
   readonly servicePercent: number;
   readonly subtotal: number;
@@ -37,6 +37,11 @@ export const OrderSummary = (props: OrderSummaryProps) => (
           <div class="border-border/50 border-b py-3.5 last:border-b-0">
             <div class="mb-2.5 truncate font-semibold text-body-sm text-foreground leading-tight">
               {item.name}
+              {(item.modifiers?.length ?? 0) > 0 && (
+                <span class="block truncate text-caption-sm text-muted-foreground">
+                  {item.modifiers!.map((m) => m.label).join(" · ")}
+                </span>
+              )}
             </div>
             <div class="flex items-center gap-3">
               <div class="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
@@ -52,8 +57,8 @@ export const OrderSummary = (props: OrderSummaryProps) => (
               </div>
               <QuantityStepper
                 ariaLabel={item.name}
-                onDecrement={() => props.onAdjustQty(item.productId, -1)}
-                onIncrement={() => props.onAdjustQty(item.productId, 1)}
+                onDecrement={() => props.onAdjustQty(item.lineId, -1)}
+                onIncrement={() => props.onAdjustQty(item.lineId, 1)}
                 value={item.qty}
               />
             </div>

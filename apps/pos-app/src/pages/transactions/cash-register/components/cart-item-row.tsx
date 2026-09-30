@@ -1,7 +1,9 @@
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
+import type { LineModifier } from "~/lib/sales/types";
 import { formatRupiah } from "~/lib/utils";
 
 interface CartItemRowProps {
+  readonly modifiers?: readonly LineModifier[];
   readonly name: string;
   readonly onDecrement: () => void;
   readonly onIncrement: () => void;
@@ -15,6 +17,11 @@ export const CartItemRow = (props: CartItemRowProps) => (
       <div class="truncate font-semibold text-body-sm text-foreground leading-[1.3]">
         {props.name}
       </div>
+      {(props.modifiers?.length ?? 0) > 0 && (
+        <div class="truncate text-caption-sm text-muted-foreground">
+          {props.modifiers!.map((m) => m.label).join(" · ")}
+        </div>
+      )}
       <div class="mt-0.5 font-medium text-caption text-muted-foreground tabular-nums">
         {formatRupiah(props.price)}
       </div>

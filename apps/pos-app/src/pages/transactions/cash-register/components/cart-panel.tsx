@@ -6,8 +6,8 @@ import { CartTotals } from "./cart-totals";
 
 interface CartPanelProps {
   readonly lines: readonly CartLine[];
-  readonly onDecrement: (productId: string) => void;
-  readonly onIncrement: (productId: string) => void;
+  readonly onDecrement: (lineId: string) => void;
+  readonly onIncrement: (lineId: string) => void;
   readonly onPay: () => void;
   readonly onProcess: () => void;
 }

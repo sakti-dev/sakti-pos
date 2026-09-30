@@ -21,14 +21,30 @@ export interface Product {
   readonly price: number;
 }
 
+/** One chosen modifier option on a cart line (catalog snapshot at add
+ *  time). `priceDelta` is whole Rupiah, already folded into the line's
+ *  effective `price`. */
+export interface LineModifier {
+  readonly groupId: string;
+  readonly groupName: string;
+  readonly label: string;
+  readonly optionId: string;
+  readonly priceDelta: number;
+}
+
 /**
  * A line in the in-progress cart. Snapshots the product at add-time so the
  * cart — and any committed order — reflects what was actually sold, not the
  * live catalog price. `category` is the display-ready category name.
+ * `lineId` identifies the line (the same product with different modifier
+ * picks is separate lines); `price` is the effective unit price including
+ * modifier deltas.
  */
 export interface CartLine {
   readonly category: string;
   readonly imageAssetId: string | null;
+  readonly lineId: string;
+  readonly modifiers: readonly LineModifier[];
   readonly name: string;
   readonly price: number;
   readonly productId: string;

@@ -191,6 +191,11 @@ export default function Receipt() {
                     <div class="font-semibold text-body-sm text-foreground">
                       {item.name}
                     </div>
+                    {(item.modifiers?.length ?? 0) > 0 && (
+                      <div class="truncate text-caption-sm text-muted-foreground">
+                        {item.modifiers!.map((m) => m.label).join(" · ")}
+                      </div>
+                    )}
                     <div class="mt-0.5 text-caption text-muted-foreground tracking-wide">
                       {item.category}
                     </div>

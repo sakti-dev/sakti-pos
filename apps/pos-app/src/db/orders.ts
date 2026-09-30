@@ -76,6 +76,27 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
         rowId: itemRow.id,
         table: TABLE.orderItems,
       });
+
+      for (const modifier of line.modifiers) {
+        const [modifierRow] = await tx
+          .insert(TABLE.orderItemModifiers)
+          .values({
+            orderItemId: itemRow.id,
+            outletId,
+            modifierGroup: modifier.groupName,
+            modifierName: modifier.label,
+            priceDeltaMinorUnits: modifier.priceDelta * 100,
+            quantity: 1,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
+        await getSyncClient().enqueueChange(tx, {
+          operation: "insert",
+          rowId: modifierRow.id,
+          table: TABLE.orderItemModifiers,
+        });
+      }
     }
 
     return orderRow;
@@ -194,6 +215,8 @@ function rowToCompletedOrder(
   const lines = items.map((item) => ({
     category: "",
     imageAssetId: null,
+    lineId: item.id,
+    modifiers: [],
     name: item.productName,
     price: item.unitPriceMinorUnits / 100,
     productId: item.productId ?? item.id,

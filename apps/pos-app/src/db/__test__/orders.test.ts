@@ -40,6 +40,8 @@ const saleOrder = {
     {
       category: "Minuman",
       imageAssetId: null,
+      lineId: "line-1",
+      modifiers: [],
       name: "Es Kopi Susu",
       price: 25_000,
       productId: "prod-1",

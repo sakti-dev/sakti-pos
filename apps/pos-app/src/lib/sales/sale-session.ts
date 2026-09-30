@@ -19,6 +19,7 @@ import {
   type CompletedOrder,
   categoryLabel,
   computeTotals,
+  type LineModifier,
   type OrderTotals,
   type PayMethod,
   type PaymentDetails,
@@ -64,11 +65,35 @@ export function totals(): OrderTotals {
 
 /* ── cart mutations ────────────────────────────────────────────── */
 
-/** Add a product (or bump its qty if already in the cart). */
-export function addToCart(product: Product, categoryName: string): void {
+let lineSeq = 0;
+
+/** Merge key: same product + same modifier picks = same line. */
+function signatureOf(
+  productId: string,
+  modifiers: readonly LineModifier[]
+): string {
+  const optionIds = modifiers
+    .map((m) => m.optionId)
+    .sort()
+    .join("|");
+  return `${productId}#${optionIds}`;
+}
+
+/** Add a product (or bump the matching line's qty). Same product with
+ *  different modifier picks lands on its own line. `price` on the line is
+ *  the effective unit price: base + Σ modifier deltas. */
+export function addToCart(
+  product: Product,
+  categoryName: string,
+  modifiers: readonly LineModifier[] = []
+): void {
+  const signature = signatureOf(product.id, modifiers);
+  const delta = modifiers.reduce((sum, m) => sum + m.priceDelta, 0);
   setCart(
     produce((lines) => {
-      const existing = lines.find((l) => l.productId === product.id);
+      const existing = lines.find(
+        (l) => signatureOf(l.productId, l.modifiers) === signature
+      );
       if (existing) {
         existing.qty += 1;
         return;
@@ -76,20 +101,22 @@ export function addToCart(product: Product, categoryName: string): void {
       lines.push({
         productId: product.id,
         name: product.name,
-        price: product.price,
+        price: product.price + delta,
         category: categoryLabel(categoryName),
         imageAssetId: product.imageAssetId,
+        lineId: `line-${Date.now()}-${lineSeq++}`,
+        modifiers,
         qty: 1,
       });
     })
   );
 }
 
-/** Increment a line's quantity by product id. */
-export function increment(productId: string): void {
+/** Increment a line's quantity by line id. */
+export function increment(lineId: string): void {
   setCart(
     produce((lines) => {
-      const line = lines.find((l) => l.productId === productId);
+      const line = lines.find((l) => l.lineId === lineId);
       if (line) {
         line.qty += 1;
       }
@@ -98,10 +125,10 @@ export function increment(productId: string): void {
 }
 
 /** Decrement a line's quantity, removing it when it hits zero. */
-export function decrement(productId: string): void {
+export function decrement(lineId: string): void {
   setCart(
     produce((lines) => {
-      const i = lines.findIndex((l) => l.productId === productId);
+      const i = lines.findIndex((l) => l.lineId === lineId);
       if (i === -1) {
         return;
       }
@@ -115,10 +142,10 @@ export function decrement(productId: string): void {
 }
 
 /** Remove a line outright. */
-export function removeLine(productId: string): void {
+export function removeLine(lineId: string): void {
   setCart(
     produce((lines) => {
-      const i = lines.findIndex((l) => l.productId === productId);
+      const i = lines.findIndex((l) => l.lineId === lineId);
       if (i !== -1) {
         lines.splice(i, 1);
       }

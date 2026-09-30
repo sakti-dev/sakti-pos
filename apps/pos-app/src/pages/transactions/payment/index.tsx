@@ -106,11 +106,11 @@ export default function PaymentPage() {
     }
   };
 
-  const adjustQty = (productId: string, delta: number) => {
+  const adjustQty = (lineId: string, delta: number) => {
     if (delta >= 0) {
-      sale.increment(productId);
+      sale.increment(lineId);
     } else {
-      sale.decrement(productId);
+      sale.decrement(lineId);
     }
   };
 
