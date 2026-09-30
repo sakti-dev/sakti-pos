@@ -7,18 +7,21 @@ import {
   ingredients,
   inventoryStocks,
   merchants,
+  modifierGroups,
+  modifierOptions,
   orderItemModifiers,
   orderItems,
   orders,
   outletProducts,
   outlets,
   paymentSettings,
+  productModifierGroups,
   products,
   registers,
   staff,
   stocktakeLines,
   stocktakes,
-} from "@sync-contract/generated/2026-09-29/api-synced-schema";
+} from "@sync-contract/generated/2026-09-30/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, getTableColumns, gt, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -593,6 +596,211 @@ export const repository = createDrizzleSyncRepository({
               productId: sql.raw("excluded.product_id"),
               priceMinorUnits: sql.raw("excluded.price_minor_units"),
               isAvailable: sql.raw("excluded.is_available"),
+              sortOrder: sql.raw("excluded.sort_order"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    modifier_groups: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "modifier_groups.id"),
+        merchantId: requiredString(
+          row.merchantId,
+          "modifier_groups.merchantId"
+        ),
+        name: requiredString(row.name, "modifier_groups.name"),
+        selectionType: requiredString(
+          row.selectionType,
+          "modifier_groups.selectionType"
+        ),
+        isRequired: requiredBoolean(row.isRequired),
+        sortOrder: requiredNumber(row.sortOrder, "modifier_groups.sortOrder"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "modifier_groups.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(modifierGroups)
+          .where(eq(modifierGroups.merchantId, scopeId))
+          .orderBy(sql`${modifierGroups.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(modifierGroups)
+          .where(
+            and(
+              eq(modifierGroups.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(modifierGroups.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(modifierGroups.syncUpdatedAt), asc(modifierGroups.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(modifierGroups)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(modifierGroups.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(modifierGroups)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: modifierGroups.id,
+            set: {
+              merchantId: sql.raw("excluded.merchant_id"),
+              name: sql.raw("excluded.name"),
+              selectionType: sql.raw("excluded.selection_type"),
+              isRequired: sql.raw("excluded.is_required"),
+              sortOrder: sql.raw("excluded.sort_order"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    modifier_options: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "modifier_options.id"),
+        merchantId: requiredString(
+          row.merchantId,
+          "modifier_options.merchantId"
+        ),
+        groupId: requiredString(row.groupId, "modifier_options.groupId"),
+        label: requiredString(row.label, "modifier_options.label"),
+        priceDeltaMinorUnits: requiredNumber(
+          row.priceDeltaMinorUnits,
+          "modifier_options.priceDeltaMinorUnits"
+        ),
+        sortOrder: requiredNumber(row.sortOrder, "modifier_options.sortOrder"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "modifier_options.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(modifierOptions)
+          .where(eq(modifierOptions.merchantId, scopeId))
+          .orderBy(sql`${modifierOptions.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(modifierOptions)
+          .where(
+            and(
+              eq(modifierOptions.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(modifierOptions.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(modifierOptions.syncUpdatedAt), asc(modifierOptions.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(modifierOptions)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(modifierOptions.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(modifierOptions)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: modifierOptions.id,
+            set: {
+              merchantId: sql.raw("excluded.merchant_id"),
+              groupId: sql.raw("excluded.group_id"),
+              label: sql.raw("excluded.label"),
+              priceDeltaMinorUnits: sql.raw("excluded.price_delta_minor_units"),
+              sortOrder: sql.raw("excluded.sort_order"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    product_modifier_groups: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "product_modifier_groups.id"),
+        merchantId: requiredString(
+          row.merchantId,
+          "product_modifier_groups.merchantId"
+        ),
+        productId: requiredString(
+          row.productId,
+          "product_modifier_groups.productId"
+        ),
+        groupId: requiredString(row.groupId, "product_modifier_groups.groupId"),
+        sortOrder: requiredNumber(
+          row.sortOrder,
+          "product_modifier_groups.sortOrder"
+        ),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(
+          row.createdAt,
+          "product_modifier_groups.createdAt"
+        ),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(productModifierGroups)
+          .where(eq(productModifierGroups.merchantId, scopeId))
+          .orderBy(sql`${productModifierGroups.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(productModifierGroups)
+          .where(
+            and(
+              eq(productModifierGroups.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(productModifierGroups.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(
+            asc(productModifierGroups.syncUpdatedAt),
+            asc(productModifierGroups.id)
+          ),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(productModifierGroups)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(productModifierGroups.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(productModifierGroups)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: productModifierGroups.id,
+            set: {
+              merchantId: sql.raw("excluded.merchant_id"),
+              productId: sql.raw("excluded.product_id"),
+              groupId: sql.raw("excluded.group_id"),
               sortOrder: sql.raw("excluded.sort_order"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),

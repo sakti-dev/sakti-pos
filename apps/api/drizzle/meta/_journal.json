@@ -28,6 +28,13 @@
       "when": 1790647107130,
       "tag": "0003_cash-shift-closed-by",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790765263025,
+      "tag": "0004_modifier_groups",
+      "breakpoints": true
     }
   ]
 }
