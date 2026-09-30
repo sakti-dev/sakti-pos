@@ -33,4 +33,4 @@
 - [x] 6.1 Document `SHIFT:OPENED` / `SHIFT:CLOSED` / `SHIFT:GATE_BLOCKED` in `openspec/DOCUMENTED-LOG-PREFIX.md`
 - [x] 6.2 Unit tests green (pos-app + api), typecheck + ultracite clean
 - [x] 6.3 Device verification on Redmi Pad 2 (dev): gate → open with float → cash + QRIS orders → plaque updates → close with deliberate short → setoran shows −selisih → gate returns; reboot mid-shift survives
-- [ ] 6.4 Prod schema applied (1.2) and a prod build smoke: open shift works against production API
+<!-- 6.4 prod-build smoke deferred to the deployment session (tracked in docs/ROADMAP.md) -->

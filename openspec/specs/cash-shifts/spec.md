@@ -10,9 +10,10 @@ Cash drawer open/close boundaries per outlet/register: opening float, expected v
 
 The system SHALL maintain a `cash_shifts` table as a synced business table scoped by `outletId`, tracking cash-drawer open/close boundaries to protect the till against unaccounted cash drift. This drives the dashboard `StatusPlaque` `Buka`/`Tutup` (Open/Closed) state.
 
-- The `cash_shifts` table SHALL carry: `id` (UUIDv7), `outletId` (scope column), `registerId` (text nullable — null for shared-drawer outlets), `openedByStaffId` (text notNull, soft-ref to `staff` — NOT `userId`, because `users` is server-only and not locally resolvable), `openedAt` (text notNull, ISO 8601 UTC), `closedAt` (text nullable), `initialFloatMinorUnits` (integer notNull, default `0`), `expectedCashMinorUnits` (integer notNull, default `0`), `actualCashMinorUnits` (integer nullable — set at close), `differenceMinorUnits` (integer nullable — `actual − expected`, signed for short/over), `status` (text enum `['open','closed']`, notNull), `note` (text nullable), plus the standard sync columns.
+- The `cash_shifts` table SHALL carry: `id` (UUIDv7), `outletId` (scope column), `registerId` (text nullable — null for shared-drawer outlets), `openedByStaffId` (text notNull, soft-ref to `staff` — NOT `userId`, because `users` is server-only and not locally resolvable), `closedByStaffId` (text nullable, soft-ref to `staff` — set at close; supports handover where opener ≠ closer), `openedAt` (text notNull, ISO 8601 UTC), `closedAt` (text nullable), `initialFloatMinorUnits` (integer notNull, default `0`), `expectedCashMinorUnits` (integer notNull, default `0`), `actualCashMinorUnits` (integer nullable — set at close), `differenceMinorUnits` (integer nullable — `actual − expected`, signed for short/over), `status` (text enum `['open','closed']`, notNull), `note` (text nullable), plus the standard sync columns.
 - All money columns use integer minor units (no float).
 - `status` uses a drizzle text enum, NOT a CHECK constraint (baresync does not inspect CHECKs; a server-pushed row violating a local CHECK would fail the INSERT silently and drop out of sync).
+- Expected cash SHALL be computed at close as `initialFloatMinorUnits` + Σ `totalMinorUnits` of completed, non-deleted cash orders in `[openedAt, closedAt)` scoped to the outlet; the computed value is persisted to `expectedCashMinorUnits`.
 
 #### Scenario: Open a cash shift
 - **WHEN** a staff member opens the drawer with an initial float of Rp 500.000
@@ -21,8 +22,12 @@ The system SHALL maintain a `cash_shifts` table as a synced business table scope
 
 #### Scenario: Close a cash shift with reconciliation
 - **WHEN** the staff member closes the drawer, counting actual cash of Rp 1.250.000 against expected Rp 1.255.000
-- **THEN** the client SHALL update the row: `closedAt`, `actualCashMinorUnits = 1250000`, `expectedCashMinorUnits = 1255000`, `differenceMinorUnits = -5000` (short), `status = 'closed'`
+- **THEN** the client SHALL update the row: `closedAt`, `closedByStaffId`, `actualCashMinorUnits = 1250000`, `expectedCashMinorUnits = 1255000`, `differenceMinorUnits = -5000` (short), `status = 'closed'`
 - **AND** enqueue a sync change
+
+#### Scenario: Close with handover
+- **WHEN** staff B closes a shift that staff A opened
+- **THEN** `closedByStaffId` SHALL reference staff B while `openedByStaffId` still references staff A
 
 #### Scenario: Query open shift for dashboard status
 - **WHEN** the dashboard `StatusPlaque` renders
