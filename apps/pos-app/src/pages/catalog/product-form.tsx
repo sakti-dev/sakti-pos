@@ -31,7 +31,7 @@ import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { pickProductImage } from "~/lib/assets/product-image";
 import { resolveImageUrl } from "~/lib/assets/resolve";
 import { createLogger } from "~/lib/utils";
-import { AttachmentCheckList } from "./components/attachment-check-list";
+import { AttachmentField } from "./components/attachment-field";
 
 const logger = createLogger({ domain: "POS", module: "product-form" });
 
@@ -274,19 +274,19 @@ export default function ProductFormPage() {
           </div>
 
           {/* ── Modifier groups (varian) ── */}
-          <div class="mt-6 flex flex-col gap-1.5">
-            <span class={labelClass}>
-              Varian ({selectedGroupIds().length} dipilih)
-            </span>
-            <AttachmentCheckList
-              checked={attachedGroups}
+          <div class="mt-6">
+            <AttachmentField
+              addLabel="Tambah Varian"
               emptyMessage="Belum ada varian — buat dulu di tab Varian"
               items={(groupsQuery.data() ?? []).map((g) => ({
                 id: g.id,
                 subtitle: `${g.selectionType === "single" ? "Pilih satu" : "Bisa beberapa"} · ${g.isRequired ? "Wajib" : "Opsional"} · ${g.options.length} opsi`,
                 title: g.name,
               }))}
+              label="Varian"
               onToggle={(id) => setAttachedGroups(id, (on) => !on)}
+              selected={attachedGroups}
+              sheetTitle="Pilih Varian"
             />
           </div>
 

@@ -20,8 +20,8 @@ import {
   updateModifierGroup,
 } from "~/db/modifier-groups";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
-import { cn } from "~/lib/utils";
-import { AttachmentCheckList } from "./components/attachment-check-list";
+import { cn, formatRupiah } from "~/lib/utils";
+import { AttachmentField } from "./components/attachment-field";
 
 interface OptionRow {
   _id: number;
@@ -103,8 +103,6 @@ export default function VariantFormPage() {
   };
 
   const toggleProduct = (id: string) => setAttached(id, (on) => !on);
-
-  const attachedCount = () => Object.values(attached).filter(Boolean).length;
 
   const handleSave = async () => {
     const trimmed = name().trim();
@@ -318,19 +316,19 @@ export default function VariantFormPage() {
           </div>
 
           {/* ── Product attachment ── */}
-          <div class="mb-7 flex flex-col gap-2">
-            <span class="font-medium text-body-sm text-muted-foreground leading-none tracking-normal">
-              Produk yang memakai varian ini ({attachedCount()} dipilih)
-            </span>
-            <AttachmentCheckList
-              checked={attached}
+          <div class="mb-7">
+            <AttachmentField
+              addLabel="Tambah Produk"
               emptyMessage="Belum ada produk"
               items={(productsQuery.data() ?? []).map((p) => ({
                 id: p.id,
-                subtitle: p.categoryId ? undefined : "Tanpa kategori",
+                subtitle: formatRupiah(p.priceMinorUnits / 100),
                 title: p.name,
               }))}
+              label="Produk yang memakai varian ini"
               onToggle={toggleProduct}
+              selected={attached}
+              sheetTitle="Pilih Produk"
             />
           </div>
 
