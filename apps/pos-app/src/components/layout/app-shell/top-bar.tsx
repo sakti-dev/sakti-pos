@@ -1,5 +1,7 @@
-import { createSignal, onCleanup } from "solid-js";
+import { createSignal, onCleanup, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { BellIcon, CloudIcon, LoaderIcon } from "~/assets";
+import { formatSyncSuccessMessage, syncNow, syncStatus } from "~/lib/api/sync";
 import { cn } from "~/lib/utils";
 
 function formatClock(): string {
@@ -10,17 +12,36 @@ function formatClock(): string {
 
 const TopBarContent = () => {
   const [clock, setClock] = createSignal(formatClock());
-  const [syncing, setSyncing] = createSignal(false);
 
   const timer = setInterval(() => setClock(formatClock()), 1000);
   onCleanup(() => clearInterval(timer));
 
-  const handleSync = () => {
-    if (syncing()) {
+  const handleSync = async () => {
+    if (syncStatus() === "syncing") {
       return;
     }
-    setSyncing(true);
-    setTimeout(() => setSyncing(false), 1800);
+    try {
+      const result = await syncNow();
+      toast.success(formatSyncSuccessMessage(result));
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Gagal menyinkronkan"
+      );
+    }
+  };
+
+  const busy = () => syncStatus() === "syncing";
+  const label = () => {
+    if (busy()) {
+      return "Sinkronisasi…";
+    }
+    if (syncStatus() === "error") {
+      return "Gagal";
+    }
+    if (syncStatus() === "offline") {
+      return "Offline";
+    }
+    return "Online";
   };
 
   return (
@@ -29,20 +50,25 @@ const TopBarContent = () => {
         <button
           aria-label="Sinkronisasi"
           class="inline-flex items-center gap-[7px] rounded-full border border-accent-foreground/15 bg-accent/15 px-3.5 py-1.5 font-medium text-[13px] text-accent-foreground tracking-normal transition duration-200 hover:border-accent-foreground/25 hover:bg-accent/25 active:scale-[0.96] dark:border-accent/30 dark:text-accent dark:hover:border-accent/50"
-          onClick={handleSync}
+          onClick={() => {
+            handleSync().catch(() => undefined);
+          }}
           type="button"
         >
           <span class="relative h-4 w-4 shrink-0">
-            {syncing() ? (
+            <Show
+              fallback={
+                <>
+                  <CloudIcon class="h-4 w-4" />
+                  <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-2 border-primary bg-accent dark:border-accent/40" />
+                </>
+              }
+              when={busy()}
+            >
               <LoaderIcon class="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <CloudIcon class="h-4 w-4" />
-                <span class="absolute -right-0.5 -bottom-px h-[7px] w-[7px] animate-[pulse-dot_2s_ease-in-out_infinite] rounded-full border-2 border-primary bg-accent dark:border-accent/40" />
-              </>
-            )}
+            </Show>
           </span>
-          {syncing() ? "Sinkronisasi\u2026" : "Online"}
+          {label()}
         </button>
 
         <span class="font-medium text-[14px] text-muted-foreground tabular-nums">
