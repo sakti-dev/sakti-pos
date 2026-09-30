@@ -20,9 +20,11 @@ _Last reviewed: 2026-09-29 · branch `main` (all work pushed) · tests: 131 pos-
 - Gate, setoran close (expected = float + tunai, QRIS excluded), live StatusPlaque/ShiftCard, `closedByStaffId` handover
 - Remaining: prod-build smoke (6.4) + archive the OpenSpec change
 
-### 2. Dashboard real data
-- Home money-hero (`Rp 2.450.000`), payment breakdown, attention list — all mock constants (`home/lib/data.ts`, `lib/data/dashboard`)
-- Orders are real now → wire today's-sales / attention counts to SQLite
+### 2. Dashboard real data — ✅ done
+- MoneyHero on live `getTodayOrderStats` (was `createResource`, now sync-invalidated TanStack query)
+- Attention list = Stok menipis (`inventory_stocks` ≤ threshold) + Belum tersinkron (`orders.is_synced=0`) — live counts
+- StatusPlaque identity real (session staff + outlet name from DB); role labels Kasir/Manager/Pemilik
+- Dead mocks deleted (`lib/data/dashboard.ts`, earnings/kpi/attention constants)
 - Follow-on: full dashboard spec (revenue trends, top products, category sales, period picker — specced Jun 11, never built)
 
 ### 3. Printer smoke test on device

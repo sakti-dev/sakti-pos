@@ -1,14 +1,20 @@
 import { A } from "@solidjs/router";
-import { createResource, createSignal, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { ArrowRightIcon, EyeClosedIcon, EyeOpenIcon } from "~/assets";
 import { getTodayOrderStats } from "~/db/orders";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { formatRupiah } from "~/lib/utils";
 
 export const MoneyHero = () => {
   const [visible, setVisible] = createSignal(true);
   const masked = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
 
-  const [stats] = createResource(getTodayOrderStats);
+  // ["drizzle", …] key family: invalidated on baresync data-changed so
+  // totals refresh after every sync + order write.
+  const statsQuery = useDrizzleQuery(["drizzle", "orders", "today-stats"], () =>
+    getTodayOrderStats()
+  );
+  const stats = () => statsQuery.data();
   const amount = () => formatRupiah((stats()?.totalMinorUnits ?? 0) / 100);
   const cashCount = () => stats()?.byMethod.cash ?? 0;
   const qrisCount = () =>

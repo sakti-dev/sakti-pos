@@ -1,10 +1,7 @@
 import type { Component } from "solid-js";
 import {
-  BoxPackageIcon,
   ChartIcon,
   ClipboardIcon,
-  ClockIcon,
-  CreditCardIcon,
   GridDetailIcon,
   MoreHorizontalIcon,
   PeopleIcon,
@@ -12,67 +9,10 @@ import {
   TruckIcon,
   WalletIcon,
 } from "~/assets";
-import {
-  currentUser,
-  currentVenue,
-  earningsAmount,
-} from "~/lib/data/dashboard";
 
-export { currentUser, currentVenue, earningsAmount };
-
-/* ── Today's earnings breakdown ────────────────────────────────── */
-
-export interface EarningsBreakdown {
-  readonly card: number;
-  readonly cash: number;
-  readonly unpaid: number;
-}
-
-export const earningsBreakdown: EarningsBreakdown = {
-  cash: 3,
-  card: 1,
-  unpaid: 0,
-} as const;
-
-/* ── Needs-attention items ─────────────────────────────────────── */
+/* ── Needs-attention tones (rows themselves are live data now) ─── */
 
 export type AttentionTone = "warning" | "danger" | "info";
-
-export interface AttentionItem {
-  readonly count: number;
-  readonly href?: string;
-  readonly Icon: Component<{ class?: string }>;
-  readonly label: string;
-  readonly subtitle: string;
-  readonly tone: AttentionTone;
-}
-
-export const attentionItems: readonly AttentionItem[] = [
-  {
-    Icon: BoxPackageIcon,
-    label: "Stok menipis",
-    subtitle: "Perlu pembelian ulang",
-    count: 3,
-    href: "/inventory",
-    tone: "warning",
-  },
-  {
-    Icon: ClockIcon,
-    label: "Sedang diproses",
-    subtitle: "Perlu dituntaskan",
-    count: 2,
-    href: "/transactions",
-    tone: "info",
-  },
-  {
-    Icon: CreditCardIcon,
-    label: "Belum dibayar",
-    subtitle: "Menunggu pembayaran",
-    count: 0,
-    href: "/transactions",
-    tone: "danger",
-  },
-] as const;
 
 /* ── Full menu set ─────────────────────────────────────────────── */
 

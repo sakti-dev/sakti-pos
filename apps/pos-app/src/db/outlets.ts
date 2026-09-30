@@ -18,6 +18,19 @@ const outletLogger = createLogger({
 const MIN_PERCENT = 0;
 const MAX_PERCENT = 100;
 
+/** Display name of the active outlet, or null when unknown/not loaded. */
+export async function getOutletName(): Promise<string | null> {
+  const outletId = currentOutletId();
+  if (!outletId) {
+    return null;
+  }
+  const rows = await db
+    .select({ name: TABLE.outlets.name })
+    .from(TABLE.outlets)
+    .where(eq(TABLE.outlets.id, outletId));
+  return rows[0]?.name ?? null;
+}
+
 export function isValidPercent(value: unknown): value is number {
   return (
     typeof value === "number" &&

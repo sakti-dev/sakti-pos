@@ -1,7 +1,20 @@
 import { A } from "@solidjs/router";
+import type { Component } from "solid-js";
 import { For, Show } from "solid-js";
+import { BoxPackageIcon, CloudIcon } from "~/assets";
+import { getLowStockCount, getUnsyncedOrderCount } from "~/db/attention";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { cn } from "~/lib/utils";
-import { type AttentionTone, attentionItems } from "../lib/data";
+import type { AttentionTone } from "../lib/data";
+
+interface AttentionItem {
+  readonly count: number;
+  readonly href: string;
+  readonly Icon: Component<{ class?: string }>;
+  readonly label: string;
+  readonly subtitle: string;
+  readonly tone: AttentionTone;
+}
 
 /* Semantic state lives ONLY on the leading icon chip — the row body is a
    single shared surface. Status reads via icon + label + value, never
@@ -13,7 +26,34 @@ const CHIP: Record<AttentionTone, string> = {
 };
 
 export const AttentionList = () => {
-  const total = attentionItems.reduce((sum, i) => sum + i.count, 0);
+  const stockQuery = useDrizzleQuery(
+    ["drizzle", "inventory-stocks", "low-stock-count"],
+    () => getLowStockCount()
+  );
+  const syncQuery = useDrizzleQuery(
+    ["drizzle", "orders", "unsynced-count"],
+    () => getUnsyncedOrderCount()
+  );
+
+  const items = (): AttentionItem[] => [
+    {
+      Icon: BoxPackageIcon,
+      label: "Stok menipis",
+      subtitle: "Perlu pembelian ulang",
+      count: stockQuery.data() ?? 0,
+      href: "/inventory",
+      tone: "warning",
+    },
+    {
+      Icon: CloudIcon,
+      label: "Belum tersinkron",
+      subtitle: "Menunggu unggah ke server",
+      count: syncQuery.data() ?? 0,
+      href: "/transactions",
+      tone: "info",
+    },
+  ];
+  const total = () => items().reduce((sum: number, i) => sum + i.count, 0);
 
   return (
     <section>
@@ -22,16 +62,16 @@ export const AttentionList = () => {
           <h3 class="font-bold font-display text-body-lg text-foreground tracking-[-0.01em]">
             Perlu dituntaskan
           </h3>
-          <Show when={total > 0}>
+          <Show when={total() > 0}>
             <span class="grid size-5 place-items-center rounded-full bg-primary font-bold text-[10px] text-primary-foreground tabular-nums">
-              {total}
+              {total()}
             </span>
           </Show>
         </div>
       </div>
 
       <div class="overflow-hidden rounded-2xl border border-border bg-card">
-        <For each={attentionItems}>
+        <For each={items()}>
           {(item, i) => (
             <>
               <Show when={i() > 0}>
@@ -39,7 +79,7 @@ export const AttentionList = () => {
               </Show>
               <A
                 class="group flex items-center gap-3.5 px-4 py-3.5 no-underline transition-colors duration-150 hover:bg-muted/60 active:bg-muted"
-                href={item.href ?? "#"}
+                href={item.href}
               >
                 <span
                   class={cn(
