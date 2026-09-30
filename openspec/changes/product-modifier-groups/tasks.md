@@ -15,10 +15,10 @@
 
 ## 3. Catalog UI
 
-- [ ] 3.1 Variant tab on real queries (TanStack `["drizzle","modifier-groups",…]`), search across group/option/product, empty state; delete mock `variants` usage
-- [ ] 3.2 Variant form (create/edit): name, selection type, required toggle, options editor (label + price delta), product attachment multi-select
-- [ ] 3.3 Product form: attached-groups section with add/remove
-- [ ] 3.4 Delete superseded mocks from `lib/data/catalog.ts` (variants + helpers); grep for other importers (inventory/history, retail-tab) and rewire or remove
+- [x] 3.1 Variant tab on real queries (TanStack `["drizzle","modifier-groups",…]`), search across group/option/product, empty state; delete mock `variants` usage
+- [x] 3.2 Variant form (create/edit): name, selection type, required toggle, options editor (label + price delta), product attachment multi-select
+- [x] 3.3 Product form: attached-groups section with add/remove
+- [x] 3.4 Delete superseded mocks from `lib/data/catalog.ts` (variants + helpers); grep for other importers (inventory/history, retail-tab) and rewire or remove
 
 ## 4. POS selection + checkout
 

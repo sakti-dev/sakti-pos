@@ -477,6 +477,91 @@ export async function updateModifierGroup(
   });
 }
 
+/** Reconcile one product's group links to the wanted set (product-form
+ *  side). Link order follows the given array order. */
+export async function setProductModifierGroups(
+  productId: string,
+  groupIds: readonly string[]
+): Promise<void> {
+  const merchantId = requireMerchantId();
+  await getSyncClient().writeTransaction(db, async (tx) => {
+    const existing = await tx
+      .select({
+        id: TABLE.productModifierGroups.id,
+        groupId: TABLE.productModifierGroups.groupId,
+        deletedAt: TABLE.productModifierGroups.deletedAt,
+      })
+      .from(TABLE.productModifierGroups)
+      .where(eq(TABLE.productModifierGroups.productId, productId));
+
+    const wanted = new Set(groupIds);
+    for (const link of existing) {
+      if (wanted.has(link.groupId)) {
+        wanted.delete(link.groupId);
+        if (link.deletedAt == null) {
+          continue;
+        }
+        const [row] = await tx
+          .update(TABLE.productModifierGroups)
+          .set({
+            deletedAt: null,
+            updatedAt: dayjs().toISOString(),
+            isSynced: false,
+          })
+          .where(eq(TABLE.productModifierGroups.id, link.id))
+          .returning({ id: TABLE.productModifierGroups.id });
+        await getSyncClient().enqueueChange(tx, {
+          operation: "update",
+          rowId: row.id,
+          table: TABLE.productModifierGroups,
+        });
+        continue;
+      }
+      if (link.deletedAt != null) {
+        continue;
+      }
+      const [row] = await tx
+        .update(TABLE.productModifierGroups)
+        .set({
+          deletedAt: dayjs().toISOString(),
+          updatedAt: dayjs().toISOString(),
+          isSynced: false,
+        })
+        .where(eq(TABLE.productModifierGroups.id, link.id))
+        .returning({ id: TABLE.productModifierGroups.id });
+      await getSyncClient().enqueueChange(tx, {
+        operation: "update",
+        rowId: row.id,
+        table: TABLE.productModifierGroups,
+      });
+    }
+
+    let sortOrder = 0;
+    for (const groupId of groupIds) {
+      if (!wanted.has(groupId)) {
+        continue;
+      }
+      const [row] = await tx
+        .insert(TABLE.productModifierGroups)
+        .values({
+          merchantId,
+          productId,
+          groupId,
+          sortOrder,
+          createdAt: dayjs().toISOString(),
+          updatedAt: dayjs().toISOString(),
+        })
+        .returning({ id: TABLE.productModifierGroups.id });
+      await getSyncClient().enqueueChange(tx, {
+        operation: "insert",
+        rowId: row.id,
+        table: TABLE.productModifierGroups,
+      });
+      sortOrder += 1;
+    }
+  });
+}
+
 /** Soft-delete the group, its options, and its links in one transaction —
  *  past order_item_modifiers snapshots are untouched. */
 export async function softDeleteModifierGroup(id: string): Promise<void> {

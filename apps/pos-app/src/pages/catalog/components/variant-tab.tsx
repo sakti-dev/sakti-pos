@@ -4,34 +4,38 @@ import { LayersIcon, PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
-import {
-  formatVariantOptions,
-  getVariantProductNames,
-  products,
-  type Variant,
-  variants,
-} from "~/lib/data/catalog";
+import { getModifierGroups } from "~/db/modifier-groups";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
+import { formatRupiah } from "~/lib/utils";
+
+const SELECTION_LABEL: Record<string, string> = {
+  multi: "multi",
+  single: "satu pilihan",
+};
+
+function optionsSummary(options: readonly { label: string }[]): string {
+  return options.map((o) => o.label).join(" · ");
+}
 
 export function VariantTab() {
   const [search, setSearch] = createSignal("");
 
+  const groupsQuery = useDrizzleQuery(
+    ["drizzle", "modifier-groups", "list"],
+    () => getModifierGroups()
+  );
+  const groups = () => groupsQuery.data() ?? [];
+
   const filtered = createMemo(() => {
-    const q = search().toLowerCase();
+    const q = search().toLowerCase().trim();
     if (!q) {
-      return variants;
+      return groups();
     }
-    return variants.filter((v) => {
-      const nameMatch = v.name.toLowerCase().includes(q);
-      const optsMatch = v.options
-        .map((o) => o.label)
-        .join(",")
-        .toLowerCase()
-        .includes(q);
-      const prodMatch = v.productIds.some((pid) =>
-        products
-          .find((p) => p.id === pid)
-          ?.name.toLowerCase()
-          .includes(q)
+    return groups().filter((g) => {
+      const nameMatch = g.name.toLowerCase().includes(q);
+      const optsMatch = optionsSummary(g.options).toLowerCase().includes(q);
+      const prodMatch = g.products.some((p) =>
+        p.name.toLowerCase().includes(q)
       );
       return nameMatch || optsMatch || prodMatch;
     });
@@ -63,17 +67,25 @@ export function VariantTab() {
         <Show
           fallback={
             <EmptyState
-              message="Belum ada varian"
-              subtitle="Tambah varian untuk opsi produk"
+              message={
+                groups().length === 0
+                  ? "Belum ada varian"
+                  : "Tidak ada varian yang cocok"
+              }
+              subtitle={
+                groups().length === 0
+                  ? "Tambah varian untuk opsi produk"
+                  : "Coba kata kunci lain"
+              }
             />
           }
           when={filtered().length > 0}
         >
           <div class="flex flex-col gap-2.5">
             <For each={filtered()}>
-              {(variant, i) => (
+              {(group, i) => (
                 <FadeIn delay={0.1 + i() * 0.03} duration={0.35} y={12}>
-                  <VariantItem variant={variant} />
+                  <VariantItem group={group} />
                 </FadeIn>
               )}
             </For>
@@ -84,29 +96,41 @@ export function VariantTab() {
   );
 }
 
-function VariantItem(props: { variant: Variant }) {
+function VariantItem(props: {
+  group: Awaited<ReturnType<typeof getModifierGroups>>[number];
+}) {
   return (
     <A
-      aria-label={`Edit ${props.variant.name}`}
+      aria-label={`Edit ${props.group.name}`}
       class="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 no-underline transition-colors hover:border-primary/20 lg:gap-4 lg:p-4"
-      href={`/catalog/variant/${props.variant.id}`}
+      href={`/catalog/variant/${props.group.id}`}
     >
       <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
         <LayersIcon class="h-5 w-5 text-primary" />
       </div>
       <div class="min-w-0 flex-1">
         <h3 class="font-semibold text-body-sm text-foreground">
-          {props.variant.name}
+          {props.group.name}
+          {props.group.isRequired ? "" : " (opsional)"}
         </h3>
         <p class="truncate text-caption text-muted-foreground">
-          {formatVariantOptions(props.variant.options)}
+          {optionsSummary(props.group.options) || "Tanpa opsi"}
         </p>
-        <p class="truncate text-caption-sm text-faint-foreground">
-          {getVariantProductNames(props.variant.productIds, products)}
-        </p>
+        <Show when={props.group.options.length > 0}>
+          <p class="truncate text-caption-sm text-faint-foreground">
+            {props.group.options
+              .filter((o) => o.priceDeltaMinorUnits > 0)
+              .map(
+                (o) =>
+                  `${o.label} +${formatRupiah(o.priceDeltaMinorUnits / 100)}`
+              )
+              .join(" · ") ||
+              `Pilih ${SELECTION_LABEL[props.group.selectionType]}`}
+          </p>
+        </Show>
       </div>
       <span class="hidden shrink-0 font-medium text-caption text-muted-foreground sm:block">
-        {props.variant.productIds.length} produk
+        {props.group.products.length} produk
       </span>
     </A>
   );

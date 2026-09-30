@@ -1,5 +1,12 @@
 import { useLocation, useNavigate, useParams } from "@solidjs/router";
-import { createResource, createSignal, Show } from "solid-js";
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  For,
+  Show,
+} from "solid-js";
+import { createStore } from "solid-js/store";
 import { toast } from "solid-sonner";
 import { UploadIcon, XCloseIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
@@ -22,9 +29,14 @@ import {
   getProduct,
   updateProduct,
 } from "~/db/catalog";
+import {
+  getModifierGroups,
+  setProductModifierGroups,
+} from "~/db/modifier-groups";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { pickProductImage } from "~/lib/assets/product-image";
 import { resolveImageUrl } from "~/lib/assets/resolve";
-import { createLogger } from "~/lib/utils";
+import { cn, createLogger } from "~/lib/utils";
 
 const logger = createLogger({ domain: "POS", module: "product-form" });
 
@@ -55,6 +67,34 @@ export default function ProductFormPage() {
   const [price, setPrice] = createSignal("");
   const [photo, setPhoto] = createSignal<StagedPhoto | null>(null);
   const [saving, setSaving] = createSignal(false);
+
+  const groupsQuery = useDrizzleQuery(
+    ["drizzle", "modifier-groups", "list"],
+    () => getModifierGroups()
+  );
+  const [attachedGroups, setAttachedGroups] = createStore<
+    Record<string, boolean>
+  >({});
+  const [groupsHydrated, setGroupsHydrated] = createSignal(false);
+
+  // Edit mode: pre-check groups currently linked to this product.
+  createEffect(() => {
+    if (!isEditing() || groupsHydrated() || !product()) {
+      return;
+    }
+    const productId = product()!.id;
+    const next: Record<string, boolean> = {};
+    for (const group of groupsQuery.data() ?? []) {
+      next[group.id] = group.products.some((p) => p.id === productId);
+    }
+    setAttachedGroups(next);
+    setGroupsHydrated(true);
+  });
+
+  const selectedGroupIds = () =>
+    (groupsQuery.data() ?? [])
+      .filter((g) => attachedGroups[g.id])
+      .map((g) => g.id);
 
   createResource(
     () => existing()?.imageAssetId ?? null,
@@ -121,6 +161,7 @@ export default function ProductFormPage() {
 
     setSaving(true);
     try {
+      let productId: string;
       if (isEditing() && existing()) {
         await updateProduct(existing()!.id, {
           categoryId: category(),
@@ -128,20 +169,23 @@ export default function ProductFormPage() {
           name: valid.name,
           price: valid.price,
         });
+        productId = existing()!.id;
         toast.success("Produk diperbarui");
       } else {
-        await createProduct({
+        const created = await createProduct({
           categoryId: category(),
           ...(photo()?.assetId ? { imageAssetId: photo()!.assetId } : {}),
           name: valid.name,
           price: valid.price,
         });
+        productId = created.id;
         toast.success(
           photo()?.assetId
             ? "Produk ditambahkan — foto akan diproses di background"
             : "Produk ditambahkan"
         );
       }
+      await setProductModifierGroups(productId, selectedGroupIds());
       navigate("/catalog");
     } catch (error) {
       logger.error("PRODUCT_SAVE_FAILED", { error: String(error) });
@@ -232,6 +276,38 @@ export default function ProductFormPage() {
                 value={Number.parseInt(price(), 10) || undefined}
               />
             </NumberField>
+          </div>
+
+          {/* ── Modifier groups (varian) ── */}
+          <div class="mt-6 flex flex-col gap-1.5">
+            <span class={labelClass}>Varian</span>
+            <Show
+              fallback={
+                <p class="text-caption-sm text-muted-foreground">
+                  Belum ada varian — buat dulu di tab Varian
+                </p>
+              }
+              when={(groupsQuery.data()?.length ?? 0) > 0}
+            >
+              <div class="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-border bg-muted p-2.5">
+                <For each={groupsQuery.data() ?? []}>
+                  {(group) => (
+                    <button
+                      class={cn(
+                        "inline-flex cursor-pointer items-center whitespace-nowrap rounded-full border px-3 py-1 font-medium text-caption-sm transition-colors",
+                        attachedGroups[group.id]
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                      )}
+                      onClick={() => setAttachedGroups(group.id, (on) => !on)}
+                      type="button"
+                    >
+                      {group.name}
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
           </div>
 
           {/* ── Actions ── */}
