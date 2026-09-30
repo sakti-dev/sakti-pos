@@ -35,7 +35,7 @@ export const AttentionList = () => {
     () => getUnsyncedOrderCount()
   );
 
-  const items = (): AttentionItem[] => [
+  const allItems = (): AttentionItem[] => [
     {
       Icon: BoxPackageIcon,
       label: "Stok menipis",
@@ -53,7 +53,11 @@ export const AttentionList = () => {
       tone: "info",
     },
   ];
-  const total = () => items().reduce((sum: number, i) => sum + i.count, 0);
+  /* A zero count is a healthy state, not an attention item — only rows
+     that actually need attention render (e.g. "Stok menipis 0" next to
+     an offline queue reads as a stuck warning). */
+  const items = () => allItems().filter((i) => i.count > 0);
+  const total = () => items().length;
 
   return (
     <Show when={total() > 0}>
