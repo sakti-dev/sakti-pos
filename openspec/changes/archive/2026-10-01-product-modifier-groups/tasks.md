@@ -6,7 +6,7 @@
 - [x] 1.2 Register the three tables in `sync.config.ts`; `bun run generate:sync`; repoint `lib.rs` contract include and api service imports to the new dated contract
 - [x] 1.3 Hand-write paired migrations `0004_modifier_groups.sql` (+ journal/snapshots) for `apps/pos-app/src-tauri/migrations` and `apps/api/drizzle`; apply to dev Turso (prod at deploy)
 - [x] 1.4 Server repository: buildRow/readLatestRow/readRows/softDeleteRow/upsertRow for the three tables (validation helpers per column type; conflict sets include all business columns); groups→options→links in push order, reversed for deletes
-- [ ] 1.5 Verify round-trip: local write pushes (200, outbox drains), second device/server DB reflects rows
+- [x] 1.5 Verify round-trip: local write pushes (200, outbox drains), second device/server DB reflects rows
 
 ## 2. Catalog data layer
 
@@ -30,6 +30,6 @@
 ## 5. Verification
 
 - [x] 5.1 `bun run test` (pos-app + api) green; typecheck + ultracite clean
-- [ ] 5.2 Device pass (Waydroid/Redmi): create group (multi, optional) + attach → sell product with multi toppings → line price correct → checkout → `order_item_modifiers` rows in local DB → sync 200 → rows in Turso → receipt shows modifiers
-- [ ] 5.3 Offline pass: airplane-mode sale with modifiers persists and syncs when reconnected
+- [x] 5.2 Device pass (Waydroid/Redmi): create group (multi, optional) + attach → sell product with multi toppings → line price correct → checkout → `order_item_modifiers` rows in local DB → sync 200 → rows in Turso → receipt shows modifiers
+- [x] 5.3 Offline pass: airplane-mode sale with modifiers persists and syncs when reconnected
 - [x] 5.4 Document any new `[JS] [DOMAIN:ACTION]` log prefixes in `openspec/DOCUMENTED-LOG-PREFIX.md` + `logs/capture-adb-logcat.sh` LOG_FILTER

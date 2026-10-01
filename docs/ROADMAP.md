@@ -27,6 +27,10 @@ _Last reviewed: 2026-09-29 · branch `main` (all work pushed) · tests: 131 pos-
 - Dead mocks deleted (`lib/data/dashboard.ts`, earnings/kpi/attention constants)
 - Follow-on: full dashboard spec (revenue trends, top products, category sales, period picker — specced Jun 11, never built)
 
+### 2b. Modifier groups (varian) — ✅ implemented, device-verified
+- Shared groups (single/multi, required flag) + options with signed deltas + product links; real Variant tab & forms; POS selection sheet; `order_item_modifiers` snapshots; sync verified end-to-end on Waydroid (offline queue drained, server rows present)
+- **Pending deploy**: prod Turso migration `0004_modifier_groups.sql` + prod build (bundle with the cash-shifts 6.4 deploy)
+
 ### 3. Printer smoke test on device
 - Implemented June; run a real thermal-printer pass — predates all recent work
 
