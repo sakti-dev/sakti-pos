@@ -4,19 +4,20 @@ import {
   FiClipboard,
   FiPackage,
   FiPlus,
+  FiSliders,
   FiTruck,
 } from "solid-icons/fi";
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
-import { formatRupiah } from "~/lib/utils";
-import { ingredients } from "./lib/ingredients";
-import { isLowStock } from "./lib/stats";
-import { currentStock } from "./lib/store";
+import { getIngredientStockList, type StockListItem } from "~/db/inventory";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
+import { stockStatus } from "./lib/stats";
 import { BadgeStock, StatCard } from "./shared";
 
 interface IngredientTabProps {
+  readonly onAdjustment: () => void;
   readonly onCreateIngredient: () => void;
 }
 
@@ -24,30 +25,31 @@ export function IngredientTab(props: IngredientTabProps) {
   const navigate = useNavigate();
   const [search, setSearch] = createSignal("");
 
+  const listQuery = useDrizzleQuery(
+    ["drizzle", "inventory", "ingredient-stock-list"],
+    () => getIngredientStockList()
+  );
+  const list = () => listQuery.data() ?? [];
+
   const lowIngredientCount = createMemo(
     () =>
-      ingredients.filter((ing) =>
-        isLowStock(currentStock(ing.id), "ingredient")
+      list().filter(
+        (ing) =>
+          stockStatus(ing.onHandQty, ing.lowStockThreshold ?? undefined)
+            .status !== "available"
       ).length
   );
 
-  const estimatedCapital = createMemo(() =>
-    ingredients.reduce(
-      (sum, ing) => sum + currentStock(ing.id) * ing.latestCostPrice,
-      0
-    )
-  );
-
   const filtered = createMemo(() => {
-    const q = search().toLowerCase();
-    return ingredients.filter((ing) => {
-      if (!q) {
-        return true;
-      }
-      return (
-        ing.name.toLowerCase().includes(q) || ing.sku.toLowerCase().includes(q)
-      );
-    });
+    const q = search().toLowerCase().trim();
+    if (!q) {
+      return list();
+    }
+    return list().filter(
+      (ing) =>
+        ing.name.toLowerCase().includes(q) ||
+        (ing.unit ?? "").toLowerCase().includes(q)
+    );
   });
 
   return (
@@ -64,9 +66,9 @@ export function IngredientTab(props: IngredientTabProps) {
           />
           <StatCard
             icon={<FiPackage class="h-4 w-4" />}
-            label="Estimasi Modal Gudang"
-            value={formatRupiah(estimatedCapital())}
-            valueSuffix=""
+            label="Total Bahan Terdaftar"
+            value={String(list().length)}
+            valueSuffix="Bahan"
           />
         </div>
 
@@ -91,6 +93,15 @@ export function IngredientTab(props: IngredientTabProps) {
             tone="primary"
           >
             <FiClipboard class="h-4 w-4" /> Stock Opname
+          </Button>
+          <Button
+            class="justify-center rounded-xl"
+            look="outline"
+            onClick={props.onAdjustment}
+            size="sm"
+            tone="primary"
+          >
+            <FiSliders class="h-4 w-4" /> Penyesuaian
           </Button>
           <Button
             class="justify-center rounded-xl"
@@ -131,7 +142,7 @@ export function IngredientTab(props: IngredientTabProps) {
           >
             {(ing, i) => (
               <FadeIn delay={0.05 + i() * 0.02} duration={0.3} y={8}>
-                <IngredientRow ingredient={ing} />
+                <IngredientRow item={ing} />
               </FadeIn>
             )}
           </For>
@@ -141,8 +152,8 @@ export function IngredientTab(props: IngredientTabProps) {
   );
 }
 
-function IngredientRow(props: { ingredient: (typeof ingredients)[number] }) {
-  const ing = () => props.ingredient;
+function IngredientRow(props: { item: StockListItem }) {
+  const ing = () => props.item;
 
   return (
     <div class="mb-2 flex items-center gap-3 rounded-xl border border-border bg-card p-3">
@@ -150,13 +161,23 @@ function IngredientRow(props: { ingredient: (typeof ingredients)[number] }) {
         <h3 class="truncate font-semibold text-body-sm text-foreground">
           {ing().name}
         </h3>
-        <p class="mt-0.5 text-caption-sm text-faint-foreground">
-          {ing().sku}
-          <Show when={ing().category}> · {ing().category}</Show>
-        </p>
+        <p class="mt-0.5 text-caption-sm text-faint-foreground">{ing().unit}</p>
       </div>
       <div class="shrink-0">
-        <BadgeStock qty={currentStock(ing().id)} />
+        <Show
+          fallback={
+            <span class="text-caption-sm text-faint-foreground">
+              belum dipantau
+            </span>
+          }
+          when={ing().tracked}
+        >
+          <BadgeStock
+            qty={ing().onHandQty}
+            threshold={ing().lowStockThreshold ?? undefined}
+            unit={ing().unit}
+          />
+        </Show>
       </div>
     </div>
   );

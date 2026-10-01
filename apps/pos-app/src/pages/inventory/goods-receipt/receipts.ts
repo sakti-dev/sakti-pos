@@ -1,24 +1,28 @@
-import { getMovements } from "../components/lib/store";
-import type { Movement } from "../components/lib/types";
+import type { StockTargetType } from "~/db/inventory";
 
 // ── Item sync types & pure helpers ──
 
 export interface SyncableItem {
   costPrice: number;
-  productId: number;
   qty: number;
   /** Which field was last edited — determines what stays fixed when qty changes */
   sourceField: "costPrice" | "subtotal";
   /** Stored total when user typed subtotal directly */
   subtotalValue: number;
+  targetId: string;
+  targetType: StockTargetType;
 }
 
-export const createBlankItem = (productId: number): SyncableItem => ({
+export const createBlankItem = (
+  targetId: string,
+  targetType: StockTargetType
+): SyncableItem => ({
   costPrice: 0,
-  productId,
-  qty: 1,
   sourceField: "costPrice",
   subtotalValue: 0,
+  targetId,
+  targetType,
+  qty: 1,
 });
 
 /** Display value for subtotal field */
@@ -59,62 +63,3 @@ export const onQtyChange = (
   }
   return { ...item, qty: newQty };
 };
-
-// ── Receipt helpers ──
-
-const TRX_RE = /^TRX-(\d+)$/;
-
-export function receiptRef(n: number): string {
-  return `TRX-${String(n).padStart(4, "0")}`;
-}
-
-export function nextReceiptNumber(): number {
-  let max = 0;
-  for (const m of getMovements()) {
-    const match = m.ref?.match(TRX_RE);
-    if (match) {
-      max = Math.max(max, Number.parseInt(match[1], 10));
-    }
-  }
-  return max + 1;
-}
-
-export interface ReceiptSummary {
-  readonly createdAt: number;
-  readonly itemCount: number;
-  readonly movements: Movement[];
-  readonly ref: string;
-  readonly supplier?: string;
-  readonly totalCost: number;
-  readonly totalQty: number;
-}
-
-export function listReceipts(): ReceiptSummary[] {
-  const map = new Map<string, Movement[]>();
-  for (const m of getMovements()) {
-    if (m.type !== "restock" || !m.ref) {
-      continue;
-    }
-    const bucket = map.get(m.ref);
-    if (bucket) {
-      bucket.push(m);
-    } else {
-      map.set(m.ref, [m]);
-    }
-  }
-  return [...map.entries()]
-    .map(([ref, ms]) => ({
-      ref,
-      createdAt: ms[0].createdAt,
-      supplier: ms[0].supplier,
-      itemCount: new Set(ms.map((m) => m.productId)).size,
-      totalQty: ms.reduce((s, m) => s + m.delta, 0),
-      totalCost: ms.reduce((s, m) => s + m.delta * (m.costPrice ?? 0), 0),
-      movements: ms,
-    }))
-    .sort((a, b) =>
-      a.createdAt === b.createdAt
-        ? b.ref.localeCompare(a.ref)
-        : b.createdAt - a.createdAt
-    );
-}

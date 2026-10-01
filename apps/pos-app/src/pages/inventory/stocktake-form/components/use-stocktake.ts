@@ -1,25 +1,32 @@
 import { useNavigate } from "@solidjs/router";
-import { createMemo, createSignal } from "solid-js";
-import { products } from "~/lib/data/catalog";
-import { ingredients } from "../../components/lib/ingredients";
-import { currentStock } from "../../components/lib/store";
-import type { EmptyState } from "./empty-state";
+import { createMemo, createResource, createSignal } from "solid-js";
 import {
-  nextStocktakeNumber,
-  stocktakeRef,
-  varianceRows,
-  varianceValue,
-} from "./utils";
+  getTrackedItems,
+  nextStocktakeRef,
+  type StockTargetType,
+} from "~/db/inventory";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
+import type { EmptyState } from "./empty-state";
+import { varianceRows, varianceValue } from "./utils";
 
 export type StocktakeScope = "ingredient" | "retail";
 
 export interface StocktakeItem {
-  readonly category: string;
-  readonly id: number;
+  readonly id: string;
   readonly name: string;
-  readonly price: number;
-  readonly sku: string;
+  readonly onHandQty: number;
+  /** Products: sale price for variance valuation. Ingredients: null. */
+  readonly priceMinorUnits: number | null;
+  readonly targetType: StockTargetType;
   readonly unit: string;
+}
+
+export interface StocktakeLineResult {
+  readonly countedQty: number;
+  readonly systemQtyBefore: number;
+  readonly targetId: string;
+  readonly targetType: StockTargetType;
+  readonly varianceQty: number;
 }
 
 /**
@@ -30,70 +37,71 @@ export interface StocktakeItem {
  * purely presentational.
  */
 export function useStocktake(scope: StocktakeScope) {
-  const opnum = nextStocktakeNumber();
-  const ref = stocktakeRef(opnum);
+  const [ref] = createResource(() => nextStocktakeRef());
 
   const navigate = useNavigate();
 
-  // ── Items in scope ──
+  // ── Items in scope: tracked items of the scope's target type ──
+  const itemsQuery = useDrizzleQuery(
+    ["drizzle", "inventory", "tracked-items"],
+    () => getTrackedItems()
+  );
+
+  const scopeType = (): StockTargetType =>
+    scope === "ingredient" ? "ingredient" : "product";
+
   const scopeItems = createMemo<StocktakeItem[]>(() =>
-    scope === "ingredient"
-      ? ingredients.map((i) => ({
-          id: i.id,
-          name: i.name,
-          sku: i.sku,
-          unit: i.unit,
-          category: i.category ?? "",
-          price: 0,
-        }))
-      : products
-          .filter((p) => p.isRetail)
-          .map((p) => ({
-            id: p.id,
-            name: p.name,
-            sku: p.sku,
-            unit: p.unit,
-            category: p.category,
-            price: p.price,
-          }))
+    (itemsQuery.data() ?? [])
+      .filter((i) => i.targetType === scopeType())
+      .map((i) => ({
+        id: i.id,
+        name: i.name,
+        onHandQty: i.onHandQty,
+        priceMinorUnits: i.priceMinorUnits,
+        targetType: i.targetType,
+        unit: i.unit,
+      }))
   );
 
   // ── Counts: seeded from system stock on first availability ──
-  const [counts, setCounts] = createSignal<Record<number, number>>({});
+  const [counts, setCounts] = createSignal<Record<string, number>>({});
   const [seeded, setSeeded] = createSignal(false);
   const [reason, setReason] = createSignal("");
   const [search, setSearch] = createSignal("");
 
+  const systemQty = (id: string) =>
+    scopeItems().find((i) => i.id === id)?.onHandQty ?? 0;
+
   if (!seeded() && scopeItems().length > 0) {
-    const initial: Record<number, number> = {};
-    for (const p of scopeItems()) {
-      initial[p.id] = currentStock(p.id);
+    const initial: Record<string, number> = {};
+    for (const item of scopeItems()) {
+      initial[item.id] = item.onHandQty;
     }
     setCounts(initial);
     setSeeded(true);
   }
 
   // ── Actions ──
-  const increment = (id: number) =>
+  const increment = (id: string) =>
     setCounts((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
 
-  const decrement = (id: number) =>
+  const decrement = (id: string) =>
     setCounts((prev) => ({
       ...prev,
       [id]: Math.max(0, (prev[id] ?? 0) - 1),
     }));
 
-  const setCount = (id: number, value: number) =>
+  const setCount = (id: string, value: number) =>
     setCounts((prev) => ({ ...prev, [id]: value }));
 
   // ── Derived ──
-  const diffOf = (id: number) => (counts()[id] ?? 0) - currentStock(id);
+  const diffOf = (id: string) => (counts()[id] ?? 0) - systemQty(id);
 
   const rows = createMemo(() =>
     varianceRows(
-      Object.entries(counts()).map(([id, c]) => ({
-        productId: Number(id),
-        counted: c,
+      Object.entries(counts()).map(([id, counted]) => ({
+        counted,
+        item: scopeItems().find((i) => i.id === id),
       }))
     )
   );
@@ -109,23 +117,28 @@ export function useStocktake(scope: StocktakeScope) {
     if (!q) {
       return items;
     }
-    return items.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
-    );
+    return items.filter((i) => i.name.toLowerCase().includes(q));
   });
 
   const canConfirm = createMemo(
     () => reason().trim().length > 0 && adjustedCount() > 0
   );
 
+  /** Variance lines to persist (counted ≠ system). */
+  const buildLines = (): StocktakeLineResult[] =>
+    rows()
+      .filter((r) => r.diff !== 0 && r.item)
+      .map((r) => ({
+        countedQty: r.counted,
+        systemQtyBefore: r.counted - r.diff,
+        targetId: r.item!.id,
+        targetType: r.item!.targetType,
+        varianceQty: r.diff,
+      }));
+
   // ── Empty-state detection (priority order; first match wins) ──
   const isRetailScope = () => scope === "retail";
-  const hasCatalog = () =>
-    isRetailScope() ? products.length > 0 : ingredients.length > 0;
-  const allBebasStok = () =>
-    isRetailScope() &&
-    products.length > 0 &&
-    products.every((p) => !p.isRetail);
+  const hasCatalog = () => scopeItems().length > 0;
   const isSearching = () => search().trim().length > 0;
 
   const emptyState = (): EmptyState => {
@@ -134,9 +147,6 @@ export function useStocktake(scope: StocktakeScope) {
     }
     if (isSearching()) {
       return { kind: "search", query: search().trim() };
-    }
-    if (isRetailScope() && allBebasStok()) {
-      return { kind: "bebas-stok" };
     }
     if (!hasCatalog()) {
       return { kind: "empty" };
@@ -150,9 +160,9 @@ export function useStocktake(scope: StocktakeScope) {
       setSearch("");
       return;
     }
-    if (kind === "bebas-stok" || kind === "empty") {
+    if (kind === "empty") {
       if (isRetailScope()) {
-        navigate("/catalog");
+        navigate("/inventory?tab=retail");
         return;
       }
       navigate("/inventory?tab=ingredient&action=new");
@@ -161,6 +171,7 @@ export function useStocktake(scope: StocktakeScope) {
 
   return {
     adjustedCount,
+    buildLines,
     canConfirm,
     counts,
     decrement,
@@ -168,6 +179,7 @@ export function useStocktake(scope: StocktakeScope) {
     emptyState,
     filteredItems,
     increment,
+    itemsLoading: itemsQuery.loading,
     onEmptyCta,
     reason,
     ref,

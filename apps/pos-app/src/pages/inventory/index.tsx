@@ -9,6 +9,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "~/components/ui/tabs";
+import { AdjustmentDialog } from "./components/adjustment-dialog";
 import { IngredientFormDialog } from "./components/ingredient-form-dialog";
 import { IngredientTab } from "./components/ingredient-tab";
 import { RetailTab } from "./components/retail-tab";
@@ -26,6 +27,7 @@ export default function InventoryPage() {
       ? params.tab
       : "retail";
   const [createOpen, setCreateOpen] = createSignal(false);
+  const [adjustOpen, setAdjustOpen] = createSignal(false);
 
   // Open the ingredient form when arriving via ?action=new (e.g. from the
   // stocktake empty state's "Tambah Bahan Baku" CTA). Clear after opening.
@@ -89,7 +91,10 @@ export default function InventoryPage() {
           <RetailTab />
         </TabsContent>
         <TabsContent class="min-h-0 flex-1 overflow-hidden" value="ingredient">
-          <IngredientTab onCreateIngredient={() => setCreateOpen(true)} />
+          <IngredientTab
+            onAdjustment={() => setAdjustOpen(true)}
+            onCreateIngredient={() => setCreateOpen(true)}
+          />
         </TabsContent>
       </Tabs>
 
@@ -97,6 +102,11 @@ export default function InventoryPage() {
         onCreated={() => setCreateOpen(false)}
         onOpenChange={setCreateOpen}
         open={createOpen()}
+      />
+      <AdjustmentDialog
+        onDone={() => setCreateOpen(false)}
+        onOpenChange={setAdjustOpen}
+        open={adjustOpen()}
       />
     </div>
   );

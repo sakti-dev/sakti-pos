@@ -1,79 +1,51 @@
 import { describe, expect, it } from "vitest";
-import {
-  recordMovements,
-  resetInventoryStore,
-} from "../../../components/lib/store";
-import {
-  listStocktakes,
-  nextStocktakeNumber,
-  stocktakeRef,
-  varianceRows,
-} from "../utils";
+import type { StocktakeItem } from "../use-stocktake";
+import { varianceRows, varianceValue } from "../utils";
+
+const ITEM = (over: Partial<StocktakeItem> = {}): StocktakeItem => ({
+  id: "p1",
+  name: "Kopi Sachet",
+  onHandQty: 80,
+  priceMinorUnits: 250_000,
+  targetType: "product",
+  unit: "Pcs",
+  ...over,
+});
 
 describe("stocktake helpers", () => {
-  it("nextStocktakeNumber is 1 with no prior stocktakes", () => {
-    resetInventoryStore();
-    expect(nextStocktakeNumber()).toBe(1);
-  });
-
-  it("stocktakeRef pads to 3 digits", () => {
-    expect(stocktakeRef(1)).toBe("OPN-001");
-    expect(stocktakeRef(42)).toBe("OPN-042");
-  });
-
-  it("lists stocktakes grouped by ref with net delta", () => {
-    resetInventoryStore();
-    recordMovements([
-      {
-        productId: 1,
-        type: "stocktake",
-        delta: -5,
-        reason: "lainnya",
-        ref: "OPN-001",
-      },
-      {
-        productId: 2,
-        type: "stocktake",
-        delta: -3,
-        reason: "lainnya",
-        ref: "OPN-001",
-      },
-      {
-        productId: 1,
-        type: "stocktake",
-        delta: 2,
-        reason: "lainnya",
-        ref: "OPN-002",
-      },
-    ]);
-    const list = listStocktakes();
-    expect(list).toHaveLength(2);
-    // newest-first
-    expect(list[0].ref).toBe("OPN-002");
-    expect(list[0].netDelta).toBe(2);
-    expect(list[1].ref).toBe("OPN-001");
-    expect(list[1].netDelta).toBe(-8);
-    expect(list[1].itemCount).toBe(2);
-  });
-
-  it("varianceRows maps counted qty to {product, system, counted, diff}", () => {
-    resetInventoryStore();
+  it("varianceRows maps counted qty to {system, counted, diff}", () => {
     const rows = varianceRows([
-      { productId: 1, counted: 75 },
-      { productId: 2, counted: 60 },
+      { counted: 75, item: ITEM() },
+      { counted: 60, item: ITEM({ id: "p2", onHandQty: 60 }) },
     ]);
-    // product 1 system stock = 80 (seed), 2 = 60
-    expect(rows[0]).toMatchObject({
-      productId: 1,
-      system: 80,
-      counted: 75,
-      diff: -5,
-    });
-    expect(rows[1]).toMatchObject({
-      productId: 2,
-      system: 60,
-      counted: 60,
-      diff: 0,
-    });
+    expect(rows[0]).toMatchObject({ system: 80, counted: 75, diff: -5 });
+    expect(rows[1]).toMatchObject({ system: 60, counted: 60, diff: 0 });
+  });
+
+  it("missing item (untracked mid-session) reads system 0", () => {
+    const rows = varianceRows([{ counted: 5, item: undefined }]);
+    expect(rows[0]).toMatchObject({ system: 0, counted: 5, diff: 5 });
+  });
+
+  it("varianceValue prices product diffs at sale price", () => {
+    const rows = varianceRows([
+      { counted: 75, item: ITEM() }, // diff -5 × Rp2.500
+      { counted: 82, item: ITEM({ id: "p2", onHandQty: 80 }) }, // diff +2 × Rp2.500
+    ]);
+    expect(varianceValue(rows)).toBe(-5 * 2500 + 2 * 2500);
+  });
+
+  it("ingredients (no sale price) value as 0", () => {
+    const rows = varianceRows([
+      {
+        counted: 1,
+        item: ITEM({
+          id: "i1",
+          priceMinorUnits: null,
+          targetType: "ingredient",
+        }),
+      },
+    ]);
+    expect(varianceValue(rows)).toBe(0);
   });
 });

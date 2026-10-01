@@ -1,5 +1,6 @@
 import { FiPlus } from "solid-icons/fi";
 import { createSignal, For } from "solid-js";
+import { toast } from "solid-sonner";
 import { PickerField, type PickerOption } from "~/components/picker-field";
 import {
   AdaptiveDialog,
@@ -10,7 +11,8 @@ import {
   AdaptiveDialogTitle,
 } from "~/components/ui/adaptive-dialog";
 import { Button } from "~/components/ui/button";
-import { addIngredient } from "./lib/ingredients";
+import { createIngredient } from "~/db/ingredients";
+import { setLowStockThreshold } from "~/db/inventory";
 
 const UNIT_OPTIONS = ["Pcs/Sachet", "Kg", "Gram", "Liter"] as const;
 
@@ -31,28 +33,46 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
   const [name, setName] = createSignal("");
   const [unit, setUnit] = createSignal<string>(UNIT_OPTIONS[0]);
   const [category, setCategory] = createSignal("Bumbu & Bahan Dapur");
+  const [threshold, setThreshold] = createSignal("");
+  const [saving, setSaving] = createSignal(false);
 
-  const canCreate = () => name().trim().length > 0;
+  const canCreate = () => name().trim().length > 0 && !saving();
 
   const handleCreate = () => {
     const trimmed = name().trim();
-    if (!trimmed) {
+    if (!trimmed || saving()) {
       return;
     }
-    addIngredient({
-      name: trimmed,
-      unit: unit(),
+    setSaving(true);
+    createIngredient({
       category: category(),
-    });
-    reset();
-    props.onCreated();
-    props.onOpenChange(false);
+      name: trimmed,
+      sku: null,
+      unit: unit(),
+    })
+      .then(async (id) => {
+        const min = Number.parseFloat(threshold().replace(",", "."));
+        if (Number.isFinite(min) && min >= 0) {
+          await setLowStockThreshold("ingredient", id, min);
+        }
+        toast.success(`Bahan ${trimmed} ditambahkan`);
+        reset();
+        props.onCreated();
+        props.onOpenChange(false);
+      })
+      .catch((error: unknown) => {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal menambah bahan"
+        );
+      })
+      .finally(() => setSaving(false));
   };
 
   const reset = () => {
     setName("");
     setUnit(UNIT_OPTIONS[0]);
     setCategory("Bumbu & Bahan Dapur");
+    setThreshold("");
   };
 
   return (
@@ -106,6 +126,19 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
             title="Kategori"
             value={category()}
           />
+          <label class="flex flex-col gap-1">
+            <span class="font-medium text-caption text-muted-foreground">
+              Stok Minimum (opsional)
+            </span>
+            <input
+              class="h-10 rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+              inputMode="decimal"
+              onInput={(e) => setThreshold(e.currentTarget.value)}
+              placeholder={`Contoh: 2 (${unit().toLowerCase()})`}
+              type="text"
+              value={threshold()}
+            />
+          </label>
         </div>
         <AdaptiveDialogFooter>
           <Button

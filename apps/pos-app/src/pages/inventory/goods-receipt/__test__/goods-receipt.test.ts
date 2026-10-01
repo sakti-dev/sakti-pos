@@ -8,7 +8,7 @@ import {
   type SyncableItem,
 } from "../receipts";
 
-const blank = (id = 1): SyncableItem => createBlankItem(id);
+const blank = (id = "t1"): SyncableItem => createBlankItem(id, "ingredient");
 
 describe("item-sync", () => {
   describe("displaySubtotal", () => {

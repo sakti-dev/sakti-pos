@@ -1,60 +1,38 @@
 import { describe, expect, it } from "vitest";
 import {
-  recordMovements,
-  resetInventoryStore,
-} from "../../components/lib/store";
-import { listReceipts, nextReceiptNumber, receiptRef } from "../receipts";
+  createBlankItem,
+  displaySubtotal,
+  onQtyChange,
+  onSubtotalChange,
+} from "../receipts";
+
+const BLANK = createBlankItem("t1", "ingredient");
 
 describe("terima helpers", () => {
-  it("receiptRef pads to 4 digits", () => {
-    expect(receiptRef(1)).toBe("TRX-0001");
-    expect(receiptRef(42)).toBe("TRX-0042");
+  it("createBlankItem seeds qty 1 with target typing", () => {
+    expect(BLANK).toMatchObject({
+      costPrice: 0,
+      qty: 1,
+      targetId: "t1",
+      targetType: "ingredient",
+    });
   });
 
-  it("nextReceiptNumber is 1 with no prior receipts", () => {
-    resetInventoryStore();
-    expect(nextReceiptNumber()).toBe(1);
+  it("displaySubtotal derives from costPrice × qty", () => {
+    expect(displaySubtotal({ ...BLANK, costPrice: 2500, qty: 4 })).toBe(10_000);
   });
 
-  it("nextReceiptNumber follows existing", () => {
-    resetInventoryStore();
-    recordMovements([
-      { productId: 1, type: "restock", delta: 5, ref: "TRX-0001" },
-      { productId: 2, type: "restock", delta: 3, ref: "TRX-0002" },
-    ]);
-    expect(nextReceiptNumber()).toBe(3);
+  it("editing subtotal re-derives costPrice per unit", () => {
+    const next = onSubtotalChange({ ...BLANK, qty: 4 }, 10_000);
+    expect(next.costPrice).toBe(2500);
+    expect(next.sourceField).toBe("subtotal");
+    expect(displaySubtotal(next)).toBe(10_000);
   });
 
-  it("listReceipts groups by ref, newest-first, with totals", () => {
-    resetInventoryStore();
-    recordMovements([
-      {
-        productId: 1,
-        type: "restock",
-        delta: 50,
-        ref: "TRX-0001",
-        costPrice: 18_000,
-      },
-      {
-        productId: 2,
-        type: "restock",
-        delta: 30,
-        ref: "TRX-0001",
-        costPrice: 12_000,
-      },
-      {
-        productId: 1,
-        type: "restock",
-        delta: 10,
-        ref: "TRX-0002",
-        costPrice: 18_000,
-      },
-    ]);
-    const list = listReceipts();
-    expect(list[0].ref).toBe("TRX-0002");
-    expect(list[1].ref).toBe("TRX-0001");
-    expect(list[1].itemCount).toBe(2);
-    expect(list[1].totalQty).toBe(80);
-    expect(list[1].totalCost).toBe(50 * 18_000 + 30 * 12_000);
+  it("qty change keeps subtotal source fixed and re-derives costPrice", () => {
+    const viaSubtotal = onSubtotalChange({ ...BLANK, qty: 4 }, 10_000);
+    const next = onQtyChange(viaSubtotal, 5);
+    expect(next.qty).toBe(5);
+    expect(next.costPrice).toBe(2000);
   });
 });

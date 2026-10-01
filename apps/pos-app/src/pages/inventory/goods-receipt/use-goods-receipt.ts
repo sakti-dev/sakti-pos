@@ -1,29 +1,40 @@
 import { createMemo, createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { products } from "~/lib/data/catalog";
-import { addIngredient, ingredients } from "../components/lib/ingredients";
+import { toast } from "solid-sonner";
+import {
+  createIngredientFromReceipt,
+  type IngredientInput,
+} from "~/db/ingredients";
+import {
+  getIngredientStockList,
+  getProductStockList,
+  type StockTargetType,
+} from "~/db/inventory";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { createBlankItem, type SyncableItem } from "./receipts";
 
 // ── Types ──
 
 export interface PickableItem {
-  readonly id: number;
+  readonly id: string;
   readonly isIngredient: boolean;
   readonly name: string;
-  readonly sku: string;
+  readonly onHandQty: number;
+  readonly targetType: StockTargetType;
+  readonly tracked: boolean;
   readonly unit: string;
 }
 
-export interface GoodsReceiptConfirmInput {
-  readonly items: { costPrice: number; productId: number; qty: number }[];
-  readonly note?: string;
-  readonly ref: string;
-  readonly supplier?: string;
+export interface GoodsReceiptLineInput {
+  readonly qty: number;
+  readonly targetId: string;
+  readonly targetType: StockTargetType;
+  readonly unitCostMinorUnits: number | null;
 }
 
 // ── Hook ──
 
-export function useGoodsReceipt(ref: string) {
+export function useGoodsReceipt() {
   const [supplier, setSupplier] = createSignal("");
   const [po, setPo] = createSignal("");
   const [items, setItems] = createStore<SyncableItem[]>([]);
@@ -34,31 +45,39 @@ export function useGoodsReceipt(ref: string) {
   const [newUnit, setNewUnit] = createSignal("Pcs/Sachet");
   const [newCategory, setNewCategory] = createSignal("Bumbu & Bahan Dapur");
 
+  const ingredientQuery = useDrizzleQuery(
+    ["drizzle", "inventory", "ingredient-stock-list"],
+    () => getIngredientStockList()
+  );
+  const productQuery = useDrizzleQuery(
+    ["drizzle", "inventory", "product-stock-list"],
+    () => getProductStockList()
+  );
+
   // ── Item CRUD ──
 
-  const findIndex = (productId: number) =>
-    items.findIndex((i) => i.productId === productId);
+  const findIndex = (id: string) => items.findIndex((i) => i.targetId === id);
 
-  const addProduct = (productId: number) => {
-    if (findIndex(productId) >= 0) {
+  const addItem = (pick: PickableItem) => {
+    if (findIndex(pick.id) >= 0) {
       return;
     }
-    setItems(items.length, createBlankItem(productId));
+    setItems(items.length, createBlankItem(pick.id, pick.targetType));
     setPickerOpen(false);
     setPickerSearch("");
     setShowCreateForm(false);
   };
 
-  const patchItem = (productId: number, patch: Partial<SyncableItem>) => {
-    const idx = findIndex(productId);
+  const patchItem = (id: string, patch: Partial<SyncableItem>) => {
+    const idx = findIndex(id);
     if (idx < 0) {
       return;
     }
     setItems(idx, patch);
   };
 
-  const removeItem = (productId: number) => {
-    const idx = findIndex(productId);
+  const removeItem = (id: string) => {
+    const idx = findIndex(id);
     if (idx < 0) {
       return;
     }
@@ -71,16 +90,16 @@ export function useGoodsReceipt(ref: string) {
 
   // ── Bidirectional price ↔ subtotal sync ──
 
-  const handleCostPriceChange = (productId: number, value: number) => {
-    patchItem(productId, {
+  const handleCostPriceChange = (id: string, value: number) => {
+    patchItem(id, {
       costPrice: value,
       sourceField: "costPrice",
       subtotalValue: 0,
     });
   };
 
-  const handleSubtotalChange = (productId: number, value: number) => {
-    const idx = findIndex(productId);
+  const handleSubtotalChange = (id: string, value: number) => {
+    const idx = findIndex(id);
     if (idx < 0) {
       return;
     }
@@ -88,15 +107,15 @@ export function useGoodsReceipt(ref: string) {
     if (it.qty === 0) {
       return;
     }
-    patchItem(productId, {
+    patchItem(id, {
       costPrice: Math.round(value / it.qty),
       sourceField: "subtotal",
       subtotalValue: value,
     });
   };
 
-  const handleQtyChange = (productId: number, newQty: number) => {
-    const idx = findIndex(productId);
+  const handleQtyChange = (id: string, newQty: number) => {
+    const idx = findIndex(id);
     if (idx < 0) {
       return;
     }
@@ -105,53 +124,38 @@ export function useGoodsReceipt(ref: string) {
     if (it.sourceField === "subtotal" && newQty > 0) {
       patch.costPrice = Math.round(it.subtotalValue / newQty);
     }
-    patchItem(productId, patch);
+    patchItem(id, patch);
   };
 
-  // ── Product lookups (products + ingredients) ──
+  // ── Lookups (pickable universe + display) ──
 
-  const productName = (id: number) => {
-    const p = products.find((pr) => pr.id === id);
-    if (p) {
-      return p.name;
-    }
-    return ingredients.find((i) => i.id === id)?.name ?? "—";
-  };
-  const productSku = (id: number) => {
-    const p = products.find((pr) => pr.id === id);
-    if (p) {
-      return p.sku;
-    }
-    return ingredients.find((i) => i.id === id)?.sku ?? "";
-  };
-  const productUnit = (id: number) => {
-    const p = products.find((pr) => pr.id === id);
-    if (p) {
-      return p.unit;
-    }
-    return ingredients.find((i) => i.id === id)?.unit ?? "";
-  };
-
-  // ── Picker: only ingredients + retail products ──
-
-  const allPickable = (): PickableItem[] => [
-    ...ingredients.map((i) => ({
+  const allPickable = createMemo<PickableItem[]>(() => [
+    ...(ingredientQuery.data() ?? []).map((i) => ({
       id: i.id,
       name: i.name,
-      sku: i.sku,
+      onHandQty: i.onHandQty,
+      tracked: i.tracked,
       unit: i.unit,
       isIngredient: true,
+      targetType: "ingredient" as const,
     })),
-    ...products
-      .filter((p) => p.isRetail)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        sku: p.sku,
-        unit: p.unit,
-        isIngredient: false,
-      })),
-  ];
+    ...(productQuery.data() ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      onHandQty: p.onHandQty,
+      tracked: p.tracked,
+      unit: p.unit,
+      isIngredient: false,
+      targetType: "product" as const,
+    })),
+  ]);
+
+  const displayOf = (id: string) => allPickable().find((p) => p.id === id);
+
+  const productName = (id: string) => displayOf(id)?.name ?? "—";
+  const productUnit = (id: string) => displayOf(id)?.unit ?? "";
+  const productStock = (id: string) =>
+    displayOf(id)?.tracked ? (displayOf(id)?.onHandQty ?? 0) : null;
 
   const hasPickableItems = createMemo(() => allPickable().length > 0);
 
@@ -161,24 +165,19 @@ export function useGoodsReceipt(ref: string) {
       return false;
     }
     const ql = q.toLowerCase();
-    return allPickable().every(
-      (p) =>
-        !(p.name.toLowerCase().includes(ql) || p.sku.toLowerCase().includes(ql))
-    );
+    return allPickable().every((p) => !p.name.toLowerCase().includes(ql));
   });
 
   const available = () => {
     const q = pickerSearch().toLowerCase().trim();
     return allPickable().filter(
       (p) =>
-        !items.some((i) => i.productId === p.id) &&
-        (q.length === 0 ||
-          p.name.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q))
+        !items.some((i) => i.targetId === p.id) &&
+        (q.length === 0 || p.name.toLowerCase().includes(q))
     );
   };
 
-  // ── Create bahan baku (adds to ingredients store) ──
+  // ── Create bahan baku inline ──
 
   const canCreate = createMemo(() => newName().trim().length > 0);
 
@@ -187,15 +186,33 @@ export function useGoodsReceipt(ref: string) {
     if (!name) {
       return;
     }
-    const ing = addIngredient({
-      name,
-      unit: newUnit(),
+    const input: IngredientInput = {
       category: newCategory(),
-    });
-    addProduct(ing.id);
-    setNewName("");
-    setNewUnit("Pcs/Sachet");
-    setNewCategory("Bumbu & Bahan Dapur");
+      name,
+      sku: null,
+      unit: newUnit(),
+    };
+    createIngredientFromReceipt(input)
+      .then((created) => {
+        addItem({
+          id: created.id,
+          isIngredient: true,
+          name: created.name,
+          onHandQty: 0,
+          tracked: true,
+          targetType: "ingredient",
+          unit: created.unit,
+        });
+        ingredientQuery.refetch();
+        setNewName("");
+        setNewUnit("Pcs/Sachet");
+        setNewCategory("Bumbu & Bahan Dapur");
+      })
+      .catch((error: unknown) => {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal menambah bahan"
+        );
+      });
   };
 
   // ── Derived state ──
@@ -208,18 +225,16 @@ export function useGoodsReceipt(ref: string) {
     () => items.length > 0 && supplier().trim().length > 0
   );
 
-  // ── Save ──
+  // ── Save payload (caller persists via recordGoodsReceipt) ──
 
-  const buildConfirmInput = (): GoodsReceiptConfirmInput => ({
-    ref,
-    supplier: supplier().trim() || undefined,
-    note: po().trim() || undefined,
-    items: items.map((i) => ({
-      productId: i.productId,
+  const buildLines = (): GoodsReceiptLineInput[] =>
+    items.map((i) => ({
       qty: i.qty,
-      costPrice: i.costPrice,
-    })),
-  });
+      targetId: i.targetId,
+      targetType: i.targetType,
+      unitCostMinorUnits:
+        i.costPrice > 0 ? Math.round(i.costPrice * 100) : null,
+    }));
 
   return {
     // Signals (read)
@@ -248,16 +263,16 @@ export function useGoodsReceipt(ref: string) {
     setNewUnit,
     setNewCategory,
     // Actions
-    addProduct,
+    addItem,
     removeItem,
     handleCostPriceChange,
     handleSubtotalChange,
     handleQtyChange,
     handleCreate,
-    buildConfirmInput,
+    buildLines,
     // Lookups
     productName,
-    productSku,
     productUnit,
+    productStock,
   };
 }

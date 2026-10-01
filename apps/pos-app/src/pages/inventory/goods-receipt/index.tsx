@@ -1,8 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { toast } from "solid-sonner";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
-import { updateLatestCostPrice } from "../components/lib/ingredients";
-import { recordMovements } from "../components/lib/store";
+import { nextGoodsReceiptRef, recordGoodsReceipt } from "~/db/inventory";
 import { GoodsReceiptForm } from "./goods-receipt-form";
 
 export default function GoodsReceiptPage() {
@@ -15,26 +14,32 @@ export default function GoodsReceiptPage() {
     >
       <GoodsReceiptForm
         onCancel={() => navigate("/inventory?tab=ingredient")}
-        onConfirm={({ ref, supplier, note, items }) => {
-          recordMovements(
-            items.map((i) => ({
-              productId: i.productId,
-              type: "restock" as const,
-              delta: i.qty,
-              costPrice: i.costPrice,
-              supplier,
-              ref,
-              note,
-            }))
-          );
-          toast.success(`${ref} tersimpan`);
-          // Update latestCostPrice for ingredient items
-          for (const i of items) {
-            if (i.costPrice > 0) {
-              updateLatestCostPrice(i.productId, i.costPrice);
-            }
-          }
-          navigate("/inventory?tab=ingredient");
+        onConfirm={(lines, meta) => {
+          nextGoodsReceiptRef()
+            .then((ref) =>
+              recordGoodsReceipt({
+                lines,
+                note: meta.note,
+                ref,
+                supplierName: meta.supplierName || null,
+              })
+                .then(() => {
+                  toast.success(`Penerimaan ${ref} tersimpan`);
+                  navigate("/inventory?tab=ingredient");
+                })
+                .catch((error: unknown) => {
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : "Gagal menyimpan penerimaan"
+                  );
+                })
+            )
+            .catch((error: unknown) => {
+              toast.error(
+                error instanceof Error ? error.message : "Gagal membuat nomor"
+              );
+            });
         }}
       />
     </SubPageShell>

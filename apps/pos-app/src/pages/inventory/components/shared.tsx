@@ -2,6 +2,9 @@ import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 import { cn } from "~/lib/utils";
 
+/** Low-stock fallback when an item has no explicit threshold. */
+export const DEFAULT_MIN_STOCK = 5;
+
 const TONE_CHIP = {
   danger: "bg-status-danger text-status-danger-foreground",
   warning: "bg-status-warning text-status-warning-foreground",
@@ -62,8 +65,13 @@ export function StatCard(props: {
   );
 }
 
-export function BadgeStock(props: { qty: number }) {
-  const low = () => props.qty > 0 && props.qty <= 5;
+export function BadgeStock(props: {
+  qty: number;
+  threshold?: number;
+  unit?: string;
+}) {
+  const min = () => props.threshold ?? DEFAULT_MIN_STOCK;
+  const low = () => props.qty > 0 && props.qty <= min();
   const out = () => props.qty <= 0;
 
   return (
@@ -75,7 +83,7 @@ export function BadgeStock(props: { qty: number }) {
         !(low() || out()) && "bg-status-success/10 text-status-success"
       )}
     >
-      {out() ? "Habis" : `Sisa: ${props.qty} item`}
+      {out() ? "Habis" : `Sisa: ${props.qty} ${props.unit ?? "item"}`}
     </span>
   );
 }

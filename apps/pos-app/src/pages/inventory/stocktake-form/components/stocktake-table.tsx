@@ -9,7 +9,6 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { cn } from "~/lib/utils";
-import { currentStock } from "../../components/lib/store";
 import { DeltaBadge } from "./delta";
 import { EmptyStateView } from "./empty-state";
 import type { StocktakeState } from "./use-stocktake";
@@ -45,7 +44,7 @@ export function StocktakeTable(props: { state: StocktakeState }) {
         <TableBody>
           <For each={s().filteredItems()}>
             {(p, i) => {
-              const system = () => currentStock(p.id);
+              const system = () => p.onHandQty;
               const counted = () => s().counts()[p.id] ?? system();
               const diff = () => s().diffOf(p.id);
 
@@ -60,7 +59,9 @@ export function StocktakeTable(props: { state: StocktakeState }) {
                     <p class="truncate font-medium text-body-sm text-foreground">
                       {p.name}
                     </p>
-                    <p class="text-caption-sm text-faint-foreground">{p.sku}</p>
+                    <p class="text-caption-sm text-faint-foreground">
+                      {p.unit}
+                    </p>
                   </TableCell>
                   <TableCell class="px-3 py-2.5 text-center font-medium text-body-sm text-muted-foreground tabular-nums">
                     {system()}{" "}

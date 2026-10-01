@@ -9,10 +9,9 @@ import {
 } from "~/components/ui/number-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { cn, formatRupiah } from "~/lib/utils";
-import { currentStock } from "../components/lib/store";
-import { displaySubtotal, nextReceiptNumber, receiptRef } from "./receipts";
+import { displaySubtotal } from "./receipts";
 import {
-  type GoodsReceiptConfirmInput,
+  type GoodsReceiptLineInput,
   useGoodsReceipt,
 } from "./use-goods-receipt";
 
@@ -20,12 +19,14 @@ const UNIT_OPTIONS = ["Pcs/Sachet", "Kg", "Gram", "Liter"] as const;
 
 interface GoodsReceiptFormProps {
   readonly onCancel: () => void;
-  readonly onConfirm: (input: GoodsReceiptConfirmInput) => void;
+  readonly onConfirm: (
+    lines: readonly GoodsReceiptLineInput[],
+    meta: { note: string | null; supplierName: string }
+  ) => void;
 }
 
 export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
-  const ref = receiptRef(nextReceiptNumber());
-  const form = useGoodsReceipt(ref);
+  const form = useGoodsReceipt();
 
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
@@ -91,17 +92,18 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
                       <p class="font-semibold text-body-sm text-foreground">
-                        {form.productName(it.productId)}
+                        {form.productName(it.targetId)}
                       </p>
                       <p class="mt-0.5 text-caption text-faint-foreground">
-                        {form.productSku(it.productId)} · Stok Sekarang:{" "}
-                        {currentStock(it.productId)}{" "}
-                        {form.productUnit(it.productId)}
+                        {form.productUnit(it.targetId)} ·{" "}
+                        {form.productStock(it.targetId) === null
+                          ? "mulai lacak dengan penerimaan ini"
+                          : `Stok Sekarang: ${form.productStock(it.targetId)}`}
                       </p>
                     </div>
                     <button
                       class="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-caption text-danger transition-colors hover:bg-danger/10"
-                      onClick={() => form.removeItem(it.productId)}
+                      onClick={() => form.removeItem(it.targetId)}
                       type="button"
                     >
                       <FiTrash2 class="h-3.5 w-3.5" />
@@ -116,20 +118,20 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                         Qty Beli
                       </span>
                       <QuantityStepper
-                        ariaLabel={`Qty ${form.productName(it.productId)}`}
+                        ariaLabel={`Qty ${form.productName(it.targetId)}`}
                         class="w-full"
                         editable
                         onDecrement={() =>
                           form.handleQtyChange(
-                            it.productId,
+                            it.targetId,
                             Math.max(1, it.qty - 1)
                           )
                         }
                         onIncrement={() =>
-                          form.handleQtyChange(it.productId, it.qty + 1)
+                          form.handleQtyChange(it.targetId, it.qty + 1)
                         }
                         onInput={(v) =>
-                          form.handleQtyChange(it.productId, Math.max(1, v))
+                          form.handleQtyChange(it.targetId, Math.max(1, v))
                         }
                         value={it.qty}
                       />
@@ -144,10 +146,10 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                           Rp
                         </span>
                         <NumberFieldInput
-                          ariaLabel={`Harga beli ${form.productName(it.productId)}`}
+                          ariaLabel={`Harga beli ${form.productName(it.targetId)}`}
                           class="h-9 w-full rounded-md border border-input bg-background pr-3 pl-8 text-right font-sans text-body-sm text-foreground tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
                           onChange={(v) =>
-                            form.handleCostPriceChange(it.productId, v)
+                            form.handleCostPriceChange(it.targetId, v)
                           }
                           placeholder="0"
                           value={it.costPrice}
@@ -164,7 +166,7 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                           Rp
                         </span>
                         <NumberFieldInput
-                          ariaLabel={`Subtotal ${form.productName(it.productId)}`}
+                          ariaLabel={`Subtotal ${form.productName(it.targetId)}`}
                           class={cn(
                             "h-9 w-full rounded-md border border-input bg-background pr-3 pl-8 text-right font-sans text-body-sm tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus:border-primary",
                             displaySubtotal(it) > 0
@@ -172,7 +174,7 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                               : "text-faint-foreground"
                           )}
                           onChange={(v) =>
-                            form.handleSubtotalChange(it.productId, v)
+                            form.handleSubtotalChange(it.targetId, v)
                           }
                           placeholder="0"
                           value={displaySubtotal(it)}
@@ -226,7 +228,12 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
             <Button
               disabled={!form.canSave()}
               look="solid"
-              onClick={() => props.onConfirm(form.buildConfirmInput())}
+              onClick={() =>
+                props.onConfirm(form.buildLines(), {
+                  note: form.po().trim() || null,
+                  supplierName: form.supplier().trim(),
+                })
+              }
               tone="primary"
               type="button"
             >
@@ -303,13 +310,13 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                             {(p) => (
                               <button
                                 class="flex w-full items-center justify-between border-border border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted"
-                                onClick={() => form.addProduct(p.id)}
+                                onClick={() => form.addItem(p)}
                                 type="button"
                               >
                                 <p class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
                                   {p.isIngredient ? "🥕" : "🛒"} {p.name}{" "}
                                   <span class="text-faint-foreground">
-                                    ({p.sku})
+                                    ({p.unit})
                                   </span>
                                 </p>
                                 <FiPlus class="ml-3 h-5 w-5 shrink-0 text-primary" />

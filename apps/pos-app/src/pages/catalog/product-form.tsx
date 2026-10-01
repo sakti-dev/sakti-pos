@@ -24,6 +24,11 @@ import {
   updateProduct,
 } from "~/db/catalog";
 import {
+  getProductStock,
+  setLowStockThreshold,
+  startTracking,
+} from "~/db/inventory";
+import {
   getModifierGroups,
   setProductModifierGroups,
 } from "~/db/modifier-groups";
@@ -60,6 +65,7 @@ export default function ProductFormPage() {
   const [name, setName] = createSignal("");
   const [category, setCategory] = createSignal<string>("");
   const [price, setPrice] = createSignal("");
+  const [threshold, setThreshold] = createSignal("");
   const [photo, setPhoto] = createSignal<StagedPhoto | null>(null);
   const [saving, setSaving] = createSignal(false);
 
@@ -107,6 +113,16 @@ export default function ProductFormPage() {
       if (!id) {
         return;
       }
+      getProductStock(id)
+        .then((stock) => {
+          setThreshold(
+            stock?.lowStockThreshold !== null &&
+              stock?.lowStockThreshold !== undefined
+              ? String(stock.lowStockThreshold)
+              : ""
+          );
+        })
+        .catch(() => undefined);
       const row = existing();
       setName(row?.name ?? "");
       setCategory(row?.categoryId ?? "");
@@ -128,6 +144,31 @@ export default function ProductFormPage() {
       return "Menyimpan…";
     }
     return isEditing() ? "Simpan Perubahan" : "Simpan Produk";
+  };
+
+  /**
+   * Stok minimum: setting a value on an untracked product starts
+   * tracking (row-exists convention); clearing it just nulls the
+   * threshold. Failures don't block the product save.
+   */
+  const applyThreshold = async (productId: string) => {
+    const raw = threshold().trim();
+    if (raw.length === 0) {
+      const stock = await getProductStock(productId);
+      if (stock?.tracked) {
+        await setLowStockThreshold("product", productId, null);
+      }
+      return;
+    }
+    const value = Number.parseFloat(raw.replace(",", "."));
+    if (!Number.isFinite(value) || value < 0) {
+      return;
+    }
+    const stock = await getProductStock(productId);
+    if (!stock?.tracked) {
+      await startTracking("product", productId);
+    }
+    await setLowStockThreshold("product", productId, value);
   };
 
   const validate = (): { name: string; price: number } | null => {
@@ -181,6 +222,7 @@ export default function ProductFormPage() {
         );
       }
       await setProductModifierGroups(productId, selectedGroupIds());
+      await applyThreshold(productId);
       navigate("/catalog");
     } catch (error) {
       logger.error("PRODUCT_SAVE_FAILED", { error: String(error) });
@@ -271,6 +313,25 @@ export default function ProductFormPage() {
                 value={Number.parseInt(price(), 10) || undefined}
               />
             </NumberField>
+
+            <div class="gap-1.5">
+              <label class="flex flex-col gap-1">
+                <span class={labelClass}>
+                  Stok Minimum (opsional){" "}
+                  <span class="font-normal text-faint-foreground">
+                    — mulai pantau stok produk ini
+                  </span>
+                </span>
+                <input
+                  class="h-10 rounded-md border border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+                  inputMode="decimal"
+                  onInput={(e) => setThreshold(e.currentTarget.value)}
+                  placeholder="Contoh: 5"
+                  type="text"
+                  value={threshold()}
+                />
+              </label>
+            </div>
           </div>
 
           {/* ── Modifier groups (varian) ── */}

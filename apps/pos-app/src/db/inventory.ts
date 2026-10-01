@@ -52,6 +52,7 @@ export interface StockListItem {
   readonly onHandQty: number;
   /** Products: sale price. Ingredients: null (not sellable). */
   readonly priceMinorUnits: number | null;
+  readonly targetType: StockTargetType;
   readonly tracked: boolean;
   /** Display unit — ingredient unit, or "Pcs" for products. */
   readonly unit: string;
@@ -117,6 +118,7 @@ export async function getProductStockList(): Promise<StockListItem[]> {
       name: p.name,
       priceMinorUnits: p.priceMinorUnits,
       unit: "Pcs",
+      targetType: "product" as const,
       tracked: balance !== undefined,
       onHandQty: balance?.onHandQty ?? 0,
       lowStockThreshold: balance?.lowStockThreshold ?? null,
@@ -152,11 +154,43 @@ export async function getIngredientStockList(): Promise<StockListItem[]> {
       name: i.name,
       priceMinorUnits: null,
       unit: i.unit,
+      targetType: "ingredient" as const,
       tracked: balance !== undefined,
       onHandQty: balance?.onHandQty ?? 0,
       lowStockThreshold: balance?.lowStockThreshold ?? null,
     };
   });
+}
+
+/** Stock state for one product at the active outlet (null = untracked). */
+export async function getProductStock(productId: string): Promise<{
+  lowStockThreshold: number | null;
+  onHandQty: number;
+  tracked: boolean;
+} | null> {
+  const rows = await db
+    .select({
+      onHandQty: TABLE.inventoryStocks.onHandQty,
+      lowStockThreshold: TABLE.inventoryStocks.lowStockThreshold,
+    })
+    .from(TABLE.inventoryStocks)
+    .where(
+      and(
+        eq(TABLE.inventoryStocks.outletId, requireOutletId()),
+        eq(TABLE.inventoryStocks.targetType, "product"),
+        eq(TABLE.inventoryStocks.targetId, productId),
+        isNull(TABLE.inventoryStocks.deletedAt)
+      )
+    );
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+  return {
+    lowStockThreshold: row.lowStockThreshold,
+    onHandQty: row.onHandQty,
+    tracked: true,
+  };
 }
 
 /** Tracked items (products + ingredients) for the stocktake picker. */
@@ -589,6 +623,179 @@ export async function getStockHistory(): Promise<StockHistoryEntry[]> {
 
   entries.sort((a, b) => b.at.localeCompare(a.at));
   return entries.slice(0, 500);
+}
+
+/* ── Goods receipt write (Penerimaan) ───────────────────────────── */
+
+export interface ReceiptLineInput {
+  readonly qty: number;
+  readonly targetId: string;
+  readonly targetType: StockTargetType;
+  readonly unitCostMinorUnits: number | null;
+}
+
+async function nextRef(prefix: "GR" | "SO"): Promise<string> {
+  const outletId = requireOutletId();
+  const table = prefix === "GR" ? TABLE.goodsReceipts : TABLE.stocktakes;
+  const column =
+    prefix === "GR" ? TABLE.goodsReceipts.ref : TABLE.stocktakes.ref;
+  const rows = await db
+    .select({ ref: column })
+    .from(table)
+    .where(eq(table.outletId, outletId));
+  const today = dayjs().format("YYYYMMDD");
+  const prefixToday = `${prefix}-${today}-`;
+  let max = 0;
+  for (const row of rows) {
+    if (row.ref.startsWith(prefixToday)) {
+      const n = Number.parseInt(row.ref.slice(prefixToday.length), 10);
+      if (Number.isFinite(n) && n > max) {
+        max = n;
+      }
+    }
+  }
+  return `${prefixToday}-${String(max + 1).padStart(3, "0")}`;
+}
+
+export async function nextGoodsReceiptRef(): Promise<string> {
+  return await nextRef("GR");
+}
+
+export async function nextStocktakeRef(): Promise<string> {
+  return await nextRef("SO");
+}
+
+/** Persist a goods receipt and increment balances in one transaction. */
+export async function recordGoodsReceipt(input: {
+  ref: string;
+  supplierName: string | null;
+  note: string | null;
+  lines: readonly ReceiptLineInput[];
+}): Promise<void> {
+  if (input.lines.length === 0) {
+    throw new Error("recordGoodsReceipt: at least one line is required");
+  }
+  const outletId = requireOutletId();
+  const staffId = requireStaffId();
+  const now = dayjs().toISOString();
+
+  await getSyncClient().writeTransaction(db, async (tx) => {
+    const [receipt] = await tx
+      .insert(TABLE.goodsReceipts)
+      .values({
+        outletId,
+        staffId,
+        ref: input.ref,
+        supplierName: input.supplierName,
+        note: input.note,
+        receivedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: TABLE.goodsReceipts.id });
+    await getSyncClient().enqueueChange(tx, {
+      operation: "insert",
+      rowId: receipt.id,
+      table: TABLE.goodsReceipts,
+    });
+
+    for (const line of input.lines) {
+      const [row] = await tx
+        .insert(TABLE.goodsReceiptLines)
+        .values({
+          goodsReceiptId: receipt.id,
+          outletId,
+          targetId: line.targetId,
+          receivedQty: line.qty,
+          unitCostMinorUnits: line.unitCostMinorUnits,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning({ id: TABLE.goodsReceiptLines.id });
+      await getSyncClient().enqueueChange(tx, {
+        operation: "insert",
+        rowId: row.id,
+        table: TABLE.goodsReceiptLines,
+      });
+      await applyStockDelta(tx, line.targetType, line.targetId, line.qty);
+    }
+    inventoryLogger.info("goods_receipt_recorded", {
+      ref: input.ref,
+      lines: input.lines.length,
+    });
+  });
+}
+
+/* ── Stocktake write (Stock Opname) ─────────────────────────────── */
+
+export interface StocktakeLineInput {
+  readonly countedQty: number;
+  readonly systemQtyBefore: number;
+  readonly targetId: string;
+  readonly targetType: StockTargetType;
+  readonly varianceQty: number;
+}
+
+/** Persist a stocktake (variance lines) and set balances absolutely. */
+export async function recordStocktake(input: {
+  ref: string;
+  reason: string;
+  targetType: StockTargetType;
+  lines: readonly StocktakeLineInput[];
+}): Promise<void> {
+  if (input.lines.length === 0) {
+    throw new Error("recordStocktake: at least one line is required");
+  }
+  const outletId = requireOutletId();
+  const staffId = requireStaffId();
+  const now = dayjs().toISOString();
+
+  await getSyncClient().writeTransaction(db, async (tx) => {
+    const [stocktake] = await tx
+      .insert(TABLE.stocktakes)
+      .values({
+        outletId,
+        staffId,
+        ref: input.ref,
+        targetType: input.targetType,
+        reason: input.reason,
+        countedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: TABLE.stocktakes.id });
+    await getSyncClient().enqueueChange(tx, {
+      operation: "insert",
+      rowId: stocktake.id,
+      table: TABLE.stocktakes,
+    });
+
+    for (const line of input.lines) {
+      const [row] = await tx
+        .insert(TABLE.stocktakeLines)
+        .values({
+          stocktakeId: stocktake.id,
+          outletId,
+          targetId: line.targetId,
+          systemQtyBefore: line.systemQtyBefore,
+          countedQty: line.countedQty,
+          varianceQty: line.varianceQty,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning({ id: TABLE.stocktakeLines.id });
+      await getSyncClient().enqueueChange(tx, {
+        operation: "insert",
+        rowId: row.id,
+        table: TABLE.stocktakeLines,
+      });
+      await setStockCount(tx, line.targetType, line.targetId, line.countedQty);
+    }
+    inventoryLogger.info("stocktake_recorded", {
+      ref: input.ref,
+      lines: input.lines.length,
+    });
+  });
 }
 
 /* ── Adjustment write (Penyesuaian) ─────────────────────────────── */

@@ -1,56 +1,92 @@
+import dayjs from "dayjs";
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { SearchBar } from "~/components/search-bar";
 import { TabButton } from "~/components/ui/tabs";
-import { products } from "~/lib/data/catalog";
-import { findIngredient } from "../components/lib/ingredients";
-import { groupMovementsByDay } from "../components/lib/stats";
-import { MOVEMENT_TYPE_META, type MovementType } from "../components/lib/types";
+import {
+  getStockHistory,
+  type StockHistoryEntry,
+  type StockHistoryKind,
+} from "~/db/inventory";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 
-const FILTERS: { label: string; value: "all" | MovementType }[] = [
+const FILTERS: { label: string; value: "all" | StockHistoryKind }[] = [
   { label: "Semua", value: "all" },
   { label: "🛒 Penjualan", value: "sale" },
-  { label: "📦 Penerimaan", value: "restock" },
+  { label: "📦 Penerimaan", value: "receipt" },
   { label: "📋 Opname", value: "stocktake" },
   { label: "🔧 Penyesuaian", value: "adjustment" },
 ];
 
+const KIND_META: Record<StockHistoryKind, { emoji: string; label: string }> = {
+  adjustment: { emoji: "🔧", label: "Penyesuaian" },
+  receipt: { emoji: "📦", label: "Penerimaan" },
+  sale: { emoji: "🛒", label: "Penjualan" },
+  stocktake: { emoji: "📋", label: "Stock Opname" },
+};
+
+const DAY_LABEL = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 const TIME_FMT = new Intl.DateTimeFormat("id-ID", {
   hour: "2-digit",
   minute: "2-digit",
 });
 
-function timeOf(ts: number): string {
-  return TIME_FMT.format(new Date(ts));
+interface DayGroup {
+  readonly entries: StockHistoryEntry[];
+  readonly key: string;
+  readonly label: string;
 }
 
-function itemName(id: number): string {
-  return (
-    products.find((p) => p.id === id)?.name ?? findIngredient(id)?.name ?? "—"
-  );
+function groupByDay(entries: readonly StockHistoryEntry[]): DayGroup[] {
+  const map = new Map<string, StockHistoryEntry[]>();
+  for (const entry of entries) {
+    const key = entry.at.slice(0, 10);
+    const bucket = map.get(key);
+    if (bucket) {
+      bucket.push(entry);
+    } else {
+      map.set(key, [entry]);
+    }
+  }
+  return [...map.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, items]) => ({
+      entries: [...items].sort((a, b) => b.at.localeCompare(a.at)),
+      key,
+      label: DAY_LABEL.format(dayjs(key).toDate()),
+    }));
 }
 
 export default function HistoryPage() {
   const [q, setQ] = createSignal("");
-  const [typeFilter, setTypeFilter] = createSignal<"all" | MovementType>("all");
+  const [typeFilter, setTypeFilter] = createSignal<"all" | StockHistoryKind>(
+    "all"
+  );
+
+  const historyQuery = useDrizzleQuery(
+    ["drizzle", "inventory", "history"],
+    () => getStockHistory()
+  );
+  const entries = () => historyQuery.data() ?? [];
 
   const groups = createMemo(() => {
-    const query = q().toLowerCase();
+    const query = q().toLowerCase().trim();
     const tf = typeFilter();
-    return groupMovementsByDay()
-      .map((g) => ({
-        ...g,
-        items: g.items.filter((m) => {
-          if (tf !== "all" && m.type !== tf) {
-            return false;
-          }
-          if (!query) {
-            return true;
-          }
-          return itemName(m.productId).toLowerCase().includes(query);
-        }),
-      }))
-      .filter((g) => g.items.length > 0);
+    return groupByDay(
+      entries().filter((e) => {
+        if (tf !== "all" && e.kind !== tf) {
+          return false;
+        }
+        if (!query) {
+          return true;
+        }
+        return e.targetName.toLowerCase().includes(query);
+      })
+    );
   });
 
   return (
@@ -61,7 +97,7 @@ export default function HistoryPage() {
     >
       <div class="flex flex-1 flex-col overflow-hidden">
         <div class="shrink-0 space-y-2 px-4 pt-4 pb-3 lg:px-6 lg:pb-4">
-          <SearchBar onInput={setQ} placeholder="Cari produk..." value={q()} />
+          <SearchBar onInput={setQ} placeholder="Cari item..." value={q()} />
           <div class="scrollbar-none flex gap-2 overflow-x-auto">
             <For each={FILTERS}>
               {(f) => (
@@ -93,40 +129,45 @@ export default function HistoryPage() {
                   {g.label}
                 </p>
                 <div class="overflow-hidden rounded-xl border border-border">
-                  <For each={g.items}>
+                  <For each={g.entries}>
                     {(m) => {
-                      const meta = MOVEMENT_TYPE_META[m.type];
+                      const meta = KIND_META[m.kind];
                       return (
                         <div class="flex items-start gap-3 border-border border-b p-3 last:border-b-0">
                           <span class="text-lg leading-none">{meta.emoji}</span>
                           <div class="min-w-0 flex-1">
                             <div class="flex items-baseline justify-between gap-2">
                               <span class="truncate font-semibold text-body-sm text-foreground">
-                                {itemName(m.productId)}
+                                {m.targetName}
                               </span>
                               <span class="shrink-0 font-semibold text-body-sm text-foreground tabular-nums">
-                                {m.qtyBefore} → {m.qtyAfter}
                                 <span
                                   class={
-                                    m.delta < 0 ? "text-danger" : "text-success"
+                                    m.qtyDelta < 0
+                                      ? "text-danger"
+                                      : "text-success"
                                   }
                                 >
-                                  {" "}
-                                  ({m.delta > 0 ? "+" : ""}
-                                  {m.delta})
+                                  {m.qtyDelta > 0 ? "+" : ""}
+                                  {m.qtyDelta}
                                 </span>
                               </span>
                             </div>
                             <p class="text-caption-sm text-muted-foreground">
-                              {timeOf(m.createdAt)} · {meta.label}
+                              {TIME_FMT.format(dayjs(m.at).toDate())} ·{" "}
+                              {meta.label}
                               <Show when={m.ref}> · {m.ref}</Show>
+                              <Show when={m.orderNumber}>
+                                {" "}
+                                · No. {m.orderNumber}
+                              </Show>
                             </p>
                             <p class="text-caption-sm text-faint-foreground">
-                              <Show fallback={m.note ?? ""} when={m.reason}>
-                                Alasan: {m.reason}
+                              <Show when={m.supplierName}>
+                                Supplier: {m.supplierName} ·{" "}
                               </Show>
-                              {" · oleh "}
-                              {m.user}
+                              <Show when={m.reason}>Alasan: {m.reason} · </Show>
+                              <Show when={m.note}>{m.note} · </Show>
                             </p>
                           </div>
                         </div>

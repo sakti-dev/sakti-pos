@@ -1,6 +1,5 @@
 import { For, Show } from "solid-js";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
-import { currentStock } from "../../components/lib/store";
 import { DeltaInline } from "./delta";
 import { EmptyStateView } from "./empty-state";
 import type { StocktakeState } from "./use-stocktake";
@@ -12,7 +11,7 @@ export function StocktakeList(props: { state: StocktakeState }) {
     <div class="block px-4 md:hidden">
       <For each={s().filteredItems()}>
         {(p) => {
-          const system = () => currentStock(p.id);
+          const system = () => p.onHandQty;
           const counted = () => s().counts()[p.id] ?? system();
           const diff = () => s().diffOf(p.id);
 

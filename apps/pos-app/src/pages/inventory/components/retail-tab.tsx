@@ -1,39 +1,48 @@
 import { useNavigate } from "@solidjs/router";
 import { FiAlertTriangle, FiClipboard, FiInbox } from "solid-icons/fi";
-import { createMemo, createSignal, For } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { SearchBar } from "~/components/search-bar";
 import { Button } from "~/components/ui/button";
 import { FadeIn } from "~/components/ui/fade-in";
-import { products } from "~/lib/data/catalog";
-import { isLowStock } from "./lib/stats";
-import { currentStock } from "./lib/store";
+import {
+  getProductStockList,
+  type StockListItem,
+  startTracking,
+  stopTracking,
+} from "~/db/inventory";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
+import { stockStatus } from "./lib/stats";
 import { BadgeStock, StatCard } from "./shared";
 
 export function RetailTab() {
   const navigate = useNavigate();
   const [search, setSearch] = createSignal("");
 
+  const listQuery = useDrizzleQuery(
+    ["drizzle", "inventory", "product-stock-list"],
+    () => getProductStockList()
+  );
+  const list = () => listQuery.data() ?? [];
+  const invalidate = () => listQuery.refetch();
+
+  const tracked = createMemo(() => list().filter((p) => p.tracked));
+
   const lowRetailCount = createMemo(
     () =>
-      products.filter(
-        (p) => p.isRetail && isLowStock(currentStock(p.id), "retail")
+      tracked().filter(
+        (p) =>
+          stockStatus(p.onHandQty, p.lowStockThreshold ?? undefined).status !==
+          "available"
       ).length
   );
 
-  const totalActive = createMemo(
-    () => products.filter((p) => p.stock >= 0).length
-  );
-
   const filtered = createMemo(() => {
-    const q = search().toLowerCase();
-    return products.filter((p) => {
-      if (!q) {
-        return true;
-      }
-      return (
-        p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
-      );
-    });
+    const q = search().toLowerCase().trim();
+    if (!q) {
+      return list();
+    }
+    return list().filter((p) => p.name.toLowerCase().includes(q));
   });
 
   return (
@@ -50,9 +59,9 @@ export function RetailTab() {
           />
           <StatCard
             icon={<FiInbox class="h-4 w-4" />}
-            label="Total Produk Aktif"
-            value={String(totalActive())}
-            valueSuffix="Menu"
+            label="Produk Dipantau"
+            value={String(tracked().length)}
+            valueSuffix={`dari ${list().length} menu`}
           />
         </div>
 
@@ -97,7 +106,7 @@ export function RetailTab() {
           >
             {(p, i) => (
               <FadeIn delay={0.05 + i() * 0.02} duration={0.3} y={8}>
-                <ProductRow product={p} />
+                <ProductRow item={p} onChanged={invalidate} />
               </FadeIn>
             )}
           </For>
@@ -107,9 +116,34 @@ export function RetailTab() {
   );
 }
 
-function ProductRow(props: { product: (typeof products)[number] }) {
-  const p = () => props.product;
-  const retail = () => p().isRetail;
+function ProductRow(props: { item: StockListItem; onChanged: () => void }) {
+  const p = () => props.item;
+
+  const handleStart = () => {
+    startTracking("product", p().id)
+      .then(() => {
+        toast.success(`Mulai lacak stok ${p().name}`);
+        props.onChanged();
+      })
+      .catch((error: unknown) => {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal mulai lacak"
+        );
+      });
+  };
+
+  const handleStop = () => {
+    stopTracking("product", p().id)
+      .then(() => {
+        toast.success(`Berhenti lacak stok ${p().name}`);
+        props.onChanged();
+      })
+      .catch((error: unknown) => {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal berhenti lacak"
+        );
+      });
+  };
 
   return (
     <div class="mb-2 flex items-center gap-3 rounded-xl border border-border bg-card p-3">
@@ -117,18 +151,38 @@ function ProductRow(props: { product: (typeof products)[number] }) {
         <h3 class="truncate font-semibold text-body-sm text-foreground">
           {p().name}
         </h3>
-        <p class="mt-0.5 text-caption-sm text-faint-foreground">
-          {p().sku} · {retail() ? "Ritel Beli-Jadi" : p().category}
-        </p>
+        <p class="mt-0.5 text-caption-sm text-faint-foreground">Menu jualan</p>
       </div>
       <div class="shrink-0">
-        {retail() ? (
-          <BadgeStock qty={currentStock(p().id)} />
-        ) : (
-          <span class="rounded-full bg-status-success/10 px-2 py-0.5 font-medium text-caption-sm text-status-success normal-case">
-            ∞ Bebas Stok
-          </span>
-        )}
+        <Show
+          fallback={
+            <Button
+              look="outline"
+              onClick={handleStart}
+              size="xs"
+              tone="primary"
+            >
+              Mulai Lacak
+            </Button>
+          }
+          when={p().tracked}
+        >
+          <div class="flex items-center gap-1.5">
+            <BadgeStock
+              qty={p().onHandQty}
+              threshold={p().lowStockThreshold ?? undefined}
+            />
+            <button
+              aria-label={`Berhenti lacak ${p().name}`}
+              class="rounded-full p-1.5 text-faint-foreground transition hover:bg-muted hover:text-foreground"
+              onClick={handleStop}
+              title="Berhenti lacak"
+              type="button"
+            >
+              ✕
+            </button>
+          </div>
+        </Show>
       </div>
     </div>
   );
