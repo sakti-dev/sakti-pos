@@ -1,6 +1,6 @@
 # Project Status & Roadmap
 
-_Last reviewed: 2026-09-29 · branch `main` (all work pushed) · tests: 131 pos-app / 70 api green · no active OpenSpec changes_
+_Last reviewed: 2026-10-01 · branch `main` (all work pushed) · tests: 157 pos-app / 70 api green · no active OpenSpec changes_
 
 ## Done & Verified
 
@@ -18,7 +18,7 @@ _Last reviewed: 2026-09-29 · branch `main` (all work pushed) · tests: 131 pos-
 
 ### 1. Cash shifts — ✅ implemented, device-verified (Waydroid + Redmi)
 - Gate, setoran close (expected = float + tunai, QRIS excluded), live StatusPlaque/ShiftCard, `closedByStaffId` handover
-- Remaining: prod-build smoke (6.4) + archive the OpenSpec change
+- Remaining: prod-build smoke (6.4) — bundled into the next deploy
 
 ### 2. Dashboard real data — ✅ done
 - MoneyHero on live `getTodayOrderStats` (was `createResource`, now sync-invalidated TanStack query)
