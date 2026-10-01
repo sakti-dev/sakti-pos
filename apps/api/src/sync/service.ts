@@ -19,9 +19,10 @@ import {
   products,
   registers,
   staff,
+  stockAdjustments,
   stocktakeLines,
   stocktakes,
-} from "@sync-contract/generated/2026-09-30/api-synced-schema";
+} from "@sync-contract/generated/2026-10-01/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, getTableColumns, gt, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -1360,6 +1361,75 @@ export const repository = createDrizzleSyncRepository({
               targetId: sql.raw("excluded.target_id"),
               receivedQty: sql.raw("excluded.received_qty"),
               unitCostMinorUnits: sql.raw("excluded.unit_cost_minor_units"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    stock_adjustments: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "stock_adjustments.id"),
+        outletId: requiredString(row.outletId, "outletId"),
+        staffId: requiredString(row.staffId, "staffId"),
+        targetType: requiredString(row.targetType, "targetType"),
+        targetId: requiredString(row.targetId, "targetId"),
+        qtyDelta: requiredNumber(row.qtyDelta, "qtyDelta"),
+        reason: requiredString(row.reason, "reason"),
+        note: optionalString(row.note),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "stock_adjustments.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select(getTableColumns(stockAdjustments))
+          .from(stockAdjustments)
+          .innerJoin(outlets, eq(stockAdjustments.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
+          .orderBy(sql`${stockAdjustments.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select(getTableColumns(stockAdjustments))
+          .from(stockAdjustments)
+          .innerJoin(outlets, eq(stockAdjustments.outletId, outlets.id))
+          .where(
+            and(
+              eq(outlets.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(stockAdjustments.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(
+            asc(stockAdjustments.syncUpdatedAt),
+            asc(stockAdjustments.id)
+          ),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(stockAdjustments)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(stockAdjustments.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(stockAdjustments)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: stockAdjustments.id,
+            set: {
+              outletId: sql.raw("excluded.outlet_id"),
+              staffId: sql.raw("excluded.staff_id"),
+              targetType: sql.raw("excluded.target_type"),
+              targetId: sql.raw("excluded.target_id"),
+              qtyDelta: sql.raw("excluded.qty_delta"),
+              reason: sql.raw("excluded.reason"),
+              note: sql.raw("excluded.note"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),

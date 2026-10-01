@@ -2,10 +2,10 @@
 
 ## 1. Schema & sync plumbing
 
-- [ ] 1.1 Add `stock_adjustments` to both paired schemas (`packages/sync-contract/src/{api,local}-synced-schema.ts`) mirroring `stocktakes` conventions: outlet/staff scoping, real signed qtyDelta, reason enum (rusak/hilang/expired/hadiah/sample/lainnya), note, `localSyncColumns()`, is_synced + (outletId, targetId) indexes
-- [ ] 1.2 Register in `sync.config.ts`, run `bun run generate:sync`, repoint `apps/pos-app/src-tauri/src/lib.rs` + `apps/api/src/sync/service.ts` imports to the new generated dir, update the registry order test (entry after `goods_receipt_lines`, before `cash_shifts`)
-- [ ] 1.3 Hand-write `0005_stock_adjustments.sql` for both sides (Tauri `apps/pos-app/src-tauri/migrations/` + `apps/api/drizzle/`) with meta snapshots/journals; apply to dev Turso and verify the table exists
-- [ ] 1.4 Add api repository entries for `stock_adjustments` in `apps/api/src/sync/service.ts`; run api test suite
+- [x] 1.1 Add `stock_adjustments` to both paired schemas (`packages/sync-contract/src/{api,local}-synced-schema.ts`) mirroring `stocktakes` conventions: outlet/staff scoping, real signed qtyDelta, reason enum (rusak/hilang/expired/hadiah/sample/lainnya), note, `localSyncColumns()`, is_synced + (outletId, targetId) indexes
+- [x] 1.2 Register in `sync.config.ts`, run `bun run generate:sync`, repoint `apps/pos-app/src-tauri/src/lib.rs` + `apps/api/src/sync/service.ts` imports to the new generated dir, update the registry order test (entry after `goods_receipt_lines`, before `cash_shifts`)
+- [ ] 1.3 Hand-write `0005_stock_adjustments.sql` for both sides (Tauri `apps/pos-app/src-tauri/migrations/` + `apps/api/drizzle/`) with meta snapshots/journals; apply to dev Turso and verify the table exists — SQL+meta done+verified; **dev Turso apply pending: stack is off** (`turso db shell http://127.0.0.1:8080 < apps/api/drizzle/0005_stock_adjustments.sql`)
+- [x] 1.4 Add api repository entries for `stock_adjustments` in `apps/api/src/sync/service.ts`; run api test suite
 
 ## 2. DB layer
 

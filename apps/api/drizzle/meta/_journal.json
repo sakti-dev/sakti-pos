@@ -35,6 +35,13 @@
       "when": 1790765263025,
       "tag": "0004_modifier_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790850000000,
+      "tag": "0005_stock_adjustments",
+      "breakpoints": true
     }
   ]
 }
