@@ -15,6 +15,7 @@ export type LogDomain =
   | "ASSET"
   | "AUTH"
   | "DB"
+  | "INVENTORY"
   | "PHOTO"
   | "POS"
   | "PRINTER"
