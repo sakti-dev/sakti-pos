@@ -9,29 +9,29 @@
 
 ## 2. DB layer
 
-- [ ] 2.1 Create `apps/pos-app/src/db/inventory.ts`: stock list reads (join products/ingredients with balances + thresholds + tracked-ness), `getStockHistoryFeed` (merge receipts/opnames/adjustments/sales, day-grouped), and tx helpers `applyStockDelta(tx, outletId, targetType, targetId, delta)` (incremental, creates row from 0) and `setStockCount(tx, ..., countedQty)` (absolute) — all via `DbTx`, callers own `writeTransaction` + `enqueueChange`
-- [ ] 2.2 Create `apps/pos-app/src/db/ingredients.ts`: CRUD (create seeds a 0-balance row at active outlet in same tx, update, soft-delete) following the modifier-groups pattern
-- [ ] 2.3 Unit tests for inventory tx helpers (delta from-missing-row creation, absolute set, threshold fallback) and ingredients (creation seeds balance)
+- [x] 2.1 Create `apps/pos-app/src/db/inventory.ts`: stock list reads (join products/ingredients with balances + thresholds + tracked-ness), `getStockHistoryFeed` (merge receipts/opnames/adjustments/sales, day-grouped), and tx helpers `applyStockDelta(tx, outletId, targetType, targetId, delta)` (incremental, creates row from 0) and `setStockCount(tx, ..., countedQty)` (absolute) — all via `DbTx`, callers own `writeTransaction` + `enqueueChange`
+- [x] 2.2 Create `apps/pos-app/src/db/ingredients.ts`: CRUD (create seeds a 0-balance row at active outlet in same tx, update, soft-delete) following the modifier-groups pattern
+- [x] 2.3 Unit tests for inventory tx helpers (delta from-missing-row creation, absolute set, threshold fallback) and ingredients (creation seeds balance)
 
 ## 3. Screen transplants
 
-- [ ] 3.1 Retail tab on real data: products with balance/threshold/tracked-ness, badges + stat cards from real counts, "Mulai Lacak Stok"/stop-tracking actions, stok minimum editing
-- [ ] 3.2 Bahan Baku tab on real data: ingredient list from `db/ingredients.ts` + balances, form dialog persisted, inline create still available from receipt flow
-- [ ] 3.3 Penerimaan flow: persist `goods_receipts` + lines (qty, unit cost) and increment balances in one transaction; supplier ref/note preserved
-- [ ] 3.4 Stock Opname flow: persist `stocktakes` + lines (systemQtyBefore, countedQty, variance) and set balances absolutely; picker lists tracked items (products + ingredients)
-- [ ] 3.5 Penyesuaian flow: persist `stock_adjustments` (reason vocabulary, note, staff) and apply deltas
-- [ ] 3.6 Riwayat page renders the merged four-feed history (type labels/emoji preserved, day-grouped, newest first)
-- [ ] 3.7 Delete mock stores: `components/lib/store.ts`, `components/lib/ingredients.ts`, mock `products` usage from `lib/data/catalog.ts` (check remaining consumers first); update `stats.ts` to real-data helpers
-- [ ] 3.8 Product form: add optional Stok Minimum field writing `inventory_stocks.lowStockThreshold` for tracked products
+- [x] 3.1 Retail tab on real data: products with balance/threshold/tracked-ness, badges + stat cards from real counts, "Mulai Lacak Stok"/stop-tracking actions, stok minimum editing
+- [x] 3.2 Bahan Baku tab on real data: ingredient list from `db/ingredients.ts` + balances, form dialog persisted, inline create still available from receipt flow
+- [x] 3.3 Penerimaan flow: persist `goods_receipts` + lines (qty, unit cost) and increment balances in one transaction; supplier ref/note preserved
+- [x] 3.4 Stock Opname flow: persist `stocktakes` + lines (systemQtyBefore, countedQty, variance) and set balances absolutely; picker lists tracked items (products + ingredients)
+- [x] 3.5 Penyesuaian flow: persist `stock_adjustments` (reason vocabulary, note, staff) and apply deltas
+- [x] 3.6 Riwayat page renders the merged four-feed history (type labels/emoji preserved, day-grouped, newest first)
+- [x] 3.7 Delete mock stores: `components/lib/store.ts`, `components/lib/ingredients.ts`, mock `products` usage from `lib/data/catalog.ts` (check remaining consumers first); update `stats.ts` to real-data helpers
+- [x] 3.8 Product form: add optional Stok Minimum field writing `inventory_stocks.lowStockThreshold` for tracked products
 
 ## 4. Checkout
 
-- [ ] 4.1 In `persistOrder`'s transaction, decrement product balances for existing rows (guarded UPDATE via drizzle + `enqueueChange`); no-op for untracked; modifiers never change qty
-- [ ] 4.2 Tests: decrement tracked, no-op untracked, offline path identical
+- [x] 4.1 In `persistOrder`'s transaction, decrement product balances for existing rows (guarded UPDATE via drizzle + `enqueueChange`); no-op for untracked; modifiers never change qty
+- [x] 4.2 Tests: decrement tracked, no-op untracked, offline path identical
 
 ## 5. Verification
 
-- [ ] 5.1 Full suites green (`bun test` pos-app + api), typecheck, ultracite
+- [x] 5.1 Full suites green (`bun test` pos-app + api), typecheck, ultracite
 - [ ] 5.2 Device pass on Waydroid: mulai lacak a product → penerimaan +10 → sell 2 (stock 8) → penyesuaian −1 rusak (stock 7) → opname count 6 (variance −1) → Riwayat shows all four events; dashboard "Stok menipis" reacts to threshold; DB rows verified via local-db-studio snapshot
 - [ ] 5.3 Sync round-trip: repeat 5.2 offline, verify rows land in dev Turso after reconnect; sync conflict smoke (balance LWW) not required
-- [ ] 5.4 Document new log prefixes (`[DOMAIN:ACTION]` for inventory actions) in `openspec/DOCUMENTED-LOG-PREFIX.md` and extend `LOG_FILTER` in `logs/capture-adb-logcat.sh`
+- [x] 5.4 Document new log prefixes (`[DOMAIN:ACTION]` for inventory actions) in `openspec/DOCUMENTED-LOG-PREFIX.md` and extend `LOG_FILTER` in `logs/capture-adb-logcat.sh`

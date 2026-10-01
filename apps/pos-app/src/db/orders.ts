@@ -9,6 +9,7 @@ import {
 import type { OrderRepository } from "~/lib/sales/order-repository";
 import type { CompletedOrder } from "~/lib/sales/types";
 import { db, TABLE } from "./index";
+import { decrementStockForSale } from "./inventory";
 
 export type OrderRow = typeof TABLE.orders.$inferSelect;
 export type OrderItemRow = typeof TABLE.orderItems.$inferSelect;
@@ -96,6 +97,12 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
           rowId: modifierRow.id,
           table: TABLE.orderItemModifiers,
         });
+      }
+
+      /* Stock decrement: guarded no-op for untracked products
+         (row-exists convention); modifiers never change quantity. */
+      if (line.productId) {
+        await decrementStockForSale(tx, line.productId, line.qty);
       }
     }
 

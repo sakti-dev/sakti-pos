@@ -22,6 +22,9 @@ vi.mock("~/lib/api/sync", () => ({
   }),
 }));
 
+const decrementStockForSale = vi.fn();
+vi.mock("../inventory", () => ({ decrementStockForSale }));
+
 vi.mock("~/lib/auth/session", () => ({
   currentOutletId: () => "outlet-1",
   currentOutletTimezone: () => "Asia/Jakarta",
@@ -106,6 +109,10 @@ describe("orders persistence", () => {
     expect(enqueueChange).toHaveBeenCalledTimes(2);
     const ops = enqueueChange.mock.calls.map((c) => c[1].operation);
     expect(ops).toEqual(["insert", "insert"]);
+
+    /* Stock decrement runs in the same transaction, guarded by the
+       inventory helper (no-op for untracked products). */
+    expect(decrementStockForSale).toHaveBeenCalledWith(tx, "prod-1", 2);
   });
 
   test("persistOrder rejects without an active outlet", async () => {

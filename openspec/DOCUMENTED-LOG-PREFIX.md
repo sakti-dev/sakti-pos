@@ -203,6 +203,14 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SHIFT:CLOSE_FAILED]` | `shift-close.tsx` — closeShift threw |
 | `[JS] [SHIFT:WINDOW_TOTALS]` | `db/cash-shifts.ts` — close-screen aggregate evidence: `outletId`, window bounds, row count, cash/qris totals, first-row sample |
 | `[JS] [SHIFT:WINDOW_QUERY_FAILED]` | `db/cash-shifts.ts` — the window aggregate query threw |
+| `[JS] [INVENTORY:TRACKING_STARTED]` | `db/inventory.ts` — "Mulai Lacak Stok" seeded a zero balance row, includes `targetId`, `targetType` |
+| `[JS] [INVENTORY:TRACKING_STOPPED]` | `db/inventory.ts` — balance row soft-deleted (tracking off), includes `targetId`, `targetType` |
+| `[JS] [INVENTORY:GOODS_RECEIPT_RECORDED]` | `db/inventory.ts` — penerimaan persisted (parent + lines + balance deltas), includes `ref`, `lines` |
+| `[JS] [INVENTORY:STOCKTAKE_RECORDED]` | `db/inventory.ts` — opname persisted (variance lines + absolute balance sets), includes `ref`, `lines` |
+| `[JS] [INVENTORY:ADJUSTMENT_CREATED]` | `db/inventory.ts` — penyesuaian persisted + delta applied, includes `targetId`, `qtyDelta`, `reason` |
+| `[JS] [INVENTORY:CREATED]` | `db/ingredients.ts` — bahan baku created + zero balance seeded, includes `id`, `name` |
+| `[JS] [INVENTORY:UPDATED]` | `db/ingredients.ts` — bahan baku fields updated |
+| `[JS] [INVENTORY:SOFT_DELETED]` | `db/ingredients.ts` — bahan baku deactivated |
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
 | `[JS] [UI:REQUIRE_AUTH_GUARD]` | `App.tsx` |
