@@ -3,6 +3,7 @@ import {
   stockAdjustments,
 } from "@sync-contract/local-synced-schema";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import type { DbTx } from "../inventory";
 
 /* Chainable tx mock: select().from().where() (awaitable), insert()
    .values().returning(), update().set().where(). */
@@ -38,7 +39,7 @@ const tx = {
       },
     }),
   }),
-};
+} as unknown as DbTx;
 
 vi.mock("~/db", () => ({
   TABLE: {

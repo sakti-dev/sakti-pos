@@ -10,7 +10,7 @@ import { createLogger } from "~/lib/utils";
 import { db, TABLE } from "./index";
 
 /** The drizzle transaction handle writeTransaction hands to callbacks. */
-type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const inventoryLogger = createLogger({
   domain: "INVENTORY",
