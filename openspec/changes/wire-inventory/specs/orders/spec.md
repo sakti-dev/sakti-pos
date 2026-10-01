@@ -2,7 +2,7 @@
 
 ## MODIFIED Requirements
 
-### R11: Offline-First Order Persistence (modified)
+### Requirement: R11 Offline-First Order Persistence
 
 The system SHALL persist orders and their line items locally-first (offline-capable, synced when online). When an order completes at an outlet, the system SHALL additionally decrement the on-hand quantity of each tracked product in that order by its line quantity, within the same local transaction as the order write.
 
