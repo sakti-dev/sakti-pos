@@ -23,6 +23,7 @@ import {
   getProduct,
   updateProduct,
 } from "~/db/catalog";
+import { getIngredients } from "~/db/ingredients";
 import {
   getProductStock,
   setLowStockThreshold,
@@ -32,11 +33,13 @@ import {
   getModifierGroups,
   setProductModifierGroups,
 } from "~/db/modifier-groups";
+import { getProductIngredients, setProductIngredients } from "~/db/recipes";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { pickProductImage } from "~/lib/assets/product-image";
 import { resolveImageUrl } from "~/lib/assets/resolve";
 import { createLogger } from "~/lib/utils";
 import { AttachmentField } from "./components/attachment-field";
+import { RecipeField, type RecipeRowState } from "./components/recipe-field";
 
 const logger = createLogger({ domain: "POS", module: "product-form" });
 
@@ -78,6 +81,12 @@ export default function ProductFormPage() {
   >({});
   const [groupsHydrated, setGroupsHydrated] = createSignal(false);
 
+  const bahanQuery = useDrizzleQuery(["drizzle", "ingredients", "list"], () =>
+    getIngredients()
+  );
+  const [recipeRows, setRecipeRows] = createStore<RecipeRowState[]>([]);
+  const [recipeHydrated, setRecipeHydrated] = createSignal(false);
+
   // Edit mode: pre-check groups currently linked to this product.
   createEffect(() => {
     if (!isEditing() || groupsHydrated() || !product()) {
@@ -96,6 +105,51 @@ export default function ProductFormPage() {
     (groupsQuery.data() ?? [])
       .filter((g) => attachedGroups[g.id])
       .map((g) => g.id);
+
+  // Recipe items: active bahan plus any linked-but-deactivated ones so
+  // the warning state can render (spec: never silently drop).
+  const [linkedInactive, setLinkedInactive] = createStore<
+    { id: string; isActive: false; title: string; unit: string }[]
+  >([]);
+  const recipeItems = () => {
+    const active = (bahanQuery.data() ?? []).map((i) => ({
+      id: i.id,
+      isActive: true,
+      title: i.name,
+      unit: i.unit,
+    }));
+    const activeIds = new Set(active.map((i) => i.id));
+    return [...active, ...linkedInactive.filter((i) => !activeIds.has(i.id))];
+  };
+
+  // Edit mode: pre-load this product's recipe rows.
+  createEffect(() => {
+    if (!isEditing() || recipeHydrated() || !product()) {
+      return;
+    }
+    const productId = product()!.id;
+    getProductIngredients(productId)
+      .then((rows) => {
+        setRecipeRows(
+          rows.map((r) => ({
+            ingredientId: r.ingredientId,
+            qtyPerUnit: r.qtyPerUnit,
+          }))
+        );
+        setLinkedInactive(
+          rows
+            .filter((r) => !r.isActive)
+            .map((r) => ({
+              id: r.ingredientId,
+              isActive: false as const,
+              title: r.ingredientName,
+              unit: r.unit,
+            }))
+        );
+      })
+      .catch(() => undefined);
+    setRecipeHydrated(true);
+  });
 
   createResource(
     () => existing()?.imageAssetId ?? null,
@@ -223,6 +277,7 @@ export default function ProductFormPage() {
       }
       await setProductModifierGroups(productId, selectedGroupIds());
       await applyThreshold(productId);
+      await setProductIngredients(productId, [...recipeRows]);
       navigate("/catalog");
     } catch (error) {
       logger.error("PRODUCT_SAVE_FAILED", { error: String(error) });
@@ -349,6 +404,44 @@ export default function ProductFormPage() {
               selected={attachedGroups}
               sheetTitle="Pilih Varian"
             />
+          </div>
+
+          {/* ── Bahan baku (resep) ── */}
+          <div class="mt-6">
+            <RecipeField
+              addLabel="Tambah Bahan"
+              emptyMessage="Belum ada bahan — penjualan tidak mengurangi stok bahan baku"
+              items={recipeItems()}
+              label="Bahan Baku (resep)"
+              onQty={(ingredientId, qty) =>
+                setRecipeRows((rows) =>
+                  rows.map((r) =>
+                    r.ingredientId === ingredientId
+                      ? { ...r, qtyPerUnit: qty }
+                      : r
+                  )
+                )
+              }
+              onRemove={(ingredientId) =>
+                setRecipeRows((rows) =>
+                  rows.filter((r) => r.ingredientId !== ingredientId)
+                )
+              }
+              onSelect={(ingredientId) =>
+                setRecipeRows((rows) => {
+                  if (rows.some((r) => r.ingredientId === ingredientId)) {
+                    return rows.filter((r) => r.ingredientId !== ingredientId);
+                  }
+                  return [...rows, { ingredientId, qtyPerUnit: 1 }];
+                })
+              }
+              rows={recipeRows}
+              sheetTitle="Pilih Bahan Baku"
+            />
+            <p class="mt-1.5 text-caption-sm text-faint-foreground">
+              Penjualan produk ini otomatis mengurangi stok bahan sesuai jumlah
+              per porsi.
+            </p>
           </div>
 
           {/* ── Actions ── */}

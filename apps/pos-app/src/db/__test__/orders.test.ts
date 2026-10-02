@@ -25,6 +25,16 @@ vi.mock("~/lib/api/sync", () => ({
 const decrementStockForSale = vi.fn();
 vi.mock("../inventory", () => ({ decrementStockForSale }));
 
+const getRecipesForProducts = vi.fn(
+  async () =>
+    [] as { ingredientId: string; productId: string; qtyPerUnit: number }[]
+);
+vi.mock("../recipes", () => ({ getRecipesForProducts }));
+
+vi.mock("~/lib/utils", () => ({
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+}));
+
 vi.mock("~/lib/auth/session", () => ({
   currentOutletId: () => "outlet-1",
   currentOutletTimezone: () => "Asia/Jakarta",
@@ -112,7 +122,55 @@ describe("orders persistence", () => {
 
     /* Stock decrement runs in the same transaction, guarded by the
        inventory helper (no-op for untracked products). */
-    expect(decrementStockForSale).toHaveBeenCalledWith(tx, "prod-1", 2);
+    expect(decrementStockForSale).toHaveBeenCalledWith(
+      tx,
+      "product",
+      "prod-1",
+      2
+    );
+  });
+
+  test("recipe-linked ingredients deduct qtyPerUnit × qty in the same transaction", async () => {
+    getRecipesForProducts.mockResolvedValueOnce([
+      { ingredientId: "ing-1", productId: "prod-1", qtyPerUnit: 0.25 },
+    ]);
+    mockInsert
+      .mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([orderRow]),
+        }),
+      })
+      .mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue([{ id: "item-1", orderId: "order-1" }]),
+        }),
+      });
+
+    await persistOrder(
+      saleOrder as unknown as Parameters<typeof persistOrder>[0]
+    );
+
+    expect(getRecipesForProducts).toHaveBeenCalledWith(["prod-1"]);
+    expect(decrementStockForSale).toHaveBeenCalledWith(
+      tx,
+      "ingredient",
+      "ing-1",
+      0.5
+    );
+  });
+
+  test("recipe lookup is batched across distinct product ids", async () => {
+    mockInsert.mockImplementation(() => ({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "x" }]),
+      }),
+    }));
+    await persistOrder(
+      saleOrder as unknown as Parameters<typeof persistOrder>[0]
+    );
+    expect(getRecipesForProducts).toHaveBeenCalledTimes(1);
   });
 
   test("persistOrder rejects without an active outlet", async () => {

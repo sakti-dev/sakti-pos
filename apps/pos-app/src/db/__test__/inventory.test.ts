@@ -173,13 +173,13 @@ describe("ensureTracked (Mulai Lacak Stok)", () => {
 describe("decrementStockForSale (checkout)", () => {
   test("decrements a tracked product", async () => {
     balanceRow = { id: "bal-1", onHandQty: 8, deletedAt: null };
-    await decrementStockForSale(tx, "p1", 2);
+    await decrementStockForSale(tx, "product", "p1", 2);
     const update = updateCalls.find((c) => c.table === inventoryStocks);
     expect(update?.set.onHandQty).toBe(6);
   });
 
   test("silent no-op when untracked — never blocks a sale", async () => {
-    await decrementStockForSale(tx, "p1", 2);
+    await decrementStockForSale(tx, "product", "p1", 2);
     expect(insertCalls).toHaveLength(0);
     expect(updateCalls).toHaveLength(0);
     expect(enqueueChange).not.toHaveBeenCalled();
@@ -187,8 +187,15 @@ describe("decrementStockForSale (checkout)", () => {
 
   test("no-op on a soft-deleted (untracked) row", async () => {
     balanceRow = { id: "bal-1", onHandQty: 8, deletedAt: "2026-01-01" };
-    await decrementStockForSale(tx, "p1", 2);
+    await decrementStockForSale(tx, "product", "p1", 2);
     expect(updateCalls).toHaveLength(0);
+  });
+
+  test("decrements an ingredient by fractional recipe amount", async () => {
+    balanceRow = { id: "bal-1", onHandQty: 2, deletedAt: null };
+    await decrementStockForSale(tx, "ingredient", "i1", 0.5);
+    const update = updateCalls.find((c) => c.table === inventoryStocks);
+    expect(update?.set.onHandQty).toBeCloseTo(1.5);
   });
 });
 

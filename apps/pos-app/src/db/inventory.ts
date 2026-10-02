@@ -407,16 +407,18 @@ export async function setLowStockThreshold(
 }
 
 /**
- * Guarded checkout decrement: no-op when the product has no live
- * balance row (untracked). Never blocks a sale.
+ * Guarded checkout decrement: no-op when the target has no live
+ * balance row (untracked). Never blocks a sale. Used for both tracked
+ * products and recipe-linked ingredients.
  */
 export async function decrementStockForSale(
   tx: DbTx,
-  productId: string,
+  targetType: StockTargetType,
+  targetId: string,
   quantity: number
 ): Promise<void> {
   const outletId = requireOutletId();
-  const existing = await findBalance(tx, "product", productId, outletId);
+  const existing = await findBalance(tx, targetType, targetId, outletId);
   if (!existing || existing.deletedAt !== null) {
     return;
   }

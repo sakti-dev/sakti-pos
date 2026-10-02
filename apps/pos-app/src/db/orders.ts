@@ -8,16 +8,25 @@ import {
 } from "~/lib/auth/session";
 import type { OrderRepository } from "~/lib/sales/order-repository";
 import type { CompletedOrder } from "~/lib/sales/types";
+import { createLogger } from "~/lib/utils";
 import { db, TABLE } from "./index";
 import { decrementStockForSale } from "./inventory";
+import { getRecipesForProducts } from "./recipes";
 
 export type OrderRow = typeof TABLE.orders.$inferSelect;
 export type OrderItemRow = typeof TABLE.orderItems.$inferSelect;
 
+const orderLogger = createLogger({
+  domain: "POS",
+  module: "orders",
+});
+
 /**
  * Persist a committed sale: one `orders` row + one `order_items` row per
  * line, in a single write transaction with sync enqueues. Money converts to
- * minor units at this seam (whole Rupiah in the sale loop).
+ * minor units at this seam (whole Rupiah in the sale loop). Tracked
+ * product stock and recipe-linked ingredients are decremented in the
+ * same transaction (guarded no-ops for untracked targets).
  */
 export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
   const outletId = currentOutletId();
@@ -27,6 +36,22 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
 
   const now = dayjs().toISOString();
   const registerId = currentRegisterId();
+
+  /* Recipe lookup before the write — one batched query. */
+  const productIds = [
+    ...new Set(
+      order.lines
+        .map((line) => line.productId)
+        .filter((id): id is string => id !== null)
+    ),
+  ];
+  const recipeRows = await getRecipesForProducts(productIds);
+  const recipesByProduct = new Map<string, typeof recipeRows>();
+  for (const row of recipeRows) {
+    const list = recipesByProduct.get(row.productId) ?? [];
+    list.push(row);
+    recipesByProduct.set(row.productId, list);
+  }
 
   return await getSyncClient().writeTransaction(db, async (tx) => {
     const [orderRow] = await tx
@@ -102,12 +127,50 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
       /* Stock decrement: guarded no-op for untracked products
          (row-exists convention); modifiers never change quantity. */
       if (line.productId) {
-        await decrementStockForSale(tx, line.productId, line.qty);
+        await decrementStockForSale(tx, "product", line.productId, line.qty);
+        await applyRecipeDeductions(
+          tx,
+          recipesByProduct.get(line.productId) ?? [],
+          line.productId,
+          line.qty
+        );
       }
     }
 
     return orderRow;
   });
+}
+
+/** The drizzle transaction handle writeTransaction hands to callbacks. */
+type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Recipe deduction: qtyPerUnit × line qty per linked bahan. Guarded
+ * per ingredient — failures log (POS:RECIPE_DEDUCTION_FAILED) and
+ * continue so a committed sale is never aborted.
+ */
+async function applyRecipeDeductions(
+  tx: DbTx,
+  recipes: readonly { ingredientId: string; qtyPerUnit: number }[],
+  productId: string,
+  lineQty: number
+): Promise<void> {
+  for (const recipe of recipes) {
+    try {
+      await decrementStockForSale(
+        tx,
+        "ingredient",
+        recipe.ingredientId,
+        recipe.qtyPerUnit * lineQty
+      );
+    } catch (error) {
+      orderLogger.warn("recipe_deduction_failed", {
+        ingredientId: recipe.ingredientId,
+        error: String(error),
+        productId,
+      });
+    }
+  }
 }
 
 export interface OrderWithItems {

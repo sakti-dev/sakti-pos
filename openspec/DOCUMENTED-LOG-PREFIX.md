@@ -211,6 +211,8 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [INVENTORY:CREATED]` | `db/ingredients.ts` — bahan baku created + zero balance seeded, includes `id`, `name` |
 | `[JS] [INVENTORY:UPDATED]` | `db/ingredients.ts` — bahan baku fields updated |
 | `[JS] [INVENTORY:SOFT_DELETED]` | `db/ingredients.ts` — bahan baku deactivated |
+| `[JS] [POS:RECIPE_SAVED]` | `db/recipes.ts` — product recipe diff written (inserts/qty updates/soft-deletes), includes `productId`, `lines` |
+| `[JS] [POS:RECIPE_DEDUCTION_FAILED]` | `db/orders.ts` — one ingredient's checkout deduction threw; logged and skipped so the sale still completes, includes `productId`, `ingredientId`, `error` |
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
 | `[JS] [UI:REQUIRE_AUTH_GUARD]` | `App.tsx` |

@@ -29,7 +29,12 @@ _Last reviewed: 2026-10-01 · branch `main` (all work pushed) · tests: 157 pos-
 
 ### 2b. Modifier groups (varian) — ✅ implemented, device-verified
 - Shared groups (single/multi, required flag) + options with signed deltas + product links; real Variant tab & forms; POS selection sheet; `order_item_modifiers` snapshots; sync verified end-to-end on Waydroid (offline queue drained, server rows present)
-- **Pending deploy**: prod Turso migration `0004_modifier_groups.sql` + prod build (bundle with the cash-shifts 6.4 deploy)
+
+### 2c. Inventory + recipes — ✅ implemented (wire-inventory + product-recipes), device passes pending
+- Row-exists stock tracking (balances, receipts, opname, adjustments, checkout decrement), real ingredient CRUD, four-feed Riwayat; recipes (`product_ingredients` + qty-aware product-form section) deduct bahan per unit sold
+- Migration histories REBUILT as clean `0000_baseline` files (old meta was hand-mangled) — applied at first install; existing dev installs need clear-data (data re-pulls from dev Turso)
+- **Pending user**: device passes (wire-inventory 5.2/5.3 + recipes 5.2/5.3) on a rebuilt APK
+- **Pending deploy**: prod Turso needs the post-0003 tables applied manually (`modifier_groups` + `modifier_options` + `product_modifier_groups` + `stock_adjustments` + `product_ingredients`), bundled with the cash-shifts 6.4 deploy
 
 ### 3. Printer smoke test on device
 - Implemented June; run a real thermal-printer pass — predates all recent work
@@ -39,4 +44,4 @@ _Last reviewed: 2026-10-01 · branch `main` (all work pushed) · tests: 157 pos-
 - Bump Elysia 2.0.0-beta.19 → stable when released
 
 ### Deferred by spec
-- Ingredients recipe/BOM linkage (explicitly deferred in `openspec/specs/ingredients/spec.md`)
+- ~~Ingredients recipe/BOM linkage~~ — delivered by `product-recipes` (see 2c)
