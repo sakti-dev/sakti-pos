@@ -1,46 +1,12 @@
 {
   "version": "7",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
       "version": "6",
-      "when": 1790541061566,
-      "tag": "0000_payment-settings",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1790548626896,
-      "tag": "0001_outlet-tax-service-charge",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1790553272590,
-      "tag": "0002_orders-outlet-number-unique",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1790647107130,
-      "tag": "0003_cash-shift-closed-by",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1790765263025,
-      "tag": "0004_modifier_groups",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1790850000000,
-      "tag": "0005_stock_adjustments",
+      "when": 1790963051502,
+      "tag": "0000_baseline",
       "breakpoints": true
     }
   ]

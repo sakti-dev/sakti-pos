@@ -76,6 +76,10 @@ CREATE TABLE `orders` (
 	`payment_method` text NOT NULL,
 	`amount_paid_minor_units` integer,
 	`change_amount_minor_units` integer,
+	`tax_minor_units` integer DEFAULT 0 NOT NULL,
+	`service_charge_minor_units` integer DEFAULT 0 NOT NULL,
+	`tax_percentage` integer DEFAULT 0 NOT NULL,
+	`service_charge_percentage` integer DEFAULT 0 NOT NULL,
 	`status` text NOT NULL,
 	`deleted_at` text,
 	`sync_updated_at` integer NOT NULL,
@@ -86,9 +90,9 @@ CREATE TABLE `orders` (
 	FOREIGN KEY (`staff_id`) REFERENCES `staff`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `orders_order_number_unique` ON `orders` (`order_number`);--> statement-breakpoint
 CREATE INDEX `orders_scope_sync_idx` ON `orders` (`outlet_id`,`sync_updated_at`);--> statement-breakpoint
 CREATE INDEX `orders_outlet_created_idx` ON `orders` (`outlet_id`,`created_at`);--> statement-breakpoint
+CREATE UNIQUE INDEX `orders_outlet_number_unique` ON `orders` (`outlet_id`,`order_number`);--> statement-breakpoint
 CREATE TABLE `outlet_products` (
 	`id` text PRIMARY KEY NOT NULL,
 	`outlet_id` text NOT NULL,
@@ -117,6 +121,8 @@ CREATE TABLE `outlets` (
 	`is_active` integer DEFAULT true NOT NULL,
 	`use_tax` integer DEFAULT false NOT NULL,
 	`tax_percentage` integer DEFAULT 0 NOT NULL,
+	`use_service_charge` integer DEFAULT false NOT NULL,
+	`service_charge_percentage` integer DEFAULT 0 NOT NULL,
 	`deleted_at` text,
 	`sync_updated_at` integer NOT NULL,
 	`created_at` text NOT NULL,
@@ -125,6 +131,21 @@ CREATE TABLE `outlets` (
 );
 --> statement-breakpoint
 CREATE INDEX `outlets_scope_sync_idx` ON `outlets` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE TABLE `payment_settings` (
+	`id` text PRIMARY KEY NOT NULL,
+	`merchant_id` text NOT NULL,
+	`qris_static_payload` text,
+	`qris_statis_enabled` integer DEFAULT false NOT NULL,
+	`qris_dinamis_enabled` integer DEFAULT false NOT NULL,
+	`deleted_at` text,
+	`sync_updated_at` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `payment_settings_scope_sync_idx` ON `payment_settings` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE UNIQUE INDEX `payment_settings_merchant_idx` ON `payment_settings` (`merchant_id`);--> statement-breakpoint
 CREATE TABLE `products` (
 	`id` text PRIMARY KEY NOT NULL,
 	`merchant_id` text NOT NULL,
@@ -237,6 +258,7 @@ CREATE TABLE `cash_shifts` (
 	`outlet_id` text NOT NULL,
 	`register_id` text,
 	`opened_by_staff_id` text NOT NULL,
+	`closed_by_staff_id` text,
 	`opened_at` text NOT NULL,
 	`closed_at` text,
 	`initial_float_minor_units` integer DEFAULT 0 NOT NULL,
@@ -251,7 +273,8 @@ CREATE TABLE `cash_shifts` (
 	`updated_at` text NOT NULL,
 	FOREIGN KEY (`outlet_id`) REFERENCES `outlets`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`register_id`) REFERENCES `registers`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`opened_by_staff_id`) REFERENCES `staff`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`opened_by_staff_id`) REFERENCES `staff`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`closed_by_staff_id`) REFERENCES `staff`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE INDEX `cash_shifts_scope_sync_idx` ON `cash_shifts` (`outlet_id`,`sync_updated_at`);--> statement-breakpoint
@@ -325,6 +348,39 @@ CREATE TABLE `inventory_stocks` (
 CREATE INDEX `inventory_stocks_scope_sync_idx` ON `inventory_stocks` (`outlet_id`,`sync_updated_at`);--> statement-breakpoint
 CREATE INDEX `inventory_stocks_outlet_target_idx` ON `inventory_stocks` (`outlet_id`,`target_type`,`target_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `inventory_stocks_outlet_target_unique` ON `inventory_stocks` (`outlet_id`,`target_type`,`target_id`);--> statement-breakpoint
+CREATE TABLE `modifier_groups` (
+	`id` text PRIMARY KEY NOT NULL,
+	`merchant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`selection_type` text NOT NULL,
+	`is_required` integer DEFAULT false NOT NULL,
+	`sort_order` integer DEFAULT 0 NOT NULL,
+	`deleted_at` text,
+	`sync_updated_at` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `modifier_groups_scope_sync_idx` ON `modifier_groups` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE INDEX `modifier_groups_merchant_sort_idx` ON `modifier_groups` (`merchant_id`,`sort_order`);--> statement-breakpoint
+CREATE TABLE `modifier_options` (
+	`id` text PRIMARY KEY NOT NULL,
+	`merchant_id` text NOT NULL,
+	`group_id` text NOT NULL,
+	`label` text NOT NULL,
+	`price_delta_minor_units` integer DEFAULT 0 NOT NULL,
+	`sort_order` integer DEFAULT 0 NOT NULL,
+	`deleted_at` text,
+	`sync_updated_at` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`group_id`) REFERENCES `modifier_groups`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `modifier_options_scope_sync_idx` ON `modifier_options` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE INDEX `modifier_options_group_sort_idx` ON `modifier_options` (`group_id`,`sort_order`);--> statement-breakpoint
 CREATE TABLE `order_item_modifiers` (
 	`id` text PRIMARY KEY NOT NULL,
 	`order_item_id` text NOT NULL,
@@ -343,21 +399,61 @@ CREATE TABLE `order_item_modifiers` (
 --> statement-breakpoint
 CREATE INDEX `order_item_modifiers_scope_sync_idx` ON `order_item_modifiers` (`outlet_id`,`sync_updated_at`);--> statement-breakpoint
 CREATE INDEX `order_item_modifiers_order_item_idx` ON `order_item_modifiers` (`order_item_id`);--> statement-breakpoint
-CREATE TABLE `payment_settings` (
+CREATE TABLE `product_ingredients` (
 	`id` text PRIMARY KEY NOT NULL,
 	`merchant_id` text NOT NULL,
-	`qris_static_payload` text,
-	`qris_statis_enabled` integer DEFAULT false NOT NULL,
-	`qris_dinamis_enabled` integer DEFAULT false NOT NULL,
+	`product_id` text NOT NULL,
+	`ingredient_id` text NOT NULL,
+	`qty_per_unit` real NOT NULL,
 	`deleted_at` text,
 	`sync_updated_at` integer NOT NULL,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
-	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`ingredient_id`) REFERENCES `ingredients`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE INDEX `payment_settings_scope_sync_idx` ON `payment_settings` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
-CREATE UNIQUE INDEX `payment_settings_merchant_idx` ON `payment_settings` (`merchant_id`);--> statement-breakpoint
+CREATE INDEX `product_ingredients_scope_sync_idx` ON `product_ingredients` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE INDEX `product_ingredients_product_idx` ON `product_ingredients` (`product_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `product_ingredients_product_ingredient_unique` ON `product_ingredients` (`product_id`,`ingredient_id`);--> statement-breakpoint
+CREATE TABLE `product_modifier_groups` (
+	`id` text PRIMARY KEY NOT NULL,
+	`merchant_id` text NOT NULL,
+	`product_id` text NOT NULL,
+	`group_id` text NOT NULL,
+	`sort_order` integer DEFAULT 0 NOT NULL,
+	`deleted_at` text,
+	`sync_updated_at` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`group_id`) REFERENCES `modifier_groups`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `product_modifier_groups_scope_sync_idx` ON `product_modifier_groups` (`merchant_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE INDEX `product_modifier_groups_product_idx` ON `product_modifier_groups` (`product_id`,`sort_order`);--> statement-breakpoint
+CREATE UNIQUE INDEX `product_modifier_groups_product_group_unique` ON `product_modifier_groups` (`product_id`,`group_id`);--> statement-breakpoint
+CREATE TABLE `stock_adjustments` (
+	`id` text PRIMARY KEY NOT NULL,
+	`outlet_id` text NOT NULL,
+	`staff_id` text NOT NULL,
+	`target_type` text NOT NULL,
+	`target_id` text NOT NULL,
+	`qty_delta` real NOT NULL,
+	`reason` text NOT NULL,
+	`note` text,
+	`deleted_at` text,
+	`sync_updated_at` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`outlet_id`) REFERENCES `outlets`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`staff_id`) REFERENCES `staff`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `stock_adjustments_scope_sync_idx` ON `stock_adjustments` (`outlet_id`,`sync_updated_at`);--> statement-breakpoint
+CREATE INDEX `stock_adjustments_outlet_target_idx` ON `stock_adjustments` (`outlet_id`,`target_id`);--> statement-breakpoint
 CREATE TABLE `stocktake_lines` (
 	`id` text PRIMARY KEY NOT NULL,
 	`stocktake_id` text NOT NULL,

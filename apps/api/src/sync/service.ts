@@ -15,6 +15,7 @@ import {
   outletProducts,
   outlets,
   paymentSettings,
+  productIngredients,
   productModifierGroups,
   products,
   registers,
@@ -22,7 +23,7 @@ import {
   stockAdjustments,
   stocktakeLines,
   stocktakes,
-} from "@sync-contract/generated/2026-10-01/api-synced-schema";
+} from "@sync-contract/generated/2026-10-02/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, getTableColumns, gt, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -1033,6 +1034,72 @@ export const repository = createDrizzleSyncRepository({
               unit: sql.raw("excluded.unit"),
               category: sql.raw("excluded.category"),
               isActive: sql.raw("excluded.is_active"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    product_ingredients: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "product_ingredients.id"),
+        merchantId: requiredString(
+          row.merchantId,
+          "product_ingredients.merchantId"
+        ),
+        productId: requiredString(row.productId, "productId"),
+        ingredientId: requiredString(row.ingredientId, "ingredientId"),
+        qtyPerUnit: requiredNumber(row.qtyPerUnit, "qtyPerUnit"),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(
+          row.createdAt,
+          "product_ingredients.createdAt"
+        ),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select()
+          .from(productIngredients)
+          .where(eq(productIngredients.merchantId, scopeId))
+          .orderBy(sql`${productIngredients.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select()
+          .from(productIngredients)
+          .where(
+            and(
+              eq(productIngredients.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(productIngredients.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(
+            asc(productIngredients.syncUpdatedAt),
+            asc(productIngredients.id)
+          ),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(productIngredients)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(productIngredients.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(productIngredients)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: productIngredients.id,
+            set: {
+              productId: sql.raw("excluded.product_id"),
+              ingredientId: sql.raw("excluded.ingredient_id"),
+              qtyPerUnit: sql.raw("excluded.qty_per_unit"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),

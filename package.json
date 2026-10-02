@@ -18,6 +18,8 @@
     "app:restart": "bash apps/pos-app/scripts/restart",
     "test": "turbo run test",
     "generate:sync": "cd packages/sync-contract && bunx baresync generate",
+    "migrate:local": "cd apps/pos-app && bunx drizzle-kit generate",
+    "migrate:server": "cd apps/api && bunx drizzle-kit generate",
     "generate:sync:check": "cd packages/sync-contract && bunx baresync generate --check",
     "generate:sync:doctor": "cd packages/sync-contract && bunx baresync doctor"
   },
