@@ -1,5 +1,6 @@
 import CorvuDrawer from "@corvu/drawer";
 import type { JSX } from "solid-js";
+import { createKeyboardInset } from "~/lib/ui/keyboard-inset";
 import { cn } from "~/lib/utils";
 
 // ── Root ─────────────────────────────────────────────────────────
@@ -26,6 +27,8 @@ const sidePosition: Record<DrawerSide, string> = {
 
 export const DrawerRoot = (props: DrawerRootProps) => {
   const close = () => props.onOpenChange?.(false);
+  const keyboard = createKeyboardInset();
+  const bottomSide = () => (props.side ?? "bottom") === "bottom";
 
   return (
     <CorvuDrawer
@@ -53,6 +56,14 @@ export const DrawerRoot = (props: DrawerRootProps) => {
                 sidePosition[props.side ?? "bottom"],
                 props.class
               )}
+              style={
+                bottomSide() && keyboard.inset()
+                  ? {
+                      bottom: `${keyboard.inset()}px`,
+                      "max-height": `${keyboard.visibleHeight()}px`,
+                    }
+                  : undefined
+              }
             >
               <div class="mx-auto mt-2.5 h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing" />
               {/* Content is excluded from drag: without this, any tap

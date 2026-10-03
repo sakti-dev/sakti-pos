@@ -6,6 +6,7 @@ import { createMemo, Show, splitProps } from "solid-js";
 import { XCloseIcon } from "~/assets";
 import { useBreakpoints } from "~/lib/ui/breakpoints";
 import { useDismissibleVisibility } from "~/lib/ui/dismissible-stack";
+import { createKeyboardInset } from "~/lib/ui/keyboard-inset";
 import { cn } from "~/lib/utils";
 
 // ── Root ─────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ function AdaptiveDialogContent(props: AdaptiveDialogContentProps) {
   const dialogCtx = CorvuDialog.useContext();
   const dialogId = () => dialogCtx.dialogId();
   const { isTopmost, show, hide } = useDismissibleVisibility(dialogId());
+  const keyboard = createKeyboardInset();
 
   // Track open/close to push/pop from the stack
   createMemo(() => {
@@ -104,9 +106,15 @@ function AdaptiveDialogContent(props: AdaptiveDialogContentProps) {
           />
           <Drawer.Content
             class={cn(
-              "fixed inset-x-0 bottom-0 z-70 flex max-h-[85dvh] w-full flex-col gap-4 overflow-hidden rounded-t-lg border-2 border-border bg-card px-3 pt-1.5 pb-3 shadow-card data-transitioning:transition-transform data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)] sm:px-6 sm:pb-6",
+              "fixed inset-x-0 bottom-0 z-70 flex max-h-[85vh] w-full flex-col gap-4 overflow-hidden rounded-t-lg border-2 border-border bg-card px-3 pt-1.5 pb-3 shadow-card data-transitioning:transition-transform data-transitioning:duration-standard data-transitioning:ease-[cubic-bezier(0.32,0.72,0,1)] sm:px-6 sm:pb-6",
               contentDimmed()
             )}
+            style={{
+              bottom: `${keyboard.inset()}px`,
+              "max-height": keyboard.inset()
+                ? `${Math.min(0.85 * keyboard.layoutHeight(), keyboard.visibleHeight())}px`
+                : undefined,
+            }}
           >
             <div class="mx-auto h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing" />
             {props.children}

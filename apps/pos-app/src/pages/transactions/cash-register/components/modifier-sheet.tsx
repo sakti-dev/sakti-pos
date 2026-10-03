@@ -89,7 +89,7 @@ export const ModifierSheet = (props: ModifierSheetProps) => {
         }}
         open={props.product != null}
       >
-        <AdaptiveDialogContent class="max-h-[85dvh]">
+        <AdaptiveDialogContent class="max-h-[85vh]">
           <div class="flex flex-col gap-1">
             <h2 class="font-bold font-display text-foreground text-h4">
               {props.product?.name}

@@ -171,7 +171,7 @@ export const RecipeField = (props: RecipeFieldProps) => {
         </Button>
 
         <AdaptiveDialog onOpenChange={setOpen} open={open()}>
-          <AdaptiveDialogContent class="max-h-[85dvh]">
+          <AdaptiveDialogContent class="max-h-[85vh]">
             <AdaptiveDialogTitle>{props.sheetTitle}</AdaptiveDialogTitle>
 
             <SearchBar
@@ -180,7 +180,7 @@ export const RecipeField = (props: RecipeFieldProps) => {
               value={search()}
             />
 
-            <div class="scrollbar-none -mx-1 flex max-h-[50dvh] flex-col gap-1 overflow-y-auto px-1">
+            <div class="scrollbar-none -mx-1 flex max-h-[50vh] flex-col gap-1 overflow-y-auto px-1">
               <For each={visibleItems()}>
                 {(item) => (
                   <button
