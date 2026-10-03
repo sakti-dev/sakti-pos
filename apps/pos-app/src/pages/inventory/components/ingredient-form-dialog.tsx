@@ -1,7 +1,7 @@
 import { FiPlus } from "solid-icons/fi";
 import { createSignal, For } from "solid-js";
 import { toast } from "solid-sonner";
-import { PickerField, type PickerOption } from "~/components/picker-field";
+import { PickerField } from "~/components/picker-field";
 import {
   AdaptiveDialog,
   AdaptiveDialogContent,
@@ -11,17 +11,11 @@ import {
   AdaptiveDialogTitle,
 } from "~/components/ui/adaptive-dialog";
 import { Button } from "~/components/ui/button";
-import { createIngredient } from "~/db/ingredients";
+import { createIngredient, getIngredientCategories } from "~/db/ingredients";
 import { setLowStockThreshold } from "~/db/inventory";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 
 const UNIT_OPTIONS = ["Pcs/Sachet", "Kg", "Gram", "Liter"] as const;
-
-const CATEGORY_OPTIONS: PickerOption[] = [
-  { label: "Bumbu & Bahan Dapur", value: "Bumbu & Bahan Dapur" },
-  { label: "Sachet & Minuman", value: "Sachet & Minuman" },
-  { label: "Bumbu Kering", value: "Bumbu Kering" },
-  { label: "Lainnya", value: "Lainnya" },
-];
 
 interface IngredientFormDialogProps {
   readonly onCreated: () => void;
@@ -32,9 +26,16 @@ interface IngredientFormDialogProps {
 export function IngredientFormDialog(props: IngredientFormDialogProps) {
   const [name, setName] = createSignal("");
   const [unit, setUnit] = createSignal<string>(UNIT_OPTIONS[0]);
-  const [category, setCategory] = createSignal("Bumbu & Bahan Dapur");
+  const [category, setCategory] = createSignal("");
   const [threshold, setThreshold] = createSignal("");
   const [saving, setSaving] = createSignal(false);
+
+  const categoriesQuery = useDrizzleQuery(
+    ["drizzle", "ingredients", "categories"],
+    () => getIngredientCategories()
+  );
+  const categoryOptions = () =>
+    (categoriesQuery.data() ?? []).map((c) => ({ label: c, value: c }));
 
   const canCreate = () => name().trim().length > 0 && !saving();
 
@@ -71,7 +72,7 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
   const reset = () => {
     setName("");
     setUnit(UNIT_OPTIONS[0]);
-    setCategory("Bumbu & Bahan Dapur");
+    setCategory("");
     setThreshold("");
   };
 
@@ -119,13 +120,19 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
               </For>
             </div>
           </div>
-          <PickerField
-            onChange={setCategory}
-            options={CATEGORY_OPTIONS}
-            placeholder="Pilih kategori"
-            title="Kategori"
-            value={category()}
-          />
+          <div class="flex flex-col gap-1">
+            <span class="font-medium text-caption text-muted-foreground">
+              Kategori
+            </span>
+            <PickerField
+              onChange={setCategory}
+              onCreate={(query) => query}
+              options={categoryOptions()}
+              placeholder="Pilih atau ketik kategori baru"
+              title="Kategori"
+              value={category()}
+            />
+          </div>
           <label class="flex flex-col gap-1">
             <span class="font-medium text-caption text-muted-foreground">
               Stok Minimum (opsional)

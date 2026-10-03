@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { getSyncClient } from "~/lib/api/sync";
 import { currentMerchantId } from "~/lib/auth/session";
 import { createLogger } from "~/lib/utils";
@@ -16,6 +16,39 @@ export interface IngredientInput {
   readonly name: string;
   readonly sku: string | null;
   readonly unit: string;
+}
+
+/** Seed options merged with categories already used by this merchant. */
+export const DEFAULT_INGREDIENT_CATEGORIES: readonly string[] = [
+  "Bumbu & Bahan Dapur",
+  "Sachet & Minuman",
+  "Bumbu Kering",
+  "Lainnya",
+];
+
+/** Distinct active ingredient categories (defaults + in-use), sorted. */
+export async function getIngredientCategories(): Promise<string[]> {
+  const merchantId = currentMerchantId();
+  const set = new Set<string>(DEFAULT_INGREDIENT_CATEGORIES);
+  if (merchantId) {
+    const rows = await db
+      .selectDistinct({ category: TABLE.ingredients.category })
+      .from(TABLE.ingredients)
+      .where(
+        and(
+          eq(TABLE.ingredients.merchantId, merchantId),
+          eq(TABLE.ingredients.isActive, true),
+          isNull(TABLE.ingredients.deletedAt)
+        )
+      );
+    for (const row of rows) {
+      const category = row.category?.trim();
+      if (category) {
+        set.add(category);
+      }
+    }
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, "id"));
 }
 
 export async function getIngredients(): Promise<

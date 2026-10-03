@@ -50,7 +50,7 @@ export function useGoodsReceipt() {
   const [showCreateForm, setShowCreateForm] = createSignal(false);
   const [newName, setNewName] = createSignal("");
   const [newUnit, setNewUnit] = createSignal("Pcs/Sachet");
-  const [newCategory, setNewCategory] = createSignal("Bumbu & Bahan Dapur");
+  const [newCategory, setNewCategory] = createSignal("");
 
   const ingredientQuery = useDrizzleQuery(
     ["drizzle", "inventory", "ingredient-stock-list"],
@@ -222,7 +222,7 @@ export function useGoodsReceipt() {
         ingredientQuery.refetch();
         setNewName("");
         setNewUnit("Pcs/Sachet");
-        setNewCategory("Bumbu & Bahan Dapur");
+        setNewCategory("");
       })
       .catch((error: unknown) => {
         receiptLogger.error("receipt_create_failed", error);

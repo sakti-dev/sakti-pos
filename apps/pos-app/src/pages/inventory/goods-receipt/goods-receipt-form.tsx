@@ -1,5 +1,6 @@
 import { FiPackage, FiPlus, FiSearch, FiTrash2 } from "solid-icons/fi";
 import { For, Show } from "solid-js";
+import { PickerField } from "~/components/picker-field";
 import { Button } from "~/components/ui/button";
 import { DrawerRoot } from "~/components/ui/drawer";
 import {
@@ -8,6 +9,8 @@ import {
   NumberFieldLabel,
 } from "~/components/ui/number-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
+import { getIngredientCategories } from "~/db/ingredients";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { cn, createLogger, formatRupiah } from "~/lib/utils";
 import { displaySubtotal } from "./receipts";
 import {
@@ -32,6 +35,11 @@ interface GoodsReceiptFormProps {
 
 export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
   const form = useGoodsReceipt();
+
+  const categoriesQuery = useDrizzleQuery(
+    ["drizzle", "ingredients", "categories"],
+    () => getIngredientCategories()
+  );
 
   /** Picker list empty-state copy by context (null = render nothing). */
   const listEmptyMessage = (): string | null => {
@@ -403,23 +411,23 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                     </For>
                   </div>
                 </div>
-                <label class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1">
                   <span class="font-medium text-caption text-muted-foreground">
                     Kategori{" "}
                     <span class="text-faint-foreground">(Opsional)</span>
                   </span>
-                  <select
-                    class="h-10 rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors focus:border-primary"
-                    onInput={(e) => form.setNewCategory(e.currentTarget.value)}
-                  >
-                    <option value="Bumbu & Bahan Dapur">
-                      Bumbu & Bahan Dapur
-                    </option>
-                    <option value="Sachet & Minuman">Sachet & Minuman</option>
-                    <option value="Bumbu Kering">Bumbu Kering</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
-                </label>
+                  <PickerField
+                    onChange={form.setNewCategory}
+                    onCreate={(query) => query}
+                    options={(categoriesQuery.data() ?? []).map((c) => ({
+                      label: c,
+                      value: c,
+                    }))}
+                    placeholder="Pilih atau ketik kategori baru"
+                    title="Kategori"
+                    value={form.newCategory()}
+                  />
+                </div>
               </div>
               <div class="flex items-center justify-end gap-2 border-border border-t px-4 py-3">
                 <Button
