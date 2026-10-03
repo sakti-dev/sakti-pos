@@ -287,79 +287,66 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                     </div>
                   </div>
                   <div class="max-h-[50vh] overflow-y-auto">
-                    <Show
-                      fallback={
-                        <div class="flex flex-col items-center gap-3 px-4 py-8 text-center">
-                          <p class="text-body-sm text-muted-foreground">
-                            Belum ada bahan baku atau produk retail.
-                          </p>
-                          <Button
-                            look="solid"
-                            onClick={() => form.setShowCreateForm(true)}
-                            tone="primary"
-                            type="button"
-                          >
-                            <FiPlus class="h-4 w-4" /> Tambah Bahan Baku Baru
-                          </Button>
-                        </div>
-                      }
-                      when={form.hasPickableItems()}
+                    {/* Always-on create row: similar names (Mie Telor vs
+                        Mie Kuning) match the search, so a create option
+                        that only appears on zero matches would be
+                        unreachable exactly when it's needed most. */}
+                    <button
+                      class="flex w-full items-center gap-3 border-border border-b bg-primary/5 px-4 py-3 text-left transition-colors hover:bg-primary/10"
+                      onClick={() => {
+                        formLogger.info("receipt_register_tapped", {
+                          search: form.pickerSearch().trim(),
+                        });
+                        form.setNewName(form.pickerSearch().trim());
+                        form.setShowCreateForm(true);
+                        formLogger.info("receipt_create_form_requested", {
+                          showCreateForm: form.showCreateForm(),
+                        });
+                      }}
+                      type="button"
                     >
-                      <Show
-                        fallback={
-                          <For
-                            each={form.available()}
-                            fallback={
-                              <p class="px-4 py-8 text-center text-body-sm text-muted-foreground">
-                                Semua bahan sudah ditambahkan
-                              </p>
-                            }
-                          >
-                            {(p) => (
-                              <button
-                                class="flex w-full items-center justify-between border-border border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted"
-                                onClick={() => form.addItem(p)}
-                                type="button"
-                              >
-                                <p class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
-                                  {p.isIngredient ? "🥕" : "🛒"} {p.name}{" "}
-                                  <span class="text-faint-foreground">
-                                    ({p.unit})
-                                  </span>
-                                </p>
-                                <FiPlus class="ml-3 h-5 w-5 shrink-0 text-primary" />
-                              </button>
-                            )}
-                          </For>
-                        }
-                        when={form.isNotFound()}
-                      >
-                        <div class="flex flex-col items-center gap-3 px-4 py-8 text-center">
-                          <p class="text-body-sm text-muted-foreground">
-                            ⚠️ &ldquo;{form.pickerSearch().trim()}&rdquo; belum
-                            ada di database Inventory Anda.
+                      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+                        <FiPlus class="h-4 w-4" />
+                      </span>
+                      <span class="min-w-0 flex-1">
+                        <span class="block truncate font-semibold text-body-sm text-foreground">
+                          {form.pickerSearch().trim()
+                            ? `Daftarkan "${form.pickerSearch().trim()}"`
+                            : "Buat Bahan Baku Baru"}
+                        </span>
+                        <span class="block truncate text-caption-sm text-muted-foreground">
+                          {form.pickerSearch().trim()
+                            ? "sebagai bahan baku baru"
+                            : "tambah bahan ke katalog gudang"}
+                        </span>
+                      </span>
+                    </button>
+                    <For
+                      each={form.available()}
+                      fallback={
+                        <p class="px-4 py-6 text-center text-caption text-faint-foreground">
+                          {form.hasPickableItems()
+                            ? "Semua bahan sudah ditambahkan"
+                            : ""}
+                        </p>
+                      }
+                    >
+                      {(p) => (
+                        <button
+                          class="flex w-full items-center justify-between border-border border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted"
+                          onClick={() => form.addItem(p)}
+                          type="button"
+                        >
+                          <p class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
+                            {p.isIngredient ? "🥕" : "🛒"} {p.name}{" "}
+                            <span class="text-faint-foreground">
+                              ({p.unit})
+                            </span>
                           </p>
-                          <Button
-                            look="solid"
-                            onClick={() => {
-                              formLogger.info("receipt_register_tapped", {
-                                search: form.pickerSearch().trim(),
-                              });
-                              form.setNewName(form.pickerSearch().trim());
-                              form.setShowCreateForm(true);
-                              formLogger.info("receipt_create_form_requested", {
-                                showCreateForm: form.showCreateForm(),
-                              });
-                            }}
-                            tone="primary"
-                            type="button"
-                          >
-                            <FiPlus class="h-4 w-4" /> Daftarkan sebagai Bahan
-                            Baku Baru
-                          </Button>
-                        </div>
-                      </Show>
-                    </Show>
+                          <FiPlus class="ml-3 h-5 w-5 shrink-0 text-primary" />
+                        </button>
+                      )}
+                    </For>
                   </div>
                 </>
               }
