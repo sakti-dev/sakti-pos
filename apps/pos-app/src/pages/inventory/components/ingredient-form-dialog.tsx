@@ -11,7 +11,11 @@ import {
   AdaptiveDialogTitle,
 } from "~/components/ui/adaptive-dialog";
 import { Button } from "~/components/ui/button";
-import { createIngredient, getIngredientCategories } from "~/db/ingredients";
+import {
+  createIngredientCategory,
+  getIngredientCategories,
+} from "~/db/ingredient-categories";
+import { createIngredient } from "~/db/ingredients";
 import { setLowStockThreshold } from "~/db/inventory";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 
@@ -31,19 +35,11 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
   const [saving, setSaving] = createSignal(false);
 
   const categoriesQuery = useDrizzleQuery(
-    ["drizzle", "ingredients", "categories"],
+    ["drizzle", "ingredient-categories", "list"],
     () => getIngredientCategories()
   );
-  /** Categories created inline this session — kept until a saved bahan
-      row carries them into the distinct list. */
-  const [extraCategories, setExtraCategories] = createSignal<string[]>([]);
-  const categoryOptions = () => {
-    const base = categoriesQuery.data() ?? [];
-    return [...new Set([...base, ...extraCategories()])].map((c) => ({
-      label: c,
-      value: c,
-    }));
-  };
+  const categoryOptions = () =>
+    (categoriesQuery.data() ?? []).map((c) => ({ label: c, value: c }));
 
   const canCreate = () => name().trim().length > 0 && !saving();
 
@@ -134,9 +130,10 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
             </span>
             <PickerField
               onChange={setCategory}
-              onCreate={(query) => {
-                setExtraCategories((prev) => [...new Set([...prev, query])]);
-                return query;
+              onCreate={async (query) => {
+                const name = await createIngredientCategory(query);
+                categoriesQuery.refetch();
+                return name;
               }}
               options={categoryOptions()}
               placeholder="Pilih atau ketik kategori baru"

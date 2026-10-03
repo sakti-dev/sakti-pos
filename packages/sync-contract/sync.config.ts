@@ -23,6 +23,7 @@ export const syncGeneratorConfig = defineSyncConfig({
     orders: { scopeColumn: "outletId" },
     orderItems: { scopeColumn: "outletId" },
     ingredients: { scopeColumn: "merchantId" },
+    ingredientCategories: { scopeColumn: "merchantId" },
     productIngredients: { scopeColumn: "merchantId" },
     inventoryStocks: { scopeColumn: "outletId" },
     stocktakes: { scopeColumn: "outletId" },

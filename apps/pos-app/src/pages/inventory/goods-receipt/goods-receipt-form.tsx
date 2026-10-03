@@ -1,5 +1,5 @@
 import { FiPackage, FiPlus, FiSearch, FiTrash2 } from "solid-icons/fi";
-import { createSignal, For, Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { PickerField } from "~/components/picker-field";
 import { Button } from "~/components/ui/button";
 import { DrawerRoot } from "~/components/ui/drawer";
@@ -9,7 +9,10 @@ import {
   NumberFieldLabel,
 } from "~/components/ui/number-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
-import { getIngredientCategories } from "~/db/ingredients";
+import {
+  createIngredientCategory,
+  getIngredientCategories,
+} from "~/db/ingredient-categories";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { cn, createLogger, formatRupiah } from "~/lib/utils";
 import { displaySubtotal } from "./receipts";
@@ -37,21 +40,11 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
   const form = useGoodsReceipt();
 
   const categoriesQuery = useDrizzleQuery(
-    ["drizzle", "ingredients", "categories"],
+    ["drizzle", "ingredient-categories", "list"],
     () => getIngredientCategories()
   );
-  /** Categories created inline this session — kept until a saved bahan
-      row carries them into the distinct list. */
-  const [extraCategories, setExtraCategories] = createSignal<readonly string[]>(
-    []
-  );
-  const categoryOptions = () => {
-    const base = categoriesQuery.data() ?? [];
-    return [...new Set([...base, ...extraCategories()])].map((c) => ({
-      label: c,
-      value: c,
-    }));
-  };
+  const categoryOptions = () =>
+    (categoriesQuery.data() ?? []).map((c) => ({ label: c, value: c }));
 
   /** Picker list empty-state copy by context (null = render nothing). */
   const listEmptyMessage = (): string | null => {
@@ -430,11 +423,10 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                   </span>
                   <PickerField
                     onChange={form.setNewCategory}
-                    onCreate={(query) => {
-                      setExtraCategories([
-                        ...new Set([...extraCategories(), query]),
-                      ]);
-                      return query;
+                    onCreate={async (query) => {
+                      const name = await createIngredientCategory(query);
+                      categoriesQuery.refetch();
+                      return name;
                     }}
                     options={categoryOptions()}
                     placeholder="Pilih atau ketik kategori baru"
