@@ -209,7 +209,6 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [INVENTORY:STOCKTAKE_RECORDED]` | `db/inventory.ts` — opname persisted (variance lines + absolute balance sets), includes `ref`, `lines` |
 | `[JS] [INVENTORY:ADJUSTMENT_CREATED]` | `db/inventory.ts` — penyesuaian persisted + delta applied, includes `targetId`, `qtyDelta`, `reason` |
 | `[JS] [INVENTORY:CREATED]` | `db/ingredients.ts` — bahan baku created + zero balance seeded, includes `id`, `name` |
-| `[JS] [INVENTORY:SEEDED]` | `db/ingredient-categories.ts` — default categories seeded on first read (table was empty), includes `count` |
 | `[JS] [INVENTORY:CATEGORY_CREATED]` | `db/ingredient-categories.ts` — inline category created + enqueued, includes `name` |
 | `[JS] [INVENTORY:UPDATED]` | `db/ingredients.ts` — bahan baku fields updated |
 | `[JS] [INVENTORY:SOFT_DELETED]` | `db/ingredients.ts` — bahan baku deactivated |

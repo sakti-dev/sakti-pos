@@ -10,30 +10,17 @@ const categoryLogger = createLogger({
   module: "ingredient-categories",
 });
 
-/** Seeded once per merchant when the table is empty. */
-export const SEED_INGREDIENT_CATEGORIES: readonly string[] = [
-  "Bumbu & Bahan Dapur",
-  "Sachet & Minuman",
-  "Bumbu Kering",
-  "Lainnya",
-];
-
 /**
- * Active categories for the merchant, seeded with defaults on first
- * read. Creating one inline persists immediately and syncs
- * merchant-wide (palette table — ingredients.category stores the NAME).
+ * Active categories for the merchant. Starts empty — the list grows
+ * only from categories the merchant creates (persisted + synced
+ * merchant-wide; ingredients.category stores the NAME).
  */
 export async function getIngredientCategories(): Promise<string[]> {
   const merchantId = currentMerchantId();
   if (!merchantId) {
-    return [...SEED_INGREDIENT_CATEGORIES];
+    return [];
   }
-  let rows = await readActive(merchantId);
-  if (rows.length === 0) {
-    await seedDefaults(merchantId);
-    rows = await readActive(merchantId);
-  }
-  return rows;
+  return await readActive(merchantId);
 }
 
 async function readActive(merchantId: string): Promise<string[]> {
@@ -51,33 +38,6 @@ async function readActive(merchantId: string): Promise<string[]> {
       asc(TABLE.ingredientCategories.name)
     );
   return rows.map((r) => r.name);
-}
-
-async function seedDefaults(merchantId: string): Promise<void> {
-  const now = dayjs().toISOString();
-  await getSyncClient().writeTransaction(db, async (tx) => {
-    let sort = 0;
-    for (const name of SEED_INGREDIENT_CATEGORIES) {
-      const [row] = await tx
-        .insert(TABLE.ingredientCategories)
-        .values({
-          merchantId,
-          name,
-          sortOrder: sort++,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning({ id: TABLE.ingredientCategories.id });
-      await getSyncClient().enqueueChange(tx, {
-        operation: "insert",
-        rowId: row.id,
-        table: TABLE.ingredientCategories,
-      });
-    }
-  });
-  categoryLogger.info("seeded", {
-    count: SEED_INGREDIENT_CATEGORIES.length,
-  });
 }
 
 /** Create (or return the existing) category name, case-insensitive. */
