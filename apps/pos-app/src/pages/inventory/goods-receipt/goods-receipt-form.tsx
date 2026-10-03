@@ -287,47 +287,42 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                     </div>
                   </div>
                   <div class="max-h-[50vh] overflow-y-auto">
-                    {/* Always-on create row: similar names (Mie Telor vs
-                        Mie Kuning) match the search, so a create option
-                        that only appears on zero matches would be
-                        unreachable exactly when it's needed most. */}
-                    <button
-                      class="flex w-full items-center gap-3 border-border border-b bg-primary/5 px-4 py-3 text-left transition-colors hover:bg-primary/10"
-                      onClick={() => {
-                        formLogger.info("receipt_register_tapped", {
-                          search: form.pickerSearch().trim(),
-                        });
-                        form.setNewName(form.pickerSearch().trim());
-                        form.setShowCreateForm(true);
-                        formLogger.info("receipt_create_form_requested", {
-                          showCreateForm: form.showCreateForm(),
-                        });
-                      }}
-                      type="button"
-                    >
-                      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                        <FiPlus class="h-4 w-4" />
-                      </span>
-                      <span class="min-w-0 flex-1">
-                        <span class="block truncate font-semibold text-body-sm text-foreground">
-                          {form.pickerSearch().trim()
-                            ? `Daftarkan "${form.pickerSearch().trim()}"`
-                            : "Buat Bahan Baku Baru"}
+                    {/* Create row appears once at least one character is
+                        typed: pre-filled with the query. Similar names
+                        (Mie Telor vs Mie Kuning) still list below it. */}
+                    <Show when={form.pickerSearch().trim().length > 0}>
+                      <button
+                        class="flex w-full items-center gap-3 border-border border-b bg-primary/5 px-4 py-3 text-left transition-colors hover:bg-primary/10"
+                        onClick={() => {
+                          formLogger.info("receipt_register_tapped", {
+                            search: form.pickerSearch().trim(),
+                          });
+                          form.setNewName(form.pickerSearch().trim());
+                          form.setShowCreateForm(true);
+                          formLogger.info("receipt_create_form_requested", {
+                            showCreateForm: form.showCreateForm(),
+                          });
+                        }}
+                        type="button"
+                      >
+                        <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+                          <FiPlus class="h-4 w-4" />
                         </span>
-                        <span class="block truncate text-caption-sm text-muted-foreground">
-                          {form.pickerSearch().trim()
-                            ? "sebagai bahan baku baru"
-                            : "tambah bahan ke katalog gudang"}
+                        <span class="min-w-0 flex-1">
+                          <span class="block truncate font-semibold text-body-sm text-foreground">
+                            Daftarkan &ldquo;{form.pickerSearch().trim()}
+                            &rdquo; sebagai bahan baku baru
+                          </span>
                         </span>
-                      </span>
-                    </button>
+                      </button>
+                    </Show>
                     <For
                       each={form.available()}
                       fallback={
                         <p class="px-4 py-6 text-center text-caption text-faint-foreground">
                           {form.hasPickableItems()
                             ? "Semua bahan sudah ditambahkan"
-                            : ""}
+                            : "Belum ada bahan baku — ketik nama untuk mendaftarkan yang baru"}
                         </p>
                       }
                     >
