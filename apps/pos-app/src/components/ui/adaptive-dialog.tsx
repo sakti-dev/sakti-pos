@@ -32,7 +32,10 @@ function AdaptiveDialog(props: AdaptiveDialogProps) {
           onOpenChange={props.onOpenChange}
           open={props.open}
           side="bottom"
-          snapPoints={props.snapPoints ?? [0, 1]}
+          /* 60% sheet by default: shorter than the viewport, so the
+             sheet rides above the keyboard when an input inside is
+             focused (full-height sheets sit behind it). */
+          snapPoints={props.snapPoints ?? [0, 0.6, 1]}
         >
           {props.children}
         </Drawer>
