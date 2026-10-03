@@ -266,6 +266,7 @@ export function useGoodsReceipt() {
     showCreateForm,
     newName,
     newUnit,
+    newCategory,
     isNotFound,
     hasPickableItems,
     available,
