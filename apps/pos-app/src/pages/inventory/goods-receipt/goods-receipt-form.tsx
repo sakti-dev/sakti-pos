@@ -8,12 +8,17 @@ import {
   NumberFieldLabel,
 } from "~/components/ui/number-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
-import { cn, formatRupiah } from "~/lib/utils";
+import { cn, createLogger, formatRupiah } from "~/lib/utils";
 import { displaySubtotal } from "./receipts";
 import {
   type GoodsReceiptLineInput,
   useGoodsReceipt,
 } from "./use-goods-receipt";
+
+const formLogger = createLogger({
+  domain: "INVENTORY",
+  module: "goods-receipt-form",
+});
 
 const UNIT_OPTIONS = ["Pcs/Sachet", "Kg", "Gram", "Liter"] as const;
 
@@ -246,6 +251,7 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
       {/* ── Product picker drawer ── */}
       <DrawerRoot
         onOpenChange={(open) => {
+          formLogger.info("receipt_picker_open_changed", { open });
           form.setPickerOpen(open);
           if (!open) {
             form.setShowCreateForm(false);
@@ -334,8 +340,14 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                           <Button
                             look="solid"
                             onClick={() => {
+                              formLogger.info("receipt_register_tapped", {
+                                search: form.pickerSearch().trim(),
+                              });
                               form.setNewName(form.pickerSearch().trim());
                               form.setShowCreateForm(true);
+                              formLogger.info("receipt_create_form_requested", {
+                                showCreateForm: form.showCreateForm(),
+                              });
                             }}
                             tone="primary"
                             type="button"
