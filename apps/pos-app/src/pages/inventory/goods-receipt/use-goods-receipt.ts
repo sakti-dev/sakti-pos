@@ -10,6 +10,13 @@ import {
   getProductStockList,
   type StockTargetType,
 } from "~/db/inventory";
+import { createLogger } from "~/lib/utils";
+
+const receiptLogger = createLogger({
+  domain: "INVENTORY",
+  module: "goods-receipt",
+});
+
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { createBlankItem, type SyncableItem } from "./receipts";
 
@@ -183,7 +190,15 @@ export function useGoodsReceipt() {
 
   const handleCreate = () => {
     const name = newName().trim();
+    receiptLogger.info("receipt_create_tapped", {
+      category: newCategory(),
+      name,
+      unit: newUnit(),
+    });
     if (!name) {
+      receiptLogger.warn("receipt_create_blocked", {
+        reason: "empty name — button should have been disabled",
+      });
       return;
     }
     const input: IngredientInput = {
@@ -194,6 +209,7 @@ export function useGoodsReceipt() {
     };
     createIngredientFromReceipt(input)
       .then((created) => {
+        receiptLogger.info("receipt_item_added", { id: created.id });
         addItem({
           id: created.id,
           isIngredient: true,
@@ -209,6 +225,7 @@ export function useGoodsReceipt() {
         setNewCategory("Bumbu & Bahan Dapur");
       })
       .catch((error: unknown) => {
+        receiptLogger.error("receipt_create_failed", error);
         toast.error(
           error instanceof Error ? error.message : "Gagal menambah bahan"
         );

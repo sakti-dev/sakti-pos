@@ -64,6 +64,7 @@ export async function createIngredient(
   }
   const now = dayjs().toISOString();
 
+  ingredientLogger.info("create_start", { name, unit: input.unit });
   return await getSyncClient().writeTransaction(db, async (tx) => {
     const [row] = await tx
       .insert(TABLE.ingredients)
@@ -77,6 +78,7 @@ export async function createIngredient(
         updatedAt: now,
       })
       .returning({ id: TABLE.ingredients.id });
+    ingredientLogger.info("insert_ok", { id: row.id });
     await getSyncClient().enqueueChange(tx, {
       operation: "insert",
       rowId: row.id,

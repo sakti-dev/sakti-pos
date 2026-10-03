@@ -213,6 +213,12 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [INVENTORY:SOFT_DELETED]` | `db/ingredients.ts` — bahan baku deactivated |
 | `[JS] [POS:RECIPE_SAVED]` | `db/recipes.ts` — product recipe diff written (inserts/qty updates/soft-deletes), includes `productId`, `lines` |
 | `[JS] [POS:RECIPE_DEDUCTION_FAILED]` | `db/orders.ts` — one ingredient's checkout deduction threw; logged and skipped so the sale still completes, includes `productId`, `ingredientId`, `error` |
+| `[JS] [INVENTORY:CREATE_START]` | `db/ingredients.ts` — createIngredient entered (pre-transaction), includes `name`, `unit` |
+| `[JS] [INVENTORY:INSERT_OK]` | `db/ingredients.ts` — ingredient row insert returned, mid-transaction |
+| `[JS] [INVENTORY:RECEIPT_CREATE_TAPPED]` | `goods-receipt/use-goods-receipt.ts` — Tambah tapped in the drawer's create-bahan form, includes `name`, `unit` |
+| `[JS] [INVENTORY:RECEIPT_CREATE_BLOCKED]` | `goods-receipt/use-goods-receipt.ts` — tapped with empty name (button-disable leak) |
+| `[JS] [INVENTORY:RECEIPT_CREATE_FAILED]` | `goods-receipt/use-goods-receipt.ts` — createIngredientFromReceipt rejected, includes error |
+| `[JS] [INVENTORY:RECEIPT_ITEM_ADDED]` | `goods-receipt/use-goods-receipt.ts` — created bahan added to the receipt item list |
 | `[JS] [UI:ASSET_EVENT_LISTENERS_START_FAILED]` | `lib/app/listeners.ts` |
 | `[JS] [UI:LAYOUT_GUARD]` | `components/layout.tsx` |
 | `[JS] [UI:REQUIRE_AUTH_GUARD]` | `App.tsx` |
