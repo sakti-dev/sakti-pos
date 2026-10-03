@@ -146,15 +146,20 @@ export function useGoodsReceipt() {
       isIngredient: true,
       targetType: "ingredient" as const,
     })),
-    ...(productQuery.data() ?? []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      onHandQty: p.onHandQty,
-      tracked: p.tracked,
-      unit: p.unit,
-      isIngredient: false,
-      targetType: "product" as const,
-    })),
+    /* Products appear only when stock-tracked (row-exists): receiving
+       is a gudang flow — untracked menu items don't belong here until
+       the merchant opts in via Mulai Lacak / stok minimum. */
+    ...(productQuery.data() ?? [])
+      .filter((p) => p.tracked)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        onHandQty: p.onHandQty,
+        tracked: p.tracked,
+        unit: p.unit,
+        isIngredient: false,
+        targetType: "product" as const,
+      })),
   ]);
 
   const displayOf = (id: string) => allPickable().find((p) => p.id === id);
