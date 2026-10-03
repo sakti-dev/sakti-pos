@@ -4,7 +4,6 @@ import {
   FiClipboard,
   FiPackage,
   FiPlus,
-  FiSliders,
   FiTruck,
 } from "solid-icons/fi";
 import { createMemo, createSignal, For, Show } from "solid-js";
@@ -17,7 +16,6 @@ import { stockStatus } from "./lib/stats";
 import { BadgeStock, StatCard } from "./shared";
 
 interface IngredientTabProps {
-  readonly onAdjustment: () => void;
   readonly onCreateIngredient: () => void;
 }
 
@@ -93,15 +91,6 @@ export function IngredientTab(props: IngredientTabProps) {
             tone="primary"
           >
             <FiClipboard class="h-4 w-4" /> Stock Opname
-          </Button>
-          <Button
-            class="justify-center rounded-xl"
-            look="outline"
-            onClick={props.onAdjustment}
-            size="sm"
-            tone="primary"
-          >
-            <FiSliders class="h-4 w-4" /> Penyesuaian
           </Button>
           <Button
             class="justify-center rounded-xl"

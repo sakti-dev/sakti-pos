@@ -55,20 +55,25 @@ The system SHALL maintain on-hand quantity as the current truth per (outlet, ite
 - **THEN** last-write-wins on the balance row is accepted behavior
 - **AND** the append-only event records at both outlets retain the full story
 
-### Requirement: Manual Adjustment Events
+### Requirement: Reason-Tagged Corrections in the Opname Flow
 
-The system SHALL record manual stock corrections as append-only adjustment events with staff attribution, a reason, and an optional note. Reasons SHALL use the fixed vocabulary: rusak, hilang, expired, hadiah, sample, lainnya.
+The system SHALL provide a single stock-correction surface: the stock opname flow. Every opname SHALL require a reason chosen from a fixed vocabulary (Hitung fisik, Rusak, Hilang, Expired, Hadiah, Sample, Lainnya) recorded on the opname record with staff attribution. There SHALL NOT be a separate penyesuaian (adjustment) entry point in the UI — simplicity over accounting separation is an explicit product decision.
 
-#### Scenario: Recording waste
+#### Scenario: Recording waste through opname
 
-- **WHEN** the user records an adjustment of −2 with reason rusak and a note
-- **THEN** the adjustment event persists with the signed delta, reason, note, staff identity, and outlet
-- **AND** the item's balance decreases by 2
+- **WHEN** the user counts an item whose recorded stock was 8, enters 6, and saves the opname with reason Rusak
+- **THEN** the opname line persists system-before 8, counted 6, variance −2 with the reason on the opname
+- **AND** the item's balance is set to 6
 
-#### Scenario: Adjustments require an existing tracked item
+#### Scenario: Reason is mandatory
 
-- **WHEN** the user attempts to adjust an item that is not tracked at the outlet
-- **THEN** the adjustment flow first establishes tracking (via the tracking-start behavior) before applying the delta
+- **WHEN** the user attempts to confirm an opname with variances without choosing a reason
+- **THEN** confirmation is blocked until a reason is selected
+
+#### Scenario: Legacy adjustment rows remain readable
+
+- **WHEN** history contains rows previously recorded via the standalone penyesuaian flow
+- **THEN** they remain visible in Riwayat with their reason tags (the `stock_adjustments` table stays in the schema, dormant)
 
 ### Requirement: Real Ingredient Catalog
 

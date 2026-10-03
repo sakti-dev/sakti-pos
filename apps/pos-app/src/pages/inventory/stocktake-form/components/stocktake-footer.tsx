@@ -1,8 +1,19 @@
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { cn, formatRupiah } from "~/lib/utils";
 import { diffColor } from "./delta";
 import type { StocktakeState } from "./use-stocktake";
+
+/** Reason chips — merged adjustment/opname vocabulary. */
+const REASONS: readonly string[] = [
+  "Hitung fisik",
+  "Rusak",
+  "Hilang",
+  "Expired",
+  "Hadiah",
+  "Sample",
+  "Lainnya",
+];
 
 export function StocktakeFooter(props: {
   onCancel: () => void;
@@ -33,13 +44,28 @@ export function StocktakeFooter(props: {
       </div>
 
       {/* Reason */}
-      <input
-        class="h-10 w-full rounded-md border border-border bg-muted px-3 text-body-sm outline-none transition-colors duration-150 focus:border-primary"
-        onInput={(e) => s().setReason(e.currentTarget.value)}
-        placeholder="Alasan opname (wajib)..."
-        type="text"
-        value={s().reason()}
-      />
+      <div class="flex flex-col gap-1.5">
+        <span class="font-medium text-caption text-muted-foreground">
+          Alasan <span class="text-danger">*</span>
+        </span>
+        <div class="flex flex-wrap gap-1.5">
+          <For each={REASONS}>
+            {(r) => (
+              <button
+                class={`rounded-full px-3 py-1.5 font-medium text-caption transition-colors ${
+                  s().reason() === r
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground hover:border-primary/50"
+                }`}
+                onClick={() => s().setReason(r)}
+                type="button"
+              >
+                {r}
+              </button>
+            )}
+          </For>
+        </div>
+      </div>
 
       {/* Warning */}
       <p class="text-caption-sm text-faint-foreground">
