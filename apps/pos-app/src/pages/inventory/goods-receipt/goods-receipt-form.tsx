@@ -205,8 +205,8 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
 
       {/* ── Fixed bottom bar ── */}
       <div class="fixed inset-x-0 bottom-0 z-10 border-border border-t bg-card/95 backdrop-blur-sm">
-        <div class="mx-auto flex max-w-2xl items-center justify-between px-4 py-3 lg:px-6">
-          <div class="space-y-0.5">
+        <div class="mx-auto flex max-w-2xl flex-col gap-2.5 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
             <p class="flex items-center gap-1 text-caption text-muted-foreground">
               <FiPackage class="h-3.5 w-3.5" />
               Total Kuantitas:{" "}
@@ -215,14 +215,15 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
               </span>
             </p>
             <p class="flex items-center gap-1 text-caption text-muted-foreground">
-              <span>💰</span>Total Nilai Nota:{" "}
+              <span>💰</span>Total Nota:{" "}
               <span class="font-semibold text-foreground tabular-nums">
                 {formatRupiah(form.totalCost())}
               </span>
             </p>
           </div>
-          <div class="flex shrink-0 gap-2">
+          <div class="flex gap-2 lg:shrink-0">
             <Button
+              class="flex-1 lg:flex-none"
               look="outline"
               onClick={props.onCancel}
               tone="neutral"
@@ -231,6 +232,7 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
               Batal
             </Button>
             <Button
+              class="flex-1 lg:flex-none"
               disabled={!form.canSave()}
               look="solid"
               onClick={() =>
