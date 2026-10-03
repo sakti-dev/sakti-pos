@@ -10,8 +10,6 @@ const REASONS: readonly string[] = [
   "Rusak",
   "Hilang",
   "Expired",
-  "Hadiah",
-  "Sample",
   "Lainnya",
 ];
 

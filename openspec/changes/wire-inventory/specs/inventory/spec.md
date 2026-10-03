@@ -57,7 +57,7 @@ The system SHALL maintain on-hand quantity as the current truth per (outlet, ite
 
 ### Requirement: Reason-Tagged Corrections in the Opname Flow
 
-The system SHALL provide a single stock-correction surface: the stock opname flow. Every opname SHALL require a reason chosen from a fixed vocabulary (Hitung fisik, Rusak, Hilang, Expired, Hadiah, Sample, Lainnya) recorded on the opname record with staff attribution. There SHALL NOT be a separate penyesuaian (adjustment) entry point in the UI — simplicity over accounting separation is an explicit product decision.
+The system SHALL provide a single stock-correction surface: the stock opname flow. Every opname SHALL require a reason chosen from a fixed vocabulary (Hitung fisik, Rusak, Hilang, Expired, Lainnya — Lainnya accepts a free-text detail) recorded on the opname record with staff attribution. There SHALL NOT be a separate penyesuaian (adjustment) entry point in the UI — simplicity over accounting separation is an explicit product decision.
 
 #### Scenario: Recording waste through opname
 
