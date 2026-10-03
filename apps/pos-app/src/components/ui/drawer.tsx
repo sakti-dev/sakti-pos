@@ -55,7 +55,14 @@ export const DrawerRoot = (props: DrawerRootProps) => {
               )}
             >
               <div class="mx-auto mt-2.5 h-1 w-9 shrink-0 cursor-grab rounded-full bg-border active:cursor-grabbing" />
-              {props.children({ close })}
+              {/* Content is excluded from drag: without this, any tap
+                  that moves a few px counts as a downward drag and snaps
+                  the sheet closed, unmounting buttons mid-click (their
+                  onClick never fires). Drag-to-dismiss lives on the
+                  handle above + overlay tap only. */}
+              <div class="flex min-h-0 flex-1 flex-col" data-corvu-no-drag>
+                {props.children({ close })}
+              </div>
             </CorvuDrawer.Content>
           </CorvuDrawer.Portal>
         </>
