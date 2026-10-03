@@ -33,6 +33,19 @@ interface GoodsReceiptFormProps {
 export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
   const form = useGoodsReceipt();
 
+  /** Picker list empty-state copy by context (null = render nothing). */
+  const listEmptyMessage = (): string | null => {
+    if (!form.hasPickableItems()) {
+      return "Belum ada bahan baku — ketik nama untuk mendaftarkan yang baru";
+    }
+    if (form.pickerSearch().trim().length > 0) {
+      /* Typed query with no matches: the create row above is the
+         natural next step — no extra message needed. */
+      return null;
+    }
+    return "Semua bahan sudah ditambahkan ke nota ini";
+  };
+
   return (
     <div class="flex flex-1 flex-col overflow-hidden">
       {/* ── Scrollable content ── */}
@@ -319,11 +332,13 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                     <For
                       each={form.available()}
                       fallback={
-                        <p class="px-4 py-6 text-center text-caption text-faint-foreground">
-                          {form.hasPickableItems()
-                            ? "Semua bahan sudah ditambahkan"
-                            : "Belum ada bahan baku — ketik nama untuk mendaftarkan yang baru"}
-                        </p>
+                        <Show when={listEmptyMessage()}>
+                          {(msg) => (
+                            <p class="px-4 py-6 text-center text-caption text-faint-foreground">
+                              {msg()}
+                            </p>
+                          )}
+                        </Show>
                       }
                     >
                       {(p) => (
