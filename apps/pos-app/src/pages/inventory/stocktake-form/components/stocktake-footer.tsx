@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { Button } from "~/components/ui/button";
 import { cn, formatRupiah } from "~/lib/utils";
 import { diffColor } from "./delta";
@@ -21,6 +21,17 @@ export function StocktakeFooter(props: {
   state: StocktakeState;
 }) {
   const s = () => props.state;
+  const [detail, setDetail] = createSignal("");
+
+  /** Compose the stored reason: "Lainnya — tertumpah saat masak". */
+  const composedReason = () => {
+    const base = s().reason().trim();
+    const extra = detail().trim();
+    if (!extra) {
+      return base;
+    }
+    return `${base} — ${extra}`;
+  };
 
   return (
     <div class="shrink-0 space-y-2.5 border-border border-t bg-card px-4 py-3 lg:px-6">
@@ -65,6 +76,15 @@ export function StocktakeFooter(props: {
             )}
           </For>
         </div>
+        <Show when={s().reason() === "Lainnya"}>
+          <input
+            class="h-10 w-full rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+            onInput={(e) => setDetail(e.currentTarget.value)}
+            placeholder="Tulis alasan lainnya (opsional)..."
+            type="text"
+            value={detail()}
+          />
+        </Show>
       </div>
 
       {/* Warning */}
@@ -86,7 +106,10 @@ export function StocktakeFooter(props: {
         <Button
           disabled={!s().canConfirm()}
           look="solid"
-          onClick={props.onConfirm}
+          onClick={() => {
+            s().setReason(composedReason());
+            props.onConfirm();
+          }}
           tone="primary"
           type="button"
         >
