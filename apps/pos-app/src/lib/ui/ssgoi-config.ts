@@ -110,6 +110,11 @@ export function createRootConfig(isPortrait: boolean): SsgoiConfig {
         type: "parallax",
       }),
       drill({
+        enter: "/inventory/ingredient/*",
+        exit: "/inventory",
+        type: "parallax",
+      }),
+      drill({
         enter: "/inventory/history",
         exit: "/inventory",
         type: "parallax",

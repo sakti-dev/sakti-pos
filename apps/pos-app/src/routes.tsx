@@ -22,6 +22,7 @@ import HomePage from "./pages/home";
 import InventoryPage from "./pages/inventory";
 import GoodsReceiptPage from "./pages/inventory/goods-receipt";
 import HistoryPage from "./pages/inventory/history";
+import IngredientFormPage from "./pages/inventory/ingredient-form";
 import StocktakePage from "./pages/inventory/stocktake-form";
 import OnboardingPage from "./pages/onboarding";
 import SettingPage from "./pages/setting";
@@ -101,6 +102,8 @@ export default function AppRoutes() {
       <Route component={ProductFormPage} path="/catalog/product/:id" />
       <Route component={InventoryPage} path="/inventory" />
       <Route component={HistoryPage} path="/inventory/history" />
+      <Route component={IngredientFormPage} path="/inventory/ingredient/new" />
+      <Route component={IngredientFormPage} path="/inventory/ingredient/:id" />
       <Route component={StocktakePage} path="/inventory/stocktake/new" />
       <Route component={GoodsReceiptPage} path="/inventory/goods-receipt/new" />
       <Route component={CashRegisterPage} path="/transactions/cash-register" />

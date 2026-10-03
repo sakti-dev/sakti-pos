@@ -165,7 +165,7 @@ export function useStocktake(scope: StocktakeScope) {
         navigate("/inventory?tab=retail");
         return;
       }
-      navigate("/inventory?tab=ingredient&action=new");
+      navigate("/inventory/ingredient/new");
     }
   };
 

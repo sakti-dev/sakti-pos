@@ -1,6 +1,5 @@
 import { useNavigate, useSearchParams } from "@solidjs/router";
 import { FiFileText, FiPackage, FiShoppingBag } from "solid-icons/fi";
-import { createEffect, createSignal } from "solid-js";
 import { Button } from "~/components/ui/button";
 import {
   Tabs,
@@ -9,7 +8,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "~/components/ui/tabs";
-import { IngredientFormDialog } from "./components/ingredient-form-dialog";
 import { IngredientTab } from "./components/ingredient-tab";
 import { RetailTab } from "./components/retail-tab";
 
@@ -25,16 +23,6 @@ export default function InventoryPage() {
     params.tab === "ingredient" || params.tab === "retail"
       ? params.tab
       : "retail";
-  const [createOpen, setCreateOpen] = createSignal(false);
-
-  // Open the ingredient form when arriving via ?action=new (e.g. from the
-  // stocktake empty state's "Tambah Bahan Baku" CTA). Clear after opening.
-  createEffect(() => {
-    if (params.action === "new") {
-      setCreateOpen(true);
-      setParams({ action: undefined }, { replace: true });
-    }
-  });
 
   return (
     <div
@@ -89,15 +77,9 @@ export default function InventoryPage() {
           <RetailTab />
         </TabsContent>
         <TabsContent class="min-h-0 flex-1 overflow-hidden" value="ingredient">
-          <IngredientTab onCreateIngredient={() => setCreateOpen(true)} />
+          <IngredientTab />
         </TabsContent>
       </Tabs>
-
-      <IngredientFormDialog
-        onCreated={() => setCreateOpen(false)}
-        onOpenChange={setCreateOpen}
-        open={createOpen()}
-      />
     </div>
   );
 }

@@ -1,22 +1,10 @@
 import { createMemo, createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { toast } from "solid-sonner";
-import {
-  createIngredientFromReceipt,
-  type IngredientInput,
-} from "~/db/ingredients";
 import {
   getIngredientStockList,
   getProductStockList,
   type StockTargetType,
 } from "~/db/inventory";
-import { createLogger } from "~/lib/utils";
-
-const receiptLogger = createLogger({
-  domain: "INVENTORY",
-  module: "goods-receipt",
-});
-
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { createBlankItem, type SyncableItem } from "./receipts";
 
@@ -47,10 +35,6 @@ export function useGoodsReceipt() {
   const [items, setItems] = createStore<SyncableItem[]>([]);
   const [pickerOpen, setPickerOpen] = createSignal(false);
   const [pickerSearch, setPickerSearch] = createSignal("");
-  const [showCreateForm, setShowCreateForm] = createSignal(false);
-  const [newName, setNewName] = createSignal("");
-  const [newUnit, setNewUnit] = createSignal("Pcs/Sachet");
-  const [newCategory, setNewCategory] = createSignal("");
 
   const ingredientQuery = useDrizzleQuery(
     ["drizzle", "inventory", "ingredient-stock-list"],
@@ -72,7 +56,6 @@ export function useGoodsReceipt() {
     setItems(items.length, createBlankItem(pick.id, pick.targetType));
     setPickerOpen(false);
     setPickerSearch("");
-    setShowCreateForm(false);
   };
 
   const patchItem = (id: string, patch: Partial<SyncableItem>) => {
@@ -189,54 +172,6 @@ export function useGoodsReceipt() {
     );
   };
 
-  // ── Create bahan baku inline ──
-
-  const canCreate = createMemo(() => newName().trim().length > 0);
-
-  const handleCreate = () => {
-    const name = newName().trim();
-    receiptLogger.info("receipt_create_tapped", {
-      category: newCategory(),
-      name,
-      unit: newUnit(),
-    });
-    if (!name) {
-      receiptLogger.warn("receipt_create_blocked", {
-        reason: "empty name — button should have been disabled",
-      });
-      return;
-    }
-    const input: IngredientInput = {
-      category: newCategory(),
-      name,
-      sku: null,
-      unit: newUnit(),
-    };
-    createIngredientFromReceipt(input)
-      .then((created) => {
-        receiptLogger.info("receipt_item_added", { id: created.id });
-        addItem({
-          id: created.id,
-          isIngredient: true,
-          name: created.name,
-          onHandQty: 0,
-          tracked: true,
-          targetType: "ingredient",
-          unit: created.unit,
-        });
-        ingredientQuery.refetch();
-        setNewName("");
-        setNewUnit("Pcs/Sachet");
-        setNewCategory("");
-      })
-      .catch((error: unknown) => {
-        receiptLogger.error("receipt_create_failed", error);
-        toast.error(
-          error instanceof Error ? error.message : "Gagal menambah bahan"
-        );
-      });
-  };
-
   // ── Derived state ──
 
   const totalQty = createMemo(() => items.reduce((s, i) => s + i.qty, 0));
@@ -268,30 +203,20 @@ export function useGoodsReceipt() {
     totalCost,
     pickerOpen,
     pickerSearch,
-    showCreateForm,
-    newName,
-    newUnit,
-    newCategory,
     isNotFound,
     hasPickableItems,
     available,
-    canCreate,
     // Signals (write)
     setSupplier,
     setPo,
     setPickerOpen,
     setPickerSearch,
-    setShowCreateForm,
-    setNewName,
-    setNewUnit,
-    setNewCategory,
     // Actions
     addItem,
     removeItem,
     handleCostPriceChange,
     handleSubtotalChange,
     handleQtyChange,
-    handleCreate,
     buildLines,
     // Lookups
     productName,

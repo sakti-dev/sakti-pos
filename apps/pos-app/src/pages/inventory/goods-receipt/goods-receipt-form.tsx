@@ -1,6 +1,7 @@
+import { useNavigate } from "@solidjs/router";
 import { FiPackage, FiPlus, FiSearch, FiTrash2 } from "solid-icons/fi";
-import { For, Show } from "solid-js";
-import { PickerField } from "~/components/picker-field";
+import { For, onMount, Show } from "solid-js";
+import { toast } from "solid-sonner";
 import { Button } from "~/components/ui/button";
 import { DrawerRoot } from "~/components/ui/drawer";
 import {
@@ -9,12 +10,8 @@ import {
   NumberFieldLabel,
 } from "~/components/ui/number-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
-import {
-  createIngredientCategory,
-  getIngredientCategories,
-} from "~/db/ingredient-categories";
-import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { cn, createLogger, formatRupiah } from "~/lib/utils";
+import { PENDING_RECEIPT_ADD_KEY } from "../ingredient-form";
 import { displaySubtotal } from "./receipts";
 import {
   type GoodsReceiptLineInput,
@@ -26,8 +23,6 @@ const formLogger = createLogger({
   module: "goods-receipt-form",
 });
 
-const UNIT_OPTIONS = ["Pcs/Sachet", "Kg", "Gram", "Liter"] as const;
-
 interface GoodsReceiptFormProps {
   readonly onCancel: () => void;
   readonly onConfirm: (
@@ -37,14 +32,46 @@ interface GoodsReceiptFormProps {
 }
 
 export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
+  const navigate = useNavigate();
   const form = useGoodsReceipt();
 
-  const categoriesQuery = useDrizzleQuery(
-    ["drizzle", "ingredient-categories", "list"],
-    () => getIngredientCategories()
-  );
-  const categoryOptions = () =>
-    (categoriesQuery.data() ?? []).map((c) => ({ label: c, value: c }));
+  /* Round-trip from the bahan screen: consume the handoff and add the
+     freshly created ingredient to this nota automatically. */
+  onMount(() => {
+    const raw = sessionStorage.getItem(PENDING_RECEIPT_ADD_KEY);
+    if (!raw) {
+      return;
+    }
+    sessionStorage.removeItem(PENDING_RECEIPT_ADD_KEY);
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        typeof (parsed as { id?: unknown }).id === "string" &&
+        typeof (parsed as { name?: unknown }).name === "string" &&
+        typeof (parsed as { unit?: unknown }).unit === "string"
+      ) {
+        const { id, name, unit } = parsed as {
+          id: string;
+          name: string;
+          unit: string;
+        };
+        form.addItem({
+          id,
+          isIngredient: true,
+          name,
+          onHandQty: 0,
+          tracked: true,
+          targetType: "ingredient",
+          unit,
+        });
+        toast.success(`Bahan ${name} masuk ke nota`);
+      }
+    } catch {
+      // Malformed handoff — ignore, the ingredient still exists.
+    }
+  });
 
   /** Picker list empty-state copy by context (null = render nothing). */
   const listEmptyMessage = (): string | null => {
@@ -282,7 +309,6 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
           formLogger.info("receipt_picker_open_changed", { open });
           form.setPickerOpen(open);
           if (!open) {
-            form.setShowCreateForm(false);
             form.setPickerSearch("");
           }
         }}
@@ -291,170 +317,79 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
       >
         {() => (
           <div class="flex flex-col">
-            <Show
-              fallback={
-                <>
-                  <div class="border-border border-b px-4 py-3">
-                    <h3 class="min-w-0 font-semibold text-body-sm text-foreground">
-                      Pilih Bahan atau Produk
-                    </h3>
-                  </div>
-                  <div class="border-border border-b px-4 py-2">
-                    <div class="relative">
-                      <FiSearch class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        class="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-body-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
-                        onInput={(e) =>
-                          form.setPickerSearch(e.currentTarget.value)
-                        }
-                        placeholder="Cari nama atau SKU..."
-                        type="text"
-                      />
-                    </div>
-                  </div>
-                  <div class="max-h-[50vh] overflow-y-auto">
-                    {/* Create row appears once at least one character is
-                        typed: pre-filled with the query. Similar names
-                        (Mie Telor vs Mie Kuning) still list below it. */}
-                    <Show when={form.pickerSearch().trim().length > 0}>
-                      <button
-                        class="flex w-full items-center gap-3 border-border border-b bg-primary/5 px-4 py-3 text-left transition-colors hover:bg-primary/10"
-                        onClick={() => {
-                          formLogger.info("receipt_register_tapped", {
-                            search: form.pickerSearch().trim(),
-                          });
-                          form.setNewName(form.pickerSearch().trim());
-                          form.setShowCreateForm(true);
-                          formLogger.info("receipt_create_form_requested", {
-                            showCreateForm: form.showCreateForm(),
-                          });
-                        }}
-                        type="button"
-                      >
-                        <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                          <FiPlus class="h-4 w-4" />
-                        </span>
-                        <span class="min-w-0 flex-1">
-                          <span class="block truncate font-semibold text-body-sm text-foreground">
-                            Daftarkan &ldquo;{form.pickerSearch().trim()}
-                            &rdquo; sebagai bahan baku baru
-                          </span>
-                        </span>
-                      </button>
-                    </Show>
-                    <For
-                      each={form.available()}
-                      fallback={
-                        <Show when={listEmptyMessage()}>
-                          {(msg) => (
-                            <p class="px-4 py-6 text-center text-caption text-faint-foreground">
-                              {msg()}
-                            </p>
-                          )}
-                        </Show>
-                      }
-                    >
-                      {(p) => (
-                        <button
-                          class="flex w-full items-center justify-between border-border border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted"
-                          onClick={() => form.addItem(p)}
-                          type="button"
-                        >
-                          <p class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
-                            {p.isIngredient ? "🥕" : "🛒"} {p.name}{" "}
-                            <span class="text-faint-foreground">
-                              ({p.unit})
-                            </span>
-                          </p>
-                          <FiPlus class="ml-3 h-5 w-5 shrink-0 text-primary" />
-                        </button>
-                      )}
-                    </For>
-                  </div>
-                </>
-              }
-              when={form.showCreateForm()}
-            >
-              <div class="border-border border-b px-4 py-3">
-                <h3 class="font-semibold text-body-sm text-foreground">
-                  Bahan Baku Baru
-                </h3>
+            <div class="border-border border-b px-4 py-3">
+              <h3 class="min-w-0 font-semibold text-body-sm text-foreground">
+                Pilih Bahan atau Produk
+              </h3>
+            </div>
+            <div class="border-border border-b px-4 py-2">
+              <div class="relative">
+                <FiSearch class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  class="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-body-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
+                  onInput={(e) => form.setPickerSearch(e.currentTarget.value)}
+                  placeholder="Cari nama atau SKU..."
+                  type="text"
+                />
               </div>
-              <div class="space-y-4 px-4 py-4">
-                <label class="flex flex-col gap-1">
-                  <span class="font-medium text-caption text-muted-foreground">
-                    Nama Bahan Baru <span class="text-danger">*</span>
-                  </span>
-                  <input
-                    class="h-10 rounded-md border-2 border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-                    onInput={(e) => form.setNewName(e.currentTarget.value)}
-                    placeholder="Contoh: Nescafe Sachet / Cabai Rawit"
-                    type="text"
-                    value={form.newName()}
-                  />
-                </label>
-                <div class="flex flex-col gap-1">
-                  <span class="font-medium text-caption text-muted-foreground">
-                    Satuan Stok <span class="text-danger">*</span>
-                  </span>
-                  <div class="flex flex-wrap gap-2">
-                    <For each={[...UNIT_OPTIONS]}>
-                      {(u) => (
-                        <button
-                          class={cn(
-                            "rounded-full px-3 py-1.5 font-medium text-caption transition-colors",
-                            form.newUnit() === u
-                              ? "bg-primary text-primary-foreground"
-                              : "border border-border text-muted-foreground hover:border-primary/50"
-                          )}
-                          onClick={() => form.setNewUnit(u)}
-                          type="button"
-                        >
-                          {u}
-                        </button>
-                      )}
-                    </For>
-                  </div>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <span class="font-medium text-caption text-muted-foreground">
-                    Kategori{" "}
-                    <span class="text-faint-foreground">(Opsional)</span>
-                  </span>
-                  <PickerField
-                    onChange={form.setNewCategory}
-                    onCreate={async (query) => {
-                      const name = await createIngredientCategory(query);
-                      categoriesQuery.refetch();
-                      return name;
-                    }}
-                    options={categoryOptions()}
-                    placeholder="Pilih atau ketik kategori baru"
-                    title="Kategori"
-                    value={form.newCategory()}
-                  />
-                </div>
-              </div>
-              <div class="flex items-center justify-end gap-2 border-border border-t px-4 py-3">
-                <Button
-                  look="ghost"
-                  onClick={() => form.setShowCreateForm(false)}
-                  tone="neutral"
+            </div>
+            <div class="max-h-[50vh] overflow-y-auto">
+              {/* Create row appears once at least one character is
+                        typed: navigates to the bahan screen pre-filled;
+                        saving there returns here with an auto-add. */}
+              <Show when={form.pickerSearch().trim().length > 0}>
+                <button
+                  class="flex w-full items-center gap-3 border-border border-b bg-primary/5 px-4 py-3 text-left transition-colors hover:bg-primary/10"
+                  onClick={() => {
+                    formLogger.info("receipt_register_tapped", {
+                      search: form.pickerSearch().trim(),
+                    });
+                    navigate(
+                      `/inventory/ingredient/new?context=receipt&name=${encodeURIComponent(
+                        form.pickerSearch().trim()
+                      )}`
+                    );
+                  }}
                   type="button"
                 >
-                  Batal
-                </Button>
-                <Button
-                  disabled={!form.canCreate()}
-                  look="solid"
-                  onClick={form.handleCreate}
-                  tone="primary"
-                  type="button"
-                >
-                  <FiPlus class="h-4 w-4" /> Tambah
-                </Button>
-              </div>
-            </Show>
+                  <span class="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+                    <FiPlus class="h-4 w-4" />
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate font-semibold text-body-sm text-foreground">
+                      Daftarkan &ldquo;{form.pickerSearch().trim()}
+                      &rdquo; sebagai bahan baku baru
+                    </span>
+                  </span>
+                </button>
+              </Show>
+              <For
+                each={form.available()}
+                fallback={
+                  <Show when={listEmptyMessage()}>
+                    {(msg) => (
+                      <p class="px-4 py-6 text-center text-caption text-faint-foreground">
+                        {msg()}
+                      </p>
+                    )}
+                  </Show>
+                }
+              >
+                {(p) => (
+                  <button
+                    class="flex w-full items-center justify-between border-border border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted"
+                    onClick={() => form.addItem(p)}
+                    type="button"
+                  >
+                    <p class="min-w-0 flex-1 font-semibold text-body-sm text-foreground">
+                      {p.isIngredient ? "🥕" : "🛒"} {p.name}{" "}
+                      <span class="text-faint-foreground">({p.unit})</span>
+                    </p>
+                    <FiPlus class="ml-3 h-5 w-5 shrink-0 text-primary" />
+                  </button>
+                )}
+              </For>
+            </div>
           </div>
         )}
       </DrawerRoot>

@@ -15,11 +15,7 @@ import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { stockStatus } from "./lib/stats";
 import { BadgeStock, StatCard } from "./shared";
 
-interface IngredientTabProps {
-  readonly onCreateIngredient: () => void;
-}
-
-export function IngredientTab(props: IngredientTabProps) {
+export function IngredientTab() {
   const navigate = useNavigate();
   const [search, setSearch] = createSignal("");
 
@@ -95,7 +91,7 @@ export function IngredientTab(props: IngredientTabProps) {
           <Button
             class="justify-center rounded-xl"
             look="outline"
-            onClick={props.onCreateIngredient}
+            onClick={() => navigate("/inventory/ingredient/new")}
             size="sm"
             tone="primary"
           >
@@ -131,7 +127,10 @@ export function IngredientTab(props: IngredientTabProps) {
           >
             {(ing, i) => (
               <FadeIn delay={0.05 + i() * 0.02} duration={0.3} y={8}>
-                <IngredientRow item={ing} />
+                <IngredientRow
+                  item={ing}
+                  onOpen={(id) => navigate(`/inventory/ingredient/${id}`)}
+                />
               </FadeIn>
             )}
           </For>
@@ -141,11 +140,18 @@ export function IngredientTab(props: IngredientTabProps) {
   );
 }
 
-function IngredientRow(props: { item: StockListItem }) {
+function IngredientRow(props: {
+  item: StockListItem;
+  onOpen: (id: string) => void;
+}) {
   const ing = () => props.item;
 
   return (
-    <div class="mb-2 flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+    <button
+      class="mb-2 flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/30"
+      onClick={() => props.onOpen(ing().id)}
+      type="button"
+    >
       <div class="min-w-0 flex-1">
         <h3 class="truncate font-semibold text-body-sm text-foreground">
           {ing().name}
@@ -168,6 +174,6 @@ function IngredientRow(props: { item: StockListItem }) {
           />
         </Show>
       </div>
-    </div>
+    </button>
   );
 }
