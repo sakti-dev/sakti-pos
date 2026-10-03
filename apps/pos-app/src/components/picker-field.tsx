@@ -29,7 +29,15 @@ export function PickerField(props: PickerFieldProps) {
   const [query, setQuery] = createSignal("");
   const [creating, setCreating] = createSignal(false);
 
-  const selected = () => props.options.find((o) => o.value === props.value);
+  /** Selected option — or the raw value itself when it was created
+      inline and isn't (yet) part of the passed options. */
+  const selected = (): PickerOption | undefined => {
+    const match = props.options.find((o) => o.value === props.value);
+    if (match) {
+      return match;
+    }
+    return props.value ? { label: props.value, value: props.value } : undefined;
+  };
 
   const filtered = () => {
     const q = query().toLowerCase().trim();

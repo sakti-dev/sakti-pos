@@ -34,8 +34,16 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
     ["drizzle", "ingredients", "categories"],
     () => getIngredientCategories()
   );
-  const categoryOptions = () =>
-    (categoriesQuery.data() ?? []).map((c) => ({ label: c, value: c }));
+  /** Categories created inline this session — kept until a saved bahan
+      row carries them into the distinct list. */
+  const [extraCategories, setExtraCategories] = createSignal<string[]>([]);
+  const categoryOptions = () => {
+    const base = categoriesQuery.data() ?? [];
+    return [...new Set([...base, ...extraCategories()])].map((c) => ({
+      label: c,
+      value: c,
+    }));
+  };
 
   const canCreate = () => name().trim().length > 0 && !saving();
 
@@ -126,7 +134,10 @@ export function IngredientFormDialog(props: IngredientFormDialogProps) {
             </span>
             <PickerField
               onChange={setCategory}
-              onCreate={(query) => query}
+              onCreate={(query) => {
+                setExtraCategories((prev) => [...new Set([...prev, query])]);
+                return query;
+              }}
               options={categoryOptions()}
               placeholder="Pilih atau ketik kategori baru"
               title="Kategori"

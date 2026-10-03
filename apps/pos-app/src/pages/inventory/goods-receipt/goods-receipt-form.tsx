@@ -1,5 +1,5 @@
 import { FiPackage, FiPlus, FiSearch, FiTrash2 } from "solid-icons/fi";
-import { For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { PickerField } from "~/components/picker-field";
 import { Button } from "~/components/ui/button";
 import { DrawerRoot } from "~/components/ui/drawer";
@@ -40,6 +40,18 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
     ["drizzle", "ingredients", "categories"],
     () => getIngredientCategories()
   );
+  /** Categories created inline this session — kept until a saved bahan
+      row carries them into the distinct list. */
+  const [extraCategories, setExtraCategories] = createSignal<readonly string[]>(
+    []
+  );
+  const categoryOptions = () => {
+    const base = categoriesQuery.data() ?? [];
+    return [...new Set([...base, ...extraCategories()])].map((c) => ({
+      label: c,
+      value: c,
+    }));
+  };
 
   /** Picker list empty-state copy by context (null = render nothing). */
   const listEmptyMessage = (): string | null => {
@@ -418,11 +430,13 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                   </span>
                   <PickerField
                     onChange={form.setNewCategory}
-                    onCreate={(query) => query}
-                    options={(categoriesQuery.data() ?? []).map((c) => ({
-                      label: c,
-                      value: c,
-                    }))}
+                    onCreate={(query) => {
+                      setExtraCategories([
+                        ...new Set([...extraCategories(), query]),
+                      ]);
+                      return query;
+                    }}
+                    options={categoryOptions()}
                     placeholder="Pilih atau ketik kategori baru"
                     title="Kategori"
                     value={form.newCategory()}
