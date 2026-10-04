@@ -6,18 +6,15 @@ import { db, TABLE } from "./index";
 
 export interface StockRow {
   readonly deletedAt: string | null;
-  readonly lowStockThreshold: number | null;
+  readonly lowStockThreshold: number;
   readonly onHandQty: number;
 }
 
 /** A tracked product row is "menipis" when its on-hand quantity has
  *  reached the threshold (<= — at-threshold already needs reordering).
- *  Rows without a threshold are not stock-tracked and never count. */
+ *  Default threshold is 0, so an empty balance counts as low stock. */
 export function isLowStock(row: StockRow): boolean {
   if (row.deletedAt != null) {
-    return false;
-  }
-  if (row.lowStockThreshold == null) {
     return false;
   }
   return row.onHandQty <= row.lowStockThreshold;

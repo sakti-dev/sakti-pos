@@ -29,7 +29,7 @@ import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, getTableColumns, gt, sql } from "drizzle-orm";
 import { db } from "../db";
 
-const DIGITS_ONLY = /^\d+$/;
+const NUMBER_STRING = /^-?\d+(?:\.\d+)?$/;
 
 function requiredString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
@@ -46,10 +46,10 @@ function optionalString(value: unknown): string | null {
 }
 
 function requiredNumber(value: unknown, field: string): number {
-  if (typeof value === "number" && Number.isSafeInteger(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
-  if (typeof value === "string" && DIGITS_ONLY.test(value)) {
+  if (typeof value === "string" && NUMBER_STRING.test(value)) {
     return Number(value);
   }
   if (typeof value === "bigint") {
@@ -62,10 +62,10 @@ function optionalNumber(value: unknown): number | null {
   if (value == null || value === "") {
     return null;
   }
-  if (typeof value === "number" && Number.isSafeInteger(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
-  if (typeof value === "string" && DIGITS_ONLY.test(value)) {
+  if (typeof value === "string" && NUMBER_STRING.test(value)) {
     return Number(value);
   }
   if (typeof value === "bigint") {

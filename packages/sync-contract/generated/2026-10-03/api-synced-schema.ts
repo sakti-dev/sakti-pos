@@ -472,7 +472,7 @@ export const inventoryStocks = sqliteTable(
     }).notNull(),
     targetId: text("target_id").notNull(),
     onHandQty: real("on_hand_qty").notNull().default(0),
-    lowStockThreshold: real("low_stock_threshold"),
+    lowStockThreshold: real("low_stock_threshold").notNull().default(0),
     ...apiSyncColumns(),
   },
   (table) => [

@@ -39,9 +39,9 @@ describe("isLowStock (via getLowStockCount filter)", () => {
     await expect(getLowStockCount()).resolves.toBe(2);
   });
 
-  test("threshold-less rows are not stock-tracked — never count", async () => {
-    selectReturns([stock({ lowStockThreshold: null, onHandQty: 0 })]);
-    await expect(getLowStockCount()).resolves.toBe(0);
+  test("default threshold 0 — empty balance counts as low", async () => {
+    selectReturns([stock({ lowStockThreshold: 0, onHandQty: 0 })]);
+    await expect(getLowStockCount()).resolves.toBe(1);
   });
 
   test("soft-deleted rows never count", async () => {

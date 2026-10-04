@@ -87,12 +87,7 @@ export default function IngredientFormPage() {
   createResource(
     () => listResult()?.stock ?? null,
     (stock) => {
-      setThreshold(
-        stock?.lowStockThreshold !== null &&
-          stock?.lowStockThreshold !== undefined
-          ? String(stock.lowStockThreshold)
-          : ""
-      );
+      setThreshold(stock?.tracked ? String(stock.lowStockThreshold) : "");
     }
   );
 
@@ -138,8 +133,8 @@ export default function IngredientFormPage() {
     if (value === null || value === 0) {
       const stocks = await getIngredientStockList();
       const stock = stocks.find((s) => s.id === ingredientId);
-      if (stock?.tracked && stock.lowStockThreshold !== null) {
-        await setLowStockThreshold("ingredient", ingredientId, null);
+      if (stock?.tracked) {
+        await setLowStockThreshold("ingredient", ingredientId, 0);
       }
       return;
     }

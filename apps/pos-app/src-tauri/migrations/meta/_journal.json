@@ -15,6 +15,13 @@
       "when": 1791054280202,
       "tag": "0001_ingredient_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791071735389,
+      "tag": "0002_fair_sphinx",
+      "breakpoints": true
     }
   ]
 }

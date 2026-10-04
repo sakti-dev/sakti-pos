@@ -32,8 +32,7 @@ export function RetailTab() {
     () =>
       tracked().filter(
         (p) =>
-          stockStatus(p.onHandQty, p.lowStockThreshold ?? undefined).status !==
-          "available"
+          stockStatus(p.onHandQty, p.lowStockThreshold).status !== "available"
       ).length
   );
 
@@ -168,10 +167,7 @@ function ProductRow(props: { item: StockListItem; onChanged: () => void }) {
           when={p().tracked}
         >
           <div class="flex items-center gap-1.5">
-            <BadgeStock
-              qty={p().onHandQty}
-              threshold={p().lowStockThreshold ?? undefined}
-            />
+            <BadgeStock qty={p().onHandQty} threshold={p().lowStockThreshold} />
             <button
               aria-label={`Berhenti lacak ${p().name}`}
               class="rounded-full p-1.5 text-faint-foreground transition hover:bg-muted hover:text-foreground"

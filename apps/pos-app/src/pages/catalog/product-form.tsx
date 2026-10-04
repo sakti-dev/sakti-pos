@@ -169,12 +169,7 @@ export default function ProductFormPage() {
       }
       getProductStock(id)
         .then((stock) => {
-          setThreshold(
-            stock?.lowStockThreshold !== null &&
-              stock?.lowStockThreshold !== undefined
-              ? String(stock.lowStockThreshold)
-              : ""
-          );
+          setThreshold(stock ? String(stock.lowStockThreshold) : "");
         })
         .catch(() => undefined);
       const row = existing();
@@ -202,15 +197,15 @@ export default function ProductFormPage() {
 
   /**
    * Stok minimum: setting a value on an untracked product starts
-   * tracking (row-exists convention); clearing it just nulls the
-   * threshold. Failures don't block the product save.
+   * tracking (row-exists convention); clearing it resets the
+   * threshold to 0. Failures don't block the product save.
    */
   const applyThreshold = async (productId: string) => {
     const raw = threshold().trim();
     if (raw.length === 0) {
       const stock = await getProductStock(productId);
       if (stock?.tracked) {
-        await setLowStockThreshold("product", productId, null);
+        await setLowStockThreshold("product", productId, 0);
       }
       return;
     }

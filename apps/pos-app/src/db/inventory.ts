@@ -47,7 +47,7 @@ function requireMerchantId(): string {
 
 export interface StockListItem {
   readonly id: string;
-  readonly lowStockThreshold: number | null;
+  readonly lowStockThreshold: number;
   readonly name: string;
   readonly onHandQty: number;
   /** Products: sale price. Ingredients: null (not sellable). */
@@ -60,9 +60,7 @@ export interface StockListItem {
 
 async function balancesByTarget(
   targetType: StockTargetType
-): Promise<
-  Map<string, { onHandQty: number; lowStockThreshold: number | null }>
-> {
+): Promise<Map<string, { onHandQty: number; lowStockThreshold: number }>> {
   const rows = await db
     .select({
       targetId: TABLE.inventoryStocks.targetId,
@@ -79,7 +77,7 @@ async function balancesByTarget(
     );
   const map = new Map<
     string,
-    { onHandQty: number; lowStockThreshold: number | null }
+    { onHandQty: number; lowStockThreshold: number }
   >();
   for (const row of rows) {
     map.set(row.targetId, {
@@ -121,7 +119,7 @@ export async function getProductStockList(): Promise<StockListItem[]> {
       targetType: "product" as const,
       tracked: balance !== undefined,
       onHandQty: balance?.onHandQty ?? 0,
-      lowStockThreshold: balance?.lowStockThreshold ?? null,
+      lowStockThreshold: balance?.lowStockThreshold ?? 0,
     };
   });
 }
@@ -157,14 +155,14 @@ export async function getIngredientStockList(): Promise<StockListItem[]> {
       targetType: "ingredient" as const,
       tracked: balance !== undefined,
       onHandQty: balance?.onHandQty ?? 0,
-      lowStockThreshold: balance?.lowStockThreshold ?? null,
+      lowStockThreshold: balance?.lowStockThreshold ?? 0,
     };
   });
 }
 
 /** Stock state for one product at the active outlet (null = untracked). */
 export async function getProductStock(productId: string): Promise<{
-  lowStockThreshold: number | null;
+  lowStockThreshold: number;
   onHandQty: number;
   tracked: boolean;
 } | null> {
@@ -286,6 +284,7 @@ async function writeBalance(
       targetType,
       targetId,
       onHandQty: nextQty,
+      lowStockThreshold: 0,
       createdAt: now,
       updatedAt: now,
     })
@@ -385,7 +384,7 @@ export async function stopTracking(
 export async function setLowStockThreshold(
   targetType: StockTargetType,
   targetId: string,
-  threshold: number | null
+  threshold: number
 ): Promise<void> {
   const outletId = requireOutletId();
   const now = dayjs().toISOString();

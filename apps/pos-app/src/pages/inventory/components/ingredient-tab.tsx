@@ -29,8 +29,8 @@ export function IngredientTab() {
     () =>
       list().filter(
         (ing) =>
-          stockStatus(ing.onHandQty, ing.lowStockThreshold ?? undefined)
-            .status !== "available"
+          stockStatus(ing.onHandQty, ing.lowStockThreshold).status !==
+          "available"
       ).length
   );
 
@@ -169,7 +169,7 @@ function IngredientRow(props: {
         >
           <BadgeStock
             qty={ing().onHandQty}
-            threshold={ing().lowStockThreshold ?? undefined}
+            threshold={ing().lowStockThreshold}
             unit={ing().unit}
           />
         </Show>

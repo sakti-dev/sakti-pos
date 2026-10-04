@@ -15,6 +15,13 @@
       "when": 1791054281450,
       "tag": "0001_ingredient_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791071880735,
+      "tag": "0002_unusual_spectrum",
+      "breakpoints": true
     }
   ]
 }
