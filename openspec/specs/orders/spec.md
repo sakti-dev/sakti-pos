@@ -184,13 +184,29 @@ The system SHALL generate receipt data containing business info, line items, ord
 
 ### R11: Offline-First Order Persistence
 
-The system SHALL persist all orders and order items to the local SQLite database, ensuring no data loss when offline.
+The system SHALL persist orders and their line items locally-first (offline-capable, synced when online). When an order completes at an outlet, the system SHALL additionally decrement the on-hand quantity of each tracked product in that order by its line quantity, within the same local transaction as the order write.
 
 **WHEN** an order is created or cancelled
 **THEN** the system SHALL write to the local database within a sync transaction.
 
 **WHEN** the sync outbox contains unprocessed order changes
 **THEN** the system SHALL mark them with `is_synced = false` for later synchronization.
+
+#### Scenario: Checkout decrements tracked products
+- **WHEN** an order containing 2 units of a stock-tracked product completes
+- **THEN** that product's balance row at the order's outlet decreases by 2 in the same transaction as the order insert
+
+#### Scenario: Untracked products are a no-op
+- **WHEN** an order contains a product with no balance row at the outlet (untracked or a service)
+- **THEN** checkout succeeds and no stock row is created or decremented
+
+#### Scenario: Modifiers do not affect stock
+- **WHEN** a line carries modifier selections
+- **THEN** the decrement uses the line quantity only; modifiers never change the deducted amount
+
+#### Scenario: Offline sale still decrements
+- **WHEN** an order completes while offline
+- **THEN** stock decrements apply locally and sync with the balance row when connectivity returns
 
 ### R12: Order Item Modifier Snapshot
 
@@ -253,3 +269,23 @@ The system SHALL open a selection sheet when a cashier taps a product with at le
 #### Scenario: Optional group skipped
 - **WHEN** the cashier leaves optional group "Es" unanswered via "Tanpa Es" and confirms
 - **THEN** no modifier snapshot SHALL be written for that group
+
+### R14: Recipe-Based Ingredient Deduction at Checkout
+
+When an order completes at an outlet, the system SHALL additionally decrement the on-hand quantity of each ingredient linked to the sold products by `qtyPerUnit × line quantity`, within the same local transaction as the order write, using the outlet's ingredient balance rows. Ingredient deduction SHALL be a guarded no-op when no live balance row exists, and a failure to deduct a specific ingredient SHALL NOT block or abort the sale.
+
+#### Scenario: Recipe sale deducts bahan
+- **WHEN** 2 units of a product linked to Biji Kopi 0.25 kg complete at an outlet
+- **THEN** that outlet's Biji Kopi balance decreases by 0.5 in the same transaction as the order insert
+
+#### Scenario: Untracked ingredient is a no-op
+- **WHEN** a linked ingredient has no live balance row at the outlet
+- **THEN** checkout succeeds and no balance row is created by the sale
+
+#### Scenario: Recipe-less product deducts nothing extra
+- **WHEN** a product with no recipe links is sold
+- **THEN** only the product's own stock (when tracked) is affected
+
+#### Scenario: Offline sale deducts ingredients
+- **WHEN** an order with recipe-linked products completes offline
+- **THEN** ingredient balances decrease locally and sync with the balance rows when connectivity returns

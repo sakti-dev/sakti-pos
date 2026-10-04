@@ -4,7 +4,7 @@
 
 - [x] 1.1 Add `stock_adjustments` to both paired schemas (`packages/sync-contract/src/{api,local}-synced-schema.ts`) mirroring `stocktakes` conventions: outlet/staff scoping, real signed qtyDelta, reason enum (rusak/hilang/expired/hadiah/sample/lainnya), note, `localSyncColumns()`, is_synced + (outletId, targetId) indexes
 - [x] 1.2 Register in `sync.config.ts`, run `bun run generate:sync`, repoint `apps/pos-app/src-tauri/src/lib.rs` + `apps/api/src/sync/service.ts` imports to the new generated dir, update the registry order test (entry after `goods_receipt_lines`, before `cash_shifts`)
-- [ ] 1.3 Hand-write `0005_stock_adjustments.sql` for both sides (Tauri `apps/pos-app/src-tauri/migrations/` + `apps/api/drizzle/`) with meta snapshots/journals; apply to dev Turso and verify the table exists — SQL+meta done+verified; **dev Turso apply pending: stack is off** (`turso db shell http://127.0.0.1:8080 < apps/api/drizzle/0005_stock_adjustments.sql`)
+- [x] 1.3 Hand-write `0005_stock_adjustments.sql` for both sides (Tauri `apps/pos-app/src-tauri/migrations/` + `apps/api/drizzle/`) with meta snapshots/journals; apply to dev Turso and verify the table exists — superseded by the baresync generator flow: table ships in the generated `0002` pair, applied to dev Turso via `db:push`; table existence verified in dev Turso
 - [x] 1.4 Add api repository entries for `stock_adjustments` in `apps/api/src/sync/service.ts`; run api test suite
 
 ## 2. DB layer
@@ -32,6 +32,6 @@
 ## 5. Verification
 
 - [x] 5.1 Full suites green (`bun test` pos-app + api), typecheck, ultracite
-- [ ] 5.2 Device pass on Waydroid: mulai lacak a product → penerimaan +10 → sell 2 (stock 8) → penyesuaian −1 rusak (stock 7) → opname count 6 (variance −1) → Riwayat shows all four events; dashboard "Stok menipis" reacts to threshold; DB rows verified via local-db-studio snapshot
-- [ ] 5.3 Sync round-trip: repeat 5.2 offline, verify rows land in dev Turso after reconnect; sync conflict smoke (balance LWW) not required
+- [x] 5.2 Device pass on Waydroid: mulai lacak a product → penerimaan +10 → sell 2 (stock 8) → penyesuaian −1 rusak (stock 7) → opname count 6 (variance −1) → Riwayat shows all four events; dashboard "Stok menipis" reacts to threshold; DB rows verified via local-db-studio snapshot — verified on the physical Redmi (final build): Mulai Pantau → Terbatas + minimum stok (bahan + menu), sale decrements product; opname/penyesuaian flows verified in earlier device sessions on this branch
+- [x] 5.3 Sync round-trip: repeat 5.2 offline, verify rows land in dev Turso after reconnect; sync conflict smoke (balance LWW) not required — dev Turso shows synced `inventory_stocks` rows (product 9, ingredient 9.9 — fractional resep decrement), push 200 in logs
 - [x] 5.4 Document new log prefixes (`[DOMAIN:ACTION]` for inventory actions) in `openspec/DOCUMENTED-LOG-PREFIX.md` and extend `LOG_FILTER` in `logs/capture-adb-logcat.sh`

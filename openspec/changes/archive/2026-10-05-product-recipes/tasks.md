@@ -26,6 +26,6 @@
 ## 5. Verification
 
 - [x] 5.1 Full suites green (pos-app + api), typecheck, ultracite
-- [ ] 5.2 Device pass (after wire-inventory 5.2/5.3 on the same build): create recipe on a drink (0.25 kg kopi), sell 2 → kopi balance −0.5 in DB; Riwayat still shows the product sale; product form shows the recipe after reopen
-- [ ] 5.3 Sync round-trip: recipe rows land in dev Turso after manual sync; edit qty on device → server reflects new qtyPerUnit
+- [x] 5.2 Device pass (after wire-inventory 5.2/5.3 on the same build): create recipe on a drink (0.25 kg kopi), sell 2 → kopi balance −0.5 in DB; Riwayat still shows the product sale; product form shows the recipe after reopen — verified on the physical Redmi: resep set on menu jualan, sale decremented both product and bahan (fractional decimals confirmed)
+- [x] 5.3 Sync round-trip: recipe rows land in dev Turso after manual sync; edit qty on device → server reflects new qtyPerUnit — dev Turso shows 3 synced `product_ingredients` rows; balances match device state
 - [x] 5.4 Document new log prefixes in `openspec/DOCUMENTED-LOG-PREFIX.md` + extend `LOG_FILTER` if any new domain/action added; note `0006` joins the pending prod deploy bundle (0004+0005+0006) in ROADMAP
