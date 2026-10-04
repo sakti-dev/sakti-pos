@@ -15,6 +15,10 @@ export interface DrawerRootProps {
   readonly onOpenChange?: (open: boolean) => void;
   readonly open?: boolean;
   readonly side?: DrawerSide;
+  /** Focus trap on/off. Defaults to false: the trap's containment
+      refocuses the first input on blur — on Android that pops the
+      keyboard back open while the sheet is closing. */
+  readonly trapFocus?: boolean;
   readonly trigger?: JSX.Element;
 }
 
@@ -38,7 +42,7 @@ export const DrawerRoot = (props: DrawerRootProps) => {
       onOpenChange={props.onOpenChange}
       open={props.open}
       side={props.side ?? "bottom"}
-      snapPoints={[0, 1]}
+      trapFocus={props.trapFocus ?? false}
     >
       {(api) => (
         <>

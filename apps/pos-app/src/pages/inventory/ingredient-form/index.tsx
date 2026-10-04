@@ -24,6 +24,7 @@ import {
   nextGoodsReceiptRef,
   recordGoodsReceipt,
   setLowStockThreshold,
+  startTracking,
   stopTracking,
 } from "~/db/inventory";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
@@ -130,13 +131,18 @@ export default function IngredientFormPage() {
 
   const applyThreshold = async (ingredientId: string) => {
     const value = parseQty(threshold());
+    const stocks = await getIngredientStockList();
+    const stock = stocks.find((s) => s.id === ingredientId);
     if (value === null || value === 0) {
-      const stocks = await getIngredientStockList();
-      const stock = stocks.find((s) => s.id === ingredientId);
       if (stock?.tracked) {
         await setLowStockThreshold("ingredient", ingredientId, 0);
       }
       return;
+    }
+    /* Setting a minimum on an untracked item starts tracking (row-exists
+       convention) — otherwise setLowStockThreshold throws. */
+    if (!stock?.tracked) {
+      await startTracking("ingredient", ingredientId);
     }
     await setLowStockThreshold("ingredient", ingredientId, value);
   };

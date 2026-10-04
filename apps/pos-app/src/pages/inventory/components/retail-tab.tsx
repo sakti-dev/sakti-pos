@@ -8,7 +8,6 @@ import { FadeIn } from "~/components/ui/fade-in";
 import {
   getProductStockList,
   type StockListItem,
-  startTracking,
   stopTracking,
 } from "~/db/inventory";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
@@ -116,30 +115,18 @@ export function RetailTab() {
 }
 
 function ProductRow(props: { item: StockListItem; onChanged: () => void }) {
+  const navigate = useNavigate();
   const p = () => props.item;
-
-  const handleStart = () => {
-    startTracking("product", p().id)
-      .then(() => {
-        toast.success(`Mulai lacak stok ${p().name}`);
-        props.onChanged();
-      })
-      .catch((error: unknown) => {
-        toast.error(
-          error instanceof Error ? error.message : "Gagal mulai lacak"
-        );
-      });
-  };
 
   const handleStop = () => {
     stopTracking("product", p().id)
       .then(() => {
-        toast.success(`Berhenti lacak stok ${p().name}`);
+        toast.success(`Berhenti pantau stok ${p().name}`);
         props.onChanged();
       })
       .catch((error: unknown) => {
         toast.error(
-          error instanceof Error ? error.message : "Gagal berhenti lacak"
+          error instanceof Error ? error.message : "Gagal berhenti pantau"
         );
       });
   };
@@ -157,11 +144,13 @@ function ProductRow(props: { item: StockListItem; onChanged: () => void }) {
           fallback={
             <Button
               look="outline"
-              onClick={handleStart}
+              onClick={() =>
+                navigate(`/catalog/product/${p().id}?highlight=stok`)
+              }
               size="xs"
               tone="primary"
             >
-              Mulai Lacak
+              Mulai Pantau
             </Button>
           }
           when={p().tracked}
@@ -169,10 +158,10 @@ function ProductRow(props: { item: StockListItem; onChanged: () => void }) {
           <div class="flex items-center gap-1.5">
             <BadgeStock qty={p().onHandQty} threshold={p().lowStockThreshold} />
             <button
-              aria-label={`Berhenti lacak ${p().name}`}
+              aria-label={`Berhenti pantau ${p().name}`}
               class="rounded-full p-1.5 text-faint-foreground transition hover:bg-muted hover:text-foreground"
               onClick={handleStop}
-              title="Berhenti lacak"
+              title="Berhenti pantau"
               type="button"
             >
               ✕

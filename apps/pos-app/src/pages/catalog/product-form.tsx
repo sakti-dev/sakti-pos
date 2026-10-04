@@ -1,16 +1,30 @@
-import { useLocation, useNavigate, useParams } from "@solidjs/router";
-import { createEffect, createResource, createSignal, Show } from "solid-js";
+import {
+  A,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "@solidjs/router";
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  onMount,
+  Show,
+} from "solid-js";
 import { createStore } from "solid-js/store";
 import { toast } from "solid-sonner";
 import { UploadIcon, XCloseIcon } from "~/assets";
 import { SubPageShell } from "~/components/layout/sub-page-shell/sub-page-shell";
 import { PickerField } from "~/components/picker-field";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   NumberField,
   NumberFieldInput,
   NumberFieldLabel,
 } from "~/components/ui/number-field";
+import { RadioGroup, RadioOption } from "~/components/ui/radio-group";
 import {
   TextField,
   TextFieldInput,
@@ -26,8 +40,9 @@ import {
 import { getIngredients } from "~/db/ingredients";
 import {
   getProductStock,
+  seedProductStock,
   setLowStockThreshold,
-  startTracking,
+  stopTracking,
 } from "~/db/inventory";
 import {
   getModifierGroups,
@@ -40,6 +55,7 @@ import { resolveImageUrl } from "~/lib/assets/resolve";
 import { createLogger } from "~/lib/utils";
 import { AttachmentField } from "./components/attachment-field";
 import { RecipeField, type RecipeRowState } from "./components/recipe-field";
+import { resolveStockSteps, type StockMode } from "./stock-steps";
 
 const logger = createLogger({ domain: "POS", module: "product-form" });
 
@@ -57,6 +73,23 @@ export default function ProductFormPage() {
 
   const isEditing = () => Boolean(params.id) && params.id !== "new";
 
+  const [searchParams] = useSearchParams();
+  const [stokHighlight, setStokHighlight] = createSignal(
+    searchParams.highlight === "stok"
+  );
+  let stokCardRef: HTMLDivElement | undefined;
+
+  // Deep-link from the inventory list ("Mulai Pantau"): bring the Stok
+  // card into view so the merchant discovers the Terbatas radio.
+  onMount(() => {
+    if (!stokHighlight()) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      stokCardRef?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+
   const [product] = createResource(
     () => (isEditing() ? params.id : undefined),
     (id) => getProduct(id!)
@@ -68,7 +101,11 @@ export default function ProductFormPage() {
   const [name, setName] = createSignal("");
   const [category, setCategory] = createSignal<string>("");
   const [price, setPrice] = createSignal("");
+  const [stockMode, setStockMode] = createSignal<StockMode>("unlimited");
+  const [initialQty, setInitialQty] = createSignal("");
   const [threshold, setThreshold] = createSignal("");
+  const [wasTracked, setWasTracked] = createSignal(false);
+  const [trackedOnHand, setTrackedOnHand] = createSignal<number | null>(null);
   const [photo, setPhoto] = createSignal<StagedPhoto | null>(null);
   const [saving, setSaving] = createSignal(false);
 
@@ -169,7 +206,10 @@ export default function ProductFormPage() {
       }
       getProductStock(id)
         .then((stock) => {
-          setThreshold(stock ? String(stock.lowStockThreshold) : "");
+          setWasTracked(stock?.tracked ?? false);
+          setStockMode(stock?.tracked ? "limited" : "unlimited");
+          setTrackedOnHand(stock?.onHandQty ?? null);
+          setThreshold(stock?.tracked ? String(stock.lowStockThreshold) : "");
         })
         .catch(() => undefined);
       const row = existing();
@@ -196,28 +236,34 @@ export default function ProductFormPage() {
   };
 
   /**
-   * Stok minimum: setting a value on an untracked product starts
-   * tracking (row-exists convention); clearing it resets the
-   * threshold to 0. Failures don't block the product save.
+   * Stock steps decided by mode × tracked-state (see stock-steps.ts).
+   * Failures don't block the product save — the product row is already
+   * persisted, so we log and move on.
    */
-  const applyThreshold = async (productId: string) => {
-    const raw = threshold().trim();
-    if (raw.length === 0) {
-      const stock = await getProductStock(productId);
-      if (stock?.tracked) {
-        await setLowStockThreshold("product", productId, 0);
+  const applyStockSteps = async (productId: string) => {
+    const steps = resolveStockSteps({
+      mode: stockMode(),
+      wasTracked: wasTracked(),
+      initialQty: Number.parseFloat(initialQty().replace(",", ".")) || 0,
+      threshold: Number.parseFloat(threshold().replace(",", ".")) || 0,
+    });
+    for (const step of steps) {
+      if (step.kind === "seed") {
+        await seedProductStock("product", productId, step.qty);
+      } else if (step.kind === "threshold") {
+        await setLowStockThreshold("product", productId, step.value);
+      } else {
+        await stopTracking("product", productId);
       }
-      return;
     }
-    const value = Number.parseFloat(raw.replace(",", "."));
-    if (!Number.isFinite(value) || value < 0) {
-      return;
+  };
+
+  const runStockSteps = async (productId: string) => {
+    try {
+      await applyStockSteps(productId);
+    } catch (error) {
+      logger.warn("stock_step_failed", { error: String(error) });
     }
-    const stock = await getProductStock(productId);
-    if (!stock?.tracked) {
-      await startTracking("product", productId);
-    }
-    await setLowStockThreshold("product", productId, value);
   };
 
   const validate = (): { name: string; price: number } | null => {
@@ -271,9 +317,9 @@ export default function ProductFormPage() {
         );
       }
       await setProductModifierGroups(productId, selectedGroupIds());
-      await applyThreshold(productId);
+      await runStockSteps(productId);
       await setProductIngredients(productId, [...recipeRows]);
-      navigate("/catalog");
+      navigate(-1);
     } catch (error) {
       logger.error("PRODUCT_SAVE_FAILED", { error: String(error) });
       toast.error("Gagal menyimpan produk");
@@ -285,165 +331,251 @@ export default function ProductFormPage() {
     <SubPageShell
       backHref="/catalog"
       data-ssgoi-transition={useLocation().pathname}
+      onBack={() => navigate(-1)}
       title={isEditing() ? "Edit Produk" : "Tambah Produk"}
     >
       <div class="scrollbar-none flex-1 overflow-y-auto px-5 py-6 pb-28">
-        <div class="mx-auto w-full max-w-2xl sm:rounded-lg sm:border sm:border-border sm:bg-card sm:p-6">
-          {/* ── Photo + Name ── */}
-          <div class="flex flex-col gap-5 sm:flex-row">
-            <div class="flex flex-col gap-1.5">
-              <span class={labelClass}>Foto Produk</span>
-              <button
-                class="group relative grid aspect-square size-[120px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border-2 border-input border-dashed bg-background sm:size-[132px]"
-                onClick={handlePhotoPick}
-                type="button"
-              >
-                <Show when={photo()}>
-                  <img
-                    alt="Preview"
-                    class="absolute inset-0 h-full w-full object-cover"
-                    src={photo()!.url}
+        <div class="mx-auto flex w-full max-w-2xl flex-col gap-3">
+          {/* ── Detail Produk ── */}
+          <Card>
+            <CardHeader class="p-5 pb-2">
+              <CardTitle>Detail Produk</CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4 p-5 pt-3">
+              <div class="flex flex-col gap-5 sm:flex-row">
+                <div class="flex flex-col gap-1.5">
+                  <span class={labelClass}>Foto Produk</span>
+                  <button
+                    class="group relative grid aspect-square size-[120px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border-2 border-input border-dashed bg-background sm:size-[132px]"
+                    onClick={handlePhotoPick}
+                    type="button"
+                  >
+                    <Show when={photo()}>
+                      <img
+                        alt="Preview"
+                        class="absolute inset-0 h-full w-full object-cover"
+                        src={photo()!.url}
+                      />
+                    </Show>
+                    <Show when={!photo()}>
+                      <div class="flex flex-col items-center gap-1.5 text-muted-foreground transition-colors group-hover:text-foreground">
+                        <UploadIcon class="h-6 w-6" />
+                        <span class="font-medium text-caption-sm">Upload</span>
+                      </div>
+                    </Show>
+                  </button>
+                  <Show when={photo()}>
+                    <button
+                      class="inline-flex items-center justify-center gap-1 font-medium text-caption-sm text-danger transition-colors hover:text-danger/80"
+                      onClick={() => setPhoto(null)}
+                      type="button"
+                    >
+                      <XCloseIcon class="h-3 w-3" />
+                      Hapus Foto
+                    </button>
+                  </Show>
+                </div>
+
+                <div class="flex min-w-0 flex-1 flex-col gap-4">
+                  <TextField class="gap-1.5" onChange={setName} value={name()}>
+                    <TextFieldLabel>Nama Produk</TextFieldLabel>
+                    <TextFieldInput placeholder="e.g. Es Kopi Susu" />
+                  </TextField>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="flex flex-col gap-1.5">
+                  <span class={labelClass}>Kategori</span>
+                  <PickerField
+                    onChange={setCategory}
+                    onCreate={async (query) => {
+                      const created = await createCategory({ name: query });
+                      return created.id;
+                    }}
+                    options={(categoriesList() ?? []).map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
+                    placeholder="Pilih kategori"
+                    title="Pilih Kategori"
+                    value={category()}
                   />
-                </Show>
-                <Show when={!photo()}>
-                  <div class="flex flex-col items-center gap-1.5 text-muted-foreground transition-colors group-hover:text-foreground">
-                    <UploadIcon class="h-6 w-6" />
-                    <span class="font-medium text-caption-sm">Upload</span>
+                </div>
+
+                <NumberField class="gap-1.5">
+                  <NumberFieldLabel>Harga (Rp)</NumberFieldLabel>
+                  <NumberFieldInput
+                    onChange={(v) => setPrice(String(v))}
+                    placeholder="25000"
+                    value={Number.parseInt(price(), 10) || undefined}
+                  />
+                </NumberField>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ── Varian ── */}
+          <Card>
+            <CardHeader class="p-5 pb-2">
+              <CardTitle>Varian</CardTitle>
+            </CardHeader>
+            <CardContent class="p-5 pt-3">
+              <AttachmentField
+                addLabel="Tambah Varian"
+                emptyMessage="Belum ada varian — buat dulu di tab Varian"
+                items={(groupsQuery.data() ?? []).map((g) => ({
+                  id: g.id,
+                  subtitle: `${g.selectionType === "single" ? "Pilih satu" : "Bisa beberapa"} · ${g.isRequired ? "Wajib" : "Opsional"} · ${g.options.length} opsi`,
+                  title: g.name,
+                }))}
+                label="Varian"
+                onToggle={(id) => setAttachedGroups(id, (on) => !on)}
+                selected={attachedGroups}
+                sheetTitle="Pilih Varian"
+              />
+            </CardContent>
+          </Card>
+
+          {/* ── Stok ── */}
+          <div
+            class={
+              stokHighlight()
+                ? "rounded-xl ring-2 ring-primary ring-offset-2 ring-offset-background"
+                : undefined
+            }
+            ref={(el) => {
+              stokCardRef = el;
+            }}
+          >
+            <Card>
+              <CardHeader class="p-5 pb-2">
+                <CardTitle>Stok</CardTitle>
+              </CardHeader>
+              <CardContent class="p-5 pt-3">
+                <RadioGroup
+                  onChange={(v) => {
+                    setStockMode(v as StockMode);
+                    setStokHighlight(false);
+                  }}
+                  value={stockMode()}
+                >
+                  <RadioOption
+                    description="Stok tidak dipantau — produk selalu bisa dijual"
+                    label="Tidak terbatas"
+                    value="unlimited"
+                  />
+                  <RadioOption
+                    description="Pantau stok — kelola via Stok & Opname"
+                    label="Terbatas"
+                    value="limited"
+                  />
+                </RadioGroup>
+
+                <Show when={stockMode() === "limited"}>
+                  <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Show
+                      fallback={
+                        <NumberField class="gap-1.5">
+                          <NumberFieldLabel>Stok Saat Ini</NumberFieldLabel>
+                          <NumberFieldInput
+                            onChange={(v) => setInitialQty(String(v))}
+                            placeholder="0"
+                            value={
+                              Number.parseInt(initialQty(), 10) || undefined
+                            }
+                          />
+                        </NumberField>
+                      }
+                      when={isEditing() && wasTracked()}
+                    >
+                      <div class="flex flex-col gap-1.5">
+                        <span class={labelClass}>Stok Saat Ini</span>
+                        <div class="flex h-10 items-center justify-between gap-2 rounded-md border border-border/50 bg-muted/40 px-3">
+                          <span class="font-sans text-body-sm text-foreground">
+                            {trackedOnHand()}
+                          </span>
+                          <A
+                            class="font-medium text-caption-sm text-primary"
+                            href="/inventory/stocktake/new"
+                          >
+                            Atur via Opname
+                          </A>
+                        </div>
+                      </div>
+                    </Show>
+
+                    <NumberField class="gap-1.5">
+                      <NumberFieldLabel>
+                        Stok Minimum (opsional)
+                      </NumberFieldLabel>
+                      <NumberFieldInput
+                        onChange={(v) => setThreshold(String(v))}
+                        placeholder="5"
+                        value={Number.parseInt(threshold(), 10) || undefined}
+                      />
+                    </NumberField>
                   </div>
                 </Show>
-              </button>
-              <Show when={photo()}>
-                <button
-                  class="inline-flex items-center justify-center gap-1 font-medium text-caption-sm text-danger transition-colors hover:text-danger/80"
-                  onClick={() => setPhoto(null)}
-                  type="button"
-                >
-                  <XCloseIcon class="h-3 w-3" />
-                  Hapus Foto
-                </button>
-              </Show>
-            </div>
 
-            <div class="flex min-w-0 flex-1 flex-col gap-4">
-              <TextField class="gap-1.5" onChange={setName} value={name()}>
-                <TextFieldLabel>Nama Produk</TextFieldLabel>
-                <TextFieldInput autofocus placeholder="e.g. Es Kopi Susu" />
-              </TextField>
-            </div>
+                <Show when={wasTracked() && stockMode() === "unlimited"}>
+                  <p class="mt-3 text-caption-sm text-faint-foreground">
+                    Riwayat stok tetap tersimpan di Riwayat Stok.
+                  </p>
+                </Show>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* ── Divider ── */}
-          <hr class="my-6 border-border" />
-
-          {/* ── Category + Price ── */}
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="flex flex-col gap-1.5">
-              <span class={labelClass}>Kategori</span>
-              <PickerField
-                onChange={setCategory}
-                onCreate={async (query) => {
-                  const created = await createCategory({ name: query });
-                  return created.id;
-                }}
-                options={(categoriesList() ?? []).map((c) => ({
-                  value: c.id,
-                  label: c.name,
-                }))}
-                placeholder="Pilih kategori"
-                title="Pilih Kategori"
-                value={category()}
-              />
-            </div>
-
-            <NumberField class="gap-1.5">
-              <NumberFieldLabel>Harga (Rp)</NumberFieldLabel>
-              <NumberFieldInput
-                onChange={(v) => setPrice(String(v))}
-                placeholder="25000"
-                value={Number.parseInt(price(), 10) || undefined}
-              />
-            </NumberField>
-
-            <div class="gap-1.5">
-              <label class="flex flex-col gap-1">
-                <span class={labelClass}>
-                  Stok Minimum (opsional){" "}
-                  <span class="font-normal text-faint-foreground">
-                    — mulai pantau stok produk ini
-                  </span>
-                </span>
-                <input
-                  class="h-10 rounded-md border border-input bg-background px-3 font-sans text-body-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-                  inputMode="decimal"
-                  onInput={(e) => setThreshold(e.currentTarget.value)}
-                  placeholder="Contoh: 5"
-                  type="text"
-                  value={threshold()}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* ── Modifier groups (varian) ── */}
-          <div class="mt-6">
-            <AttachmentField
-              addLabel="Tambah Varian"
-              emptyMessage="Belum ada varian — buat dulu di tab Varian"
-              items={(groupsQuery.data() ?? []).map((g) => ({
-                id: g.id,
-                subtitle: `${g.selectionType === "single" ? "Pilih satu" : "Bisa beberapa"} · ${g.isRequired ? "Wajib" : "Opsional"} · ${g.options.length} opsi`,
-                title: g.name,
-              }))}
-              label="Varian"
-              onToggle={(id) => setAttachedGroups(id, (on) => !on)}
-              selected={attachedGroups}
-              sheetTitle="Pilih Varian"
-            />
-          </div>
-
-          {/* ── Bahan baku (resep) ── */}
-          <div class="mt-6">
-            <RecipeField
-              addLabel="Tambah Bahan"
-              emptyMessage="Belum ada bahan — penjualan tidak mengurangi stok bahan baku"
-              items={recipeItems()}
-              label="Bahan Baku (resep)"
-              onQty={(ingredientId, qty) =>
-                setRecipeRows((rows) =>
-                  rows.map((r) =>
-                    r.ingredientId === ingredientId
-                      ? { ...r, qtyPerUnit: qty }
-                      : r
+          {/* ── Resep ── */}
+          <Card>
+            <CardHeader class="p-5 pb-2">
+              <CardTitle>Resep</CardTitle>
+            </CardHeader>
+            <CardContent class="p-5 pt-3">
+              <RecipeField
+                addLabel="Tambah Bahan"
+                emptyMessage="Belum ada bahan — penjualan tidak mengurangi stok bahan baku"
+                items={recipeItems()}
+                onQty={(ingredientId, qty) =>
+                  setRecipeRows((rows) =>
+                    rows.map((r) =>
+                      r.ingredientId === ingredientId
+                        ? { ...r, qtyPerUnit: qty }
+                        : r
+                    )
                   )
-                )
-              }
-              onRemove={(ingredientId) =>
-                setRecipeRows((rows) =>
-                  rows.filter((r) => r.ingredientId !== ingredientId)
-                )
-              }
-              onSelect={(ingredientId) =>
-                setRecipeRows((rows) => {
-                  if (rows.some((r) => r.ingredientId === ingredientId)) {
-                    return rows.filter((r) => r.ingredientId !== ingredientId);
-                  }
-                  return [...rows, { ingredientId, qtyPerUnit: 1 }];
-                })
-              }
-              rows={recipeRows}
-              sheetTitle="Pilih Bahan Baku"
-            />
-            <p class="mt-1.5 text-caption-sm text-faint-foreground">
-              Penjualan produk ini otomatis mengurangi stok bahan sesuai jumlah
-              per porsi.
-            </p>
-          </div>
+                }
+                onRemove={(ingredientId) =>
+                  setRecipeRows((rows) =>
+                    rows.filter((r) => r.ingredientId !== ingredientId)
+                  )
+                }
+                onSelect={(ingredientId) =>
+                  setRecipeRows((rows) => {
+                    if (rows.some((r) => r.ingredientId === ingredientId)) {
+                      return rows.filter(
+                        (r) => r.ingredientId !== ingredientId
+                      );
+                    }
+                    return [...rows, { ingredientId, qtyPerUnit: 1 }];
+                  })
+                }
+                rows={recipeRows}
+                sheetTitle="Pilih Bahan Baku"
+              />
+              <p class="mt-1.5 text-caption-sm text-faint-foreground">
+                Penjualan produk ini otomatis mengurangi stok bahan sesuai
+                jumlah per porsi.
+              </p>
+            </CardContent>
+          </Card>
 
           {/* ── Actions ── */}
-          <div class="mt-8 flex items-center justify-end gap-3">
+          <div class="mt-2 flex items-center justify-end gap-3">
             <Button
               look="outline"
-              onClick={() => navigate("/catalog")}
+              onClick={() => navigate(-1)}
               tone="neutral"
               type="button"
             >

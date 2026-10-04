@@ -82,6 +82,7 @@ const {
   createStockAdjustment,
   decrementStockForSale,
   ensureTracked,
+  seedProductStock,
   setLowStockThreshold,
   setStockCount,
   stopTracking,
@@ -152,6 +153,22 @@ describe("setStockCount (opname)", () => {
     await setStockCount(tx, "product", "p1", 6);
     const insert = insertCalls.find((c) => c.table === inventoryStocks);
     expect(insert?.values.onHandQty).toBe(6);
+  });
+});
+
+describe("seedProductStock (product form initial stock)", () => {
+  test("creates balance row at the seeded qty when untracked", async () => {
+    balanceRow = undefined;
+    await seedProductStock("product", "p1", 24);
+    const insert = insertCalls.find((c) => c.table === inventoryStocks);
+    expect(insert?.values.onHandQty).toBe(24);
+  });
+
+  test("sets absolute qty on an existing live row", async () => {
+    balanceRow = { id: "bal-1", onHandQty: 10, deletedAt: null };
+    await seedProductStock("product", "p1", 7);
+    const update = updateCalls.find((c) => c.table === inventoryStocks);
+    expect(update?.set.onHandQty).toBe(7);
   });
 });
 

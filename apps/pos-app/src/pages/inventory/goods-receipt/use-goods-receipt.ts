@@ -1,10 +1,6 @@
 import { createMemo, createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import {
-  getIngredientStockList,
-  getProductStockList,
-  type StockTargetType,
-} from "~/db/inventory";
+import { getIngredientStockList, type StockTargetType } from "~/db/inventory";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { createBlankItem, type SyncableItem } from "./receipts";
 
@@ -40,10 +36,6 @@ export function useGoodsReceipt() {
     ["drizzle", "inventory", "ingredient-stock-list"],
     () => getIngredientStockList()
   );
-  const productQuery = useDrizzleQuery(
-    ["drizzle", "inventory", "product-stock-list"],
-    () => getProductStockList()
-  );
 
   // ── Item CRUD ──
 
@@ -55,7 +47,6 @@ export function useGoodsReceipt() {
     }
     setItems(items.length, createBlankItem(pick.id, pick.targetType));
     setPickerOpen(false);
-    setPickerSearch("");
   };
 
   const patchItem = (id: string, patch: Partial<SyncableItem>) => {
@@ -119,8 +110,11 @@ export function useGoodsReceipt() {
 
   // ── Lookups (pickable universe + display) ──
 
-  const allPickable = createMemo<PickableItem[]>(() => [
-    ...(ingredientQuery.data() ?? []).map((i) => ({
+  /* Penerimaan is a gudang flow entered from the Bahan tab — only bahan
+     baku are receivable. Tracked products get stock via Stok Saat Ini /
+     opname instead. */
+  const allPickable = createMemo<PickableItem[]>(() =>
+    (ingredientQuery.data() ?? []).map((i) => ({
       id: i.id,
       name: i.name,
       onHandQty: i.onHandQty,
@@ -128,22 +122,8 @@ export function useGoodsReceipt() {
       unit: i.unit,
       isIngredient: true,
       targetType: "ingredient" as const,
-    })),
-    /* Products appear only when stock-tracked (row-exists): receiving
-       is a gudang flow — untracked menu items don't belong here until
-       the merchant opts in via Mulai Lacak / stok minimum. */
-    ...(productQuery.data() ?? [])
-      .filter((p) => p.tracked)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        onHandQty: p.onHandQty,
-        tracked: p.tracked,
-        unit: p.unit,
-        isIngredient: false,
-        targetType: "product" as const,
-      })),
-  ]);
+    }))
+  );
 
   const displayOf = (id: string) => allPickable().find((p) => p.id === id);
 

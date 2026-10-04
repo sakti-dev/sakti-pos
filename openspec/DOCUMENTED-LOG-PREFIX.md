@@ -203,11 +203,13 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [SHIFT:CLOSE_FAILED]` | `shift-close.tsx` — closeShift threw |
 | `[JS] [SHIFT:WINDOW_TOTALS]` | `db/cash-shifts.ts` — close-screen aggregate evidence: `outletId`, window bounds, row count, cash/qris totals, first-row sample |
 | `[JS] [SHIFT:WINDOW_QUERY_FAILED]` | `db/cash-shifts.ts` — the window aggregate query threw |
-| `[JS] [INVENTORY:TRACKING_STARTED]` | `db/inventory.ts` — "Mulai Lacak Stok" seeded a zero balance row, includes `targetId`, `targetType` |
+| `[JS] [INVENTORY:TRACKING_STARTED]` | `db/inventory.ts` — "Mulai Pantau Stok" seeded a zero balance row, includes `targetId`, `targetType` |
 | `[JS] [INVENTORY:TRACKING_STOPPED]` | `db/inventory.ts` — balance row soft-deleted (tracking off), includes `targetId`, `targetType` |
 | `[JS] [INVENTORY:GOODS_RECEIPT_RECORDED]` | `db/inventory.ts` — penerimaan persisted (parent + lines + balance deltas), includes `ref`, `lines` |
 | `[JS] [INVENTORY:STOCKTAKE_RECORDED]` | `db/inventory.ts` — opname persisted (variance lines + absolute balance sets), includes `ref`, `lines` |
 | `[JS] [INVENTORY:ADJUSTMENT_CREATED]` | `db/inventory.ts` — penyesuaian persisted + delta applied, includes `targetId`, `qtyDelta`, `reason` |
+| `[JS] [INVENTORY:STOCK_SEEDED]` | `db/inventory.ts` — product form seeded the initial balance on tracking start, includes `targetId`, `targetType`, `initialQty` |
+| `[JS] [INVENTORY:STOCK_STEP_FAILED]` | `pages/catalog/product-form.tsx` — a stock step failed after the product was saved (non-blocking), includes `error` |
 | `[JS] [INVENTORY:CREATED]` | `db/ingredients.ts` — bahan baku created + zero balance seeded, includes `id`, `name` |
 | `[JS] [INVENTORY:CATEGORY_CREATED]` | `db/ingredient-categories.ts` — inline category created + enqueued, includes `name` |
 | `[JS] [INVENTORY:UPDATED]` | `db/ingredients.ts` — bahan baku fields updated |

@@ -1,6 +1,6 @@
 import { useNavigate } from "@solidjs/router";
 import { FiPackage, FiPlus, FiSearch, FiTrash2 } from "solid-icons/fi";
-import { For, onMount, Show } from "solid-js";
+import { createEffect, For, onMount, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { Button } from "~/components/ui/button";
 import { DrawerRoot } from "~/components/ui/drawer";
@@ -34,6 +34,17 @@ interface GoodsReceiptFormProps {
 export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
   const navigate = useNavigate();
   const form = useGoodsReceipt();
+  let pickerSearchInput: HTMLInputElement | undefined;
+
+  /* corvu's focus trap is off for this drawer (its containment refocus
+     pops the Android keyboard back open on close), so the open-time
+     focus on the search field is ours — driven off the signal so every
+     open path gets it. */
+  createEffect(() => {
+    if (form.pickerOpen()) {
+      requestAnimationFrame(() => pickerSearchInput?.focus());
+    }
+  });
 
   /* Round-trip from the bahan screen: consume the handoff and add the
      freshly created ingredient to this nota automatically. */
@@ -155,7 +166,7 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                       <p class="mt-0.5 text-caption text-faint-foreground">
                         {form.productUnit(it.targetId)} ·{" "}
                         {form.productStock(it.targetId) === null
-                          ? "mulai lacak dengan penerimaan ini"
+                          ? "mulai pantau dengan penerimaan ini"
                           : `Stok Sekarang: ${form.productStock(it.targetId)}`}
                       </p>
                     </div>
@@ -308,9 +319,6 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
         onOpenChange={(open) => {
           formLogger.info("receipt_picker_open_changed", { open });
           form.setPickerOpen(open);
-          if (!open) {
-            form.setPickerSearch("");
-          }
         }}
         open={form.pickerOpen()}
         side="bottom"
@@ -329,7 +337,11 @@ export function GoodsReceiptForm(props: GoodsReceiptFormProps) {
                   class="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-body-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
                   onInput={(e) => form.setPickerSearch(e.currentTarget.value)}
                   placeholder="Cari nama atau SKU..."
+                  ref={(el) => {
+                    pickerSearchInput = el;
+                  }}
                   type="text"
+                  value={form.pickerSearch()}
                 />
               </div>
             </div>

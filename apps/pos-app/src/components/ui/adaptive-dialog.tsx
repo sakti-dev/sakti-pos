@@ -20,6 +20,10 @@ interface AdaptiveDialogProps {
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
   snapPoints?: number[];
+  /** Focus trap on/off. Defaults to false: the trap's containment
+      refocuses the first input on blur — on Android that pops the
+      keyboard back open while the sheet is closing. */
+  trapFocus?: boolean;
 }
 
 function AdaptiveDialog(props: AdaptiveDialogProps) {
@@ -37,13 +41,18 @@ function AdaptiveDialog(props: AdaptiveDialogProps) {
              sheet rides above the keyboard when an input inside is
              focused (full-height sheets sit behind it). */
           snapPoints={props.snapPoints ?? [0, 0.6, 1]}
+          trapFocus={props.trapFocus ?? false}
         >
           {props.children}
         </Drawer>
       }
       when={breakpoints.md}
     >
-      <CorvuDialog onOpenChange={props.onOpenChange} open={props.open}>
+      <CorvuDialog
+        onOpenChange={props.onOpenChange}
+        open={props.open}
+        trapFocus={props.trapFocus ?? false}
+      >
         {props.children}
       </CorvuDialog>
     </Show>

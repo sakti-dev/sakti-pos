@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { CheckIcon, ChevronDownIcon, PlusIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import {
@@ -28,6 +28,16 @@ export function PickerField(props: PickerFieldProps) {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal("");
   const [creating, setCreating] = createSignal(false);
+  let searchInput: HTMLInputElement | undefined;
+
+  /* Focus trap is off for this sheet (its containment refocus pops the
+     Android keyboard back open on close), so the open-time focus on the
+     search field is ours. */
+  createEffect(() => {
+    if (open()) {
+      requestAnimationFrame(() => searchInput?.focus());
+    }
+  });
 
   /** Selected option — or the raw value itself when it was created
       inline and isn't (yet) part of the passed options. */
@@ -106,6 +116,9 @@ export function PickerField(props: PickerFieldProps) {
           mode="full"
           onInput={setQuery}
           placeholder="Cari..."
+          ref={(el) => {
+            searchInput = el;
+          }}
           value={query()}
         />
 

@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { CheckIcon, PlusIcon, XCloseIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import {
@@ -33,6 +33,16 @@ interface AttachmentFieldProps {
 export const AttachmentField = (props: AttachmentFieldProps) => {
   const [open, setOpen] = createSignal(false);
   const [search, setSearch] = createSignal("");
+  let searchInput: HTMLInputElement | undefined;
+
+  /* Focus trap is off for this sheet (its containment refocus pops the
+     Android keyboard back open on close), so the open-time focus on the
+     search field is ours. */
+  createEffect(() => {
+    if (open()) {
+      requestAnimationFrame(() => searchInput?.focus());
+    }
+  });
 
   const selectedItems = () =>
     props.items.filter((item) => props.selected[item.id]);
@@ -124,6 +134,9 @@ export const AttachmentField = (props: AttachmentFieldProps) => {
             <SearchBar
               onInput={setSearch}
               placeholder="Cari..."
+              ref={(el) => {
+                searchInput = el;
+              }}
               value={search()}
             />
 

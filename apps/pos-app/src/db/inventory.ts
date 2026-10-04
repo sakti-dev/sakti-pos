@@ -326,7 +326,7 @@ export async function setStockCount(
   await writeBalance(tx, targetType, targetId, countedQty);
 }
 
-/** Ensure a balance row exists at zero — "Mulai Lacak Stok". */
+/** Ensure a balance row exists at zero — "Mulai Pantau Stok". */
 export async function ensureTracked(
   tx: DbTx,
   targetType: StockTargetType,
@@ -403,6 +403,18 @@ export async function setLowStockThreshold(
       table: TABLE.inventoryStocks,
     });
   });
+}
+
+/** Seed the initial balance when tracking starts from the product form. */
+export async function seedProductStock(
+  targetType: StockTargetType,
+  targetId: string,
+  initialQty: number
+): Promise<void> {
+  await getSyncClient().writeTransaction(db, async (tx) => {
+    await setStockCount(tx, targetType, targetId, initialQty);
+  });
+  inventoryLogger.info("stock_seeded", { targetId, targetType, initialQty });
 }
 
 /**

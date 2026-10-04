@@ -6,15 +6,22 @@ interface SubPageShellProps {
   readonly backHref: string;
   readonly backLabel?: string;
   readonly children: JSX.Element;
+  /** When set, the back button walks browser history instead of backHref. */
+  readonly onBack?: () => void;
   readonly title: string;
   readonly [key: string]: unknown;
 }
 
 export const SubPageShell = (props: SubPageShellProps) => {
-  const { backHref, backLabel, children, title, ...rest } = props;
+  const { backHref, backLabel, children, onBack, title, ...rest } = props;
   return (
     <SafeAreaShell {...rest} class="bg-muted">
-      <ScreenHeader backHref={backHref} backLabel={backLabel} title={title} />
+      <ScreenHeader
+        backHref={backHref}
+        backLabel={backLabel}
+        onBack={onBack}
+        title={title}
+      />
       {children}
     </SafeAreaShell>
   );

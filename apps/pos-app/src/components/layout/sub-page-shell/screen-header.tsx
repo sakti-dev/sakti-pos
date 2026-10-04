@@ -6,6 +6,8 @@ import { ArrowLeftIcon } from "~/assets";
 interface ScreenHeaderProps {
   readonly backHref: string;
   readonly backLabel?: string;
+  /** When set, the back button walks browser history instead of backHref. */
+  readonly onBack?: () => void;
   readonly right?: JSX.Element;
   readonly title: string;
 }
@@ -17,6 +19,12 @@ export const ScreenHeader = (props: ScreenHeaderProps) => (
         aria-label={props.backLabel ?? "Kembali"}
         class="grid h-[38px] w-[38px] place-items-center rounded-xl border border-border bg-card text-foreground transition-colors duration-150 hover:border-primary/20 hover:bg-primary/5"
         href={props.backHref}
+        onClick={(e) => {
+          if (props.onBack) {
+            e.preventDefault();
+            props.onBack();
+          }
+        }}
       >
         <ArrowLeftIcon class="size-5" />
       </A>

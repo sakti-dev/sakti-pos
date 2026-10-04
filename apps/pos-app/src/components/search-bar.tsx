@@ -13,6 +13,7 @@ interface SearchBarProps {
   readonly mode?: "compact" | "full";
   readonly onInput: (value: string) => void;
   readonly placeholder?: string;
+  readonly ref?: (el: HTMLInputElement) => void;
   readonly value: string;
 }
 
@@ -35,6 +36,7 @@ export const SearchBar = (props: SearchBarProps) => {
           }
         }}
         placeholder={props.placeholder ?? "Cari produk..."}
+        ref={props.ref}
         type="text"
         value={props.value}
       />

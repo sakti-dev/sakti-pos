@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { ChevronDownIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import {
@@ -35,6 +35,16 @@ const MAX_RESULTS = 40;
 export function RegionCombobox(props: RegionComboboxProps) {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal("");
+  let searchInput: HTMLInputElement | undefined;
+
+  /* Focus trap is off for this sheet (its containment refocus pops the
+     Android keyboard back open on close), so the open-time focus on the
+     search field is ours. */
+  createEffect(() => {
+    if (open()) {
+      requestAnimationFrame(() => searchInput?.focus());
+    }
+  });
 
   const results = () => filterRegions(query()).slice(0, MAX_RESULTS);
   const hasValue = () => props.value.length > 0;
@@ -82,6 +92,9 @@ export function RegionCombobox(props: RegionComboboxProps) {
           mode="full"
           onInput={setQuery}
           placeholder="Contoh: Yogyakarta, Denpasar, Makassar…"
+          ref={(el) => {
+            searchInput = el;
+          }}
           value={query()}
         />
 

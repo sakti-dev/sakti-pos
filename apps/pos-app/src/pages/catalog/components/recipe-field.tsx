@@ -1,5 +1,5 @@
 import { FiAlertTriangle } from "solid-icons/fi";
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { CheckIcon, PlusIcon, XCloseIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import {
@@ -29,8 +29,6 @@ interface RecipeFieldProps {
   readonly emptyMessage: string;
   /** All active bahan (plus any linked-but-deactivated ones). */
   readonly items: readonly RecipeFieldItem[];
-  /** Field heading, e.g. "Bahan Baku (resep)". */
-  readonly label: string;
   readonly onQty: (ingredientId: string, qty: number) => void;
   readonly onRemove: (ingredientId: string) => void;
   readonly onSelect: (ingredientId: string) => void;
@@ -45,6 +43,16 @@ interface RecipeFieldProps {
 export const RecipeField = (props: RecipeFieldProps) => {
   const [open, setOpen] = createSignal(false);
   const [search, setSearch] = createSignal("");
+  let searchInput: HTMLInputElement | undefined;
+
+  /* Focus trap is off for this sheet (its containment refocus pops the
+     Android keyboard back open on close), so the open-time focus on the
+     search field is ours. */
+  createEffect(() => {
+    if (open()) {
+      requestAnimationFrame(() => searchInput?.focus());
+    }
+  });
 
   const itemOf = (id: string) => props.items.find((i) => i.id === id);
   const selectedIds = () => new Set(props.rows.map((r) => r.ingredientId));
@@ -63,19 +71,6 @@ export const RecipeField = (props: RecipeFieldProps) => {
 
   return (
     <div class="flex flex-col gap-1.5">
-      <Show
-        fallback={
-          <span class="font-medium text-body-sm text-foreground leading-none tracking-normal">
-            {props.label}
-          </span>
-        }
-        when={props.items.length > 0}
-      >
-        <span class="font-medium text-body-sm text-foreground leading-none tracking-normal">
-          {props.label} ({selectedCount()})
-        </span>
-      </Show>
-
       <Show
         fallback={
           <p class="rounded-lg border border-border border-dashed px-3 py-3 text-center text-caption-sm text-muted-foreground">
@@ -177,6 +172,9 @@ export const RecipeField = (props: RecipeFieldProps) => {
             <SearchBar
               onInput={setSearch}
               placeholder="Cari bahan..."
+              ref={(el) => {
+                searchInput = el;
+              }}
               value={search()}
             />
 
