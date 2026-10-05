@@ -1,7 +1,7 @@
 import { A } from "@solidjs/router";
 import dayjs from "dayjs";
 import { createResource, createSignal, For, Show } from "solid-js";
-import { BanknoteIcon, QrCodeIcon } from "~/assets";
+import { BanknoteIcon, QrCodeIcon, WalletIcon } from "~/assets";
 import { SearchBar } from "~/components/search-bar";
 import { FadeIn } from "~/components/ui/fade-in";
 import { listRecentOrderEntries } from "~/db/orders";
@@ -42,7 +42,7 @@ export default function Transactions() {
     >
       {/* Header bar */}
       <FadeIn
-        class="flex shrink-0 items-center gap-3 px-gutter pt-5 pb-3 lg:px-6"
+        class="flex shrink-0 items-center justify-between gap-3 px-gutter pt-5 pb-3 lg:px-6"
         duration={0.35}
         enable={enable()}
         y={-8}
@@ -50,6 +50,12 @@ export default function Transactions() {
         <h1 class="font-bold font-display text-foreground text-heading-sm">
           Transaksi
         </h1>
+        <A
+          class="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 font-semibold text-body-sm text-foreground transition hover:border-primary/30"
+          href="/transactions/dompet"
+        >
+          <WalletIcon class="h-4 w-4" /> Dompet
+        </A>
       </FadeIn>
 
       {/* Search row */}

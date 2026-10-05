@@ -6,11 +6,13 @@ import {
   onCleanup,
   onMount,
   type ParentComponent,
+  Show,
 } from "solid-js";
 import { toast } from "solid-sonner";
 import { exchangeGoogleOAuthCode, getMerchants } from "~/lib/auth/cloud";
 import { markPaired, paired } from "~/lib/auth/pairing";
 import { currentUser } from "~/lib/auth/session";
+import { ensureStartup, isStartupReady } from "~/lib/auth/startup";
 import { AuthStorage } from "~/lib/auth/storage";
 import { createLogger, describeError } from "~/lib/utils";
 
@@ -117,8 +119,29 @@ export const AuthProvider: ParentComponent = (props) => {
     if (!hasSession) {
       logger.info("redirect_pin_gate", { path });
       navigate("/auth/pin", { replace: true });
+      return;
     }
+
+    /* Authenticated + outlet known: guarantee the outlet's server-side
+       invariants (default wallets) via the startup handshake. First run
+       per device+outlet gates rendering below; later runs are background. */
+    ensureStartup();
   });
 
-  return props.children;
+  return (
+    <Show
+      fallback={
+        <div class="grid h-full place-items-center bg-background">
+          <p class="text-body-sm text-muted-foreground">Menyiapkan…</p>
+        </div>
+      }
+      when={
+        isStartupReady() ||
+        PUBLIC_PATHS.has(location.pathname) ||
+        location.pathname.startsWith("/auth/")
+      }
+    >
+      {props.children}
+    </Show>
+  );
 };

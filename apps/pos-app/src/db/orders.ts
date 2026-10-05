@@ -12,6 +12,7 @@ import { createLogger } from "~/lib/utils";
 import { db, TABLE } from "./index";
 import { decrementStockForSale } from "./inventory";
 import { getRecipesForProducts } from "./recipes";
+import { applySaleDeposit, requireStaffId, resolveSaleWallet } from "./wallets";
 
 export type OrderRow = typeof TABLE.orders.$inferSelect;
 export type OrderItemRow = typeof TABLE.orderItems.$inferSelect;
@@ -53,6 +54,12 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
     recipesByProduct.set(row.productId, list);
   }
 
+  /* Wallet resolution before the write — deterministic re-seed makes this
+     un-failable; a miss (deactivated seed) skips the deposit, never the sale. */
+  const wallet = await resolveSaleWallet(order.payment.method).catch(
+    () => undefined
+  );
+
   return await getSyncClient().writeTransaction(db, async (tx) => {
     const [orderRow] = await tx
       .insert(TABLE.orders)
@@ -70,6 +77,7 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
         amountPaidMinorUnits: order.paid * 100,
         changeAmountMinorUnits: order.change * 100,
         status: "completed",
+        ...(wallet ? { walletId: wallet.id } : {}),
         createdAt: order.createdAt
           ? new Date(order.createdAt).toISOString()
           : now,
@@ -135,6 +143,19 @@ export async function persistOrder(order: CompletedOrder): Promise<OrderRow> {
           line.qty
         );
       }
+    }
+
+    /* Wallet deposit at the tail: order failure ⇒ no wallet write. The
+       drawer keeps the order total — the change handed back was funded by
+       the over-tender, so total is already net of change. */
+    if (wallet) {
+      await applySaleDeposit(tx, {
+        wallet,
+        orderId: orderRow.id,
+        netAmountMinorUnits: order.total * 100,
+        staffId: requireStaffId(),
+        createdAt: now,
+      });
     }
 
     return orderRow;

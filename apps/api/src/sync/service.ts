@@ -24,7 +24,9 @@ import {
   stockAdjustments,
   stocktakeLines,
   stocktakes,
-} from "@sync-contract/generated/2026-10-03/api-synced-schema";
+  wallets,
+  walletTransactions,
+} from "@sync-contract/generated/2026-10-05/api-synced-schema";
 import { createDrizzleSyncRepository } from "baresync/server/drizzle";
 import { and, asc, eq, getTableColumns, gt, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -1649,6 +1651,155 @@ export const repository = createDrizzleSyncRepository({
               differenceMinorUnits: sql.raw("excluded.difference_minor_units"),
               status: sql.raw("excluded.status"),
               note: sql.raw("excluded.note"),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    wallets: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "wallets.id"),
+        outletId: requiredString(row.outletId, "wallets.outletId"),
+        name: requiredString(row.name, "wallets.name"),
+        type: requiredString(row.type, "wallets.type"),
+        accountNumber: optionalString(row.accountNumber),
+        isDefault: requiredBoolean(row.isDefault),
+        currentBalanceMinorUnits: requiredNumber(
+          row.currentBalanceMinorUnits,
+          "wallets.currentBalanceMinorUnits"
+        ),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(row.createdAt, "wallets.createdAt"),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select(getTableColumns(wallets))
+          .from(wallets)
+          .innerJoin(outlets, eq(wallets.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
+          .orderBy(sql`${wallets.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select(getTableColumns(wallets))
+          .from(wallets)
+          .innerJoin(outlets, eq(wallets.outletId, outlets.id))
+          .where(
+            and(
+              eq(outlets.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(wallets.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(asc(wallets.syncUpdatedAt), asc(wallets.id)),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(wallets)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(wallets.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(wallets)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: wallets.id,
+            set: {
+              outletId: sql.raw("excluded.outlet_id"),
+              name: sql.raw("excluded.name"),
+              type: sql.raw("excluded.type"),
+              accountNumber: sql.raw("excluded.account_number"),
+              isDefault: sql.raw("excluded.is_default"),
+              currentBalanceMinorUnits: sql.raw(
+                "excluded.current_balance_minor_units"
+              ),
+              deletedAt: sql.raw("excluded.deleted_at"),
+              syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
+              updatedAt: sql.raw("excluded.updated_at"),
+            },
+          });
+      },
+    },
+    wallet_transactions: {
+      buildRow: ({ row, scopeId: _scopeId, syncUpdatedAt, updatedAt }) => ({
+        id: requiredString(row.id, "wallet_transactions.id"),
+        outletId: requiredString(row.outletId, "wallet_transactions.outletId"),
+        walletId: requiredString(row.walletId, "wallet_transactions.walletId"),
+        type: requiredString(row.type, "wallet_transactions.type"),
+        amountMinorUnits: requiredNumber(
+          row.amountMinorUnits,
+          "wallet_transactions.amountMinorUnits"
+        ),
+        category: optionalString(row.category),
+        referenceId: optionalString(row.referenceId),
+        notes: optionalString(row.notes),
+        createdByStaffId: requiredString(
+          row.createdByStaffId,
+          "wallet_transactions.createdByStaffId"
+        ),
+        deletedAt: optionalString(row.deletedAt),
+        syncUpdatedAt,
+        createdAt: requiredString(
+          row.createdAt,
+          "wallet_transactions.createdAt"
+        ),
+        updatedAt,
+      }),
+      readLatestRow: async ({ scopeId }) => {
+        const [row] = await db
+          .select(getTableColumns(walletTransactions))
+          .from(walletTransactions)
+          .innerJoin(outlets, eq(walletTransactions.outletId, outlets.id))
+          .where(eq(outlets.merchantId, scopeId))
+          .orderBy(sql`${walletTransactions.syncUpdatedAt} DESC`)
+          .limit(1);
+        return row ?? null;
+      },
+      readRows: ({ cursorTimestamp, scopeId }) =>
+        db
+          .select(getTableColumns(walletTransactions))
+          .from(walletTransactions)
+          .innerJoin(outlets, eq(walletTransactions.outletId, outlets.id))
+          .where(
+            and(
+              eq(outlets.merchantId, scopeId),
+              cursorTimestamp > 0
+                ? gt(walletTransactions.syncUpdatedAt, cursorTimestamp)
+                : undefined
+            )
+          )
+          .orderBy(
+            asc(walletTransactions.syncUpdatedAt),
+            asc(walletTransactions.id)
+          ),
+      softDeleteRow: async ({ id, syncUpdatedAt, updatedAt }) => {
+        await db
+          .update(walletTransactions)
+          .set({ deletedAt: updatedAt, syncUpdatedAt, updatedAt })
+          .where(eq(walletTransactions.id, id));
+      },
+      upsertRow: async (row) => {
+        await db
+          .insert(walletTransactions)
+          .values(row as never)
+          .onConflictDoUpdate({
+            target: walletTransactions.id,
+            set: {
+              outletId: sql.raw("excluded.outlet_id"),
+              walletId: sql.raw("excluded.wallet_id"),
+              type: sql.raw("excluded.type"),
+              amountMinorUnits: sql.raw("excluded.amount_minor_units"),
+              category: sql.raw("excluded.category"),
+              referenceId: sql.raw("excluded.reference_id"),
+              notes: sql.raw("excluded.notes"),
+              createdByStaffId: sql.raw("excluded.created_by_staff_id"),
               deletedAt: sql.raw("excluded.deleted_at"),
               syncUpdatedAt: sql.raw("excluded.sync_updated_at"),
               updatedAt: sql.raw("excluded.updated_at"),

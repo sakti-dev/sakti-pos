@@ -1,6 +1,6 @@
 import { useNavigate } from "@solidjs/router";
 import dayjs from "dayjs";
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { WalletIcon } from "~/assets";
 import { getDrawerSnapshot } from "~/db/cash-shifts";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
@@ -22,6 +22,11 @@ export const ShiftCard = () => {
   const open = () => shift() != null;
   const drawerLabel = () =>
     formatRupiah((snapshot()?.expectedInDrawerMinorUnits ?? 0) / 100);
+  const walletStrip = () => snapshot()?.wallets ?? [];
+  const totalLabel = () =>
+    formatRupiah(
+      walletStrip().reduce((sum, w) => sum + w.balanceMinorUnits, 0) / 100
+    );
 
   const openedSince = () => {
     const row = shift();
@@ -69,11 +74,29 @@ export const ShiftCard = () => {
               </span>
             </Show>
           </div>
-          <p class="mt-0.5 truncate text-caption text-muted-foreground">
-            {open()
-              ? "Setor dan tutup shift untuk mengakhiri hari"
-              : "Buka shift untuk mulai menerima transaksi"}
-          </p>
+          <Show
+            fallback={
+              <p class="mt-0.5 truncate text-caption text-muted-foreground">
+                {open()
+                  ? "Setor dan tutup shift untuk mengakhiri hari"
+                  : "Buka shift untuk mulai menerima transaksi"}
+              </p>
+            }
+            when={open() && walletStrip().length > 0}
+          >
+            <p class="mt-0.5 truncate text-caption text-muted-foreground">
+              <For each={walletStrip()}>
+                {(wallet, i) => (
+                  <>
+                    <Show when={i() > 0}> · </Show>
+                    {wallet.name} {formatRupiah(wallet.balanceMinorUnits / 100)}
+                  </>
+                )}
+              </For>
+              {" · Total "}
+              {totalLabel()}
+            </p>
+          </Show>
         </div>
 
         <Show

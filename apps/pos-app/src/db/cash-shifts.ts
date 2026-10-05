@@ -4,68 +4,28 @@ import { getSyncClient } from "~/lib/api/sync";
 import { currentOutletId, currentUser } from "~/lib/auth/session";
 import { createLogger } from "~/lib/utils";
 import { db, TABLE } from "./index";
+import {
+  applyWalletReconciliation,
+  applyWalletTransfer,
+  getWalletStrip,
+  type WalletStripRow,
+} from "./wallets";
 
 const logger = createLogger({ domain: "SHIFT", module: "cash-shifts" });
 
 export type CashShiftRow = typeof TABLE.cashShifts.$inferSelect;
 
-/** Order fields the shift-window aggregate needs (subset of OrderRow). */
-export interface OrderWindowRow {
-  readonly createdAt: string;
-  readonly deletedAt: string | null;
-  readonly paymentMethod: string;
-  readonly status: string;
-  readonly totalMinorUnits: number;
+/** Wallet fields the shift-window aggregate needs. */
+export interface ShiftWalletRef {
+  readonly currentBalanceMinorUnits: number;
+  readonly id: string;
+  readonly type: "cash" | "qris";
 }
 
-const QRIS_METHODS = new Set(["qris", "qris_static", "qris_dynamic"]);
-
-/**
- * Cash sale eligible for drawer expectation: completed, not deleted, paid
- * in cash, created inside the shift window [openedAt, closedAt).
- */
-export function isCashSaleInShift(
-  order: OrderWindowRow,
-  openedAtIso: string,
-  closedAtIso: string
-): boolean {
-  return (
-    order.paymentMethod === "cash" &&
-    order.status === "completed" &&
-    order.deletedAt === null &&
-    order.createdAt >= openedAtIso &&
-    order.createdAt < closedAtIso
-  );
-}
-
-/** QRIS sale in the same window — informational only (never drawer money). */
-export function isQrisSaleInShift(
-  order: OrderWindowRow,
-  openedAtIso: string,
-  closedAtIso: string
-): boolean {
-  return (
-    QRIS_METHODS.has(order.paymentMethod) &&
-    order.status === "completed" &&
-    order.deletedAt === null &&
-    order.createdAt >= openedAtIso &&
-    order.createdAt < closedAtIso
-  );
-}
-
-export function computeExpectedCash(
-  initialFloatMinorUnits: number,
-  orders: readonly OrderWindowRow[],
-  openedAtIso: string,
-  closedAtIso: string
-): number {
-  let sum = initialFloatMinorUnits;
-  for (const order of orders) {
-    if (isCashSaleInShift(order, openedAtIso, closedAtIso)) {
-      sum += order.totalMinorUnits;
-    }
-  }
-  return sum;
+/** Sale-ledger fields for the window aggregate (wallet-scoped). */
+export interface WalletSaleWindowRow {
+  readonly amountMinorUnits: number;
+  readonly walletId: string;
 }
 
 export function computeDifferenceMinorUnits(
@@ -75,26 +35,84 @@ export function computeDifferenceMinorUnits(
   return actualMinorUnits - expectedMinorUnits;
 }
 
-/** Orders for the outlet created in [fromIso, toIso) — the SQL narrows by the outlet+created index; predicates above do the rest. */
-async function ordersInWindow(
+/**
+ * Window sales split by wallet: cash (drawer-report) and QRIS
+ * (informational). Only `sale` ledger rows count — manual movements and
+ * transfers are not sales.
+ */
+export function sumWindowSalesByWallet(
+  rows: readonly WalletSaleWindowRow[],
+  cashWalletId: string | undefined,
+  qrisWalletId: string | undefined
+): { cashMinorUnits: number; qrisMinorUnits: number } {
+  let cash = 0;
+  let qris = 0;
+  for (const row of rows) {
+    if (cashWalletId && row.walletId === cashWalletId) {
+      cash += row.amountMinorUnits;
+    } else if (qrisWalletId && row.walletId === qrisWalletId) {
+      qris += row.amountMinorUnits;
+    }
+  }
+  return { cashMinorUnits: cash, qrisMinorUnits: qris };
+}
+
+/** Active default cash + qris wallets for an outlet (id + balance). */
+async function shiftWalletRefs(outletId: string): Promise<{
+  cash: ShiftWalletRef | undefined;
+  qris: ShiftWalletRef | undefined;
+}> {
+  const rows = await db
+    .select({
+      id: TABLE.wallets.id,
+      currentBalanceMinorUnits: TABLE.wallets.currentBalanceMinorUnits,
+      type: TABLE.wallets.type,
+      isDefault: TABLE.wallets.isDefault,
+    })
+    .from(TABLE.wallets)
+    .where(
+      and(eq(TABLE.wallets.outletId, outletId), isNull(TABLE.wallets.deletedAt))
+    );
+  const cashRow =
+    rows.find((row) => row.type === "cash" && row.isDefault) ??
+    rows.find((row) => row.type === "cash");
+  const qrisRow = rows.find((row) => row.type === "qris");
+  return {
+    cash: cashRow
+      ? {
+          id: cashRow.id,
+          currentBalanceMinorUnits: cashRow.currentBalanceMinorUnits,
+          type: "cash",
+        }
+      : undefined,
+    qris: qrisRow
+      ? {
+          id: qrisRow.id,
+          currentBalanceMinorUnits: qrisRow.currentBalanceMinorUnits,
+          type: "qris",
+        }
+      : undefined,
+  };
+}
+
+/** Sale ledger rows in [fromIso, toIso) for the outlet. */
+async function salesInWindow(
   outletId: string,
   fromIso: string,
   toIso: string
-): Promise<OrderWindowRow[]> {
+): Promise<WalletSaleWindowRow[]> {
   return await db
     .select({
-      createdAt: TABLE.orders.createdAt,
-      deletedAt: TABLE.orders.deletedAt,
-      paymentMethod: TABLE.orders.paymentMethod,
-      status: TABLE.orders.status,
-      totalMinorUnits: TABLE.orders.totalMinorUnits,
+      amountMinorUnits: TABLE.walletTransactions.amountMinorUnits,
+      walletId: TABLE.walletTransactions.walletId,
     })
-    .from(TABLE.orders)
+    .from(TABLE.walletTransactions)
     .where(
       and(
-        eq(TABLE.orders.outletId, outletId),
-        gte(TABLE.orders.createdAt, fromIso),
-        lt(TABLE.orders.createdAt, toIso)
+        eq(TABLE.walletTransactions.outletId, outletId),
+        eq(TABLE.walletTransactions.type, "sale"),
+        gte(TABLE.walletTransactions.createdAt, fromIso),
+        lt(TABLE.walletTransactions.createdAt, toIso)
       )
     );
 }
@@ -121,36 +139,31 @@ export async function getOpenShift(
 }
 
 /**
- * Live drawer snapshot for the home plaque: open shift + the money that
- * should be in the drawer right now (float + completed cash sales).
+ * Live drawer snapshot for the home plaque: open shift + the Laci Kas
+ * wallet balance (the authoritative drawer total) + the wallet strip.
  */
 export async function getDrawerSnapshot(): Promise<{
   expectedInDrawerMinorUnits: number;
   shift: CashShiftRow | null;
+  wallets: WalletStripRow[];
 }> {
   const shift = await getOpenShift();
+  const wallets = await getWalletStrip();
   if (!shift) {
-    return { expectedInDrawerMinorUnits: 0, shift: null };
+    return { expectedInDrawerMinorUnits: 0, shift: null, wallets };
   }
-  const orders = await ordersInWindow(
-    shift.outletId,
-    shift.openedAt,
-    dayjs().toISOString()
-  );
+  const { cash } = await shiftWalletRefs(shift.outletId);
   return {
-    expectedInDrawerMinorUnits: computeExpectedCash(
-      shift.initialFloatMinorUnits,
-      orders,
-      shift.openedAt,
-      dayjs().toISOString()
-    ),
+    expectedInDrawerMinorUnits: cash?.currentBalanceMinorUnits ?? 0,
     shift,
+    wallets,
   };
 }
 
 /**
- * Live totals for a shift's window [openedAt, now): drawer-eligible cash
- * and the informational QRIS total.
+ * Live totals for a shift's window [openedAt, now): cash sales and
+ * informational QRIS sales come from the sale ledger; expected-in-drawer
+ * is the Laci Kas wallet balance.
  */
 export async function getShiftWindowTotals(
   shift: Pick<CashShiftRow, "initialFloatMinorUnits" | "openedAt" | "outletId">
@@ -160,9 +173,11 @@ export async function getShiftWindowTotals(
   qrisMinorUnits: number;
 }> {
   const toIso = dayjs().toISOString();
-  let orders: OrderWindowRow[];
+  let walletRefs: Awaited<ReturnType<typeof shiftWalletRefs>>;
+  let sales: WalletSaleWindowRow[];
   try {
-    orders = await ordersInWindow(shift.outletId, shift.openedAt, toIso);
+    walletRefs = await shiftWalletRefs(shift.outletId);
+    sales = await salesInWindow(shift.outletId, shift.openedAt, toIso);
   } catch (error) {
     logger.error("WINDOW_QUERY_FAILED", String(error), {
       fromIso: shift.openedAt,
@@ -171,38 +186,33 @@ export async function getShiftWindowTotals(
     });
     throw error;
   }
-  let cash = 0;
-  let qris = 0;
-  for (const order of orders) {
-    if (isCashSaleInShift(order, shift.openedAt, toIso)) {
-      cash += order.totalMinorUnits;
-    } else if (isQrisSaleInShift(order, shift.openedAt, toIso)) {
-      qris += order.totalMinorUnits;
-    }
-  }
+  const { cashMinorUnits, qrisMinorUnits } = sumWindowSalesByWallet(
+    sales,
+    walletRefs.cash?.id,
+    walletRefs.qris?.id
+  );
   logger.info("WINDOW_TOTALS", {
-    cashMinorUnits: cash,
+    cashMinorUnits,
+    expectedInDrawerMinorUnits: walletRefs.cash?.currentBalanceMinorUnits ?? 0,
     fromIso: shift.openedAt,
     outletId: shift.outletId,
-    qrisMinorUnits: qris,
-    rows: orders.length,
-    sample: orders[0]
-      ? {
-          createdAt: orders[0].createdAt,
-          paymentMethod: orders[0].paymentMethod,
-          status: orders[0].status,
-        }
-      : null,
+    qrisMinorUnits,
+    rows: sales.length,
     toIso,
   });
   return {
-    cashMinorUnits: cash,
-    expectedInDrawerMinorUnits: cash + shift.initialFloatMinorUnits,
-    qrisMinorUnits: qris,
+    cashMinorUnits,
+    expectedInDrawerMinorUnits: walletRefs.cash?.currentBalanceMinorUnits ?? 0,
+    qrisMinorUnits,
   };
 }
 
-/** Open a shift: float + opener, `status: 'open'`, outbox-enqueued. */
+/**
+ * Open a shift: float + opener, `status: 'open'`, outbox-enqueued. The
+ * declared float is the total cash in the drawer at open — the Laci Kas
+ * wallet is reconciled to it (fresh install: 0 → float; steady state:
+ * usually a no-op), so wallet balance = drawer truth from the start.
+ */
 export async function openShift(
   initialFloatMinorUnits: number
 ): Promise<CashShiftRow> {
@@ -240,6 +250,33 @@ export async function openShift(
       rowId: row.id,
       table: TABLE.cashShifts,
     });
+
+    const [cashWallet] = await tx
+      .select()
+      .from(TABLE.wallets)
+      .where(
+        and(
+          eq(TABLE.wallets.outletId, outletId),
+          eq(TABLE.wallets.type, "cash"),
+          isNull(TABLE.wallets.deletedAt)
+        )
+      )
+      .limit(1);
+    if (cashWallet) {
+      const variance =
+        initialFloatMinorUnits - cashWallet.currentBalanceMinorUnits;
+      if (variance !== 0) {
+        await applyWalletReconciliation(tx, {
+          countedMinorUnits: initialFloatMinorUnits,
+          notes: "Modal awal shift",
+          referenceId: row.id,
+          walletId: cashWallet.id,
+        });
+      }
+    } else {
+      logger.warn("SHIFT:OPEN_WALLET_MISSING", { outletId, shiftId: row.id });
+    }
+
     logger.info("SHIFT:OPENED", {
       floatMinorUnits: initialFloatMinorUnits,
       shiftId: row.id,
@@ -249,14 +286,22 @@ export async function openShift(
   });
 }
 
+/** Setoran: money moved out of the drawer at close, into another wallet. */
+export interface CloseSetoranInput {
+  readonly amountMinorUnits: number;
+  readonly toWalletId: string;
+}
+
 /**
- * Close a shift (setoran). Expected cash is computed from the shift row
- * and its order window INSIDE the write transaction, then persisted with
- * the count, signed difference, closer identity, and status.
+ * Close a shift. Expected cash is the Laci Kas wallet balance read INSIDE
+ * the write transaction. The close additionally writes wallet ledger
+ * events: a reconciliation applying the counted variance to Laci Kas, and
+ * — when setoran is provided — a linked transfer pair moving the money out.
  */
 export async function closeShift(input: {
   actualCashMinorUnits: number;
   note?: string;
+  setoran?: CloseSetoranInput;
   shiftId: string;
 }): Promise<CashShiftRow> {
   const staff = currentUser();
@@ -271,6 +316,17 @@ export async function closeShift(input: {
       "closeShift: actual must be a non-negative integer (minor units)"
     );
   }
+  if (input.setoran) {
+    if (
+      !Number.isInteger(input.setoran.amountMinorUnits) ||
+      input.setoran.amountMinorUnits <= 0
+    ) {
+      throw new Error("closeShift: setoran must be a positive integer");
+    }
+    if (input.setoran.amountMinorUnits > input.actualCashMinorUnits) {
+      throw new Error("closeShift: setoran cannot exceed the counted cash");
+    }
+  }
 
   return await getSyncClient().writeTransaction(db, async (tx) => {
     const [shift] = await tx
@@ -282,28 +338,22 @@ export async function closeShift(input: {
       throw new Error("closeShift: shift not found or already closed");
     }
     const closedAt = dayjs().toISOString();
-    const orders = await tx
-      .select({
-        createdAt: TABLE.orders.createdAt,
-        deletedAt: TABLE.orders.deletedAt,
-        paymentMethod: TABLE.orders.paymentMethod,
-        status: TABLE.orders.status,
-        totalMinorUnits: TABLE.orders.totalMinorUnits,
-      })
-      .from(TABLE.orders)
+
+    /* Expected = the Laci Kas balance right now (authoritative drawer total). */
+    const outletId = shift.outletId;
+    const [cashWallet] = await tx
+      .select()
+      .from(TABLE.wallets)
       .where(
         and(
-          eq(TABLE.orders.outletId, shift.outletId),
-          gte(TABLE.orders.createdAt, shift.openedAt),
-          lt(TABLE.orders.createdAt, closedAt)
+          eq(TABLE.wallets.outletId, outletId),
+          eq(TABLE.wallets.type, "cash"),
+          isNull(TABLE.wallets.deletedAt)
         )
-      );
-    const expected = computeExpectedCash(
-      shift.initialFloatMinorUnits,
-      orders,
-      shift.openedAt,
-      closedAt
-    );
+      )
+      .limit(1);
+    const expected = cashWallet?.currentBalanceMinorUnits ?? 0;
+
     const [row] = await tx
       .update(TABLE.cashShifts)
       .set({
@@ -326,10 +376,36 @@ export async function closeShift(input: {
       rowId: row.id,
       table: TABLE.cashShifts,
     });
+
+    /* Wallet events: reconcile the drawer to the physical count, then
+       optionally move the setoran out — same transaction, one story. */
+    if (cashWallet) {
+      await applyWalletReconciliation(tx, {
+        walletId: cashWallet.id,
+        countedMinorUnits: input.actualCashMinorUnits,
+        referenceId: shift.id,
+        notes: input.note?.trim() ? input.note.trim() : null,
+      });
+      if (input.setoran) {
+        await applyWalletTransfer(tx, {
+          fromWalletId: cashWallet.id,
+          toWalletId: input.setoran.toWalletId,
+          amountMinorUnits: input.setoran.amountMinorUnits,
+          notes: `Setoran tutup shift ${shift.id}`,
+        });
+      }
+    } else {
+      logger.warn("SHIFT:CLOSE_WALLET_MISSING", {
+        outletId,
+        shiftId: shift.id,
+      });
+    }
+
     logger.info("SHIFT:CLOSED", {
       actualMinorUnits: input.actualCashMinorUnits,
       differenceMinorUnits: row.differenceMinorUnits,
       expectedMinorUnits: expected,
+      setoranAmountMinorUnits: input.setoran?.amountMinorUnits ?? null,
       shiftId: row.id,
       staffId: staff.id,
     });

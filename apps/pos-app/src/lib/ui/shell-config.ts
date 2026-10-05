@@ -20,6 +20,7 @@ const FLOW_ROUTES: RegExp[] = [
   /^\/inventory\/(stocktake|goods-receipt|history|ingredient)(?:\/.*)?$/,
   /^\/onboarding(?:\/.*)?$/,
   /^\/transactions\/cash-register/,
+  /^\/transactions\/dompet\/riwayat/,
   /^\/transactions\/payment/,
   /^\/transactions\/receipt/,
 ];
@@ -31,6 +32,7 @@ const SETTING_SUBPAGE_RE = /^\/setting\/.+$/;
 
 const NAV_MAP: Array<{ pattern: RegExp; nav: NavKey }> = [
   { pattern: /^\/$/, nav: "home" },
+  { pattern: /^\/transactions\/dompet/, nav: "transactions" },
   { pattern: /^\/transactions$/, nav: "transactions" },
   { pattern: /^\/inventory$/, nav: "inventory" },
   { pattern: /^\/setting/, nav: "settings" },

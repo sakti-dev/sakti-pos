@@ -29,6 +29,7 @@ import SettingPage from "./pages/setting";
 import { SectionAbout } from "./pages/setting/components/section-about";
 import { SectionBusiness } from "./pages/setting/components/section-business";
 import { SectionDevices } from "./pages/setting/components/section-devices";
+import { SectionDompet } from "./pages/setting/components/section-dompet";
 import { SectionGeneral } from "./pages/setting/components/section-general";
 import { SectionPaymentMethods } from "./pages/setting/components/section-payment-methods";
 import { SectionPaymentMonitor } from "./pages/setting/components/section-payment-monitor";
@@ -39,6 +40,8 @@ import Transactions from "./pages/transactions";
 import CashRegisterPage from "./pages/transactions/cash-register";
 import ShiftClosePage from "./pages/transactions/cash-register/shift-close";
 import ShiftOpenPage from "./pages/transactions/cash-register/shift-open";
+import DompetPage from "./pages/transactions/dompet";
+import WalletRiwayatPage from "./pages/transactions/dompet/riwayat";
 import PaymentPage from "./pages/transactions/payment";
 import QrisPayScreen from "./pages/transactions/payment/qris";
 import Receipt from "./pages/transactions/receipt";
@@ -85,6 +88,7 @@ export default function AppRoutes() {
         <Route component={SectionBusiness} path="/" />
         <Route component={SectionBusiness} path="/business" />
         <Route component={SectionGeneral} path="/general" />
+        <Route component={SectionDompet} path="/dompet" />
         <Route component={SectionTax} path="/tax" />
         <Route component={SectionPaymentMethods} path="/payment-methods" />
         <Route component={SectionPaymentMonitor} path="/payment-monitor" />
@@ -107,6 +111,11 @@ export default function AppRoutes() {
       <Route component={StocktakePage} path="/inventory/stocktake/new" />
       <Route component={GoodsReceiptPage} path="/inventory/goods-receipt/new" />
       <Route component={CashRegisterPage} path="/transactions/cash-register" />
+      <Route component={DompetPage} path="/transactions/dompet" />
+      <Route
+        component={WalletRiwayatPage}
+        path="/transactions/dompet/riwayat"
+      />
       <Route
         component={ShiftOpenPage}
         path="/transactions/cash-register/shift-open"

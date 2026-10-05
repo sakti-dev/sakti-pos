@@ -94,7 +94,8 @@ export default function ProductFormPage() {
     () => (isEditing() ? params.id : undefined),
     (id) => getProduct(id!)
   );
-  const [categoriesList] = createResource(getCategories);
+  const [categoriesList, { refetch: refetchCategories }] =
+    createResource(getCategories);
 
   const existing = () => product();
 
@@ -391,6 +392,7 @@ export default function ProductFormPage() {
                     onChange={setCategory}
                     onCreate={async (query) => {
                       const created = await createCategory({ name: query });
+                      await refetchCategories();
                       return created.id;
                     }}
                     options={(categoriesList() ?? []).map((c) => ({

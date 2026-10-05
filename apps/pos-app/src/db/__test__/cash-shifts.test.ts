@@ -1,4 +1,8 @@
-import { cashShifts } from "@sync-contract/local-synced-schema";
+import {
+  cashShifts,
+  wallets,
+  walletTransactions,
+} from "@sync-contract/local-synced-schema";
 import dayjs from "dayjs";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -9,17 +13,7 @@ const mockUpdate = vi.fn();
 const tx = { insert: mockInsert, select: mockSelect, update: mockUpdate };
 
 vi.mock("~/db", () => ({
-  TABLE: {
-    cashShifts,
-    orders: {
-      createdAt: "createdAt",
-      deletedAt: "deletedAt",
-      outletId: "outletId",
-      paymentMethod: "paymentMethod",
-      status: "status",
-      totalMinorUnits: "totalMinorUnits",
-    },
-  },
+  TABLE: { cashShifts, walletTransactions, wallets },
   db: { select: mockSelect },
 }));
 
@@ -32,114 +26,107 @@ vi.mock("~/lib/api/sync", () => ({
   }),
 }));
 
+const applyWalletReconciliation = vi.fn(async () => ({ id: "recon-1" }));
+const applyWalletTransfer = vi.fn(async () => ({ referenceId: "xfer-1" }));
+vi.mock("../wallets", () => ({
+  applyWalletReconciliation,
+  applyWalletTransfer,
+  getWalletStrip: async () => [],
+}));
+
 vi.mock("~/lib/auth/session", () => ({
   currentOutletId: () => "outlet-1",
   currentUser: () => ({ id: "staff-1", name: "Andi", role: "cashier" }),
 }));
 
+vi.mock("~/lib/utils", () => ({
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+}));
+
 const {
   closeShift,
   computeDifferenceMinorUnits,
-  computeExpectedCash,
+  getDrawerSnapshot,
   getOpenShift,
-  isCashSaleInShift,
-  isQrisSaleInShift,
+  getShiftWindowTotals,
   openShift,
+  sumWindowSalesByWallet,
 } = await import("../cash-shifts");
 
-/* Relative to real time so the suite is date-independent (see
-   orders.test.ts businessDate fix for the same class of bug). */
-const OPENED = dayjs().subtract(9, "hour").toISOString();
-const CLOSED = dayjs().toISOString();
+/* Row queues per table — tests fill them before each case. */
+let shiftRows: Record<string, unknown>[] = [];
+let walletRefRows: Record<string, unknown>[] = [];
+let walletFullRows: Record<string, unknown>[] = [];
+let saleRows: Record<string, unknown>[] = [];
 
-const order = (overrides: Partial<Record<string, unknown>> = {}) => ({
-  createdAt: dayjs().subtract(4, "hour").toISOString(),
-  deletedAt: null,
-  paymentMethod: "cash",
-  status: "completed",
-  totalMinorUnits: 100_000,
-  ...overrides,
+mockSelect.mockImplementation((fields?: unknown) => ({
+  from: (table: unknown) => ({
+    where: () => {
+      let rows: Record<string, unknown>[];
+      if (table === cashShifts) {
+        rows = shiftRows;
+      } else if (table === wallets) {
+        rows = fields ? walletRefRows : walletFullRows;
+      } else if (table === walletTransactions) {
+        rows = saleRows;
+      } else {
+        rows = [];
+      }
+      return Object.assign(Promise.resolve(rows), {
+        limit: () => rows,
+        orderBy: () => Promise.resolve(rows),
+      });
+    },
+  }),
+}));
+
+const cashWalletRef = {
+  currentBalanceMinorUnits: 2_600_000,
+  id: "w-cash",
+  isDefault: true,
+  type: "cash",
+};
+
+const reset = () => {
+  shiftRows = [];
+  walletRefRows = [];
+  walletFullRows = [];
+  saleRows = [];
+};
+
+const openShiftRow = () => ({
+  id: "shift-1",
+  initialFloatMinorUnits: 500_000,
+  openedAt: dayjs().subtract(9, "hour").toISOString(),
+  openedByStaffId: "staff-1",
+  outletId: "outlet-1",
+  status: "open",
 });
 
-describe("isCashSaleInShift", () => {
-  test("accepts a completed cash order inside the window", () => {
-    expect(isCashSaleInShift(order(), OPENED, CLOSED)).toBe(true);
-  });
-
-  test.each([
-    "qris_static",
-    "qris_dynamic",
-    "qris",
-    "card",
-  ])("excludes non-cash payment (%s)", (method) => {
-    expect(
-      isCashSaleInShift(order({ paymentMethod: method }), OPENED, CLOSED)
-    ).toBe(false);
-  });
-
-  test("excludes cancelled and soft-deleted orders", () => {
-    expect(
-      isCashSaleInShift(order({ status: "cancelled" }), OPENED, CLOSED)
-    ).toBe(false);
-    expect(
-      isCashSaleInShift(
-        order({ deletedAt: "2026-09-29T06:00:00.000Z" }),
-        OPENED,
-        CLOSED
-      )
-    ).toBe(false);
-  });
-
-  test("window is [openedAt, closedAt) — inclusive open, exclusive close", () => {
-    expect(
-      isCashSaleInShift(order({ createdAt: OPENED }), OPENED, CLOSED)
-    ).toBe(true);
-    expect(
-      isCashSaleInShift(
-        order({ createdAt: dayjs(OPENED).subtract(1, "ms").toISOString() }),
-        OPENED,
-        CLOSED
-      )
-    ).toBe(false);
-    expect(
-      isCashSaleInShift(order({ createdAt: CLOSED }), OPENED, CLOSED)
-    ).toBe(false);
-    expect(
-      isCashSaleInShift(
-        order({ createdAt: dayjs(CLOSED).subtract(1, "ms").toISOString() }),
-        OPENED,
-        CLOSED
-      )
-    ).toBe(true);
-  });
-});
-
-describe("isQrisSaleInShift", () => {
-  test("accepts all qris variants, rejects cash", () => {
-    expect(
-      isQrisSaleInShift(order({ paymentMethod: "qris_static" }), OPENED, CLOSED)
-    ).toBe(true);
-    expect(
-      isQrisSaleInShift(order({ paymentMethod: "qris" }), OPENED, CLOSED)
-    ).toBe(true);
-    expect(isQrisSaleInShift(order(), OPENED, CLOSED)).toBe(false);
-  });
-});
-
-describe("computeExpectedCash", () => {
-  test("float + cash sales only (QRIS and cancelled excluded)", () => {
-    const expected = computeExpectedCash(
-      500_000,
+describe("sumWindowSalesByWallet", () => {
+  test("splits sale ledger rows by wallet; non-sale rows never counted", () => {
+    const { cashMinorUnits, qrisMinorUnits } = sumWindowSalesByWallet(
       [
-        order({ totalMinorUnits: 200_000 }),
-        order({ paymentMethod: "qris_static", totalMinorUnits: 850_000 }),
-        order({ status: "cancelled", totalMinorUnits: 50_000 }),
-        order({ createdAt: CLOSED, totalMinorUnits: 75_000 }), // at close boundary: excluded
+        { amountMinorUnits: 2_100_000, walletId: "w-cash" },
+        { amountMinorUnits: 35_000, walletId: "w-cash" },
+        { amountMinorUnits: 850_000, walletId: "w-qris" },
+        { amountMinorUnits: 80_000, walletId: "w-bank" },
       ],
-      OPENED,
-      CLOSED
+      "w-cash",
+      "w-qris"
     );
-    expect(expected).toBe(700_000);
+    expect(cashMinorUnits).toBe(2_135_000);
+    expect(qrisMinorUnits).toBe(850_000);
+  });
+
+  test("missing wallets contribute zero", () => {
+    const { cashMinorUnits, qrisMinorUnits } = sumWindowSalesByWallet(
+      [{ amountMinorUnits: 50_000, walletId: "w-cash" }],
+      undefined,
+      undefined
+    );
+    expect(cashMinorUnits).toBe(0);
+    expect(qrisMinorUnits).toBe(0);
   });
 });
 
@@ -150,8 +137,67 @@ describe("computeDifferenceMinorUnits", () => {
   });
 });
 
+describe("getDrawerSnapshot", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    reset();
+  });
+
+  test("expected-in-drawer is the Laci Kas wallet balance", async () => {
+    shiftRows = [openShiftRow()];
+    walletRefRows = [cashWalletRef];
+
+    const snapshot = await getDrawerSnapshot();
+
+    expect(snapshot.shift?.id).toBe("shift-1");
+    expect(snapshot.expectedInDrawerMinorUnits).toBe(2_600_000);
+  });
+
+  test("no open shift → zero and null", async () => {
+    const snapshot = await getDrawerSnapshot();
+    expect(snapshot.shift).toBeNull();
+    expect(snapshot.expectedInDrawerMinorUnits).toBe(0);
+  });
+});
+
+describe("getShiftWindowTotals", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    reset();
+  });
+
+  test("cash/QRIS from sale ledger; expected from wallet balance", async () => {
+    walletRefRows = [
+      cashWalletRef,
+      {
+        currentBalanceMinorUnits: 850_000,
+        id: "w-qris",
+        isDefault: true,
+        type: "qris",
+      },
+    ];
+    saleRows = [
+      { amountMinorUnits: 2_100_000, walletId: "w-cash" },
+      { amountMinorUnits: 850_000, walletId: "w-qris" },
+    ];
+
+    const totals = await getShiftWindowTotals({
+      initialFloatMinorUnits: 500_000,
+      openedAt: dayjs().subtract(9, "hour").toISOString(),
+      outletId: "outlet-1",
+    });
+
+    expect(totals.cashMinorUnits).toBe(2_100_000);
+    expect(totals.qrisMinorUnits).toBe(850_000);
+    expect(totals.expectedInDrawerMinorUnits).toBe(2_600_000);
+  });
+});
+
 describe("openShift", () => {
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+    reset();
+  });
 
   test("inserts an open shift with opener + float and enqueues sync", async () => {
     mockInsert.mockImplementation(() => ({
@@ -175,67 +221,82 @@ describe("openShift", () => {
     );
   });
 
+  test("reconciles the wallet up to the declared float (fresh drawer)", async () => {
+    walletFullRows = [
+      {
+        currentBalanceMinorUnits: 0,
+        deletedAt: null,
+        id: "w-cash",
+        outletId: "outlet-1",
+        type: "cash",
+      },
+    ];
+
+    await openShift(200_000);
+
+    expect(applyWalletReconciliation).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        countedMinorUnits: 200_000,
+        notes: "Modal awal shift",
+        walletId: "w-cash",
+      })
+    );
+  });
+
+  test("skips reconciliation when the float matches the recorded balance", async () => {
+    walletFullRows = [
+      {
+        currentBalanceMinorUnits: 215_000,
+        deletedAt: null,
+        id: "w-cash",
+        outletId: "outlet-1",
+        type: "cash",
+      },
+    ];
+
+    await openShift(215_000);
+
+    expect(applyWalletReconciliation).not.toHaveBeenCalled();
+  });
+
   test("rejects a negative float", async () => {
     await expect(openShift(-1)).rejects.toThrow("float");
   });
 });
 
 describe("getOpenShift", () => {
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+    reset();
+  });
 
   test("returns the open row or null when none", async () => {
-    mockSelect.mockImplementation(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: "shift-1", status: "open" }]),
-        }),
-      }),
-    }));
+    shiftRows = [{ id: "shift-1", status: "open" }];
     expect((await getOpenShift())?.id).toBe("shift-1");
 
-    mockSelect.mockImplementation(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    }));
+    shiftRows = [];
     expect(await getOpenShift()).toBeNull();
   });
 });
 
 describe("closeShift", () => {
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+    reset();
+  });
 
-  test("persists expected, actual, signed difference, closer, closed status", async () => {
-    // first select: the shift row; second: the window orders
-    mockSelect
-      .mockImplementationOnce(() => ({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: "shift-1",
-                initialFloatMinorUnits: 500_000,
-                openedAt: OPENED,
-                outletId: "outlet-1",
-                status: "open",
-              },
-            ]),
-          }),
-        }),
-      }))
-      .mockImplementationOnce(() => ({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            order({ totalMinorUnits: 2_100_000 }),
-            order({
-              paymentMethod: "qris_dynamic",
-              totalMinorUnits: 850_000,
-            }),
-          ]),
-        }),
-      }));
+  test("expected = wallet balance; reconciliation applies the variance", async () => {
+    shiftRows = [openShiftRow()];
+    walletFullRows = [
+      {
+        currentBalanceMinorUnits: 2_600_000,
+        deletedAt: null,
+        id: "w-cash",
+        outletId: "outlet-1",
+        type: "cash",
+      },
+    ];
     let capturedPatch: Record<string, number | string | null> = {};
     mockUpdate.mockImplementation(() => ({
       set: vi.fn((p: Record<string, unknown>) => {
@@ -256,26 +317,76 @@ describe("closeShift", () => {
     });
     expect(row.status).toBe("closed");
 
-    const patch = capturedPatch;
-    expect(patch.expectedCashMinorUnits).toBe(2_600_000);
-    expect(patch.differenceMinorUnits).toBe(-5000);
-    expect(patch.actualCashMinorUnits).toBe(2_595_000);
-    expect(patch.closedByStaffId).toBe("staff-1");
-    expect(patch.status).toBe("closed");
+    expect(capturedPatch.expectedCashMinorUnits).toBe(2_600_000);
+    expect(capturedPatch.differenceMinorUnits).toBe(-5000);
+    expect(capturedPatch.actualCashMinorUnits).toBe(2_595_000);
+    expect(capturedPatch.closedByStaffId).toBe("staff-1");
+    expect(capturedPatch.status).toBe("closed");
     expect(enqueueChange).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ operation: "update", rowId: "shift-1" })
     );
+    expect(applyWalletReconciliation).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        countedMinorUnits: 2_595_000,
+        referenceId: "shift-1",
+        walletId: "w-cash",
+      })
+    );
+    expect(applyWalletTransfer).not.toHaveBeenCalled();
   });
 
-  test("rejects closing an unknown shift", async () => {
-    mockSelect.mockImplementation(() => ({
-      from: vi.fn().mockReturnValue({
+  test("setoran writes the transfer pair out of the drawer", async () => {
+    shiftRows = [openShiftRow()];
+    walletFullRows = [
+      {
+        currentBalanceMinorUnits: 495_000,
+        deletedAt: null,
+        id: "w-cash",
+        outletId: "outlet-1",
+        type: "cash",
+      },
+    ];
+    mockUpdate.mockImplementation(() => ({
+      set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
+          returning: vi
+            .fn()
+            .mockResolvedValue([{ id: "shift-1", status: "closed" }]),
         }),
       }),
     }));
+
+    await closeShift({
+      actualCashMinorUnits: 495_000,
+      setoran: { amountMinorUnits: 445_000, toWalletId: "w-bank" },
+      shiftId: "shift-1",
+    });
+
+    expect(applyWalletTransfer).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        amountMinorUnits: 445_000,
+        fromWalletId: "w-cash",
+        toWalletId: "w-bank",
+      })
+    );
+  });
+
+  test("setoran cannot exceed the counted cash", async () => {
+    await expect(
+      closeShift({
+        actualCashMinorUnits: 100_000,
+        setoran: { amountMinorUnits: 200_000, toWalletId: "w-bank" },
+        shiftId: "shift-1",
+      })
+    ).rejects.toThrow("cannot exceed");
+    expect(applyWalletTransfer).not.toHaveBeenCalled();
+  });
+
+  test("rejects closing an unknown shift", async () => {
+    shiftRows = [];
     await expect(
       closeShift({ actualCashMinorUnits: 0, shiftId: "nope" })
     ).rejects.toThrow("not found");

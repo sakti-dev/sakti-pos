@@ -37,7 +37,7 @@ export const menuGroups: readonly MenuGroup[] = [
       { Icon: GridDetailIcon, href: "/catalog", label: "Katalog" },
       { Icon: PeopleIcon, href: "/setting", label: "Pelanggan" },
       { Icon: ChartIcon, href: "/transactions", label: "Laporan" },
-      { Icon: WalletIcon, href: "/setting", label: "Dompet" },
+      { Icon: WalletIcon, href: "/transactions/dompet", label: "Dompet" },
     ],
   },
   {

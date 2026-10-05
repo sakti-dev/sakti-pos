@@ -9,6 +9,7 @@ import { outletsRoutes } from "./outlets/routes";
 import { paymentSettingsRoutes } from "./payment-settings/routes";
 import { registersRoutes } from "./registers/routes";
 import { staffRoutes } from "./staff/routes";
+import { startupRoutes } from "./startup/routes";
 import { syncRoutes } from "./sync/routes";
 
 const app = new Elysia({ adapter: WebStandardAdapter })
@@ -28,6 +29,7 @@ const app = new Elysia({ adapter: WebStandardAdapter })
   .use(outletsRoutes)
   .use(paymentSettingsRoutes)
   .use(registersRoutes)
+  .use(startupRoutes)
   .use(staffRoutes)
   .use(syncRoutes)
   .get("/", () => "Sakti POS API v1");

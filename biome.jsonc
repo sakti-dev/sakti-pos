@@ -18,6 +18,7 @@
       "!!**/permissions/schemas",
       "!!packages/protobuf/src/proto",
       "!!**/node_modules",
+      "!!**/.vscode/sessions.json",
       "!!**/drizzle/meta",
       "!!docs/external"
     ]

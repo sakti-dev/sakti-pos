@@ -28,6 +28,11 @@ export function PickerField(props: PickerFieldProps) {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal("");
   const [creating, setCreating] = createSignal(false);
+  /** Label of an inline-created option that isn't in `options` (yet). */
+  const [createdLabel, setCreatedLabel] = createSignal<{
+    label: string;
+    value: string;
+  } | null>(null);
   let searchInput: HTMLInputElement | undefined;
 
   /* Focus trap is off for this sheet (its containment refocus pops the
@@ -39,12 +44,15 @@ export function PickerField(props: PickerFieldProps) {
     }
   });
 
-  /** Selected option — or the raw value itself when it was created
-      inline and isn't (yet) part of the passed options. */
+  /** Selected option — or the inline-created label — or the raw value. */
   const selected = (): PickerOption | undefined => {
     const match = props.options.find((o) => o.value === props.value);
     if (match) {
       return match;
+    }
+    const created = createdLabel();
+    if (created && created.value === props.value) {
+      return created;
     }
     return props.value ? { label: props.value, value: props.value } : undefined;
   };
@@ -67,6 +75,9 @@ export function PickerField(props: PickerFieldProps) {
   };
 
   const handleSelect = (value: string) => {
+    if (createdLabel()?.value !== value) {
+      setCreatedLabel(null);
+    }
     props.onChange?.(value);
     setOpen(false);
     setQuery("");
@@ -78,8 +89,10 @@ export function PickerField(props: PickerFieldProps) {
     }
     try {
       setCreating(true);
-      const result = props.onCreate!(query().trim());
+      const label = query().trim();
+      const result = props.onCreate!(label);
       const newValue = result instanceof Promise ? await result : result;
+      setCreatedLabel({ label, value: newValue });
       handleSelect(newValue);
     } finally {
       setCreating(false);

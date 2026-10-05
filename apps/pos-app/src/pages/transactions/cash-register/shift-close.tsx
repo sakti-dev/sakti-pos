@@ -11,9 +11,11 @@ import {
   getOpenShift,
   getShiftWindowTotals,
 } from "~/db/cash-shifts";
+import { getWalletsWithBalance, type WalletRow } from "~/db/wallets";
 import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import * as sale from "~/lib/sales/sale-session";
 import { createLogger, formatRupiah } from "~/lib/utils";
+import { WalletPicker } from "../dompet/components/wallet-picker";
 
 const logger = createLogger({ domain: "SHIFT", module: "shift-close" });
 
@@ -22,6 +24,11 @@ const MAX_DIGITS = 9;
 interface SummaryRow {
   readonly label: string;
   readonly value: string;
+}
+
+interface SubmittedSetoran {
+  readonly amountMinorUnits: number;
+  readonly toWalletName: string;
 }
 
 function formatDifference(minorUnits: number): string {
@@ -81,6 +88,22 @@ export default function ShiftClosePage() {
   const [note, setNote] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
   const [closedRow, setClosedRow] = createSignal<CashShiftRow | null>(null);
+  const [closedSetoran, setClosedSetoran] =
+    createSignal<SubmittedSetoran | null>(null);
+
+  /* Setoran (optional, default off): move counted money to another wallet. */
+  const walletsQuery = useDrizzleQuery(["drizzle", "wallets", "list"], () =>
+    getWalletsWithBalance()
+  );
+  const wallets = (): WalletRow[] => walletsQuery.data() ?? [];
+  const cashWallet = () => wallets().find((w) => w.type === "cash");
+  const setoranTargets = () =>
+    wallets().filter((w) => w.id !== cashWallet()?.id);
+  const [setoranOn, setSetoranOn] = createSignal(false);
+  const [setoranRaw, setSetoranRaw] = createSignal("");
+  const [setoranToId, setSetoranToId] = createSignal<string | undefined>(
+    undefined
+  );
 
   const toRegister = () =>
     navigate("/transactions/cash-register", { replace: true });
@@ -90,6 +113,11 @@ export default function ShiftClosePage() {
   const countMinor = () => countAmount() * 100;
   const difference = () => countMinor() - expected();
   const hasCart = () => sale.getCart().length > 0;
+  const setoranAmount = () =>
+    (Number.parseInt(setoranRaw() || "0", 10) || 0) * 100;
+  const setoranOver = () => setoranAmount() > countMinor();
+  const afterSetoranLabel = () =>
+    formatRupiah((countMinor() - setoranAmount()) / 100);
 
   const handleInput = (e: InputEvent) => {
     const digits = (e.currentTarget as HTMLInputElement).value.replace(
@@ -104,9 +132,9 @@ export default function ShiftClosePage() {
       return "PAS";
     }
     if (difference() < 0) {
-      return `KURANG ${formatRupiah(-difference())}`;
+      return `KURANG ${formatRupiah(-difference() / 100)}`;
     }
-    return `LEBIH ${formatRupiah(difference())}`;
+    return `LEBIH ${formatRupiah(difference() / 100)}`;
   };
 
   const differenceClass = () =>
@@ -117,16 +145,40 @@ export default function ShiftClosePage() {
     if (!open || submitting()) {
       return;
     }
+    if (setoranOn() && setoranOver()) {
+      toast.error("Setoran tidak boleh melebihi hitungan kasir");
+      return;
+    }
+    if (setoranOn() && setoranAmount() > 0 && !setoranToId()) {
+      toast.error("Pilih dompet tujuan setoran");
+      return;
+    }
+    const setoranTo = wallets().find((w) => w.id === setoranToId());
     setSubmitting(true);
     try {
       const row = await closeShift({
         actualCashMinorUnits: countMinor(),
         note: note(),
+        setoran:
+          setoranOn() && setoranAmount() > 0 && setoranTo
+            ? {
+                amountMinorUnits: setoranAmount(),
+                toWalletId: setoranTo.id,
+              }
+            : undefined,
         shiftId: open.id,
       });
       if (hasCart()) {
         sale.clearCart();
       }
+      setClosedSetoran(
+        setoranOn() && setoranAmount() > 0 && setoranTo
+          ? {
+              amountMinorUnits: setoranAmount(),
+              toWalletName: setoranTo.name,
+            }
+          : null
+      );
       setClosedRow(row);
       shiftQuery.refetch();
       toast.success("Shift ditutup");
@@ -257,6 +309,84 @@ export default function ShiftClosePage() {
                           placeholder="Catatan (opsional)"
                           value={note()}
                         />
+
+                        {/* Setoran (opsional) — money moved out at close. */}
+                        <button
+                          class="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-3 text-left"
+                          onClick={() => setSetoranOn(!setoranOn())}
+                          type="button"
+                        >
+                          <span class="font-semibold text-body-sm text-foreground">
+                            Setor uang ke dompet lain
+                          </span>
+                          <span
+                            class={`font-bold text-caption ${
+                              setoranOn()
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {setoranOn() ? "AKTIF" : "OFF"}
+                          </span>
+                        </button>
+                        <Show when={setoranOn()}>
+                          <div class="flex flex-col gap-3 rounded-xl border border-border bg-background p-3">
+                            <div class="flex h-[48px] items-center gap-2 rounded-lg border border-border bg-card px-3.5 transition-colors focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/10">
+                              <span class="font-semibold text-body-sm text-muted-foreground">
+                                Rp
+                              </span>
+                              <input
+                                aria-label="Jumlah setoran"
+                                autocomplete="off"
+                                class="w-full bg-transparent font-bold text-body-lg text-foreground tabular-nums outline-none"
+                                inputmode="numeric"
+                                onInput={(e) => {
+                                  const digits = (
+                                    e.currentTarget as HTMLInputElement
+                                  ).value.replace(/\D/g, "");
+                                  setSetoranRaw(digits.slice(0, MAX_DIGITS));
+                                }}
+                                placeholder="0"
+                                value={
+                                  setoranRaw()
+                                    ? Number.parseInt(
+                                        setoranRaw(),
+                                        10
+                                      ).toLocaleString("id-ID")
+                                    : ""
+                                }
+                              />
+                            </div>
+                            <Show when={setoranOver() && countRaw()}>
+                              <p class="text-caption text-danger">
+                                Setoran melebihi hitungan kasir
+                              </p>
+                            </Show>
+                            <WalletPicker
+                              label="Ke Dompet"
+                              onChange={setSetoranToId}
+                              value={setoranToId()}
+                              wallets={setoranTargets()}
+                            />
+                            <Show
+                              when={
+                                setoranToId() == null &&
+                                setoranTargets().length === 0
+                              }
+                            >
+                              <p class="text-caption text-muted-foreground">
+                                Belum ada dompet lain — tambahkan di Pengaturan
+                                → Dompet.
+                              </p>
+                            </Show>
+                            <Show when={countRaw()}>
+                              <p class="text-caption text-muted-foreground tabular-nums">
+                                Tersisa di laci: {afterSetoranLabel()}
+                              </p>
+                            </Show>
+                          </div>
+                        </Show>
+
                         <Show when={hasCart()}>
                           <p class="rounded-lg bg-warning/10 px-3 py-2 text-caption text-warning">
                             Ada keranjang belum dibayar — keranjang akan dibuang
@@ -327,11 +457,25 @@ export default function ShiftClosePage() {
                         label: "Selisih",
                         value: formatDifference(row.differenceMinorUnits ?? 0),
                       },
+                      ...(closedSetoran()
+                        ? [
+                            {
+                              label: "Setoran",
+                              value: formatRupiah(
+                                (closedSetoran()?.amountMinorUnits ?? 0) / 100
+                              ),
+                            },
+                            {
+                              label: "Tujuan setoran",
+                              value: closedSetoran()?.toWalletName ?? "",
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                   <Button
                     class="mt-1 h-12 w-full font-bold text-body-sm"
-                    onClick={toRegister}
+                    onClick={() => navigate("/", { replace: true })}
                   >
                     Selesai
                   </Button>

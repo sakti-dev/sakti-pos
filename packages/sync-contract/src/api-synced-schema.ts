@@ -333,6 +333,8 @@ export const orders = sqliteTable(
       .notNull()
       .default(0),
     status: text("status", { enum: ["completed", "cancelled"] }).notNull(),
+    /** Soft-ref to `wallets.id` — wallet the sale deposited into (resolved at checkout). */
+    walletId: text("wallet_id"),
     ...apiSyncColumns(),
   },
   (table) => [
@@ -724,5 +726,74 @@ export const paymentSettings = sqliteTable(
       table.syncUpdatedAt
     ),
     uniqueIndex("payment_settings_merchant_idx").on(table.merchantId),
+  ]
+);
+
+export const wallets = sqliteTable(
+  "wallets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    name: text("name").notNull(),
+    type: text("type", { enum: ["cash", "bank", "qris"] }).notNull(),
+    accountNumber: text("account_number"),
+    isDefault: integer("is_default", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    currentBalanceMinorUnits: integer("current_balance_minor_units")
+      .notNull()
+      .default(0),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("wallets_scope_sync_idx").on(table.outletId, table.syncUpdatedAt),
+    index("wallets_outlet_type_idx").on(table.outletId, table.type),
+  ]
+);
+
+export const walletTransactions = sqliteTable(
+  "wallet_transactions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    outletId: text("outlet_id")
+      .notNull()
+      .references(() => outlets.id),
+    walletId: text("wallet_id")
+      .notNull()
+      .references(() => wallets.id),
+    type: text("type", {
+      enum: [
+        "sale",
+        "cash_in",
+        "cash_out",
+        "transfer_in",
+        "transfer_out",
+        "reconciliation",
+      ],
+    }).notNull(),
+    amountMinorUnits: integer("amount_minor_units").notNull(),
+    category: text("category"),
+    referenceId: text("reference_id"),
+    notes: text("notes"),
+    createdByStaffId: text("created_by_staff_id")
+      .notNull()
+      .references(() => staff.id),
+    ...apiSyncColumns(),
+  },
+  (table) => [
+    index("wallet_transactions_scope_sync_idx").on(
+      table.outletId,
+      table.syncUpdatedAt
+    ),
+    index("wallet_transactions_wallet_created_idx").on(
+      table.walletId,
+      table.createdAt
+    ),
   ]
 );

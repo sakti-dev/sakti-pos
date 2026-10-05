@@ -47,8 +47,12 @@ export default function CashRegisterPage() {
 
   // Shift gate: no open shift for this outlet → the open screen owns
   // the flow. Redirect (not inline render) so ssgoi animates the pair.
+  // `fetching` guards against stale cache: right after Buka Shift the
+  // cached entry still holds the closed-shift null while the refetch
+  // that would return the new shift is in flight.
   createEffect(() => {
-    if (!shiftQuery.loading() && shift() == null) {
+    const gateIdle = !(shiftQuery.loading() || shiftQuery.fetching());
+    if (gateIdle && shift() == null) {
       navigate("/transactions/cash-register/shift-open", { replace: true });
     }
   });

@@ -62,7 +62,7 @@ pub fn run() {
                 ))
                 .db_path("baresync.db")
                 .contract_json(include_str!(
-                    "../../../../packages/sync-contract/generated/2026-10-03/sync-contract.json"
+                    "../../../../packages/sync-contract/generated/2026-10-05/sync-contract.json"
                 ))
                 .migrations_path("migrations")
                 .poll_interval_secs(30)

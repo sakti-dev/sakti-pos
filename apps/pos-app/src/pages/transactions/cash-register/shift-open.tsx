@@ -5,6 +5,8 @@ import { ArrowLeftIcon, WalletIcon } from "~/assets";
 import { SafeAreaShell } from "~/components/layout/safe-area-shell";
 import { Button } from "~/components/ui/button";
 import { openShift } from "~/db/cash-shifts";
+import { getWalletsWithBalance } from "~/db/wallets";
+import { useDrizzleQuery } from "~/lib/api/use-drizzle-query";
 import { createLogger, formatRupiah } from "~/lib/utils";
 
 const logger = createLogger({ domain: "SHIFT", module: "shift-open" });
@@ -19,6 +21,14 @@ export default function ShiftOpenPage() {
   const navigate = useNavigate();
   const [floatRaw, setFloatRaw] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
+  const walletsQuery = useDrizzleQuery(
+    ["drizzle", "wallets", "cash-balance"],
+    () => getWalletsWithBalance()
+  );
+  const recordedCash = () => {
+    const cash = (walletsQuery.data() ?? []).find((w) => w.type === "cash");
+    return cash ? cash.currentBalanceMinorUnits : null;
+  };
 
   onMount(() => {
     logger.info("GATE_BLOCKED", { reason: "no_open_shift" });
@@ -113,6 +123,23 @@ export default function ShiftOpenPage() {
             <Show when={floatAmount() > 0}>
               <p class="mt-1.5 text-caption text-muted-foreground">
                 {formatRupiah(floatAmount())} akan tercatat sebagai float awal
+              </p>
+            </Show>
+            <Show when={recordedCash() !== null}>
+              <p class="mt-1.5 text-caption text-muted-foreground">
+                Tercatat di laci: {formatRupiah((recordedCash() ?? 0) / 100)}
+                <Show
+                  when={
+                    floatRaw() !== "" &&
+                    floatAmount() * 100 !== (recordedCash() ?? 0)
+                  }
+                >
+                  {" "}
+                  —{" "}
+                  <span class="text-warning">
+                    selisih akan dicatat sebagai penyesuaian
+                  </span>
+                </Show>
               </p>
             </Show>
 

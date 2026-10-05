@@ -9,6 +9,7 @@ export function useDrizzleQuery<T>(
 ): {
   data: Accessor<T>;
   loading: Accessor<boolean>;
+  fetching: Accessor<boolean>;
   error: Accessor<string | null>;
   refetch: () => void;
 };
@@ -19,6 +20,7 @@ export function useDrizzleQuery<T, S>(
 ): {
   data: Accessor<T>;
   loading: Accessor<boolean>;
+  fetching: Accessor<boolean>;
   error: Accessor<string | null>;
   refetch: () => void;
 };
@@ -41,6 +43,7 @@ export function useDrizzleQuery<T, S>(
   return {
     data: () => query.data as T,
     loading: () => query.isPending,
+    fetching: () => query.isFetching,
     error: () => (query.error ? String(query.error) : null),
     refetch: () => {
       query.refetch();

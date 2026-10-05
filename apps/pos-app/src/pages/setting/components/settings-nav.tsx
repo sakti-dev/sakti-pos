@@ -17,6 +17,7 @@ import { cn } from "~/lib/utils";
 export type SectionKey =
   | "business"
   | "general"
+  | "dompet"
   | "tax"
   | "payment-methods"
   | "payment-monitor"
@@ -42,6 +43,12 @@ export const NAV_ITEMS: readonly {
     label: "Umum",
     desc: "Konfigurasi dasar aplikasi",
     Icon: SettingsIcon,
+  },
+  {
+    key: "dompet",
+    label: "Dompet",
+    desc: "Kelola dompet tunai, bank, dan QRIS",
+    Icon: CreditCardIcon,
   },
   {
     key: "tax",

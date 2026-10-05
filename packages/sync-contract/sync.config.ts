@@ -32,6 +32,8 @@ export const syncGeneratorConfig = defineSyncConfig({
     goodsReceiptLines: { scopeColumn: "outletId" },
     stockAdjustments: { scopeColumn: "outletId" },
     cashShifts: { scopeColumn: "outletId" },
+    wallets: { scopeColumn: "outletId" },
+    walletTransactions: { scopeColumn: "outletId" },
     orderItemModifiers: { scopeColumn: "outletId" },
     paymentSettings: { scopeColumn: "merchantId" },
   },

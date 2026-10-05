@@ -60,6 +60,10 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [AUTH:LOGIN_WITH_CLOUD_STAFF_RESULT]` | `store/auth.ts` |
 | `[JS] [AUTH:NETWORK_ERROR]` | `lib/auth/cloud.ts` |
 | `[JS] [AUTH:OUTLET_SELECTED]` | `pages/login/use-cloud-auth-flow.ts` |
+| `[JS] [AUTH:STARTUP_COMPLETED]` | `lib/auth/startup.ts` — startup handshake ok (`blocking` or `background`, `outlet_id`); server evidence in `logs/api.log` (`"msg":"startup …"`) |
+| `[JS] [AUTH:STARTUP_ATTEMPT_FAILED]` | `lib/auth/startup.ts` — a blocking attempt failed (includes `attempt`, retries remain) |
+| `[JS] [AUTH:STARTUP_DEGRADED]` | `lib/auth/startup.ts` — first-run handshake failed after retries; app proceeds, server steps self-heal next login |
+| `[JS] [AUTH:STARTUP_BACKGROUND_FAILED]` | `lib/auth/startup.ts` — background handshake failed (non-fatal, silent to the user) |
 | `[JS] [AUTH:REQUEST]` | `lib/auth/cloud.ts` |
 | `[JS] [AUTH:RESPONSE]` | `lib/auth/cloud.ts` |
 | `[JS] [AUTH:CREATE_MERCHANT_FAILED]` | `pages/onboarding.tsx` |
@@ -214,6 +218,11 @@ PID="$(adb shell pidof -s com.sakti_dev.sakti_pos | tr -d '\r')" && adb logcat -
 | `[JS] [INVENTORY:CATEGORY_CREATED]` | `db/ingredient-categories.ts` — inline category created + enqueued, includes `name` |
 | `[JS] [INVENTORY:UPDATED]` | `db/ingredients.ts` — bahan baku fields updated |
 | `[JS] [INVENTORY:SOFT_DELETED]` | `db/ingredients.ts` — bahan baku deactivated |
+| `[JS] [WALLET:WALLET_SEEDED]` | `db/wallets.ts` — deterministic default wallet inserted, includes `wallet_id`, `wallet_type`, `outlet_id` |
+| `[JS] [WALLET:WALLET_SEED_FAILED]` | `db/wallets.ts` — app-start seeding failed (non-fatal; checkout re-ensures), includes `reason` |
+| `[JS] [WALLET:WALLET_MOVEMENT]` | `db/wallets.ts` — uang masuk/keluar recorded, includes `wallet_id`, `type`, `amount`, `balance_after`, `category` |
+| `[JS] [WALLET:WALLET_RECONCILED]` | `db/wallets.ts` — opname/set variance applied, includes `wallet_id`, `balance_before`, `counted`, `variance`, `shift_id` |
+| `[JS] [WALLET:WALLET_TRANSFERRED]` | `db/wallets.ts` — transfer pair written, includes `reference_id`, `from_wallet_id`, `to_wallet_id`, `amount`, post-balances |
 | `[JS] [POS:RECIPE_SAVED]` | `db/recipes.ts` — product recipe diff written (inserts/qty updates/soft-deletes), includes `productId`, `lines` |
 | `[JS] [POS:RECIPE_DEDUCTION_FAILED]` | `db/orders.ts` — one ingredient's checkout deduction threw; logged and skipped so the sale still completes, includes `productId`, `ingredientId`, `error` |
 | `[JS] [INVENTORY:CREATE_START]` | `db/ingredients.ts` — createIngredient entered (pre-transaction), includes `name`, `unit` |
@@ -248,7 +257,24 @@ the Elysia 2 migration.
 grep '"origin":"API"' logs/api.log        # all request lines
 grep '"lvl":"error"' logs/api.log         # errors only
 grep '"path":"/api/sync' logs/api.log     # sync endpoints
+grep '"msg":"startup' logs/api.log        # startup handshake steps
 ```
+
+### Startup handshake
+
+`POST /api/startup` (server-side default wallet seeding) emits one line per
+call with `msg: "startup applied"` (list the steps that did work, e.g.
+`ensure_default_wallets`, `ensure_qris_wallet`) or `"startup noop"` (all
+steps satisfied):
+
+```json
+{"lvl":"info","origin":"API","msg":"startup applied","applied":["ensure_default_wallets","ensure_qris_wallet"],"outlet_id":"…","user_id":"…"}
+```
+
+The client logs its half under the AUTH domain
+(`[AUTH:STARTUP_COMPLETED]` / `[AUTH:STARTUP_ATTEMPT_FAILED]` /
+`[AUTH:STARTUP_DEGRADED]` / `[AUTH:STARTUP_BACKGROUND_FAILED]`) — first run
+per device+outlet blocks the UI, later runs go to the background.
 
 ## Kotlin Prefixes
 

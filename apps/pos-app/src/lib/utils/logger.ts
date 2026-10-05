@@ -23,7 +23,8 @@ export type LogDomain =
   | "SETTINGS"
   | "SHIFT"
   | "SYNC"
-  | "UI";
+  | "UI"
+  | "WALLET";
 
 export type LogContext = Record<string, unknown> & {
   domain?: LogDomain;

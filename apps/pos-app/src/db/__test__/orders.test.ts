@@ -31,6 +31,14 @@ const getRecipesForProducts = vi.fn(
 );
 vi.mock("../recipes", () => ({ getRecipesForProducts }));
 
+const resolveSaleWallet = vi.fn(async (): Promise<unknown> => undefined);
+const applySaleDeposit = vi.fn(async () => undefined);
+vi.mock("../wallets", () => ({
+  resolveSaleWallet,
+  applySaleDeposit,
+  requireStaffId: () => "staff-1",
+}));
+
 vi.mock("~/lib/utils", () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
@@ -179,6 +187,82 @@ describe("orders persistence", () => {
     await expect(
       persistOrder(saleOrder as unknown as Parameters<typeof persistOrder>[0])
     ).rejects.toThrow("no active outlet");
+  });
+
+  test("resolves a wallet, stamps it on the order, and deposits the total at the tail", async () => {
+    const session = await import("~/lib/auth/session");
+    vi.spyOn(session, "currentOutletId").mockReturnValue("outlet-1");
+    const wallet = {
+      id: "w-cash",
+      outletId: "outlet-1",
+      type: "cash",
+      currentBalanceMinorUnits: 450_000,
+    };
+    resolveSaleWallet.mockResolvedValueOnce(wallet);
+    const valuesFn = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: "order-9" }]),
+    });
+    mockInsert.mockImplementation(() => ({ values: valuesFn }));
+    /* Spec scenario: Rp 50.000 sale paid with Rp 100.000 → wallet gains
+       exactly the total (change was funded by the over-tender). */
+    const cashSale = {
+      ...saleOrder,
+      payment: { method: "cash" },
+      paid: 100_000,
+      change: 50_000,
+    };
+
+    await persistOrder(
+      cashSale as unknown as Parameters<typeof persistOrder>[0]
+    );
+
+    expect(resolveSaleWallet).toHaveBeenCalledWith("cash");
+    const orderValues = valuesFn.mock.calls[0][0];
+    expect(orderValues.walletId).toBe("w-cash");
+    expect(applySaleDeposit).toHaveBeenCalledTimes(1);
+    expect(applySaleDeposit).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        wallet,
+        orderId: "order-9",
+        netAmountMinorUnits: 5_000_000,
+        staffId: "staff-1",
+      })
+    );
+  });
+
+  test("deposit failure aborts the order write (same-transaction guarantee)", async () => {
+    const session = await import("~/lib/auth/session");
+    vi.spyOn(session, "currentOutletId").mockReturnValue("outlet-1");
+    resolveSaleWallet.mockResolvedValueOnce({
+      id: "w-cash",
+      outletId: "outlet-1",
+      type: "cash",
+      currentBalanceMinorUnits: 0,
+    });
+    applySaleDeposit.mockRejectedValueOnce(new Error("wallet write boom"));
+
+    await expect(
+      persistOrder(saleOrder as unknown as Parameters<typeof persistOrder>[0])
+    ).rejects.toThrow("wallet write boom");
+  });
+
+  test("no wallet resolved → order still persists, no deposit", async () => {
+    const session = await import("~/lib/auth/session");
+    vi.spyOn(session, "currentOutletId").mockReturnValue("outlet-1");
+    resolveSaleWallet.mockResolvedValueOnce(undefined);
+    const valuesFn = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: "order-10" }]),
+    });
+    mockInsert.mockImplementation(() => ({ values: valuesFn }));
+
+    const row = await persistOrder(
+      saleOrder as unknown as Parameters<typeof persistOrder>[0]
+    );
+
+    expect(row.id).toBe("order-10");
+    expect(applySaleDeposit).not.toHaveBeenCalled();
+    expect(valuesFn.mock.calls[0][0].walletId).toBeUndefined();
   });
 });
 
