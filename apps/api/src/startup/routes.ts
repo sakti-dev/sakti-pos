@@ -12,7 +12,7 @@ import { ForbiddenRequestError, throwIfFalse } from "../lib/request-auth";
 import { BadRequestError, requireNonEmptyString } from "../lib/validation";
 import { StartupRequest } from "./startup.model";
 
-const DEFAULT_CASH_WALLET_NAME = "Laci Kas";
+const DEFAULT_CASH_WALLET_NAME = "Tunai";
 const DEFAULT_QRIS_WALLET_NAME = "QRIS";
 
 function logStartup(entry: {

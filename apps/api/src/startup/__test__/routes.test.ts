@@ -111,7 +111,7 @@ describe("startup handshake", () => {
     expect(response.status).toBe(404);
   });
 
-  test("seeds Laci Kas only when QRIS is off", async () => {
+  test("seeds the Tunai wallet only when QRIS is off", async () => {
     mockGetSessionFromRequest.mockResolvedValue(session);
     selectQueue([
       [outletRow], // outlet

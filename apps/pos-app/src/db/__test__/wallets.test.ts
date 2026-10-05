@@ -143,13 +143,13 @@ const {
 const CASH_ID = "w-cash";
 const QRIS_ID = "w-qris";
 
-/** A funded Laci Kas row for movement/reconciliation tests. */
+/** A funded Tunai row for movement/reconciliation tests. */
 const cashWalletRow = (
   overrides: Partial<Record<string, unknown>> = {}
 ): Record<string, unknown> => ({
   id: CASH_ID,
   outletId: "outlet-1",
-  name: "Laci Kas",
+  name: "Tunai",
   type: "cash",
   accountNumber: null,
   isDefault: true,
@@ -165,7 +165,7 @@ const ledgerRow = (
 ): Record<string, unknown> => ({
   id: `txn-${++ledgerSeq}`,
   walletId: CASH_ID,
-  walletName: "Laci Kas",
+  walletName: "Tunai",
   walletType: "cash",
   type: "cash_in",
   amountMinorUnits: 50_000,
@@ -210,7 +210,7 @@ describe("getWalletLedger", () => {
     expect(page.entries).toHaveLength(2);
     expect(page.entries[0]).toMatchObject({
       id: "txn-1",
-      walletName: "Laci Kas",
+      walletName: "Tunai",
       walletType: "cash",
       type: "sale",
       amountMinorUnits: 35_000,
@@ -277,7 +277,7 @@ describe("getWalletsWithBalance", () => {
       {
         id: CASH_ID,
         outletId: "outlet-1",
-        name: "Laci Kas",
+        name: "Tunai",
         type: "cash",
         isDefault: true,
         currentBalanceMinorUnits: 450_000,
@@ -288,10 +288,7 @@ describe("getWalletsWithBalance", () => {
 
     const walletsList = await getWalletsWithBalance();
 
-    expect(walletsList.map((row) => row.name)).toEqual([
-      "Laci Kas",
-      "Bank BCA",
-    ]);
+    expect(walletsList.map((row) => row.name)).toEqual(["Tunai", "Bank BCA"]);
   });
 });
 

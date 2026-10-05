@@ -139,7 +139,7 @@ export async function getOpenShift(
 }
 
 /**
- * Live drawer snapshot for the home plaque: open shift + the Laci Kas
+ * Live drawer snapshot for the home plaque: open shift + the Tunai
  * wallet balance (the authoritative drawer total) + the wallet strip.
  */
 export async function getDrawerSnapshot(): Promise<{
@@ -163,7 +163,7 @@ export async function getDrawerSnapshot(): Promise<{
 /**
  * Live totals for a shift's window [openedAt, now): cash sales and
  * informational QRIS sales come from the sale ledger; expected-in-drawer
- * is the Laci Kas wallet balance.
+ * is the Tunai wallet balance.
  */
 export async function getShiftWindowTotals(
   shift: Pick<CashShiftRow, "initialFloatMinorUnits" | "openedAt" | "outletId">
@@ -209,7 +209,7 @@ export async function getShiftWindowTotals(
 
 /**
  * Open a shift: float + opener, `status: 'open'`, outbox-enqueued. The
- * declared float is the total cash in the drawer at open — the Laci Kas
+ * declared float is the total cash in the drawer at open — the Tunai
  * wallet is reconciled to it (fresh install: 0 → float; steady state:
  * usually a no-op), so wallet balance = drawer truth from the start.
  */
@@ -293,9 +293,9 @@ export interface CloseSetoranInput {
 }
 
 /**
- * Close a shift. Expected cash is the Laci Kas wallet balance read INSIDE
+ * Close a shift. Expected cash is the Tunai wallet balance read INSIDE
  * the write transaction. The close additionally writes wallet ledger
- * events: a reconciliation applying the counted variance to Laci Kas, and
+ * events: a reconciliation applying the counted variance to Tunai, and
  * — when setoran is provided — a linked transfer pair moving the money out.
  */
 export async function closeShift(input: {
@@ -339,7 +339,7 @@ export async function closeShift(input: {
     }
     const closedAt = dayjs().toISOString();
 
-    /* Expected = the Laci Kas balance right now (authoritative drawer total). */
+    /* Expected = the Tunai balance right now (authoritative drawer total). */
     const outletId = shift.outletId;
     const [cashWallet] = await tx
       .select()

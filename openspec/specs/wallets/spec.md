@@ -22,12 +22,12 @@ The system SHALL maintain a synced `wallets` table scoped by `outletId` with: `n
 
 ### Requirement: Server-Side Startup Seeding
 
-The system SHALL provide an authenticated startup handshake (`POST /api/startup`, called per outlet scope on session establishment) that idempotently ensures the outlet's default wallets server-side: the Laci Kas cash wallet always, and the QRIS wallet when the merchant's payment settings enable QRIS. Startup steps SHALL be registered, named, idempotent, and transactional, and the response SHALL report which steps did work. The client SHALL call the handshake on every session establishment — blocking on a device's first run for the outlet, in the background on subsequent runs — and SHALL NOT seed wallets locally.
+The system SHALL provide an authenticated startup handshake (`POST /api/startup`, called per outlet scope on session establishment) that idempotently ensures the outlet's default wallets server-side: the Tunai cash wallet always, and the QRIS wallet when the merchant's payment settings enable QRIS. Startup steps SHALL be registered, named, idempotent, and transactional, and the response SHALL report which steps did work. The client SHALL call the handshake on every session establishment — blocking on a device's first run for the outlet, in the background on subsequent runs — and SHALL NOT seed wallets locally.
 
 #### Scenario: Fresh install seeds wallets before home
 
 - **WHEN** a device logs in for the first time after a clean install
-- **THEN** the startup handshake runs before the home screen renders and the outlet has a Laci Kas wallet
+- **THEN** the startup handshake runs before the home screen renders and the outlet has a Tunai wallet
 
 #### Scenario: QRIS enabled creates the wallet on startup
 
@@ -60,8 +60,8 @@ The system SHALL maintain a synced `wallet_transactions` table as the append-onl
 
 #### Scenario: Transfer produces a linked pair
 
-- **WHEN** a transfer of Rp 400.000 moves from Laci Kas to Bank BCA
-- **THEN** a `transfer_out` row on Laci Kas and a `transfer_in` row on Bank BCA share one `referenceId` linking the pair
+- **WHEN** a transfer of Rp 400.000 moves from Tunai to Bank BCA
+- **THEN** a `transfer_out` row on Tunai and a `transfer_in` row on Bank BCA share one `referenceId` linking the pair
 
 ### Requirement: Balance Update Rules
 
@@ -69,7 +69,7 @@ The system SHALL store wallet balances directly and update them in the same loca
 
 #### Scenario: Movement applies delta atomically
 
-- **WHEN** a cash out of Rp 80.000 is recorded on Laci Kas
+- **WHEN** a cash out of Rp 80.000 is recorded on Tunai
 - **THEN** the balance decreases by 80.000 in the same transaction that inserts the ledger row, and both sync together
 
 #### Scenario: Balance drift self-heals at reconciliation
@@ -102,8 +102,8 @@ The system SHALL let the user record Uang Masuk (cash in) and Uang Keluar (cash 
 
 #### Scenario: Record operational expense
 
-- **WHEN** the user records a cash out of Rp 80.000 from Laci Kas categorized Operasional with note "Beli gas"
-- **THEN** Laci Kas decreases by 80.000 and the ledger row shows KELUAR with the category and note
+- **WHEN** the user records a cash out of Rp 80.000 from Tunai categorized Operasional with note "Beli gas"
+- **THEN** Tunai decreases by 80.000 and the ledger row shows KELUAR with the category and note
 
 #### Scenario: Amount must be positive
 
@@ -116,8 +116,8 @@ The system SHALL move money between two wallets of the same outlet as one atomic
 
 #### Scenario: Transfer between wallets
 
-- **WHEN** the user transfers Rp 400.000 from Laci Kas to Bank BCA
-- **THEN** Laci Kas decreases and Bank BCA increases by 400.000 atomically, with both ledger rows sharing one reference ID
+- **WHEN** the user transfers Rp 400.000 from Tunai to Bank BCA
+- **THEN** Tunai decreases and Bank BCA increases by 400.000 atomically, with both ledger rows sharing one reference ID
 
 #### Scenario: Same-wallet transfer rejected
 
@@ -135,12 +135,12 @@ The system SHALL set a wallet's balance to a physical/system-counted value in on
 
 #### Scenario: Count short records negative variance
 
-- **WHEN** Laci Kas holds 500.000 and the user counts 495.000
+- **WHEN** Tunai holds 500.000 and the user counts 495.000
 - **THEN** the balance is set to 495.000 and the reconciliation row records −5.000
 
 #### Scenario: Count over records positive variance
 
-- **WHEN** Laci Kas holds 500.000 and the user counts 510.000
+- **WHEN** Tunai holds 500.000 and the user counts 510.000
 - **THEN** the balance is set to 510.000 and the reconciliation row records +10.000
 
 #### Scenario: Count exact writes a zero-amount record
@@ -154,12 +154,12 @@ The Dompet screen SHALL be balance-first: total across active wallets, quick act
 
 #### Scenario: Hub shows balances and recent activity
 
-- **WHEN** the merchant has Laci Kas 450.000 and QRIS 1.250.000 with three transactions today
+- **WHEN** the merchant has Tunai 450.000 and QRIS 1.250.000 with three transactions today
 - **THEN** the hub shows the 1.700.000 total, both wallets, the three recent entries, and the riwayat link
 
 #### Scenario: Zero wallets beyond defaults
 
-- **WHEN** only the seeded Laci Kas and QRIS wallets exist
+- **WHEN** only the seeded Tunai and QRIS wallets exist
 - **THEN** the hub still renders fully with the two wallets and their live balances
 
 ### Requirement: Riwayat Ledger Screen
